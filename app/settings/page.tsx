@@ -5,6 +5,7 @@ export default function SettingsPage() {
         fontSize: '32px',
         fontWeight: 'bold',
         marginBottom: '20px',
+        marginTop: 0,
         color: '#f1f5f9'
       }}>
         Settings

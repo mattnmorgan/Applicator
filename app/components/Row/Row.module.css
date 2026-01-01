@@ -1,0 +1,14 @@
+.row {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 12px 16px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+
+.row:hover {
+  background: #1e293b;
+}

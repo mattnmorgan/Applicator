@@ -9,6 +9,8 @@ export interface User {
   displayName: string;
   passwordHash: string;
   isAdmin: boolean;
+  isActive: boolean;
+  profilePicture?: string;
   createdAt: string;
 }
 
@@ -38,6 +40,7 @@ export async function createUser(
     displayName,
     passwordHash,
     isAdmin,
+    isActive: true,
     createdAt: new Date().toISOString(),
   };
 
@@ -74,6 +77,36 @@ export async function getUserByUsername(username: string): Promise<User | null> 
 
 export async function verifyPassword(password: string, passwordHash: string): Promise<boolean> {
   return bcrypt.compare(password, passwordHash);
+}
+
+export async function getAllUsers(): Promise<User[]> {
+  const redis = getRedisClient();
+  const keys = await redis.keys('user:*');
+
+  // Filter out username mapping keys
+  const userKeys = keys.filter(key => !key.includes('user:username:'));
+
+  const users: User[] = [];
+  for (const key of userKeys) {
+    const userData = await redis.get(key);
+    if (userData) {
+      users.push(JSON.parse(userData) as User);
+    }
+  }
+
+  return users;
+}
+
+export async function updateUserStatus(userId: string, isActive: boolean): Promise<void> {
+  const redis = getRedisClient();
+  const user = await getUserById(userId);
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  user.isActive = isActive;
+  await redis.set(`user:${userId}`, JSON.stringify(user));
 }
 
 // Session management

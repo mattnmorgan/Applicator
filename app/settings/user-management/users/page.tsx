@@ -1,3 +1,7 @@
+'use client';
+
+import UserList from '@/app/components/UserList';
+
 export default function UsersPage() {
   return (
     <div>
@@ -5,16 +9,12 @@ export default function UsersPage() {
         fontSize: '24px',
         fontWeight: 'bold',
         marginBottom: '16px',
+        marginTop: 0,
         color: '#f1f5f9'
       }}>
         Users
       </h2>
-      <p style={{
-        color: '#94a3b8',
-        fontSize: '16px'
-      }}>
-        Hello from Users page
-      </p>
+      <UserList />
     </div>
   );
 }

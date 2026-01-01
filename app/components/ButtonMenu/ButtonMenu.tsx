@@ -1,25 +1,41 @@
 'use client';
 
-import { useState, useRef, useEffect, ReactNode, cloneElement, isValidElement } from 'react';
+import React, { useState, useRef, useEffect, ReactNode, cloneElement, isValidElement } from 'react';
+import { createPortal } from 'react-dom';
 import styles from './ButtonMenu.module.css';
 
 interface ButtonMenuProps {
   children: ReactNode;
-  options: {
+  options?: {
     label: string;
     icon: ReactNode;
     onClick: () => void;
   }[];
+  trigger?: ReactNode;
+  disabled?: boolean;
+  alignment?: 'left' | 'right';
 }
 
-export default function ButtonMenu({ children, options }: ButtonMenuProps) {
+export default function ButtonMenu({ children, options, trigger, disabled = false, alignment = 'right' }: ButtonMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
+  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, right: 0 });
+  const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
+  const triggerRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+      if (
+        menuRef.current &&
+        triggerRef.current &&
+        !menuRef.current.contains(event.target as Node) &&
+        !triggerRef.current.contains(event.target as Node)
+      ) {
         setIsOpen(false);
       }
     }
@@ -33,41 +49,118 @@ export default function ButtonMenu({ children, options }: ButtonMenuProps) {
     };
   }, [isOpen]);
 
-  // Clone children and pass isOpen prop if it's a valid React element
-  const childrenWithProps = isValidElement(children)
-    ? cloneElement(children as React.ReactElement<any>, { isOpen })
-    : children;
+  useEffect(() => {
+    if (disabled) {
+      setIsOpen(false);
+    }
+  }, [disabled]);
 
-  return (
-    <div ref={menuRef} className={styles.menuContainer}>
-      <div
-        onClick={() => setIsOpen(!isOpen)}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        className={`${styles.trigger} ${isOpen || isHovered ? styles.triggerActive : styles.triggerDefault}`}
-      >
-        {childrenWithProps}
-      </div>
+  useEffect(() => {
+    if (isOpen && triggerRef.current) {
+      const rect = triggerRef.current.getBoundingClientRect();
+      const updatePosition = () => {
+        setMenuPosition({
+          top: rect.bottom + window.scrollY + 4,
+          left: alignment === 'left' ? rect.left + window.scrollX : 0,
+          right: alignment === 'right' ? window.innerWidth - rect.right - window.scrollX : 0,
+        });
+      };
+      updatePosition();
 
-      {isOpen && (
-        <div className={styles.dropdown}>
-          {options.map((option, index) => (
-            <button
-              key={index}
-              onClick={() => {
-                option.onClick();
-                setIsOpen(false);
-              }}
-              className={styles.menuItem}
-            >
-              <span className={styles.menuItemIcon}>
-                {option.icon}
-              </span>
-              <span>{option.label}</span>
-            </button>
-          ))}
+      // Also update on scroll/resize
+      window.addEventListener('scroll', updatePosition);
+      window.addEventListener('resize', updatePosition);
+
+      return () => {
+        window.removeEventListener('scroll', updatePosition);
+        window.removeEventListener('resize', updatePosition);
+      };
+    }
+  }, [isOpen, alignment]);
+
+  const handleToggle = () => {
+    if (!disabled) {
+      setIsOpen(!isOpen);
+    }
+  };
+
+  // Use trigger prop if provided, otherwise use children (legacy API)
+  const triggerElement = trigger || children;
+
+  // Helper function to add rotation to caret SVGs in the trigger
+  const addCaretRotation = (element: ReactNode): ReactNode => {
+    if (!isValidElement(element)) return element;
+
+    // Check if this is an SVG element (the caret)
+    if (element.type === 'svg') {
+      return cloneElement(element as React.ReactElement<any>, {
+        style: {
+          ...((element.props as any).style || {}),
+          transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
+          transition: 'transform 0.2s',
+        },
+      });
+    }
+
+    // Recursively process children
+    if (element.props?.children) {
+      return cloneElement(element as React.ReactElement<any>, {
+        children: React.Children.map(element.props.children, addCaretRotation),
+      });
+    }
+
+    return element;
+  };
+
+  const triggerWithProps = addCaretRotation(triggerElement);
+
+  const dropdownContent = isOpen && !disabled && (
+    <div
+      ref={menuRef}
+      className={styles.dropdown}
+      style={{
+        position: 'fixed',
+        top: `${menuPosition.top}px`,
+        ...(alignment === 'left' ? { left: `${menuPosition.left}px` } : { right: `${menuPosition.right}px` }),
+      }}
+    >
+      {options ? (
+        options.map((option, index) => (
+          <button
+            key={index}
+            onClick={() => {
+              option.onClick();
+              setIsOpen(false);
+            }}
+            className={styles.menuItem}
+          >
+            <span className={styles.menuItemIcon}>
+              {option.icon}
+            </span>
+            <span>{option.label}</span>
+          </button>
+        ))
+      ) : (
+        <div onClick={() => setIsOpen(false)}>
+          {children}
         </div>
       )}
+    </div>
+  );
+
+  return (
+    <div className={styles.menuContainer}>
+      <div
+        ref={triggerRef}
+        onClick={handleToggle}
+        onMouseEnter={() => !disabled && setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        className={`${styles.trigger} ${disabled ? '' : (isOpen || isHovered ? styles.triggerActive : styles.triggerDefault)}`}
+      >
+        {triggerWithProps}
+      </div>
+
+      {mounted && typeof window !== 'undefined' && createPortal(dropdownContent, document.body)}
     </div>
   );
 }

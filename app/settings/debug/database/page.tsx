@@ -9,6 +9,7 @@ export default function DatabasePage() {
         fontSize: '24px',
         fontWeight: 'bold',
         marginBottom: '16px',
+        marginTop: 0,
         color: '#f1f5f9'
       }}>
         Database Viewer
