@@ -1,0 +1,6 @@
+.next/
+.claude/
+node_modules/
+production/
+.env
+.env.local

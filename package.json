@@ -1,0 +1,43 @@
+{
+  "name": "applicator",
+  "version": "1.0.0",
+  "author": "Matthew Morgan",
+  "description": "Dynamic application development framework platform",
+  "main": "index.js",
+  "scripts": {
+    "wsl:redis": "wsl /usr/bin/redis-server --port 6380 --dir ./production --dbfilename ticketeer.rdb --appendonly yes --appendfilename ticketeer.aof",
+    "redis": "redis-server --port 6380 --dir ./production --dbfilename ticketeer.rdb --appendonly yes --appendfilename ticketeer.aof",
+    "dev": "next dev -H 0.0.0.0",
+    "dev:local": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "license": "ISC",
+  "dependencies": {
+    "@hello-pangea/dnd": "^18.0.1",
+    "@lexical/code": "^0.39.0",
+    "@lexical/link": "^0.39.0",
+    "@lexical/list": "^0.39.0",
+    "@lexical/markdown": "^0.39.0",
+    "@lexical/plain-text": "^0.39.0",
+    "@lexical/react": "^0.39.0",
+    "@lexical/rich-text": "^0.39.0",
+    "@lexical/utils": "^0.39.0",
+    "@types/node": "^24.10.2",
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@types/uuid": "^11.0.0",
+    "bcryptjs": "^3.0.3",
+    "ioredis": "^5.8.2",
+    "lexical": "^0.39.0",
+    "next": "^16.0.8",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "typescript": "^5.9.3",
+    "uuid": "^13.0.0"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6"
+  }
+}
