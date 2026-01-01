@@ -1,12 +1,20 @@
 import { NextResponse } from 'next/server';
-import { getAllUsers } from '@/lib/db';
+import { getAllUsers, getAuthority } from '@/lib/db';
 
 export async function GET() {
   try {
     const users = await getAllUsers();
 
-    // Remove password hashes from response
-    const sanitizedUsers = users.map(({ passwordHash, ...user }) => user);
+    // Remove password hashes and add isAdmin from authority
+    const sanitizedUsers = await Promise.all(
+      users.map(async ({ passwordHash, ...user }) => {
+        const authority = await getAuthority(user.authority);
+        return {
+          ...user,
+          isAdmin: authority?.isAdmin || false,
+        };
+      })
+    );
 
     return NextResponse.json({ users: sanitizedUsers });
   } catch (error) {

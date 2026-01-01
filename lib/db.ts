@@ -2,13 +2,19 @@ import { getRedisClient } from './redis';
 import bcrypt from 'bcryptjs';
 import { v4 as uuidv4 } from 'uuid';
 
+export interface Authority {
+  id: string;
+  name: string;
+  isAdmin: boolean;
+}
+
 export interface User {
   id: string;
   username: string;
   email: string;
   displayName: string;
   passwordHash: string;
-  isAdmin: boolean;
+  authority: string;
   isActive: boolean;
   profilePicture?: string;
   createdAt: string;
@@ -21,13 +27,53 @@ export interface Session {
   expiresAt: string;
 }
 
+// Authority management
+export async function createAuthority(id: string, name: string, isAdmin: boolean): Promise<Authority> {
+  const redis = getRedisClient();
+
+  const authority: Authority = {
+    id,
+    name,
+    isAdmin,
+  };
+
+  await redis.set(`authority:${id}`, JSON.stringify(authority));
+  return authority;
+}
+
+export async function getAuthority(id: string): Promise<Authority | null> {
+  const redis = getRedisClient();
+  const authorityData = await redis.get(`authority:${id}`);
+
+  if (!authorityData) {
+    return null;
+  }
+
+  return JSON.parse(authorityData) as Authority;
+}
+
+export async function initializeAuthorities(): Promise<void> {
+  const redis = getRedisClient();
+
+  // Check if authorities already exist
+  const existingAdmin = await redis.get('authority:admin');
+  if (existingAdmin) {
+    return; // Authorities already initialized
+  }
+
+  // Create the three default authorities
+  await createAuthority('admin', 'Administrator', true);
+  await createAuthority('user', 'User', false);
+  await createAuthority('guest', 'Guest', false);
+}
+
 // User management
 export async function createUser(
   username: string,
   email: string,
   displayName: string,
   password: string,
-  isAdmin: boolean = false
+  authority: string = 'user'
 ): Promise<User> {
   const redis = getRedisClient();
   const userId = uuidv4();
@@ -39,7 +85,7 @@ export async function createUser(
     email,
     displayName,
     passwordHash,
-    isAdmin,
+    authority,
     isActive: true,
     createdAt: new Date().toISOString(),
   };
@@ -51,6 +97,19 @@ export async function createUser(
   await redis.set(`user:username:${username}`, userId);
 
   return user;
+}
+
+export async function getUserWithAuthority(userId: string): Promise<(User & { isAdmin: boolean }) | null> {
+  const user = await getUserById(userId);
+  if (!user) {
+    return null;
+  }
+
+  const authority = await getAuthority(user.authority);
+  return {
+    ...user,
+    isAdmin: authority?.isAdmin || false,
+  };
 }
 
 export async function getUserById(userId: string): Promise<User | null> {

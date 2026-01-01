@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
-import { getSession, getUserById, type User } from './db';
+import { getSession, getUserWithAuthority, type User } from './db';
 
-export async function getCurrentUser(): Promise<User | null> {
+export async function getCurrentUser(): Promise<(User & { isAdmin: boolean }) | null> {
   try {
     const cookieStore = await cookies();
     const sessionId = cookieStore.get('session')?.value;
@@ -15,7 +15,7 @@ export async function getCurrentUser(): Promise<User | null> {
       return null;
     }
 
-    const user = await getUserById(session.userId);
+    const user = await getUserWithAuthority(session.userId);
     return user;
   } catch (error) {
     console.error('Get current user error:', error);

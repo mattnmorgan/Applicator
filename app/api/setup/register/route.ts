@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { createUser, setSystemSetting, isFirstTimeSetup } from '@/lib/db';
+import { createUser, setSystemSetting, isFirstTimeSetup, initializeAuthorities } from '@/lib/db';
 
 export async function POST(request: Request) {
   try {
@@ -23,8 +23,11 @@ export async function POST(request: Request) {
       );
     }
 
-    // Create the administrative user
-    const user = await createUser(username, email, displayName, password, true);
+    // Initialize authorities first
+    await initializeAuthorities();
+
+    // Create the administrative user with 'admin' authority
+    const user = await createUser(username, email, displayName, password, 'admin');
 
     // Mark setup as complete
     await setSystemSetting('administratorUserId', user.id);
