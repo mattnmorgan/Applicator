@@ -1,9 +1,9 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { isFirstTimeSetup } from '@/lib/db';
-import Navigation from './components/Navigation';
+import Navigation from '../components/Navigation';
 
-export default async function HomePage() {
+export default async function SettingsPage() {
   // Check if first-time setup is needed
   const needsSetup = await isFirstTimeSetup();
   if (needsSetup) {
@@ -21,21 +21,13 @@ export default async function HomePage() {
       <Navigation displayName={user.displayName} />
       <div style={{
         minHeight: '100vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
         background: '#0f172a',
         padding: '20px',
         paddingTop: '84px',
       }}>
         <div style={{
-          background: '#1e293b',
-          padding: '60px 40px',
-          borderRadius: '10px',
-          boxShadow: '0 10px 25px rgba(0, 0, 0, 0.5)',
-          textAlign: 'center',
-          maxWidth: '500px',
-          border: '1px solid #334155'
+          maxWidth: '800px',
+          margin: '0 auto',
         }}>
           <h1 style={{
             fontSize: '32px',
@@ -43,14 +35,21 @@ export default async function HomePage() {
             marginBottom: '20px',
             color: '#f1f5f9'
           }}>
-            Hello, {user.displayName}
+            Settings
           </h1>
-          <p style={{
-            color: '#94a3b8',
-            fontSize: '16px'
+          <div style={{
+            background: '#1e293b',
+            padding: '30px',
+            borderRadius: '10px',
+            border: '1px solid #334155'
           }}>
-            Welcome to Applicator
-          </p>
+            <p style={{
+              color: '#94a3b8',
+              fontSize: '16px'
+            }}>
+              Settings page coming soon...
+            </p>
+          </div>
         </div>
       </div>
     </>
