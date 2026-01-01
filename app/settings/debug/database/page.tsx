@@ -1,20 +1,21 @@
+'use client';
+
+import DatabaseViewer from '@/app/components/DatabaseViewer';
+
 export default function DatabasePage() {
   return (
-    <div>
+    <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
       <h2 style={{
         fontSize: '24px',
         fontWeight: 'bold',
         marginBottom: '16px',
         color: '#f1f5f9'
       }}>
-        Database
+        Database Viewer
       </h2>
-      <p style={{
-        color: '#94a3b8',
-        fontSize: '16px'
-      }}>
-        Hello from Database debug page
-      </p>
+      <div style={{ flex: 1, minHeight: 0 }}>
+        <DatabaseViewer />
+      </div>
     </div>
   );
 }

@@ -78,7 +78,7 @@ export default async function SettingsLayout({
           <main style={{
             flex: 1,
             background: '#1e293b',
-            padding: '30px',
+            padding: '20px',
             borderRadius: '10px',
             border: '1px solid #334155',
             overflowY: 'auto',

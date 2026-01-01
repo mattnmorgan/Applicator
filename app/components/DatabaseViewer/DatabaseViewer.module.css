@@ -1,0 +1,193 @@
+.container {
+  display: flex;
+  gap: 20px;
+  height: 100%;
+}
+
+.sidebar {
+  width: 300px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.refreshButton {
+  background: transparent;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.refreshButton:hover {
+  background: #334155;
+  color: #f1f5f9;
+}
+
+.treeContainer {
+  flex: 1;
+  overflow-y: auto;
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  padding: 12px;
+}
+
+.treeNode {
+  margin-bottom: 4px;
+}
+
+.treeNodeContent {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.2s;
+  color: #94a3b8;
+  font-size: 14px;
+  user-select: none;
+}
+
+.treeNodeContent > span:last-child {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.treeNodeContent:hover {
+  background: #1e293b;
+}
+
+.treeNodeContentActive {
+  background: #334155;
+  color: #f1f5f9;
+}
+
+.expandIcon {
+  width: 14px;
+  height: 14px;
+  transition: transform 0.2s;
+  flex-shrink: 0;
+}
+
+.expandIconExpanded {
+  transform: rotate(90deg);
+}
+
+.expandIconCollapsed {
+  transform: rotate(0deg);
+}
+
+.children {
+  margin-left: 16px;
+  margin-top: 2px;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.editorHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.keyName {
+  font-size: 16px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  border: none;
+  transition: all 0.2s;
+}
+
+.saveButton {
+  background: #3b82f6;
+  color: white;
+}
+
+.saveButton:hover {
+  background: #2563eb;
+}
+
+.saveButton:disabled {
+  background: #475569;
+  cursor: not-allowed;
+}
+
+.deleteButton {
+  background: #dc2626;
+  color: white;
+}
+
+.deleteButton:hover {
+  background: #b91c1c;
+}
+
+.editor {
+  flex: 1;
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  padding: 12px;
+  color: #f1f5f9;
+  font-family: 'Courier New', monospace;
+  font-size: 13px;
+  resize: none;
+  overflow-y: auto;
+}
+
+.editor:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.placeholder {
+  color: #64748b;
+  font-size: 14px;
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.error {
+  color: #ef4444;
+  font-size: 12px;
+  margin-top: -8px;
+}
