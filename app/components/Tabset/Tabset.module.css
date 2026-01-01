@@ -1,0 +1,115 @@
+.tabsetVertical {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.tabsetHorizontal {
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+  border-bottom: 1px solid #475569;
+}
+
+.searchBox {
+  margin-bottom: 12px;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 8px 12px;
+  background: #0f172a;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  color: #f1f5f9;
+  font-size: 14px;
+  box-sizing: border-box;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #3b82f6;
+}
+
+.treeItem {
+  display: flex;
+  flex-direction: column;
+}
+
+.itemContent {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  color: #94a3b8;
+  font-size: 14px;
+  user-select: none;
+}
+
+.itemContent:hover {
+  background: #334155;
+}
+
+.itemContentActive {
+  background: #334155;
+  color: #f1f5f9;
+}
+
+.itemContentNonClickable {
+  cursor: default;
+  font-weight: 600;
+  color: #e2e8f0;
+}
+
+.itemContentNonClickable:hover {
+  background: transparent;
+}
+
+.expandIcon {
+  width: 16px;
+  height: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.2s;
+}
+
+.expandIconExpanded {
+  transform: rotate(90deg);
+}
+
+.expandIconCollapsed {
+  transform: rotate(0deg);
+}
+
+.children {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding-left: 20px;
+  margin-top: 2px;
+}
+
+.horizontalTab {
+  padding: 12px 16px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s;
+  color: #94a3b8;
+  font-size: 14px;
+  font-weight: 500;
+  white-space: nowrap;
+}
+
+.horizontalTab:hover {
+  color: #f1f5f9;
+  border-bottom-color: #475569;
+}
+
+.horizontalTabActive {
+  color: #3b82f6;
+  border-bottom-color: #3b82f6;
+}

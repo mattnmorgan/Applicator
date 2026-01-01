@@ -1,19 +1,19 @@
-export default function SettingsPage() {
+export default function UsersPage() {
   return (
     <div>
-      <h1 style={{
-        fontSize: '32px',
+      <h2 style={{
+        fontSize: '24px',
         fontWeight: 'bold',
-        marginBottom: '20px',
+        marginBottom: '16px',
         color: '#f1f5f9'
       }}>
-        Settings
-      </h1>
+        Users
+      </h2>
       <p style={{
         color: '#94a3b8',
         fontSize: '16px'
       }}>
-        Select an option from the menu
+        Hello from Users page
       </p>
     </div>
   );
