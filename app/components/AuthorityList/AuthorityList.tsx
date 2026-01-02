@@ -12,6 +12,7 @@ interface Authority {
   name: string;
   icon?: string;
   authorizations?: string[];
+  apps?: string[];
 }
 
 export default function AuthorityList() {
@@ -120,6 +121,7 @@ export default function AuthorityList() {
           name: editingAuthority.name,
           icon: editingAuthority.icon,
           authorizations: editingAuthority.authorizations,
+          apps: editingAuthority.apps,
         } : undefined}
       />
     );

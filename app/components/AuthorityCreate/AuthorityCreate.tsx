@@ -70,6 +70,14 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
     fetchData();
   }, []);
 
+  // Update selected apps and authorizations when editAuthority changes
+  useEffect(() => {
+    if (editAuthority) {
+      setSelectedAuthorizations(new Set(editAuthority.authorizations || []));
+      setSelectedApps(new Set(editAuthority.apps || []));
+    }
+  }, [editAuthority]);
+
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -167,10 +175,12 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
     auth.description.toLowerCase().includes(authorizationSearch.toLowerCase())
   );
 
-  const filteredApps = apps.filter(app =>
-    app.label.toLowerCase().includes(appSearch.toLowerCase()) ||
-    app.description.toLowerCase().includes(appSearch.toLowerCase())
-  );
+  const filteredApps = apps
+    .filter(app => app.id !== 'system') // Exclude system app
+    .filter(app =>
+      app.label.toLowerCase().includes(appSearch.toLowerCase()) ||
+      app.description.toLowerCase().includes(appSearch.toLowerCase())
+    );
 
   return (
     <div className={styles.container}>
