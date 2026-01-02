@@ -11,19 +11,29 @@ interface Authority {
 interface UserCreateProps {
   onCancel: () => void;
   onUserCreated: () => void;
+  editUser?: {
+    id: string;
+    displayName: string;
+    username: string;
+    email: string;
+    authority: string;
+    profilePicture?: string;
+  };
 }
 
-export default function UserCreate({ onCancel, onUserCreated }: UserCreateProps) {
-  const [displayName, setDisplayName] = useState('');
-  const [username, setUsername] = useState('');
-  const [email, setEmail] = useState('');
+export default function UserCreate({ onCancel, onUserCreated, editUser }: UserCreateProps) {
+  const [displayName, setDisplayName] = useState(editUser?.displayName || '');
+  const [username, setUsername] = useState(editUser?.username || '');
+  const [email, setEmail] = useState(editUser?.email || '');
   const [password, setPassword] = useState('');
-  const [authority, setAuthority] = useState('user');
+  const [authority, setAuthority] = useState(editUser?.authority || 'user');
   const [authorities, setAuthorities] = useState<Authority[]>([]);
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [previewUrl, setPreviewUrl] = useState<string>(editUser?.profilePicture || '');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+
+  const isEditMode = !!editUser;
 
   useEffect(() => {
     fetchAuthorities();
@@ -55,8 +65,8 @@ export default function UserCreate({ onCancel, onUserCreated }: UserCreateProps)
     e.preventDefault();
     setError('');
 
-    if (!displayName || !username || !email || !password) {
-      setError('All fields except profile picture are required');
+    if (!displayName || !username || !email || (!password && !isEditMode)) {
+      setError(isEditMode ? 'Display name, username, and email are required' : 'All fields except profile picture are required');
       return;
     }
 
@@ -66,27 +76,30 @@ export default function UserCreate({ onCancel, onUserCreated }: UserCreateProps)
       formData.append('displayName', displayName);
       formData.append('username', username);
       formData.append('email', email);
-      formData.append('password', password);
+      if (password) {
+        formData.append('password', password);
+      }
       formData.append('authority', authority);
       if (profilePicture) {
         formData.append('profilePicture', profilePicture);
       }
 
-      const response = await fetch('/api/users/create', {
-        method: 'POST',
+      const url = isEditMode ? `/api/users/${editUser.id}` : '/api/users/create';
+      const response = await fetch(url, {
+        method: isEditMode ? 'PATCH' : 'POST',
         body: formData,
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Failed to create user');
+        setError(data.error || `Failed to ${isEditMode ? 'update' : 'create'} user`);
         return;
       }
 
       onUserCreated();
     } catch (err) {
-      setError('Failed to create user');
+      setError(`Failed to ${isEditMode ? 'update' : 'create'} user`);
     } finally {
       setCreating(false);
     }
@@ -95,17 +108,7 @@ export default function UserCreate({ onCancel, onUserCreated }: UserCreateProps)
   return (
     <div className={styles.container}>
       <div className={styles.header}>
-        <h2 className={styles.title}>Create User</h2>
-        <button className={styles.cancelButton} onClick={onCancel}>
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <path
-              d="M5 5L15 15M5 15L15 5"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
+        <h2 className={styles.title}>{isEditMode ? 'Edit User' : 'Create User'}</h2>
       </div>
 
       <form onSubmit={handleSubmit} className={styles.form}>
@@ -149,13 +152,13 @@ export default function UserCreate({ onCancel, onUserCreated }: UserCreateProps)
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label}>Password *</label>
+          <label className={styles.label}>Password {!isEditMode && '*'}</label>
           <input
             type="password"
             className={styles.input}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
-            placeholder="••••••••"
+            placeholder={isEditMode ? 'Leave blank to keep current password' : '••••••••'}
           />
         </div>
 
@@ -208,7 +211,7 @@ export default function UserCreate({ onCancel, onUserCreated }: UserCreateProps)
             className={styles.submitButton}
             disabled={creating}
           >
-            {creating ? 'Creating...' : 'Create User'}
+            {creating ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update User' : 'Create User')}
           </button>
         </div>
       </form>

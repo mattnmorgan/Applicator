@@ -10,9 +10,11 @@ import styles from './UserList.module.css';
 interface User {
   id: string;
   username: string;
+  email: string;
   displayName: string;
   isActive: boolean;
   profilePicture?: string;
+  authority: string;
   authorityName: string;
 }
 
@@ -22,6 +24,7 @@ export default function UserList() {
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
   const [showCreateUser, setShowCreateUser] = useState(false);
+  const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const fetchUsers = async () => {
     try {
@@ -91,13 +94,33 @@ export default function UserList() {
   const handleUserCreated = async () => {
     await fetchUsers();
     setShowCreateUser(false);
+    setEditingUser(null);
   };
 
-  if (showCreateUser) {
+  const handleEditUser = async (userId: string) => {
+    const response = await fetch(`/api/users/${userId}`);
+    const data = await response.json();
+    if (data.user) {
+      setEditingUser(data.user);
+    }
+  };
+
+  if (showCreateUser || editingUser) {
     return (
       <UserCreate
-        onCancel={() => setShowCreateUser(false)}
+        onCancel={() => {
+          setShowCreateUser(false);
+          setEditingUser(null);
+        }}
         onUserCreated={handleUserCreated}
+        editUser={editingUser ? {
+          id: editingUser.id,
+          displayName: editingUser.displayName,
+          username: editingUser.username,
+          email: editingUser.email,
+          authority: editingUser.authority,
+          profilePicture: editingUser.profilePicture,
+        } : undefined}
       />
     );
   }
@@ -166,7 +189,7 @@ export default function UserList() {
               checked={selectedUserIds.has(user.id)}
               onChange={(e) => handleSelectUser(user.id, e.target.checked)}
             />
-            <div className={styles.userInfo}>
+            <div className={styles.userInfo} onClick={() => handleEditUser(user.id)} style={{ cursor: 'pointer' }}>
               <ProfileIndicator
                 displayName={user.displayName}
                 profilePicture={user.profilePicture}

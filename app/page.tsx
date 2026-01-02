@@ -16,9 +16,11 @@ export default async function HomePage() {
     redirect('/login');
   }
 
+  const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}` : undefined;
+
   return (
     <>
-      <Navigation displayName={user.displayName} />
+      <Navigation displayName={user.displayName} profilePicture={profilePictureUrl} />
       <div style={{
         minHeight: '100vh',
         display: 'flex',

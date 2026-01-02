@@ -48,9 +48,11 @@ export default async function SettingsLayout({
     redirect('/login');
   }
 
+  const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}` : undefined;
+
   return (
     <>
-      <Navigation displayName={user.displayName} />
+      <Navigation displayName={user.displayName} profilePicture={profilePictureUrl} />
       <div style={{
         minHeight: 'calc(100vh - 64px)',
         background: '#0f172a',

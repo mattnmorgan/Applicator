@@ -183,7 +183,7 @@ export async function updateUserStatus(userId: string, isActive: boolean): Promi
   await redis.set(`user:${userId}`, JSON.stringify(user));
 }
 
-export async function updateUser(userId: string, updates: Partial<Omit<User, 'id' | 'passwordHash'>>): Promise<void> {
+export async function updateUser(userId: string, updates: Partial<Omit<User, 'id'>>): Promise<void> {
   const redis = getRedisClient();
   const user = await getUserById(userId);
 

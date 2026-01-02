@@ -13,6 +13,7 @@ export async function GET() {
           ...user,
           isAdmin: authority?.isAdmin || false,
           authorityName: authority?.name || 'Unknown',
+          profilePicture: user.profilePicture ? `/api/assets/users/icons/${user.id}` : undefined,
         };
       })
     );
