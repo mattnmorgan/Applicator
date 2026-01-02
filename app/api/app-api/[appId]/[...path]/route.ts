@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getApp } from '@/lib/db';
+import { getApp, getSystemSetting } from '@/lib/db';
 import * as path from 'path';
 import * as fs from 'fs';
 import { createRequire } from 'module';
@@ -66,13 +66,21 @@ async function handleRequest(
       );
     }
 
-    // Load the handler from the app's API directory
+    // Get system storage path
+    const storagePath = await getSystemSetting('storage');
+    if (!storagePath) {
+      return NextResponse.json(
+        { error: 'System storage not configured' },
+        { status: 500 }
+      );
+    }
+
+    // Load the handler from the app's API directory in system storage
     // Use .js extension since we're loading compiled output
     const handlerPath = path.join(
-      process.cwd(),
+      storagePath,
       'apps',
       appId,
-      'dist',
       'api',
       `${apiRoute.handler}.js`
     );

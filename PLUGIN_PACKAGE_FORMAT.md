@@ -4,12 +4,24 @@ Apps are distributed as `.zip` packages containing all necessary files for insta
 
 ## Package Structure
 
+### Zip Package Structure
 ```
 app.zip
 ├── app.json          # App metadata and configuration
 ├── app.png           # App icon (optional)
 ├── {appId}.js        # UI bundle (webpack UMD bundle)
 └── api/              # API handlers (optional)
+    ├── handler1.js
+    ├── handler2.js
+    └── ...
+```
+
+### Installed Structure (in system storage)
+```
+{storage}/apps/{appId}/
+├── app.png           # App icon
+├── {appId}.js        # UI bundle
+└── api/              # API handlers
     ├── handler1.js
     ├── handler2.js
     └── ...
@@ -120,10 +132,12 @@ This will create `dist/my-app.zip` ready for installation.
 4. The system will:
    - Extract and validate the package
    - Read metadata from `app.json`
-   - Install the UI bundle to `apps/{appId}/dist/{appId}.js`
-   - Install API handlers to `apps/{appId}/dist/api/`
-   - Save the icon to storage
+   - Install the UI bundle to `{storage}/apps/{appId}/{appId}.js`
+   - Install API handlers to `{storage}/apps/{appId}/api/`
+   - Save the icon to `{storage}/apps/{appId}/app.png`
    - Register authorizations and API routes in the database
+
+Note: All app files are stored in the system storage directory configured in Settings, not in the project repository.
 
 ## API Handlers
 

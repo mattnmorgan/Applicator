@@ -19,14 +19,12 @@ export async function GET(
       );
     }
 
-    // Get the icon file
+    // Get the icon file from app directory
     const iconPath = path.join(
       storagePath,
-      'system',
       'apps',
-      'icons',
       appId,
-      'icon.png'
+      'app.png'
     );
 
     try {

@@ -11,6 +11,44 @@ export default function AppPage() {
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [user, setUser] = useState<{
+    displayName: string;
+    profilePicture?: string;
+    isAdmin: boolean;
+  } | null>(null);
+  const [brandName, setBrandName] = useState('Applicator');
+  const [brandIcon, setBrandIcon] = useState<string | undefined>(undefined);
+
+  // Fetch user data
+  useEffect(() => {
+    fetch('/api/auth/me')
+      .then(res => res.json())
+      .then(data => {
+        if (data.user) {
+          setUser({
+            displayName: data.user.displayName,
+            profilePicture: data.user.profilePicture,
+            isAdmin: data.user.isAdmin || false
+          });
+        }
+      })
+      .catch(err => {
+        console.error('Error fetching user data:', err);
+      });
+  }, []);
+
+  // Fetch brand settings
+  useEffect(() => {
+    fetch('/api/system/brand')
+      .then(res => res.json())
+      .then(data => {
+        setBrandName(data.brandName || 'Applicator');
+        setBrandIcon(data.brandIcon);
+      })
+      .catch(err => {
+        console.error('Error fetching brand settings:', err);
+      });
+  }, []);
 
   useEffect(() => {
     if (!appId) return;
@@ -110,7 +148,13 @@ export default function AppPage() {
 
   return (
     <>
-      <Navigation displayName="" profilePicture={undefined} isAdmin={false} brandName="Applicator" brandIcon={undefined} />
+      <Navigation
+        displayName={user?.displayName || ''}
+        profilePicture={user?.profilePicture}
+        isAdmin={user?.isAdmin || false}
+        brandName={brandName}
+        brandIcon={brandIcon}
+      />
       <AppMenu />
       <div className="min-h-screen bg-gray-50 dark:bg-gray-900" style={{ paddingTop: '113px' }}>
         <div className="container mx-auto px-4 py-8">

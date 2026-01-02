@@ -78,16 +78,12 @@ export async function POST(request: NextRequest) {
     // Delete app from database
     await deleteApp(appId);
 
-    // Delete app directory
+    // Delete app directory from storage (includes icon, bundle, and API handlers)
     try {
-      const appDir = path.join(process.cwd(), 'apps', appId);
-      await fs.rm(appDir, { recursive: true, force: true });
-
-      // Delete app icon from storage
       const storagePath = await getSystemSetting('storage');
       if (storagePath) {
-        const iconDir = path.join(storagePath, 'system', 'apps', 'icons', appId);
-        await fs.rm(iconDir, { recursive: true, force: true });
+        const appDir = path.join(storagePath, 'apps', appId);
+        await fs.rm(appDir, { recursive: true, force: true });
       }
     } catch (error) {
       console.error('Error deleting app files:', error);

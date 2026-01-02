@@ -117,20 +117,25 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get app directory in the project
-    const appDir = path.join(process.cwd(), 'apps', appAttributes.id);
+    // Get system storage path
+    const storagePath = await getSystemSetting('storage');
+    if (!storagePath) {
+      return NextResponse.json(
+        { error: 'System storage not configured' },
+        { status: 500 }
+      );
+    }
+
+    // Get app directory in system storage
+    const appDir = path.join(storagePath, 'apps', appAttributes.id);
     await fs.mkdir(appDir, { recursive: true });
 
-    // Create dist directory
-    const distDir = path.join(appDir, 'dist');
-    await fs.mkdir(distDir, { recursive: true });
-
     // Create api directory
-    const apiDir = path.join(distDir, 'api');
+    const apiDir = path.join(appDir, 'api');
     await fs.mkdir(apiDir, { recursive: true });
 
-    // Save the UI bundle
-    const bundlePath = path.join(distDir, `${appAttributes.id}.js`);
+    // Save the UI bundle (in root of app directory)
+    const bundlePath = path.join(appDir, `${appAttributes.id}.js`);
     await fs.writeFile(bundlePath, uiBundle, 'utf-8');
 
     // Save API handlers
@@ -165,15 +170,8 @@ export async function POST(request: NextRequest) {
 
     // Save icon if provided
     if (iconData) {
-      // Get storage path
-      const storagePath = await getSystemSetting('storage');
-      if (storagePath) {
-        const iconDir = path.join(storagePath, 'system', 'apps', 'icons', appAttributes.id);
-        await fs.mkdir(iconDir, { recursive: true });
-
-        const iconPath = path.join(iconDir, 'icon.png');
-        await fs.writeFile(iconPath, iconData);
-      }
+      const iconPath = path.join(appDir, 'app.png');
+      await fs.writeFile(iconPath, iconData);
     }
 
     return NextResponse.json({
