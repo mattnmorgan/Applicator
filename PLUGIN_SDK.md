@@ -30,7 +30,7 @@ The Plugin SDK consists of two main components:
 ## Quick Start
 
 ```typescript
-import { createPlugin } from '@/lib/plugin-sdk';
+import { createPlugin } from '@/lib/sdk';
 
 // Create a plugin instance
 const plugin = createPlugin('my-app-id', 'user-123');
@@ -58,7 +58,7 @@ The `RecordManager` provides sandboxed CRUD operations for app-specific records.
 ### Creating a Record Manager
 
 ```typescript
-import { createRecordManager } from '@/lib/plugin-sdk';
+import { createRecordManager } from '@/lib/sdk';
 
 const records = createRecordManager<MyDataType>('my-app-id');
 ```
@@ -207,7 +207,7 @@ The `SystemInterface` provides read access to system-wide data, allowing plugins
 ### Creating a System Interface
 
 ```typescript
-import { createSystemInterface } from '@/lib/plugin-sdk';
+import { createSystemInterface } from '@/lib/sdk';
 
 // Without user context
 const system = createSystemInterface('my-app-id');
@@ -407,7 +407,7 @@ The SDK provides helper functions for checking permissions.
 Require a user to have at least one of the specified authorizations. Throws an error if not authorized.
 
 ```typescript
-import { requireAuthorization } from '@/lib/plugin-sdk';
+import { requireAuthorization } from '@/lib/sdk';
 
 // Require a single authorization
 await requireAuthorization(plugin, 'admin');
@@ -421,7 +421,7 @@ await requireAuthorization(plugin, ['admin', 'developer']);
 Require a user to have all specified authorizations. Throws an error if any are missing.
 
 ```typescript
-import { requireAllAuthorizations } from '@/lib/plugin-sdk';
+import { requireAllAuthorizations } from '@/lib/sdk';
 
 await requireAllAuthorizations(plugin, ['admin', 'developer']);
 ```
@@ -439,7 +439,7 @@ See `lib/examples/example-plugin.ts` for a complete task management plugin that 
 ### Key Example Code
 
 ```typescript
-import { createPlugin, requireAuthorization } from '@/lib/plugin-sdk';
+import { createPlugin, requireAuthorization } from '@/lib/sdk';
 
 const plugin = createPlugin('task-manager', userId);
 

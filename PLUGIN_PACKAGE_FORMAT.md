@@ -147,7 +147,7 @@ API handlers are CommonJS modules that export HTTP method functions:
 // api/list.ts
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/db';
-import { createPlugin } from '@/lib/plugin-sdk';
+import { createPlugin } from '@/lib/sdk';
 
 export async function GET(request: NextRequest) {
   // Get session

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/db';
-import { createPlugin } from '@/lib/plugin-sdk';
+import { createPlugin } from '@/lib/sdk';
 
 export async function GET(request: NextRequest) {
   try {

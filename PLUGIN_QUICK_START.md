@@ -7,7 +7,7 @@ Get started building plugins for Vibe Applicator in minutes.
 The Plugin SDK is built into the platform. Simply import it in your code:
 
 ```typescript
-import { createPlugin } from '@/lib/plugin-sdk';
+import { createPlugin } from '@/lib/sdk';
 ```
 
 ## Basic Usage
@@ -71,7 +71,7 @@ const iAmAdmin = await plugin.system.checkMyAuthorization('admin');
 ### 4. Create Custom Permissions
 
 ```typescript
-import { createAuthorization } from '@/lib/plugin-sdk';
+import { createAuthorization } from '@/lib/sdk';
 
 await createAuthorization(
   'my-app:manage-data',
@@ -84,7 +84,7 @@ await createAuthorization(
 ### 5. Require Permissions
 
 ```typescript
-import { requireAuthorization } from '@/lib/plugin-sdk';
+import { requireAuthorization } from '@/lib/sdk';
 
 async function deleteData(plugin, dataId) {
   // Ensure user has permission
@@ -98,8 +98,8 @@ async function deleteData(plugin, dataId) {
 ## Example: Simple Notes App
 
 ```typescript
-import { createPlugin, requireAuthorization } from '@/lib/plugin-sdk';
-import { createApp, createAuthorization } from '@/lib/plugin-sdk';
+import { createPlugin, requireAuthorization } from '@/lib/sdk';
+import { createApp, createAuthorization } from '@/lib/sdk';
 
 const APP_ID = 'notes-app';
 

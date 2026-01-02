@@ -6,10 +6,11 @@
  *
  * 1. RecordManager - Sandboxed CRUD operations for app-specific data
  * 2. SystemInterface - Access to system data (users, apps, authorities, authorizations)
+ * 3. Auth - Session management and authentication helpers
  *
  * @example
  * ```typescript
- * import { createPlugin } from '@/lib/plugin-sdk';
+ * import { createPlugin, getSession } from '@/lib/sdk';
  *
  * const plugin = createPlugin('my-app-id', 'user-123');
  *
@@ -19,9 +20,13 @@
  * // Access system data
  * const users = await plugin.system.getUsers();
  * const hasPermission = await plugin.system.checkMyAuthorization('admin');
+ *
+ * // Get session from cookie
+ * const session = await getSession(sessionId);
  * ```
  */
 
+// Re-export from sdk modules
 export {
   RecordManager,
   createRecordManager,
@@ -40,12 +45,17 @@ export {
   type SystemInterfaceOptions,
 } from './system';
 
+export {
+  getSession,
+  type Session,
+} from './auth';
+
 export type {
   App,
   User,
   Authority,
   Authorization,
-} from './db';
+} from '../db';
 
 import { createRecordManager, RecordManager } from './records';
 import { createSystemInterface, SystemInterface } from './system';

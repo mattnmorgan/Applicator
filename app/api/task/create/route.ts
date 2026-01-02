@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/db';
-import { createPlugin, requireAuthorization } from '@/lib/plugin-sdk';
+import { createPlugin, requireAuthorization } from '@/lib/sdk';
 
 export async function POST(request: NextRequest) {
   try {

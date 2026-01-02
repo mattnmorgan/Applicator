@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, userHasAuthorization, getApp, deleteApp, getAllAuthorizations, deleteAuthorization, getAllAuthorities, updateAuthority } from '@/lib/db';
 import { getSystemSetting } from '@/lib/db';
-import { createRecordManager } from '@/lib/plugin-sdk';
+import { createRecordManager } from '@/lib/sdk';
 import path from 'path';
 import fs from 'fs/promises';
 
