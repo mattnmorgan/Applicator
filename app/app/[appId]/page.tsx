@@ -92,14 +92,16 @@ export default function AppPage() {
 
         script.onload = () => {
           try {
-            // The app should export a mount function
+            // Access the app from the global plugin namespace
             // @ts-ignore
-            if (window.AppMount && typeof window.AppMount === 'function') {
-              // @ts-ignore
-              window.AppMount(containerRef.current, { appId });
+            const appExports = window.__APPLICATOR_PLUGINS__?.[appId];
+
+            if (appExports?.AppMount && typeof appExports.AppMount === 'function') {
+              appExports.AppMount(containerRef.current, { appId });
               setLoading(false);
             } else {
-              setError('App does not export a mount function');
+              console.error('App export structure:', appExports);
+              setError('App does not export a mount function in __APPLICATOR_PLUGINS__');
               setLoading(false);
             }
           } catch (err) {
@@ -127,14 +129,14 @@ export default function AppPage() {
 
     return () => {
       // Cleanup: unmount the app if it provides an unmount function
-      // @ts-ignore
-      if (window.AppUnmount && typeof window.AppUnmount === 'function') {
-        try {
-          // @ts-ignore
-          window.AppUnmount();
-        } catch (err) {
-          console.error('Error unmounting app:', err);
+      try {
+        // @ts-ignore
+        const appExports = window.__APPLICATOR_PLUGINS__?.[appId];
+        if (appExports?.AppUnmount && typeof appExports.AppUnmount === 'function') {
+          appExports.AppUnmount();
         }
+      } catch (err) {
+        console.error('Error unmounting app:', err);
       }
 
       // Remove all scripts

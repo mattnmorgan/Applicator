@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, createPlugin, requireAuthorization } from '@/lib/sdk';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function POST(request: NextRequest) {
   try {
@@ -18,8 +19,16 @@ export async function POST(request: NextRequest) {
     // Check permission
     await requireAuthorization(plugin, 'task:manage');
 
-    const body: any = await request.json();
-    const { title, description, status, priority, assignedTo, dueDate, tags } = body;
+    // Parse form data
+    const formData = await request.formData();
+    const title = formData.get('title') as string;
+    const description = formData.get('description') as string;
+    const status = formData.get('status') as string;
+    const priority = formData.get('priority') as string;
+    const assignedTo = formData.get('assignedTo') as string;
+    const dueDate = formData.get('dueDate') as string;
+    const tagsJson = formData.get('tags') as string;
+    const file = formData.get('file') as File | null;
 
     if (!title) {
       return NextResponse.json({ error: 'Title is required' }, { status: 400 });
@@ -44,16 +53,29 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    const task = {
+    const task: any = {
       title,
       description: description || '',
       status: status || 'pending',
       priority: priority || 'medium',
-      assignedTo,
-      dueDate,
-      tags: tags || [],
+      assignedTo: assignedTo || undefined,
+      dueDate: dueDate || undefined,
+      tags: tagsJson ? JSON.parse(tagsJson) : [],
       createdBy: session.userId,
     };
+
+    // Handle file upload
+    if (file && file.size > 0) {
+      const fileName = file.name;
+      const fileBuffer = Buffer.from(await file.arrayBuffer());
+      const filePath = `attachments/${uuidv4()}_${fileName}`;
+
+      // Save file using the file manager
+      await plugin.files.writeFile(filePath, fileBuffer);
+
+      task.attachmentFileName = fileName;
+      task.attachmentFilePath = filePath;
+    }
 
     const record = await plugin.records.create(task);
 

@@ -101,6 +101,28 @@ export default function TaskList({ tasks, onEdit, onDelete, onStatusChange }: Ta
                   ))}
                 </div>
               )}
+
+              {task.attachmentFileName && (
+                <div className="mt-3">
+                  <a
+                    href={`/api/app-api/task/download?taskId=${task.id}`}
+                    download={task.attachmentFileName}
+                    className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
+                  >
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                      <path
+                        d="M8 10L4 6H7V2H9V6H12L8 10Z"
+                        fill="currentColor"
+                      />
+                      <path
+                        d="M14 12V14H2V12H0V14C0 15.1 0.9 16 2 16H14C15.1 16 16 15.1 16 14V12H14Z"
+                        fill="currentColor"
+                      />
+                    </svg>
+                    {task.attachmentFileName}
+                  </a>
+                </div>
+              )}
             </div>
 
             <div className="flex gap-2 ml-4">

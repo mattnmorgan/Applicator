@@ -12,4 +12,6 @@ export interface Task {
   tags?: string[];
   createdAt?: string;
   updatedAt?: string;
+  attachmentFileName?: string;
+  attachmentFilePath?: string;
 }

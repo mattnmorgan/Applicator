@@ -24,6 +24,13 @@ export interface ApiRoute {
   description: string;
 }
 
+export interface Widget {
+  name: string;
+  description: string;
+  target: 'home' | 'user-settings' | 'system-settings';
+  component: string; // Name of the component exported by the app
+}
+
 export interface App {
   id: string;
   label: string;
@@ -32,6 +39,7 @@ export interface App {
   contactEmail: string;
   description: string;
   apiRoutes: ApiRoute[];
+  widgets?: Widget[];
 }
 
 export interface User {
@@ -218,7 +226,7 @@ export async function deleteAuthorization(id: string): Promise<void> {
 }
 
 // App management
-export async function createApp(id: string, label: string, version: string, author: string, contactEmail: string, description: string, apiRoutes: ApiRoute[] = []): Promise<App> {
+export async function createApp(id: string, label: string, version: string, author: string, contactEmail: string, description: string, apiRoutes: ApiRoute[] = [], widgets: Widget[] = []): Promise<App> {
   const redis = getRedisClient();
 
   const app: App = {
@@ -229,6 +237,7 @@ export async function createApp(id: string, label: string, version: string, auth
     contactEmail,
     description,
     apiRoutes,
+    widgets,
   };
 
   await redis.set(`app:${id}`, JSON.stringify(app));

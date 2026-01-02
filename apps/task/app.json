@@ -52,6 +52,32 @@
       "method": "GET",
       "handler": "users",
       "description": "Get all active users for task assignment"
+    },
+    {
+      "path": "download",
+      "method": "GET",
+      "handler": "download",
+      "description": "Download a task attachment"
+    }
+  ],
+  "widgets": [
+    {
+      "name": "Task Stats",
+      "description": "View task statistics on your home screen",
+      "target": "home",
+      "component": "HomeWidget"
+    },
+    {
+      "name": "Task Settings",
+      "description": "Configure task manager preferences",
+      "target": "user-settings",
+      "component": "SettingsWidget"
+    },
+    {
+      "name": "Task Manager Settings",
+      "description": "System-wide task manager configuration",
+      "target": "system-settings",
+      "component": "SystemSettingsWidget"
     }
   ]
 }

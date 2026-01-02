@@ -31,12 +31,11 @@ export default function App() {
     }
   }
 
-  async function handleCreateTask(taskData: Partial<Task>) {
+  async function handleCreateTask(formData: FormData) {
     try {
       const response = await fetch(`${API_BASE}/create`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(taskData),
+        body: formData,
       });
 
       if (response.ok) {
@@ -52,12 +51,13 @@ export default function App() {
     }
   }
 
-  async function handleUpdateTask(taskId: string, updates: Partial<Task>) {
+  async function handleUpdateTask(taskId: string, formData: FormData) {
     try {
+      formData.append('taskId', taskId);
+
       const response = await fetch(`${API_BASE}/update`, {
         method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ taskId, updates }),
+        body: formData,
       });
 
       if (response.ok) {
@@ -107,57 +107,126 @@ export default function App() {
     completed: tasks.filter(t => t.status === 'completed').length,
   };
 
+  const filterButtonStyle = (isActive: boolean) => ({
+    padding: '8px 16px',
+    borderRadius: '8px',
+    border: 'none',
+    cursor: 'pointer',
+    fontSize: '14px',
+    fontWeight: '500',
+    transition: 'all 0.2s',
+    background: isActive ? '#3b82f6' : '#1e293b',
+    color: isActive ? '#ffffff' : '#e2e8f0',
+  });
+
   return (
-    <div className="max-w-7xl mx-auto">
-      <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 dark:text-white mb-2">
+    <div style={{ maxWidth: '1280px', margin: '0 auto' }}>
+      <div style={{ marginBottom: '32px' }}>
+        <h1 style={{
+          fontSize: '30px',
+          fontWeight: '700',
+          color: '#f1f5f9',
+          marginBottom: '8px',
+        }}>
           Task Manager
         </h1>
-        <p className="text-gray-600 dark:text-gray-400">
+        <p style={{ color: '#94a3b8', fontSize: '14px' }}>
           Manage tasks with assignments, priorities, and status tracking
         </p>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Total</div>
-          <div className="text-2xl font-bold text-gray-900 dark:text-white">
+      <div style={{
+        display: 'grid',
+        gridTemplateColumns: 'repeat(4, 1fr)',
+        gap: '16px',
+        marginBottom: '24px',
+      }}>
+        <div style={{
+          background: '#1e293b',
+          borderRadius: '10px',
+          padding: '16px',
+          border: '1px solid #334155',
+        }}>
+          <div style={{ fontSize: '14px', color: '#94a3b8' }}>Total</div>
+          <div style={{
+            fontSize: '28px',
+            fontWeight: '700',
+            color: '#f1f5f9',
+          }}>
             {stats.total}
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Pending</div>
-          <div className="text-2xl font-bold text-yellow-600 dark:text-yellow-500">
+        <div style={{
+          background: '#1e293b',
+          borderRadius: '10px',
+          padding: '16px',
+          border: '1px solid #334155',
+        }}>
+          <div style={{ fontSize: '14px', color: '#94a3b8' }}>Pending</div>
+          <div style={{
+            fontSize: '28px',
+            fontWeight: '700',
+            color: '#fbbf24',
+          }}>
             {stats.pending}
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-          <div className="text-sm text-gray-600 dark:text-gray-400">In Progress</div>
-          <div className="text-2xl font-bold text-blue-600 dark:text-blue-500">
+        <div style={{
+          background: '#1e293b',
+          borderRadius: '10px',
+          padding: '16px',
+          border: '1px solid #334155',
+        }}>
+          <div style={{ fontSize: '14px', color: '#94a3b8' }}>In Progress</div>
+          <div style={{
+            fontSize: '28px',
+            fontWeight: '700',
+            color: '#60a5fa',
+          }}>
             {stats.inProgress}
           </div>
         </div>
-        <div className="bg-white dark:bg-gray-800 rounded-lg p-4 shadow">
-          <div className="text-sm text-gray-600 dark:text-gray-400">Completed</div>
-          <div className="text-2xl font-bold text-green-600 dark:text-green-500">
+        <div style={{
+          background: '#1e293b',
+          borderRadius: '10px',
+          padding: '16px',
+          border: '1px solid #334155',
+        }}>
+          <div style={{ fontSize: '14px', color: '#94a3b8' }}>Completed</div>
+          <div style={{
+            fontSize: '28px',
+            fontWeight: '700',
+            color: '#34d399',
+          }}>
             {stats.completed}
           </div>
         </div>
       </div>
 
       {/* Filters and Actions */}
-      <div className="flex justify-between items-center mb-6">
-        <div className="flex gap-2">
-          {['all', 'pending', 'in-progress', 'completed'].map((status) => (
+      <div style={{
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: '24px',
+      }}>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          {(['all', 'pending', 'in-progress', 'completed'] as const).map((status) => (
             <button
               key={status}
-              onClick={() => setFilter(status as any)}
-              className={`px-4 py-2 rounded-lg transition-colors ${
-                filter === status
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
-              }`}
+              onClick={() => setFilter(status)}
+              style={filterButtonStyle(filter === status)}
+              onMouseEnter={(e) => {
+                if (filter !== status) {
+                  e.currentTarget.style.background = '#334155';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (filter !== status) {
+                  e.currentTarget.style.background = '#1e293b';
+                }
+              }}
             >
               {status.charAt(0).toUpperCase() + status.slice(1).replace('-', ' ')}
             </button>
@@ -169,7 +238,23 @@ export default function App() {
             setShowForm(true);
             setEditingTask(null);
           }}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+          style={{
+            padding: '8px 16px',
+            background: '#3b82f6',
+            color: '#ffffff',
+            border: 'none',
+            borderRadius: '8px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500',
+            transition: 'background 0.2s',
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.background = '#2563eb';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.background = '#3b82f6';
+          }}
         >
           + New Task
         </button>
@@ -177,7 +262,11 @@ export default function App() {
 
       {/* Task List */}
       {loading ? (
-        <div className="text-center py-12 text-gray-600 dark:text-gray-400">
+        <div style={{
+          textAlign: 'center',
+          padding: '48px 0',
+          color: '#94a3b8',
+        }}>
           Loading tasks...
         </div>
       ) : (
@@ -188,9 +277,11 @@ export default function App() {
             setShowForm(true);
           }}
           onDelete={handleDeleteTask}
-          onStatusChange={(taskId, status) =>
-            handleUpdateTask(taskId, { status })
-          }
+          onStatusChange={async (taskId, status) => {
+            const formData = new FormData();
+            formData.append('updates', JSON.stringify({ status }));
+            await handleUpdateTask(taskId, formData);
+          }}
         />
       )}
 
@@ -198,7 +289,7 @@ export default function App() {
       {showForm && (
         <TaskForm
           task={editingTask}
-          onSubmit={editingTask ? (data) => handleUpdateTask(editingTask.id, data) : handleCreateTask}
+          onSubmit={editingTask ? (data) => handleUpdateTask(editingTask.id, data as FormData) : (data) => handleCreateTask(data as FormData)}
           onCancel={() => {
             setShowForm(false);
             setEditingTask(null);

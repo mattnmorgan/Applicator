@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, createPlugin, requireAuthorization } from '@/lib/sdk';
+import { v4 as uuidv4 } from 'uuid';
 
 export async function PATCH(request: NextRequest) {
   try {
@@ -18,12 +19,18 @@ export async function PATCH(request: NextRequest) {
     // Check permission
     await requireAuthorization(plugin, 'task:manage');
 
-    const body: any = await request.json();
-    const { taskId, updates } = body;
+    // Parse form data
+    const formData = await request.formData();
+    const taskId = formData.get('taskId') as string;
+    const updatesJson = formData.get('updates') as string;
+    const file = formData.get('file') as File | null;
+    const removeFile = formData.get('removeFile') === 'true';
 
     if (!taskId) {
       return NextResponse.json({ error: 'Task ID is required' }, { status: 400 });
     }
+
+    const updates: any = updatesJson ? JSON.parse(updatesJson) : {};
 
     // Get existing task
     const existing = await plugin.records.read(taskId);
@@ -61,6 +68,37 @@ export async function PATCH(request: NextRequest) {
           { status: 400 }
         );
       }
+    }
+
+    // Handle file operations
+    if (removeFile && existing.data.attachmentFilePath) {
+      // Delete old file
+      try {
+        await plugin.files.deleteFile(existing.data.attachmentFilePath);
+      } catch (err) {
+        console.error('Error deleting old file:', err);
+      }
+      updates.attachmentFileName = undefined;
+      updates.attachmentFilePath = undefined;
+    } else if (file && file.size > 0) {
+      // Delete old file if exists
+      if (existing.data.attachmentFilePath) {
+        try {
+          await plugin.files.deleteFile(existing.data.attachmentFilePath);
+        } catch (err) {
+          console.error('Error deleting old file:', err);
+        }
+      }
+
+      // Save new file
+      const fileName = file.name;
+      const fileBuffer = Buffer.from(await file.arrayBuffer());
+      const filePath = `attachments/${uuidv4()}_${fileName}`;
+
+      await plugin.files.writeFile(filePath, fileBuffer);
+
+      updates.attachmentFileName = fileName;
+      updates.attachmentFilePath = filePath;
     }
 
     const updated = await plugin.records.update(taskId, updates);

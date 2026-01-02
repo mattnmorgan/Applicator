@@ -152,7 +152,8 @@ export async function POST(request: NextRequest) {
       appAttributes.author,
       appAttributes.contactEmail || '',
       appAttributes.description,
-      appAttributes.apiRoutes || []
+      appAttributes.apiRoutes || [],
+      appAttributes.widgets || []
     );
 
     // Install authorizations

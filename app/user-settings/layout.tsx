@@ -1,16 +1,48 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
-import { isFirstTimeSetup } from '@/lib/db';
+import { isFirstTimeSetup, getAllApps } from '@/lib/db';
 import { getBrandSettings } from '@/lib/brand';
 import Navigation from '../components/Navigation';
 import Tabset, { TabsetItem } from '../components/Tabset';
 
-const userSettingsMenuItems: TabsetItem[] = [
-  {
-    label: 'Profile',
-    path: '/user-settings/profile',
-  },
-];
+async function getUserSettingsMenuItems(): Promise<TabsetItem[]> {
+  const items: TabsetItem[] = [
+    {
+      label: 'Profile',
+      path: '/user-settings/profile',
+    },
+  ];
+
+  // Get all apps and find those with user-settings widgets
+  const allApps = await getAllApps();
+  const appsWithSettings = allApps.filter(app =>
+    app.widgets && app.widgets.some(w => w.target === 'user-settings')
+  );
+
+  if (appsWithSettings.length > 0) {
+    // Build children array for app settings
+    const appSettingsChildren: TabsetItem[] = [];
+
+    for (const app of appsWithSettings) {
+      const settingsWidgets = app.widgets!.filter(w => w.target === 'user-settings');
+      for (const widget of settingsWidgets) {
+        appSettingsChildren.push({
+          label: widget.name,
+          path: `/user-settings/apps/${app.id}/${widget.component}`,
+        });
+      }
+    }
+
+    // Add non-clickable Apps header with children
+    items.push({
+      label: 'Apps',
+      clickable: false,
+      children: appSettingsChildren,
+    });
+  }
+
+  return items;
+}
 
 export default async function UserSettingsLayout({
   children,
@@ -32,6 +64,7 @@ export default async function UserSettingsLayout({
   const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined;
   const hasAdminAuth = user.authorizations.includes('admin');
   const brandSettings = await getBrandSettings();
+  const userSettingsMenuItems = await getUserSettingsMenuItems();
 
   return (
     <>

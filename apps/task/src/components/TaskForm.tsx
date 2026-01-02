@@ -3,7 +3,7 @@ import { Task } from '../types';
 
 interface TaskFormProps {
   task: Task | null;
-  onSubmit: (data: Partial<Task>) => void;
+  onSubmit: (data: Partial<Task> | FormData) => void;
   onCancel: () => void;
 }
 
@@ -16,6 +16,8 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
   const [tags, setTags] = useState('');
   const [users, setUsers] = useState<any[]>([]);
   const [assignedTo, setAssignedTo] = useState('');
+  const [file, setFile] = useState<File | null>(null);
+  const [removeFile, setRemoveFile] = useState(false);
 
   useEffect(() => {
     if (task) {
@@ -47,17 +49,18 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
   function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
 
-    const taskData: Partial<Task> = {
-      title,
-      description,
-      priority,
-      status,
-      dueDate: dueDate || undefined,
-      assignedTo: assignedTo || undefined,
-      tags: tags ? tags.split(',').map(t => t.trim()).filter(Boolean) : undefined,
-    };
+    const formData = new FormData();
+    formData.append('title', title);
+    formData.append('description', description);
+    formData.append('priority', priority);
+    formData.append('status', status);
+    if (dueDate) formData.append('dueDate', dueDate);
+    if (assignedTo) formData.append('assignedTo', assignedTo);
+    if (tags) formData.append('tags', JSON.stringify(tags.split(',').map(t => t.trim()).filter(Boolean)));
+    if (file) formData.append('file', file);
+    if (removeFile) formData.append('removeFile', 'true');
 
-    onSubmit(taskData);
+    onSubmit(formData);
   }
 
   return (
@@ -168,6 +171,48 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
                 onChange={(e) => setTags(e.target.value)}
                 className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
                 placeholder="bug, feature, urgent"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Attachment
+              </label>
+              {task?.attachmentFileName && !removeFile && (
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    Current: {task.attachmentFileName}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setRemoveFile(true)}
+                    className="text-sm text-red-600 hover:text-red-700"
+                  >
+                    Remove
+                  </button>
+                </div>
+              )}
+              {removeFile && (
+                <div className="mb-2 flex items-center gap-2">
+                  <span className="text-sm text-gray-600 dark:text-gray-400">
+                    File will be removed
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => setRemoveFile(false)}
+                    className="text-sm text-blue-600 hover:text-blue-700"
+                  >
+                    Undo
+                  </button>
+                </div>
+              )}
+              <input
+                type="file"
+                onChange={(e) => {
+                  setFile(e.target.files?.[0] || null);
+                  setRemoveFile(false);
+                }}
+                className="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-900 dark:text-white"
               />
             </div>
 

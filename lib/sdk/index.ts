@@ -50,6 +50,17 @@ export {
   type Session,
 } from './auth';
 
+export {
+  WidgetManager,
+  createWidgetManager,
+  type Widget,
+} from './widgets';
+
+export {
+  FileManager,
+  createFileManager,
+} from './files';
+
 export type {
   App,
   User,
@@ -59,6 +70,8 @@ export type {
 
 import { createRecordManager, RecordManager } from './records';
 import { createSystemInterface, SystemInterface } from './system';
+import { createFileManager, FileManager } from './files';
+import { createWidgetManager, WidgetManager } from './widgets';
 
 export interface PluginContext {
   appId: string;
@@ -70,13 +83,15 @@ export interface Plugin<T = any> {
   userId?: string;
   records: RecordManager<T>;
   system: SystemInterface;
+  files: FileManager;
+  widgets: WidgetManager;
 }
 
 /**
- * Create a complete plugin instance with both record management and system interface
+ * Create a complete plugin instance with all SDK capabilities
  * @param appId The ID of the app/plugin
  * @param userId Optional ID of the user making the request (required for user-specific methods)
- * @returns A plugin instance with records and system interfaces
+ * @returns A plugin instance with records, system, files, and widgets interfaces
  *
  * @example
  * ```typescript
@@ -90,6 +105,18 @@ export interface Plugin<T = any> {
  * // Use system interface
  * const users = await plugin.system.getUsers();
  * const myPerms = await plugin.system.getMyAuthorizationDetails();
+ *
+ * // Use file manager
+ * await plugin.files.writeFile('data.json', JSON.stringify(data));
+ * const content = await plugin.files.readFileText('data.json');
+ *
+ * // Use widget manager
+ * await plugin.widgets.registerWidget({
+ *   name: 'My Widget',
+ *   description: 'A cool widget',
+ *   target: 'home',
+ *   component: 'MyWidget'
+ * });
  * ```
  */
 export function createPlugin<T = any>(
@@ -101,6 +128,8 @@ export function createPlugin<T = any>(
     userId,
     records: createRecordManager<T>(appId),
     system: createSystemInterface(appId, userId),
+    files: createFileManager(appId),
+    widgets: createWidgetManager(appId),
   };
 }
 

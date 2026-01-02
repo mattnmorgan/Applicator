@@ -9,13 +9,19 @@
  * - Check user permissions (using SystemInterface)
  * - Assign tasks to users in the system
  * - Filter tasks by status and assignee
+ * - File attachments (using FileManager)
+ * - Widget registration for home, user settings, and system settings
+ *
+ * IMPORTANT: When creating widgets, export them using the __APPLICATOR_PLUGINS__ namespace
+ * to prevent conflicts between multiple apps. See docs/PLUGIN_WIDGET_SYSTEM.md
+ * for details on the namespacing pattern.
  */
 
 import {
   createPlugin,
   requireAuthorization,
   type Plugin,
-} from '../plugin-sdk';
+} from '../sdk';
 import { createAuthorization } from '../db';
 
 // Define the app ID for this plugin
