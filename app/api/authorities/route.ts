@@ -5,13 +5,14 @@ export async function GET() {
   try {
     const allAuthorities = await getAllAuthorities();
 
-    const authorities = allAuthorities.map(authority => ({
-      id: authority.id,
-      name: authority.name,
+    // Add icon URLs with cache busting
+    const authoritiesWithIcons = allAuthorities.map(authority => ({
+      ...authority,
+      icon: authority.icon ? `/api/assets/authorities/icons/${authority.id}?t=${Date.now()}` : undefined,
     }));
 
     // Sort authorities: admin, user, guest, then alphabetically
-    authorities.sort((a, b) => {
+    authoritiesWithIcons.sort((a, b) => {
       const order = ['admin', 'user', 'guest'];
       const aIndex = order.indexOf(a.id);
       const bIndex = order.indexOf(b.id);
@@ -22,7 +23,7 @@ export async function GET() {
       return a.name.localeCompare(b.name);
     });
 
-    return NextResponse.json({ authorities });
+    return NextResponse.json({ authorities: authoritiesWithIcons });
   } catch (error) {
     console.error('Failed to fetch authorities:', error);
     return NextResponse.json(

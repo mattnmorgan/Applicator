@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { isFirstTimeSetup } from '@/lib/db';
 import Navigation from '../components/Navigation';
 import Tabset, { TabsetItem } from '../components/Tabset';
+import AccessDenied from '../components/AccessDenied';
 
 const settingsMenuItems: TabsetItem[] = [
   {
@@ -16,6 +17,20 @@ const settingsMenuItems: TabsetItem[] = [
       {
         label: 'Users',
         path: '/settings/user-management/users',
+      },
+      {
+        label: 'Access Management',
+        clickable: false,
+        children: [
+          {
+            label: 'Authorities',
+            path: '/settings/user-management/access-management/authorities',
+          },
+          {
+            label: 'Authorizations',
+            path: '/settings/user-management/access-management/authorizations',
+          },
+        ],
       },
     ],
   },
@@ -46,6 +61,18 @@ export default async function SettingsLayout({
   const user = await getCurrentUser();
   if (!user) {
     redirect('/login');
+  }
+
+  // Check if user is an administrator
+  if (!user.isAdmin) {
+    const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined;
+
+    return (
+      <>
+        <Navigation displayName={user.displayName} profilePicture={profilePictureUrl} isAdmin={user.isAdmin} />
+        <AccessDenied message="You do not have permission to access System Settings." />
+      </>
+    );
   }
 
   const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined;

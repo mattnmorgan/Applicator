@@ -6,6 +6,7 @@ export interface Authority {
   id: string;
   name: string;
   isAdmin: boolean;
+  icon?: string;
 }
 
 export interface User {
@@ -28,13 +29,14 @@ export interface Session {
 }
 
 // Authority management
-export async function createAuthority(id: string, name: string, isAdmin: boolean): Promise<Authority> {
+export async function createAuthority(id: string, name: string, isAdmin: boolean, icon?: string): Promise<Authority> {
   const redis = getRedisClient();
 
   const authority: Authority = {
     id,
     name,
     isAdmin,
+    icon,
   };
 
   await redis.set(`authority:${id}`, JSON.stringify(authority));
@@ -80,6 +82,29 @@ export async function getAllAuthorities(): Promise<Authority[]> {
   }
 
   return authorities;
+}
+
+export async function updateAuthority(id: string, updates: Partial<Omit<Authority, 'id'>>): Promise<void> {
+  const redis = getRedisClient();
+  const authority = await getAuthority(id);
+
+  if (!authority) {
+    throw new Error('Authority not found');
+  }
+
+  const updatedAuthority = { ...authority, ...updates };
+  await redis.set(`authority:${id}`, JSON.stringify(updatedAuthority));
+}
+
+export async function deleteAuthority(id: string): Promise<void> {
+  const redis = getRedisClient();
+  await redis.del(`authority:${id}`);
+}
+
+export async function getUserCountByAuthority(authorityId: string): Promise<number> {
+  const redis = getRedisClient();
+  const users = await getAllUsers();
+  return users.filter(user => user.authority === authorityId).length;
 }
 
 // User management
