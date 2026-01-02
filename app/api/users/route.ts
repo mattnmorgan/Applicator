@@ -18,6 +18,9 @@ export async function GET() {
       })
     );
 
+    // Sort users alphabetically by display name
+    sanitizedUsers.sort((a, b) => a.displayName.localeCompare(b.displayName));
+
     return NextResponse.json({ users: sanitizedUsers });
   } catch (error) {
     console.error('Failed to fetch users:', error);

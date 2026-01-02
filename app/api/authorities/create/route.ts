@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createAuthority, getAllAuthorities, getSystemSetting } from '@/lib/db';
+import { v4 as uuidv4 } from 'uuid';
 import fs from 'fs';
 import path from 'path';
 
@@ -17,12 +18,12 @@ export async function POST(request: Request) {
       );
     }
 
-    // Generate ID from name (lowercase, no spaces)
-    const id = name.toLowerCase().replace(/\s+/g, '-');
+    // Generate UUID for authority ID
+    const id = uuidv4();
 
-    // Check if authority with this ID already exists
+    // Check if authority with this name already exists
     const existingAuthorities = await getAllAuthorities();
-    if (existingAuthorities.some(auth => auth.id === id)) {
+    if (existingAuthorities.some(auth => auth.name.toLowerCase() === name.toLowerCase())) {
       return NextResponse.json(
         { error: 'An authority with this name already exists' },
         { status: 400 }

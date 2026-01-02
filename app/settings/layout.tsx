@@ -5,7 +5,17 @@ import Navigation from '../components/Navigation';
 import Tabset, { TabsetItem } from '../components/Tabset';
 import AccessDenied from '../components/AccessDenied';
 
-const settingsMenuItems: TabsetItem[] = [
+// Helper function to recursively sort menu items alphabetically
+function sortMenuItems(items: TabsetItem[]): TabsetItem[] {
+  return items
+    .map(item => ({
+      ...item,
+      children: item.children ? sortMenuItems(item.children) : undefined,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
+const unsortedSettingsMenuItems: TabsetItem[] = [
   {
     label: 'Home',
     path: '/settings',
@@ -45,6 +55,8 @@ const settingsMenuItems: TabsetItem[] = [
     ],
   },
 ];
+
+const settingsMenuItems = sortMenuItems(unsortedSettingsMenuItems);
 
 export default async function SettingsLayout({
   children,

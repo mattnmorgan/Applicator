@@ -11,17 +11,8 @@ export async function GET() {
       icon: authority.icon ? `/api/assets/authorities/icons/${authority.id}?t=${Date.now()}` : undefined,
     }));
 
-    // Sort authorities: admin, user, guest, then alphabetically
-    authoritiesWithIcons.sort((a, b) => {
-      const order = ['admin', 'user', 'guest'];
-      const aIndex = order.indexOf(a.id);
-      const bIndex = order.indexOf(b.id);
-
-      if (aIndex !== -1 && bIndex !== -1) return aIndex - bIndex;
-      if (aIndex !== -1) return -1;
-      if (bIndex !== -1) return 1;
-      return a.name.localeCompare(b.name);
-    });
+    // Sort authorities alphabetically by name
+    authoritiesWithIcons.sort((a, b) => a.name.localeCompare(b.name));
 
     return NextResponse.json({ authorities: authoritiesWithIcons });
   } catch (error) {
