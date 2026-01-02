@@ -19,13 +19,14 @@ export default async function HomePage() {
 
   const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined;
   const brandSettings = await getBrandSettings();
+  const hasAdminAuth = user.authorizations.includes('admin');
 
   return (
     <>
       <Navigation
         displayName={user.displayName}
         profilePicture={profilePictureUrl}
-        isAdmin={user.isAdmin}
+        isAdmin={hasAdminAuth}
         brandName={brandSettings.brandName}
         brandIcon={brandSettings.brandIcon}
       />
