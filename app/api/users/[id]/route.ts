@@ -29,7 +29,7 @@ export async function GET(
       user: {
         ...sanitizedUser,
         authorityName: authority?.name || 'Unknown',
-        profilePicture: user.profilePicture ? `/api/assets/users/icons/${user.id}` : undefined,
+        profilePicture: user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined,
       }
     });
   } catch (error) {
@@ -55,6 +55,7 @@ export async function PATCH(
     const password = formData.get('password') as string;
     const authority = formData.get('authority') as string;
     const profilePictureFile = formData.get('profilePicture') as File | null;
+    const clearProfilePicture = formData.get('clearProfilePicture') === 'true';
 
     if (!displayName || !username || !email) {
       return NextResponse.json(
@@ -75,6 +76,11 @@ export async function PATCH(
     if (password) {
       const passwordHash = await bcrypt.hash(password, 10);
       updates.passwordHash = passwordHash;
+    }
+
+    // Handle clearing profile picture
+    if (clearProfilePicture) {
+      updates.profilePicture = undefined;
     }
 
     // Handle profile picture upload if provided

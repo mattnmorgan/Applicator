@@ -92,12 +92,44 @@
   overflow: hidden;
   background: #1e293b;
   flex-shrink: 0;
+  position: relative;
+  cursor: pointer;
 }
 
 .previewImage {
   width: 100%;
   height: 100%;
   object-fit: cover;
+  transition: opacity 0.2s;
+}
+
+.preview:hover .previewImage {
+  opacity: 0.3;
+}
+
+.previewOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #ef4444;
+  opacity: 0;
+  transition: opacity 0.2s;
+  pointer-events: none;
+}
+
+.preview:hover .previewOverlay {
+  opacity: 1;
+}
+
+.previewOverlay svg {
+  width: 24px;
+  height: 24px;
+  color: white;
 }
 
 .fileInput {

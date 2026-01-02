@@ -48,7 +48,7 @@ export default async function SettingsLayout({
     redirect('/login');
   }
 
-  const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}` : undefined;
+  const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined;
 
   return (
     <>

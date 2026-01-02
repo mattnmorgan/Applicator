@@ -30,6 +30,7 @@ export default function UserCreate({ onCancel, onUserCreated, editUser }: UserCr
   const [authorities, setAuthorities] = useState<Authority[]>([]);
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>(editUser?.profilePicture || '');
+  const [clearProfilePicture, setClearProfilePicture] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
 
@@ -61,6 +62,14 @@ export default function UserCreate({ onCancel, onUserCreated, editUser }: UserCr
     }
   };
 
+  const handleClearPicture = () => {
+    setProfilePicture(null);
+    setPreviewUrl('');
+    if (isEditMode) {
+      setClearProfilePicture(true);
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -82,6 +91,9 @@ export default function UserCreate({ onCancel, onUserCreated, editUser }: UserCr
       formData.append('authority', authority);
       if (profilePicture) {
         formData.append('profilePicture', profilePicture);
+      }
+      if (clearProfilePicture) {
+        formData.append('clearProfilePicture', 'true');
       }
 
       const url = isEditMode ? `/api/users/${editUser.id}` : '/api/users/create';
@@ -181,8 +193,18 @@ export default function UserCreate({ onCancel, onUserCreated, editUser }: UserCr
           <label className={styles.label}>Profile Picture</label>
           <div className={styles.fileInputContainer}>
             {previewUrl && (
-              <div className={styles.preview}>
+              <div className={styles.preview} onClick={handleClearPicture}>
                 <img src={previewUrl} alt="Preview" className={styles.previewImage} />
+                <div className={styles.previewOverlay}>
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M6 6L18 18M6 18L18 6"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </div>
               </div>
             )}
             <input
