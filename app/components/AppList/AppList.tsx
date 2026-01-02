@@ -104,8 +104,7 @@ export default function AppList() {
 
   const filteredApps = apps.filter(app =>
     app.label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    app.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    app.author?.toLowerCase().includes(searchQuery.toLowerCase())
+    app.description?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // If an app is selected, show the AppView
@@ -144,7 +143,27 @@ export default function AppList() {
           <Row key={app.id}>
             <div className={styles.appInfo} onClick={() => setSelectedAppId(app.id)} style={{ cursor: 'pointer' }}>
               <div className={styles.iconPlaceholder}>
-                {(app.label || 'U').charAt(0).toUpperCase()}
+                <span style={{ position: 'absolute' }}>
+                  {(app.label || 'U').charAt(0).toUpperCase()}
+                </span>
+                <img
+                  src={`/api/assets/apps/icons/${app.id}`}
+                  alt={app.label}
+                  onError={(e) => {
+                    // If image fails to load, hide it to show the fallback letter
+                    const target = e.target as HTMLImageElement;
+                    target.style.display = 'none';
+                  }}
+                  onLoad={(e) => {
+                    // If image loads successfully, hide the fallback letter
+                    const target = e.target as HTMLImageElement;
+                    const sibling = target.previousElementSibling as HTMLElement;
+                    if (sibling) {
+                      sibling.style.display = 'none';
+                    }
+                  }}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'relative', zIndex: 1 }}
+                />
               </div>
               <div className={styles.contentColumn}>
                 <div className={styles.headerRow}>
@@ -152,7 +171,6 @@ export default function AppList() {
                   <span className={styles.versionBadge}>v{app.version || '0.0.0'}</span>
                 </div>
                 <div className={styles.appDescription}>{app.description || 'No description'}</div>
-                <div className={styles.appAuthor}>By {app.author || 'Unknown'}</div>
               </div>
               {app.id !== 'system' && (
                 <button

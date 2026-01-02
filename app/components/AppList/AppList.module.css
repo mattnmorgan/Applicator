@@ -46,7 +46,7 @@
 .iconPlaceholder {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 6px;
   background: #334155;
   display: flex;
   align-items: center;
@@ -55,7 +55,9 @@
   font-weight: 600;
   font-size: 14px;
   flex-shrink: 0;
-  margin-top: 4px;
+  border: 2px solid #475569;
+  overflow: hidden;
+  position: relative;
 }
 
 .contentColumn {
