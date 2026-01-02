@@ -10,17 +10,8 @@ export async function GET(
   try {
     const { appId } = await params;
 
-    // Get storage path
-    const storagePath = await getSystemSetting('storage');
-    if (!storagePath) {
-      return NextResponse.json(
-        { error: 'Storage not configured' },
-        { status: 500 }
-      );
-    }
-
-    // Get the bundle file
-    const bundlePath = path.join(storagePath, 'system', 'apps', `${appId}.js`);
+    // Get the bundle file from apps directory
+    const bundlePath = path.join(process.cwd(), 'apps', appId, 'dist', `${appId}.js`);
 
     try {
       const content = await fs.readFile(bundlePath, 'utf-8');

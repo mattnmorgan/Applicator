@@ -103,9 +103,9 @@ export default function AppList() {
   };
 
   const filteredApps = apps.filter(app =>
-    app.label.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    app.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    app.author.toLowerCase().includes(searchQuery.toLowerCase())
+    app.label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    app.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+    app.author?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   // If an app is selected, show the AppView
@@ -133,7 +133,7 @@ export default function AppList() {
         <input
           ref={fileInputRef}
           type="file"
-          accept=".js"
+          accept=".zip"
           onChange={handleFileChange}
           style={{ display: 'none' }}
         />
@@ -144,15 +144,15 @@ export default function AppList() {
           <Row key={app.id}>
             <div className={styles.appInfo} onClick={() => setSelectedAppId(app.id)} style={{ cursor: 'pointer' }}>
               <div className={styles.iconPlaceholder}>
-                {app.label.charAt(0).toUpperCase()}
+                {(app.label || 'U').charAt(0).toUpperCase()}
               </div>
               <div className={styles.contentColumn}>
                 <div className={styles.headerRow}>
-                  <div className={styles.appLabel}>{app.label}</div>
-                  <span className={styles.versionBadge}>v{app.version}</span>
+                  <div className={styles.appLabel}>{app.label || 'Unknown App'}</div>
+                  <span className={styles.versionBadge}>v{app.version || '0.0.0'}</span>
                 </div>
-                <div className={styles.appDescription}>{app.description}</div>
-                <div className={styles.appAuthor}>By {app.author}</div>
+                <div className={styles.appDescription}>{app.description || 'No description'}</div>
+                <div className={styles.appAuthor}>By {app.author || 'Unknown'}</div>
               </div>
               {app.id !== 'system' && (
                 <button

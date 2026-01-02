@@ -78,14 +78,14 @@ export async function POST(request: NextRequest) {
     // Delete app from database
     await deleteApp(appId);
 
-    // Delete app bundle file
+    // Delete app directory
     try {
+      const appDir = path.join(process.cwd(), 'apps', appId);
+      await fs.rm(appDir, { recursive: true, force: true });
+
+      // Delete app icon from storage
       const storagePath = await getSystemSetting('storage');
       if (storagePath) {
-        const bundlePath = path.join(storagePath, 'system', 'apps', `${appId}.js`);
-        await fs.unlink(bundlePath);
-
-        // Delete app icon directory
         const iconDir = path.join(storagePath, 'system', 'apps', 'icons', appId);
         await fs.rm(iconDir, { recursive: true, force: true });
       }

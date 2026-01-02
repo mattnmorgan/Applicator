@@ -4,6 +4,7 @@ import { userHasAuthorization, createApp, createAuthorization, getApp } from '@/
 import { getSystemSetting } from '@/lib/db';
 import path from 'path';
 import fs from 'fs/promises';
+import AdmZip from 'adm-zip';
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,64 +33,74 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'No file provided' }, { status: 400 });
     }
 
-    // Read file content
-    const fileContent = await file.text();
+    // Check if file is a zip
+    if (!file.name.endsWith('.zip')) {
+      return NextResponse.json(
+        { error: 'Invalid file format. Please upload a .zip package' },
+        { status: 400 }
+      );
+    }
 
-    // Extract app attributes from the bundled JS
-    // The bundle should export a getAppAttributes function
-    let appAttributes;
+    // Read file as buffer
+    const fileBuffer = Buffer.from(await file.arrayBuffer());
+
+    // Extract zip contents
+    let zip: AdmZip;
+    let appAttributes: any;
+    let uiBundle: string;
+    let iconData: Buffer | null = null;
+    let apiHandlers: Map<string, Buffer> = new Map();
+
     try {
-      // For webpack bundles, we need to execute the bundle in a safe context
-      // Look for function that returns appId:"task" or similar pattern
-      const appIdMatch = fileContent.match(/function\s+\w+\s*\(\s*\)\s*\{return\{appId:"(\w+)"/);
+      zip = new AdmZip(fileBuffer);
+      const zipEntries = zip.getEntries();
 
-      if (!appIdMatch) {
+      // Extract app.json
+      const appJsonEntry = zipEntries.find(e => e.entryName === 'app.json');
+      if (!appJsonEntry) {
         return NextResponse.json(
-          { error: 'Invalid app bundle: missing getAppAttributes function' },
+          { error: 'Invalid app package: missing app.json' },
           { status: 400 }
         );
       }
 
-      // Execute the bundle in a VM context to extract attributes safely
-      const vm = require('vm');
-      const sandbox: any = {
-        window: {},
-        module: {},
-        exports: {},
-        require: () => ({}),
-        React: {},
-        ReactDOM: {},
-      };
+      appAttributes = JSON.parse(appJsonEntry.getData().toString('utf8'));
 
-      try {
-        vm.runInNewContext(fileContent, sandbox, { timeout: 5000 });
-
-        // Try to get getAppAttributes from the sandbox
-        if (sandbox.window.getAppAttributes && typeof sandbox.window.getAppAttributes === 'function') {
-          appAttributes = sandbox.window.getAppAttributes();
-        } else {
-          return NextResponse.json(
-            { error: 'Invalid app bundle: getAppAttributes not exposed on window' },
-            { status: 400 }
-          );
-        }
-      } catch (vmError) {
-        console.error('VM execution error:', vmError);
+      // Extract UI bundle (app.js or {appId}.js)
+      const bundleEntry = zipEntries.find(e =>
+        e.entryName === `${appAttributes.id}.js` || e.entryName === 'task.js'
+      );
+      if (!bundleEntry) {
         return NextResponse.json(
-          { error: 'Invalid app bundle: failed to execute bundle' },
+          { error: 'Invalid app package: missing UI bundle' },
           { status: 400 }
         );
+      }
+
+      uiBundle = bundleEntry.getData().toString('utf8');
+
+      // Extract icon if present
+      const iconEntry = zipEntries.find(e => e.entryName === 'app.png' || e.entryName === 'app.jpg');
+      if (iconEntry) {
+        iconData = iconEntry.getData();
+      }
+
+      // Extract API handlers
+      const apiEntries = zipEntries.filter(e => e.entryName.startsWith('api/') && e.entryName.endsWith('.js'));
+      for (const entry of apiEntries) {
+        const handlerName = path.basename(entry.entryName, '.js');
+        apiHandlers.set(handlerName, entry.getData());
       }
     } catch (error) {
-      console.error('Error extracting attributes:', error);
+      console.error('Error extracting zip:', error);
       return NextResponse.json(
-        { error: 'Invalid app bundle format' },
+        { error: 'Invalid zip file' },
         { status: 400 }
       );
     }
 
     // Validate required attributes
-    if (!appAttributes.appId || !appAttributes.name || !appAttributes.version ||
+    if (!appAttributes.id || !appAttributes.name || !appAttributes.version ||
         !appAttributes.author || !appAttributes.description) {
       return NextResponse.json(
         { error: 'Missing required app attributes' },
@@ -98,7 +109,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if app already exists
-    const existingApp = await getApp(appAttributes.appId);
+    const existingApp = await getApp(appAttributes.id);
     if (existingApp) {
       return NextResponse.json(
         { error: 'App with this ID already exists' },
@@ -106,26 +117,31 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Get storage path
-    const storagePath = await getSystemSetting('storage');
-    if (!storagePath) {
-      return NextResponse.json(
-        { error: 'Storage path not configured' },
-        { status: 500 }
-      );
+    // Get app directory in the project
+    const appDir = path.join(process.cwd(), 'apps', appAttributes.id);
+    await fs.mkdir(appDir, { recursive: true });
+
+    // Create dist directory
+    const distDir = path.join(appDir, 'dist');
+    await fs.mkdir(distDir, { recursive: true });
+
+    // Create api directory
+    const apiDir = path.join(distDir, 'api');
+    await fs.mkdir(apiDir, { recursive: true });
+
+    // Save the UI bundle
+    const bundlePath = path.join(distDir, `${appAttributes.id}.js`);
+    await fs.writeFile(bundlePath, uiBundle, 'utf-8');
+
+    // Save API handlers
+    for (const [handlerName, handlerData] of apiHandlers) {
+      const handlerPath = path.join(apiDir, `${handlerName}.js`);
+      await fs.writeFile(handlerPath, handlerData);
     }
-
-    // Create apps directory if it doesn't exist
-    const appsDir = path.join(storagePath, 'system', 'apps');
-    await fs.mkdir(appsDir, { recursive: true });
-
-    // Save the bundle file
-    const bundlePath = path.join(appsDir, `${appAttributes.appId}.js`);
-    await fs.writeFile(bundlePath, fileContent, 'utf-8');
 
     // Create app in database
     await createApp(
-      appAttributes.appId,
+      appAttributes.id,
       appAttributes.name,
       appAttributes.version,
       appAttributes.author,
@@ -137,31 +153,32 @@ export async function POST(request: NextRequest) {
     // Install authorizations
     if (appAttributes.authorizations && Array.isArray(appAttributes.authorizations)) {
       for (const auth of appAttributes.authorizations) {
-        const authId = `${appAttributes.appId}:${auth.id}`;
+        const authId = `${appAttributes.id}:${auth.id}`;
         await createAuthorization(
           authId,
           auth.name,
           auth.description || '',
-          appAttributes.appId
+          appAttributes.id
         );
       }
     }
 
     // Save icon if provided
-    if (appAttributes.icon) {
-      const iconDir = path.join(storagePath, 'system', 'apps', 'icons', appAttributes.appId);
-      await fs.mkdir(iconDir, { recursive: true });
+    if (iconData) {
+      // Get storage path
+      const storagePath = await getSystemSetting('storage');
+      if (storagePath) {
+        const iconDir = path.join(storagePath, 'system', 'apps', 'icons', appAttributes.id);
+        await fs.mkdir(iconDir, { recursive: true });
 
-      // Decode base64 icon and save
-      const base64Data = appAttributes.icon.replace(/^data:image\/\w+;base64,/, '');
-      const iconBuffer = Buffer.from(base64Data, 'base64');
-      const iconPath = path.join(iconDir, 'icon.png');
-      await fs.writeFile(iconPath, iconBuffer);
+        const iconPath = path.join(iconDir, 'icon.png');
+        await fs.writeFile(iconPath, iconData);
+      }
     }
 
     return NextResponse.json({
       success: true,
-      appId: appAttributes.appId,
+      appId: appAttributes.id,
       name: appAttributes.name,
     });
   } catch (error) {
