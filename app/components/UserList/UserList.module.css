@@ -10,6 +10,25 @@
   gap: 12px;
 }
 
+.addButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: #10b981;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.addButton:hover {
+  background: #059669;
+}
+
 .actionButton {
   display: flex;
   align-items: center;

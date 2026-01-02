@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import ProfileIndicator from '../ProfileIndicator';
 import ButtonMenu from '../ButtonMenu';
 import Row from '../Row';
+import UserCreate from '../UserCreate';
 import styles from './UserList.module.css';
 
 interface User {
@@ -20,6 +21,7 @@ export default function UserList() {
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [loading, setLoading] = useState(false);
+  const [showCreateUser, setShowCreateUser] = useState(false);
 
   const fetchUsers = async () => {
     try {
@@ -86,9 +88,34 @@ export default function UserList() {
   const allSelected = filteredUsers.length > 0 && filteredUsers.every(u => selectedUserIds.has(u.id));
   const someSelected = selectedUserIds.size > 0;
 
+  const handleUserCreated = async () => {
+    await fetchUsers();
+    setShowCreateUser(false);
+  };
+
+  if (showCreateUser) {
+    return (
+      <UserCreate
+        onCancel={() => setShowCreateUser(false)}
+        onUserCreated={handleUserCreated}
+      />
+    );
+  }
+
   return (
     <div className={styles.container}>
       <div className={styles.toolbar}>
+        <button className={styles.addButton} onClick={() => setShowCreateUser(true)}>
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+            <path
+              d="M8 3V13M3 8H13"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+            />
+          </svg>
+        </button>
+
         <ButtonMenu
           disabled={!someSelected}
           alignment="left"

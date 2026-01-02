@@ -67,6 +67,21 @@ export async function initializeAuthorities(): Promise<void> {
   await createAuthority('guest', 'Guest', false);
 }
 
+export async function getAllAuthorities(): Promise<Authority[]> {
+  const redis = getRedisClient();
+  const keys = await redis.keys('authority:*');
+
+  const authorities: Authority[] = [];
+  for (const key of keys) {
+    const authorityData = await redis.get(key);
+    if (authorityData) {
+      authorities.push(JSON.parse(authorityData) as Authority);
+    }
+  }
+
+  return authorities;
+}
+
 // User management
 export async function createUser(
   username: string,
@@ -166,6 +181,18 @@ export async function updateUserStatus(userId: string, isActive: boolean): Promi
 
   user.isActive = isActive;
   await redis.set(`user:${userId}`, JSON.stringify(user));
+}
+
+export async function updateUser(userId: string, updates: Partial<Omit<User, 'id' | 'passwordHash'>>): Promise<void> {
+  const redis = getRedisClient();
+  const user = await getUserById(userId);
+
+  if (!user) {
+    throw new Error('User not found');
+  }
+
+  const updatedUser = { ...user, ...updates };
+  await redis.set(`user:${userId}`, JSON.stringify(updatedUser));
 }
 
 // Session management
