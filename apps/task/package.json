@@ -3,7 +3,8 @@
   "version": "1.0.0",
   "description": "Task Manager App for Vibe Applicator",
   "scripts": {
-    "build": "webpack --mode production",
+    "build": "npm run build:api && webpack --mode production",
+    "build:api": "webpack --config webpack.api.config.js",
     "dev": "webpack --mode development --watch"
   },
   "dependencies": {

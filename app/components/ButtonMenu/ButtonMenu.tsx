@@ -103,9 +103,9 @@ export default function ButtonMenu({ children, options, trigger, disabled = fals
     }
 
     // Recursively process children
-    if (element.props?.children) {
+    if ((element as any).props?.children) {
       return cloneElement(element as React.ReactElement<any>, {
-        children: React.Children.map(element.props.children, addCaretRotation),
+        children: React.Children.map((element as any).props.children, addCaretRotation),
       });
     }
 

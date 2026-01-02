@@ -19,7 +19,7 @@ export async function POST(request: NextRequest) {
     // Check permission
     await requireAuthorization(plugin, 'task:manage');
 
-    const body = await request.json();
+    const body: any = await request.json();
     const { title, description, status, priority, assignedTo, dueDate, tags } = body;
 
     if (!title) {

@@ -19,7 +19,7 @@ export async function DELETE(request: NextRequest) {
     // Check permission
     await requireAuthorization(plugin, 'task:manage');
 
-    const body = await request.json();
+    const body: any = await request.json();
     const { taskId } = body;
 
     if (!taskId) {

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getApp } from '@/lib/db';
 import * as path from 'path';
 import * as fs from 'fs';
+import { createRequire } from 'module';
 
 export async function GET(
   request: NextRequest,
@@ -66,13 +67,14 @@ async function handleRequest(
     }
 
     // Load the handler from the app's API directory
+    // Use .js extension since we're loading compiled output
     const handlerPath = path.join(
       process.cwd(),
       'apps',
       appId,
-      'src',
+      'dist',
       'api',
-      `${apiRoute.handler}.ts`
+      `${apiRoute.handler}.js`
     );
 
     // Check if file exists
@@ -83,8 +85,14 @@ async function handleRequest(
       );
     }
 
-    // Dynamically import and execute the handler
-    const handlerModule = await import(handlerPath);
+    // Use createRequire to load the handler dynamically
+    // This bypasses Next.js static analysis
+    const require = createRequire(import.meta.url || __filename);
+    const absolutePath = path.resolve(handlerPath);
+
+    // Clear cache to ensure fresh load
+    delete require.cache[absolutePath];
+    const handlerModule = require(absolutePath);
     const handler = handlerModule[method];
 
     if (!handler || typeof handler !== 'function') {

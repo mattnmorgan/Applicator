@@ -15,36 +15,77 @@ export default function AppPage() {
   useEffect(() => {
     if (!appId) return;
 
-    // Load the app bundle
-    const script = document.createElement('script');
-    script.src = `/api/assets/apps/${appId}`;
-    script.async = true;
+    const scripts: HTMLScriptElement[] = [];
 
-    script.onload = () => {
-      try {
-        // The app should export a mount function
+    // Load React and ReactDOM first
+    const loadReact = () => {
+      return new Promise<void>((resolve, reject) => {
+        // Check if React is already loaded
         // @ts-ignore
-        if (window.AppMount && typeof window.AppMount === 'function') {
-          // @ts-ignore
-          window.AppMount(containerRef.current, { appId });
-          setLoading(false);
-        } else {
-          setError('App does not export a mount function');
-          setLoading(false);
+        if (window.React && window.ReactDOM) {
+          resolve();
+          return;
         }
+
+        const reactScript = document.createElement('script');
+        reactScript.src = '/assets/react.production.min.js';
+        reactScript.onload = () => {
+          const reactDOMScript = document.createElement('script');
+          reactDOMScript.src = '/assets/react-dom.production.min.js';
+          reactDOMScript.onload = () => resolve();
+          reactDOMScript.onerror = () => reject(new Error('Failed to load ReactDOM'));
+          document.body.appendChild(reactDOMScript);
+          scripts.push(reactDOMScript);
+        };
+        reactScript.onerror = () => reject(new Error('Failed to load React'));
+        document.body.appendChild(reactScript);
+        scripts.push(reactScript);
+      });
+    };
+
+    // Load the app bundle after React is ready
+    const loadApp = async () => {
+      try {
+        await loadReact();
+
+        const script = document.createElement('script');
+        script.src = `/api/assets/apps/${appId}`;
+        script.async = true;
+
+        script.onload = () => {
+          try {
+            // The app should export a mount function
+            // @ts-ignore
+            if (window.AppMount && typeof window.AppMount === 'function') {
+              // @ts-ignore
+              window.AppMount(containerRef.current, { appId });
+              setLoading(false);
+            } else {
+              setError('App does not export a mount function');
+              setLoading(false);
+            }
+          } catch (err) {
+            console.error('Error mounting app:', err);
+            setError('Failed to mount app');
+            setLoading(false);
+          }
+        };
+
+        script.onerror = () => {
+          setError('Failed to load app');
+          setLoading(false);
+        };
+
+        document.body.appendChild(script);
+        scripts.push(script);
       } catch (err) {
-        console.error('Error mounting app:', err);
-        setError('Failed to mount app');
+        console.error('Error loading dependencies:', err);
+        setError('Failed to load app dependencies');
         setLoading(false);
       }
     };
 
-    script.onerror = () => {
-      setError('Failed to load app');
-      setLoading(false);
-    };
-
-    document.body.appendChild(script);
+    loadApp();
 
     return () => {
       // Cleanup: unmount the app if it provides an unmount function
@@ -58,8 +99,12 @@ export default function AppPage() {
         }
       }
 
-      // Remove the script
-      document.body.removeChild(script);
+      // Remove all scripts
+      scripts.forEach(script => {
+        if (script.parentNode) {
+          document.body.removeChild(script);
+        }
+      });
     };
   }, [appId]);
 

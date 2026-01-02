@@ -53,7 +53,6 @@ export async function POST(request: Request) {
         username: user.username,
         email: user.email,
         displayName: user.displayName,
-        isAdmin: user.isAdmin,
       },
     });
   } catch (error) {

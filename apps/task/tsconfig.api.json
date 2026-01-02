@@ -1,0 +1,18 @@
+{
+  "compilerOptions": {
+    "target": "ES2017",
+    "lib": ["ES2017"],
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "outDir": ".",
+    "declaration": false,
+    "sourceMap": false,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "strict": false,
+    "baseUrl": ".",
+    "paths": {}
+  },
+  "include": ["src/api/**/*"],
+  "exclude": ["node_modules"]
+}
