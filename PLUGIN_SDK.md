@@ -21,7 +21,7 @@ The Plugin SDK consists of two main components:
 
 ### Key Features
 
-- **Data Sandboxing**: Each app's data is isolated in Redis using key prefixing (`app:{appId}:records:{recordId}`)
+- **Data Sandboxing**: Each app's data is isolated in Redis using key prefixing (`sandbox:{appId}:records:{recordId}`)
 - **Permission System**: Integration with the platform's three-tier permission system (Users → Authorities → Authorizations)
 - **Type Safety**: Full TypeScript support with generics for custom data types
 - **Batch Operations**: Efficient batch create, read, and delete operations
@@ -53,7 +53,7 @@ const hasPermission = await plugin.system.checkMyAuthorization('admin');
 
 ## RecordManager
 
-The `RecordManager` provides sandboxed CRUD operations for app-specific records. All records are automatically prefixed with `app:{appId}:records:` to ensure data isolation.
+The `RecordManager` provides sandboxed CRUD operations for app-specific records. All records are automatically prefixed with `sandbox:{appId}:records:` to ensure data isolation.
 
 ### Creating a Record Manager
 

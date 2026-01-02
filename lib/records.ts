@@ -27,7 +27,7 @@ export interface ListRecordsResult<T = any> {
 
 /**
  * RecordManager provides sandboxed CRUD operations for app-specific records.
- * Each app's records are isolated using Redis key prefixing: `app:{appId}:records:{recordId}`
+ * Each app's records are isolated using Redis key prefixing: `sandbox:{appId}:records:{recordId}`
  */
 export class RecordManager<T = any> {
   private appId: string;
@@ -35,7 +35,7 @@ export class RecordManager<T = any> {
 
   constructor(options: RecordManagerOptions) {
     this.appId = options.appId;
-    this.keyPrefix = `app:${this.appId}:records:`;
+    this.keyPrefix = `sandbox:${this.appId}:records:`;
   }
 
   /**
