@@ -7,6 +7,23 @@ export interface Authority {
   name: string;
   isAdmin: boolean;
   icon?: string;
+  authorizations: string[]; // Array of authorization IDs
+}
+
+export interface Authorization {
+  id: string;
+  name: string;
+  description: string;
+  app: string; // App ID
+}
+
+export interface App {
+  id: string;
+  label: string;
+  version: string;
+  author: string;
+  contactEmail: string;
+  description: string;
 }
 
 export interface User {
@@ -29,7 +46,7 @@ export interface Session {
 }
 
 // Authority management
-export async function createAuthority(id: string, name: string, isAdmin: boolean, icon?: string): Promise<Authority> {
+export async function createAuthority(id: string, name: string, isAdmin: boolean, icon?: string, authorizations: string[] = []): Promise<Authority> {
   const redis = getRedisClient();
 
   const authority: Authority = {
@@ -37,6 +54,7 @@ export async function createAuthority(id: string, name: string, isAdmin: boolean
     name,
     isAdmin,
     icon,
+    authorizations,
   };
 
   await redis.set(`authority:${id}`, JSON.stringify(authority));
@@ -63,10 +81,36 @@ export async function initializeAuthorities(): Promise<void> {
     return; // Authorities already initialized
   }
 
+  // Create the system app
+  await createApp(
+    'system',
+    'System',
+    '1.0',
+    'System',
+    'system@localhost',
+    'Core system application'
+  );
+
+  // Create default authorizations
+  await createAuthorization(
+    'admin',
+    'Administrator',
+    'Permits administrator access to the system',
+    'system'
+  );
+
+  await createAuthorization(
+    'developer',
+    'Developer',
+    'Permits developer access to the system',
+    'system'
+  );
+
   // Create the three default authorities
-  await createAuthority('admin', 'Administrator', true);
-  await createAuthority('user', 'User', false);
-  await createAuthority('guest', 'Guest', false);
+  // Admin authority has the 'admin' authorization
+  await createAuthority('admin', 'Administrator', true, undefined, ['admin']);
+  await createAuthority('user', 'User', false, undefined, []);
+  await createAuthority('guest', 'Guest', false, undefined, []);
 }
 
 export async function getAllAuthorities(): Promise<Authority[]> {
@@ -105,6 +149,124 @@ export async function getUserCountByAuthority(authorityId: string): Promise<numb
   const redis = getRedisClient();
   const users = await getAllUsers();
   return users.filter(user => user.authority === authorityId).length;
+}
+
+// Authorization management
+export async function createAuthorization(id: string, name: string, description: string, app: string): Promise<Authorization> {
+  const redis = getRedisClient();
+
+  const authorization: Authorization = {
+    id,
+    name,
+    description,
+    app,
+  };
+
+  await redis.set(`authorization:${id}`, JSON.stringify(authorization));
+  return authorization;
+}
+
+export async function getAuthorization(id: string): Promise<Authorization | null> {
+  const redis = getRedisClient();
+  const authorizationData = await redis.get(`authorization:${id}`);
+
+  if (!authorizationData) {
+    return null;
+  }
+
+  return JSON.parse(authorizationData) as Authorization;
+}
+
+export async function getAllAuthorizations(): Promise<Authorization[]> {
+  const redis = getRedisClient();
+  const keys = await redis.keys('authorization:*');
+
+  const authorizations: Authorization[] = [];
+  for (const key of keys) {
+    const authorizationData = await redis.get(key);
+    if (authorizationData) {
+      authorizations.push(JSON.parse(authorizationData) as Authorization);
+    }
+  }
+
+  return authorizations;
+}
+
+export async function updateAuthorization(id: string, updates: Partial<Omit<Authorization, 'id'>>): Promise<void> {
+  const redis = getRedisClient();
+  const authorization = await getAuthorization(id);
+
+  if (!authorization) {
+    throw new Error('Authorization not found');
+  }
+
+  const updatedAuthorization = { ...authorization, ...updates };
+  await redis.set(`authorization:${id}`, JSON.stringify(updatedAuthorization));
+}
+
+export async function deleteAuthorization(id: string): Promise<void> {
+  const redis = getRedisClient();
+  await redis.del(`authorization:${id}`);
+}
+
+// App management
+export async function createApp(id: string, label: string, version: string, author: string, contactEmail: string, description: string): Promise<App> {
+  const redis = getRedisClient();
+
+  const app: App = {
+    id,
+    label,
+    version,
+    author,
+    contactEmail,
+    description,
+  };
+
+  await redis.set(`app:${id}`, JSON.stringify(app));
+  return app;
+}
+
+export async function getApp(id: string): Promise<App | null> {
+  const redis = getRedisClient();
+  const appData = await redis.get(`app:${id}`);
+
+  if (!appData) {
+    return null;
+  }
+
+  return JSON.parse(appData) as App;
+}
+
+export async function getAllApps(): Promise<App[]> {
+  const redis = getRedisClient();
+  const keys = await redis.keys('app:*');
+
+  const apps: App[] = [];
+  for (const key of keys) {
+    const appData = await redis.get(key);
+    if (appData) {
+      apps.push(JSON.parse(appData) as App);
+    }
+  }
+
+  return apps;
+}
+
+export async function updateApp(id: string, updates: Partial<Omit<App, 'id'>>): Promise<void> {
+  const redis = getRedisClient();
+  const app = await getApp(id);
+
+  if (!app) {
+    throw new Error('App not found');
+  }
+
+  const updatedApp = { ...app, ...updates };
+  await redis.set(`app:${id}`, JSON.stringify(updatedApp));
+}
+
+export async function deleteApp(id: string): Promise<void> {
+  const redis = getRedisClient();
+  await redis.del(`app:${id}`);
 }
 
 // User management

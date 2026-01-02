@@ -48,6 +48,8 @@ export async function PATCH(
     const isAdmin = formData.get('isAdmin') === 'true';
     const iconFile = formData.get('icon') as File | null;
     const clearIcon = formData.get('clearIcon') === 'true';
+    const authorizationsJson = formData.get('authorizations') as string;
+    const authorizations = authorizationsJson ? JSON.parse(authorizationsJson) : undefined;
 
     const isSystemAuthority = ['admin', 'user', 'guest'].includes(id);
 
@@ -93,11 +95,16 @@ export async function PATCH(
       updates.icon = relativePath;
     }
 
-    // For system authorities, only allow icon updates
+    // Handle authorizations update if provided
+    if (authorizations !== undefined) {
+      updates.authorizations = authorizations;
+    }
+
+    // For system authorities, only allow icon and authorizations updates
     if (isSystemAuthority) {
       if (Object.keys(updates).length === 0) {
         return NextResponse.json(
-          { error: 'No icon provided for update' },
+          { error: 'No updates provided' },
           { status: 400 }
         );
       }
@@ -105,7 +112,7 @@ export async function PATCH(
       await updateAuthority(id, updates);
       return NextResponse.json({
         success: true,
-        message: 'Authority icon updated successfully'
+        message: 'Authority updated successfully'
       });
     }
 

@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import Toast from '../Toast';
 import styles from './AuthorityCreate.module.css';
 
 interface AuthorityCreateProps {
@@ -11,7 +12,16 @@ interface AuthorityCreateProps {
     name: string;
     isAdmin: boolean;
     icon?: string;
+    authorizations?: string[];
   };
+}
+
+interface Authorization {
+  id: string;
+  name: string;
+  description: string;
+  app: string;
+  appLabel: string;
 }
 
 export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuthority }: AuthorityCreateProps) {
@@ -22,9 +32,28 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
   const [clearIcon, setClearIcon] = useState(false);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState('');
+  const [authorizations, setAuthorizations] = useState<Authorization[]>([]);
+  const [selectedAuthorizations, setSelectedAuthorizations] = useState<Set<string>>(
+    new Set(editAuthority?.authorizations || [])
+  );
+  const [authorizationSearch, setAuthorizationSearch] = useState('');
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const isEditMode = !!editAuthority;
   const isSystemAuthority = editAuthority && ['admin', 'user', 'guest'].includes(editAuthority.id);
+
+  useEffect(() => {
+    const fetchAuthorizations = async () => {
+      try {
+        const response = await fetch('/api/authorizations');
+        const data = await response.json();
+        setAuthorizations(data.authorizations || []);
+      } catch (error) {
+        console.error('Failed to fetch authorizations:', error);
+      }
+    };
+    fetchAuthorizations();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -43,6 +72,22 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
     setIconFile(null);
     setPreviewUrl('');
     setClearIcon(true);
+  };
+
+  const handleToggleAuthorization = (authorizationId: string) => {
+    // Validation for admin authority: cannot deselect 'admin' authorization
+    if (editAuthority?.id === 'admin' && authorizationId === 'admin' && selectedAuthorizations.has(authorizationId)) {
+      setToast({ message: 'Cannot remove Administrator authorization from admin authority', type: 'error' });
+      return;
+    }
+
+    const newSelection = new Set(selectedAuthorizations);
+    if (newSelection.has(authorizationId)) {
+      newSelection.delete(authorizationId);
+    } else {
+      newSelection.add(authorizationId);
+    }
+    setSelectedAuthorizations(newSelection);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -67,6 +112,8 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
       if (clearIcon) {
         formData.append('clearIcon', 'true');
       }
+      // Add authorizations
+      formData.append('authorizations', JSON.stringify(Array.from(selectedAuthorizations)));
 
       const url = isEditMode ? `/api/authorities/${editAuthority.id}` : '/api/authorities/create';
       const response = await fetch(url, {
@@ -89,8 +136,23 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
     }
   };
 
+  const filteredAuthorizations = authorizations.filter(auth =>
+    auth.name.toLowerCase().includes(authorizationSearch.toLowerCase()) ||
+    auth.description.toLowerCase().includes(authorizationSearch.toLowerCase())
+  );
+
   return (
     <div className={styles.container}>
+      {toast && (
+        <div className={styles.toastContainer}>
+          <Toast
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
+          />
+        </div>
+      )}
+
       <div className={styles.header}>
         <h2 className={styles.title}>{isEditMode ? 'Edit Authority' : 'Create Authority'}</h2>
       </div>
@@ -161,9 +223,46 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
           </div>
         </div>
 
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Authorizations</label>
+          <input
+            type="text"
+            className={styles.input}
+            placeholder="Search authorizations..."
+            value={authorizationSearch}
+            onChange={(e) => setAuthorizationSearch(e.target.value)}
+            style={{ marginBottom: '12px' }}
+          />
+          <div className={styles.authorizationList}>
+            {filteredAuthorizations.map(authorization => (
+              <div key={authorization.id} className={styles.authorizationItem}>
+                <input
+                  type="checkbox"
+                  id={`auth-${authorization.id}`}
+                  className={styles.checkbox}
+                  checked={selectedAuthorizations.has(authorization.id)}
+                  onChange={() => handleToggleAuthorization(authorization.id)}
+                />
+                <label htmlFor={`auth-${authorization.id}`} className={styles.authorizationLabel}>
+                  <div className={styles.authorizationName}>{authorization.name}</div>
+                  <div className={styles.authorizationDescription}>{authorization.description}</div>
+                  <div className={styles.authorizationApp}>
+                    <span className={`${styles.badge} ${authorization.app === 'system' ? styles.badgeSystem : styles.badgeApp}`}>
+                      {authorization.appLabel}
+                    </span>
+                  </div>
+                </label>
+              </div>
+            ))}
+            {filteredAuthorizations.length === 0 && (
+              <div className={styles.emptyState}>No authorizations found</div>
+            )}
+          </div>
+        </div>
+
         {isSystemAuthority && (
           <div style={{ color: '#94a3b8', fontSize: '14px', fontStyle: 'italic' }}>
-            Note: System authorities (Administrator, User, Guest) cannot be modified except for their icon.
+            Note: System authorities (Administrator, User, Guest) cannot be modified except for their icon and authorizations.
           </div>
         )}
 

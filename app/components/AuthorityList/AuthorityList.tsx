@@ -12,6 +12,7 @@ interface Authority {
   name: string;
   isAdmin: boolean;
   icon?: string;
+  authorizations?: string[];
 }
 
 export default function AuthorityList() {
@@ -120,6 +121,7 @@ export default function AuthorityList() {
           name: editingAuthority.name,
           isAdmin: editingAuthority.isAdmin,
           icon: editingAuthority.icon,
+          authorizations: editingAuthority.authorizations,
         } : undefined}
       />
     );

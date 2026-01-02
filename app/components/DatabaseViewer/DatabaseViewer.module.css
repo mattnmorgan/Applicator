@@ -24,6 +24,11 @@
   color: #f1f5f9;
 }
 
+.headerButtons {
+  display: flex;
+  gap: 8px;
+}
+
 .refreshButton {
   background: transparent;
   border: 1px solid #475569;
@@ -40,6 +45,25 @@
 .refreshButton:hover {
   background: #334155;
   color: #f1f5f9;
+}
+
+.flushButton {
+  background: transparent;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  padding: 6px;
+  cursor: pointer;
+  color: #94a3b8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+}
+
+.flushButton:hover {
+  background: #dc2626;
+  color: #fff;
+  border-color: #dc2626;
 }
 
 .treeContainer {
@@ -190,4 +214,78 @@
   color: #ef4444;
   font-size: 12px;
   margin-top: -8px;
+}
+
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.modal {
+  background: #1e293b;
+  padding: 24px;
+  border-radius: 10px;
+  border: 1px solid #334155;
+  max-width: 500px;
+  width: 90%;
+}
+
+.modalTitle {
+  font-size: 20px;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin: 0 0 16px 0;
+}
+
+.modalMessage {
+  color: #94a3b8;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0 0 24px 0;
+}
+
+.modalActions {
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+}
+
+.modalCancelButton {
+  padding: 10px 20px;
+  background: #475569;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.modalCancelButton:hover {
+  background: #334155;
+}
+
+.modalConfirmButton {
+  padding: 10px 20px;
+  background: #dc2626;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.modalConfirmButton:hover {
+  background: #b91c1c;
 }

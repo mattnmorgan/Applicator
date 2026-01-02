@@ -10,6 +10,8 @@ export async function POST(request: Request) {
     const name = formData.get('name') as string;
     const isAdmin = formData.get('isAdmin') === 'true';
     const iconFile = formData.get('icon') as File | null;
+    const authorizationsJson = formData.get('authorizations') as string;
+    const authorizations = authorizationsJson ? JSON.parse(authorizationsJson) : [];
 
     if (!name) {
       return NextResponse.json(
@@ -67,7 +69,7 @@ export async function POST(request: Request) {
       iconPath = relativePath;
     }
 
-    await createAuthority(id, name, isAdmin, iconPath);
+    await createAuthority(id, name, isAdmin, iconPath, authorizations);
 
     return NextResponse.json({
       success: true,

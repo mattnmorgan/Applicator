@@ -21,6 +21,10 @@ const unsortedSettingsMenuItems: TabsetItem[] = [
     path: '/settings',
   },
   {
+    label: 'Apps',
+    path: '/settings/apps',
+  },
+  {
     label: 'User Management',
     clickable: false,
     children: [

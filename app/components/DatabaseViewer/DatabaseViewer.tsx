@@ -115,6 +115,7 @@ export default function DatabaseViewer() {
   const [isValidJson, setIsValidJson] = useState(true);
   const [isJsonValue, setIsJsonValue] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [showFlushModal, setShowFlushModal] = useState(false);
 
   const fetchKeys = async () => {
     try {
@@ -242,6 +243,28 @@ export default function DatabaseViewer() {
     fetchValue(key);
   };
 
+  const handleFlushDatabase = async () => {
+    try {
+      const response = await fetch('/api/debug/redis/flush', {
+        method: 'POST',
+      });
+
+      if (response.ok) {
+        setShowFlushModal(false);
+        setSelectedKey(null);
+        setValue('');
+        setEditedValue('');
+        fetchKeys();
+        alert('Database flushed successfully');
+      } else {
+        alert('Failed to flush database');
+      }
+    } catch (error) {
+      console.error('Failed to flush database:', error);
+      alert('Failed to flush database');
+    }
+  };
+
   useEffect(() => {
     fetchKeys();
   }, []);
@@ -249,27 +272,88 @@ export default function DatabaseViewer() {
   const hasChanges = value !== editedValue;
 
   return (
-    <div className={styles.container}>
-      <div className={styles.sidebar}>
+    <>
+      {showFlushModal && (
+        <div className={styles.modalOverlay}>
+          <div className={styles.modal}>
+            <h3 className={styles.modalTitle}>Flush Database</h3>
+            <p className={styles.modalMessage}>
+              Are you sure you want to flush the entire Redis database? This action cannot be undone and will delete all keys.
+            </p>
+            <div className={styles.modalActions}>
+              <button
+                className={styles.modalCancelButton}
+                onClick={() => setShowFlushModal(false)}
+              >
+                Cancel
+              </button>
+              <button
+                className={styles.modalConfirmButton}
+                onClick={handleFlushDatabase}
+              >
+                Flush Database
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      <div className={styles.container}>
+        <div className={styles.sidebar}>
         <div className={styles.header}>
           <span className={styles.title}>Keys</span>
-          <button className={styles.refreshButton} onClick={fetchKeys} title="Refresh">
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path
-                d="M14 8C14 11.3137 11.3137 14 8 14C4.68629 14 2 11.3137 2 8C2 4.68629 4.68629 2 8 2C9.84838 2 11.5 2.84506 12.5974 4.18869"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-              <path
-                d="M10 4H14V0"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </button>
+          <div className={styles.headerButtons}>
+            <button className={styles.flushButton} onClick={() => setShowFlushModal(true)} title="Flush Database">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path
+                  d="M2 4H14"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M6 2H10"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M3 4V13C3 13.5523 3.44772 14 4 14H12C12.5523 14 13 13.5523 13 13V4"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M6.5 7V11"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M9.5 7V11"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+              </svg>
+            </button>
+            <button className={styles.refreshButton} onClick={fetchKeys} title="Refresh">
+              <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                <path
+                  d="M14 8C14 11.3137 11.3137 14 8 14C4.68629 14 2 11.3137 2 8C2 4.68629 4.68629 2 8 2C9.84838 2 11.5 2.84506 12.5974 4.18869"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                />
+                <path
+                  d="M10 4H14V0"
+                  stroke="currentColor"
+                  strokeWidth="1.5"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                />
+              </svg>
+            </button>
+          </div>
         </div>
         <div className={styles.treeContainer}>
           {treeData.map((node, index) => (
@@ -317,6 +401,7 @@ export default function DatabaseViewer() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </>
   );
 }
