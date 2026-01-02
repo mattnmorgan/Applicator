@@ -82,7 +82,9 @@
 }
 
 .statusColumn {
-  width: 100px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
   flex-shrink: 0;
 }
 
@@ -92,6 +94,16 @@
   border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
+}
+
+.badgeAuthority {
+  display: inline-block;
+  padding: 4px 12px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+  background: #3b82f633;
+  color: #3b82f6;
 }
 
 .badgeActive {

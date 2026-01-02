@@ -12,6 +12,7 @@ interface User {
   displayName: string;
   isActive: boolean;
   profilePicture?: string;
+  authorityName: string;
 }
 
 export default function UserList() {
@@ -145,6 +146,9 @@ export default function UserList() {
               />
             </div>
             <div className={styles.statusColumn}>
+              <span className={styles.badgeAuthority}>
+                {user.authorityName}
+              </span>
               <span className={`${styles.badge} ${user.isActive ? styles.badgeActive : styles.badgeInactive}`}>
                 {user.isActive ? 'Active' : 'Inactive'}
               </span>
