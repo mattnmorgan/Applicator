@@ -33,6 +33,14 @@ export async function POST(request: Request) {
       );
     }
 
+    // Check if user is active
+    if (!user.isActive) {
+      return NextResponse.json(
+        { error: 'Invalid username or password' },
+        { status: 401 }
+      );
+    }
+
     // Create session
     const session = await createSession(user.id);
 

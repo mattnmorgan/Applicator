@@ -1,4 +1,4 @@
-import { getRedisClient } from './redis';
+import { getRedisClient } from '../redis';
 import { v4 as uuidv4 } from 'uuid';
 
 export interface RecordManagerOptions {

@@ -13,7 +13,7 @@ import {
   type User,
   type Authority,
   type Authorization,
-} from './db';
+} from '../db';
 
 export interface UserWithAuthority extends Omit<User, 'passwordHash'> {
   authorityName?: string;

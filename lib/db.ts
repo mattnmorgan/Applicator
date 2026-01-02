@@ -445,6 +445,14 @@ export async function getSession(sessionId: string): Promise<Session | null> {
     return null;
   }
 
+  // Check if user is still active
+  const user = await getUserById(session.userId);
+  if (!user || !user.isActive) {
+    // User is inactive or doesn't exist, delete the session
+    await deleteSession(sessionId);
+    return null;
+  }
+
   return session;
 }
 

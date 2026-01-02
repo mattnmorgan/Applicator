@@ -1,4 +1,5 @@
 import { getRedisClient } from '../redis';
+import { getUserById } from '../db';
 
 export interface Session {
   id: string;
@@ -25,6 +26,14 @@ export async function getSession(sessionId: string): Promise<Session | null> {
   // Check if session is expired
   if (new Date(session.expiresAt) < new Date()) {
     // Session is expired, delete it
+    await redis.del(`session:${sessionId}`);
+    return null;
+  }
+
+  // Check if user is still active
+  const user = await getUserById(session.userId);
+  if (!user || !user.isActive) {
+    // User is inactive or doesn't exist, delete the session
     await redis.del(`session:${sessionId}`);
     return null;
   }
