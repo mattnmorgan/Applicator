@@ -11,6 +11,8 @@ export async function POST(request: Request) {
     const iconFile = formData.get('icon') as File | null;
     const authorizationsJson = formData.get('authorizations') as string;
     const authorizations = authorizationsJson ? JSON.parse(authorizationsJson) : [];
+    const appsJson = formData.get('apps') as string;
+    const apps = appsJson ? JSON.parse(appsJson) : [];
 
     if (!name) {
       return NextResponse.json(
@@ -68,7 +70,7 @@ export async function POST(request: Request) {
       iconPath = relativePath;
     }
 
-    await createAuthority(id, name, iconPath, authorizations);
+    await createAuthority(id, name, iconPath, authorizations, apps);
 
     return NextResponse.json({
       success: true,

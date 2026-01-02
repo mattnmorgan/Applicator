@@ -12,6 +12,7 @@ interface AuthorityCreateProps {
     name: string;
     icon?: string;
     authorizations?: string[];
+    apps?: string[];
   };
 }
 
@@ -21,6 +22,12 @@ interface Authorization {
   description: string;
   app: string;
   appLabel: string;
+}
+
+interface App {
+  id: string;
+  label: string;
+  description: string;
 }
 
 export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuthority }: AuthorityCreateProps) {
@@ -35,22 +42,32 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
     new Set(editAuthority?.authorizations || [])
   );
   const [authorizationSearch, setAuthorizationSearch] = useState('');
+  const [apps, setApps] = useState<App[]>([]);
+  const [selectedApps, setSelectedApps] = useState<Set<string>>(
+    new Set(editAuthority?.apps || [])
+  );
+  const [appSearch, setAppSearch] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const isEditMode = !!editAuthority;
   const isSystemAuthority = editAuthority && ['admin', 'user', 'guest'].includes(editAuthority.id);
 
   useEffect(() => {
-    const fetchAuthorizations = async () => {
+    const fetchData = async () => {
       try {
-        const response = await fetch('/api/authorizations');
-        const data = await response.json();
-        setAuthorizations(data.authorizations || []);
+        const [authResponse, appsResponse] = await Promise.all([
+          fetch('/api/authorizations'),
+          fetch('/api/apps'),
+        ]);
+        const authData = await authResponse.json();
+        const appsData = await appsResponse.json();
+        setAuthorizations(authData.authorizations || []);
+        setApps(appsData.apps || []);
       } catch (error) {
-        console.error('Failed to fetch authorizations:', error);
+        console.error('Failed to fetch data:', error);
       }
     };
-    fetchAuthorizations();
+    fetchData();
   }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,6 +105,16 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
     setSelectedAuthorizations(newSelection);
   };
 
+  const handleToggleApp = (appId: string) => {
+    const newSelection = new Set(selectedApps);
+    if (newSelection.has(appId)) {
+      newSelection.delete(appId);
+    } else {
+      newSelection.add(appId);
+    }
+    setSelectedApps(newSelection);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
@@ -111,6 +138,8 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
       }
       // Add authorizations
       formData.append('authorizations', JSON.stringify(Array.from(selectedAuthorizations)));
+      // Add apps
+      formData.append('apps', JSON.stringify(Array.from(selectedApps)));
 
       const url = isEditMode ? `/api/authorities/${editAuthority.id}` : '/api/authorities/create';
       const response = await fetch(url, {
@@ -136,6 +165,11 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
   const filteredAuthorizations = authorizations.filter(auth =>
     auth.name.toLowerCase().includes(authorizationSearch.toLowerCase()) ||
     auth.description.toLowerCase().includes(authorizationSearch.toLowerCase())
+  );
+
+  const filteredApps = apps.filter(app =>
+    app.label.toLowerCase().includes(appSearch.toLowerCase()) ||
+    app.description.toLowerCase().includes(appSearch.toLowerCase())
   );
 
   return (
@@ -241,9 +275,41 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
           </div>
         </div>
 
+        <div className={styles.formGroup}>
+          <label className={styles.label}>Apps</label>
+          <input
+            type="text"
+            className={styles.input}
+            placeholder="Search apps..."
+            value={appSearch}
+            onChange={(e) => setAppSearch(e.target.value)}
+            style={{ marginBottom: '12px' }}
+          />
+          <div className={styles.authorizationList}>
+            {filteredApps.map(app => (
+              <div key={app.id} className={styles.authorizationItem}>
+                <input
+                  type="checkbox"
+                  id={`app-${app.id}`}
+                  className={styles.checkbox}
+                  checked={selectedApps.has(app.id)}
+                  onChange={() => handleToggleApp(app.id)}
+                />
+                <label htmlFor={`app-${app.id}`} className={styles.authorizationLabel}>
+                  <div className={styles.authorizationName}>{app.label}</div>
+                  <div className={styles.authorizationDescription}>{app.description}</div>
+                </label>
+              </div>
+            ))}
+            {filteredApps.length === 0 && (
+              <div className={styles.emptyState}>No apps found</div>
+            )}
+          </div>
+        </div>
+
         {isSystemAuthority && (
           <div style={{ color: '#94a3b8', fontSize: '14px', fontStyle: 'italic' }}>
-            Note: System authorities (Administrator, User, Guest) cannot be modified except for their icon and authorizations.
+            Note: System authorities (Administrator, User, Guest) cannot be modified except for their icon, authorizations, and apps.
           </div>
         )}
 

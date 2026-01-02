@@ -1,0 +1,23 @@
+.appMenu {
+  position: fixed;
+  top: 65px;
+  left: 0;
+  right: 0;
+  background: #1e293b;
+  z-index: 90;
+}
+
+.container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 24px;
+}
+
+.loading {
+  display: flex;
+  align-items: center;
+  height: 48px;
+  font-size: 14px;
+  color: #94a3b8;
+  border-bottom: 1px solid #334155;
+}

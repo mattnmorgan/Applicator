@@ -3,6 +3,7 @@ import { getCurrentUser } from '@/lib/auth';
 import { isFirstTimeSetup } from '@/lib/db';
 import { getBrandSettings } from '@/lib/brand';
 import Navigation from './components/Navigation';
+import AppMenu from './components/AppMenu/AppMenu';
 
 export default async function HomePage() {
   // Check if first-time setup is needed
@@ -30,14 +31,18 @@ export default async function HomePage() {
         brandName={brandSettings.brandName}
         brandIcon={brandSettings.brandIcon}
       />
+      <AppMenu />
       <div style={{
-        minHeight: '100vh',
+        position: 'fixed',
+        top: '113px',
+        left: 0,
+        right: 0,
+        bottom: 0,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         background: '#0f172a',
-        padding: '20px',
-        paddingTop: '84px',
+        overflow: 'hidden',
       }}>
         <div style={{
           background: '#1e293b',

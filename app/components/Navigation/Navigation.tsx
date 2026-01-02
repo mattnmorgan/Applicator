@@ -66,7 +66,11 @@ export default function Navigation({ displayName, profilePicture, isAdmin = fals
 
   return (
     <nav className={styles.nav}>
-      <div className={styles.title} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+      <div
+        className={styles.title}
+        style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: 'pointer' }}
+        onClick={() => router.push('/')}
+      >
         {brandIcon && (
           <img
             src={brandIcon}

@@ -49,6 +49,8 @@ export async function PATCH(
     const clearIcon = formData.get('clearIcon') === 'true';
     const authorizationsJson = formData.get('authorizations') as string;
     const authorizations = authorizationsJson ? JSON.parse(authorizationsJson) : undefined;
+    const appsJson = formData.get('apps') as string;
+    const apps = appsJson ? JSON.parse(appsJson) : undefined;
 
     const isSystemAuthority = ['admin', 'user', 'guest'].includes(id);
 
@@ -99,7 +101,12 @@ export async function PATCH(
       updates.authorizations = authorizations;
     }
 
-    // For system authorities, only allow icon and authorizations updates
+    // Handle apps update if provided
+    if (apps !== undefined) {
+      updates.apps = apps;
+    }
+
+    // For system authorities, only allow icon, authorizations, and apps updates
     if (isSystemAuthority) {
       if (Object.keys(updates).length === 0) {
         return NextResponse.json(

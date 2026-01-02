@@ -1,0 +1,176 @@
+/**
+ * Plugin SDK for Vibe Applicator
+ *
+ * This module provides the complete SDK for building plugins/apps that integrate
+ * with the Vibe Applicator system. It includes:
+ *
+ * 1. RecordManager - Sandboxed CRUD operations for app-specific data
+ * 2. SystemInterface - Access to system data (users, apps, authorities, authorizations)
+ *
+ * @example
+ * ```typescript
+ * import { createPlugin } from '@/lib/plugin-sdk';
+ *
+ * const plugin = createPlugin('my-app-id', 'user-123');
+ *
+ * // Use the record manager for app-specific data
+ * await plugin.records.create({ name: 'John', email: 'john@example.com' });
+ *
+ * // Access system data
+ * const users = await plugin.system.getUsers();
+ * const hasPermission = await plugin.system.checkMyAuthorization('admin');
+ * ```
+ */
+
+export {
+  RecordManager,
+  createRecordManager,
+  type Record,
+  type RecordManagerOptions,
+  type ListRecordsOptions,
+  type ListRecordsResult,
+} from './records';
+
+export {
+  SystemInterface,
+  createSystemInterface,
+  type UserWithAuthority,
+  type AuthorityWithDetails,
+  type AuthorizationWithApp,
+  type SystemInterfaceOptions,
+} from './system';
+
+export type {
+  App,
+  User,
+  Authority,
+  Authorization,
+} from './db';
+
+import { createRecordManager, RecordManager } from './records';
+import { createSystemInterface, SystemInterface } from './system';
+
+export interface PluginContext {
+  appId: string;
+  userId?: string;
+}
+
+export interface Plugin<T = any> {
+  appId: string;
+  userId?: string;
+  records: RecordManager<T>;
+  system: SystemInterface;
+}
+
+/**
+ * Create a complete plugin instance with both record management and system interface
+ * @param appId The ID of the app/plugin
+ * @param userId Optional ID of the user making the request (required for user-specific methods)
+ * @returns A plugin instance with records and system interfaces
+ *
+ * @example
+ * ```typescript
+ * // Create a plugin instance
+ * const plugin = createPlugin('my-app', 'user-123');
+ *
+ * // Use record manager
+ * const record = await plugin.records.create({ foo: 'bar' });
+ * const allRecords = await plugin.records.list();
+ *
+ * // Use system interface
+ * const users = await plugin.system.getUsers();
+ * const myPerms = await plugin.system.getMyAuthorizationDetails();
+ * ```
+ */
+export function createPlugin<T = any>(
+  appId: string,
+  userId?: string
+): Plugin<T> {
+  return {
+    appId,
+    userId,
+    records: createRecordManager<T>(appId),
+    system: createSystemInterface(appId, userId),
+  };
+}
+
+/**
+ * Helper function to check if a user has required authorization(s)
+ * Throws an error if the user doesn't have the required authorization
+ *
+ * @param plugin The plugin instance
+ * @param authorizationId Single authorization ID or array of IDs (user must have at least one)
+ * @throws Error if user doesn't have the required authorization
+ *
+ * @example
+ * ```typescript
+ * const plugin = createPlugin('my-app', userId);
+ *
+ * // Require admin authorization
+ * await requireAuthorization(plugin, 'admin');
+ *
+ * // Require at least one of multiple authorizations
+ * await requireAuthorization(plugin, ['admin', 'developer']);
+ * ```
+ */
+export async function requireAuthorization(
+  plugin: Plugin,
+  authorizationId: string | string[]
+): Promise<void> {
+  if (!plugin.userId) {
+    throw new Error('User ID is required to check authorization');
+  }
+
+  const authIds = Array.isArray(authorizationId)
+    ? authorizationId
+    : [authorizationId];
+
+  const hasAny = await Promise.all(
+    authIds.map((id) => plugin.system.checkUserAuthorization(plugin.userId!, id))
+  );
+
+  if (!hasAny.some((has) => has)) {
+    const authNames = authIds.join(' or ');
+    throw new Error(
+      `User does not have required authorization: ${authNames}`
+    );
+  }
+}
+
+/**
+ * Helper function to check if a user has all required authorizations
+ * Throws an error if the user doesn't have all the required authorizations
+ *
+ * @param plugin The plugin instance
+ * @param authorizationIds Array of authorization IDs (user must have all)
+ * @throws Error if user doesn't have all the required authorizations
+ *
+ * @example
+ * ```typescript
+ * const plugin = createPlugin('my-app', userId);
+ *
+ * // Require both admin and developer authorizations
+ * await requireAllAuthorizations(plugin, ['admin', 'developer']);
+ * ```
+ */
+export async function requireAllAuthorizations(
+  plugin: Plugin,
+  authorizationIds: string[]
+): Promise<void> {
+  if (!plugin.userId) {
+    throw new Error('User ID is required to check authorization');
+  }
+
+  const hasAll = await Promise.all(
+    authorizationIds.map((id) =>
+      plugin.system.checkUserAuthorization(plugin.userId!, id)
+    )
+  );
+
+  if (!hasAll.every((has) => has)) {
+    const missingAuths = authorizationIds.filter((_, i) => !hasAll[i]);
+    throw new Error(
+      `User is missing required authorizations: ${missingAuths.join(', ')}`
+    );
+  }
+}

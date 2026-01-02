@@ -7,6 +7,7 @@ export interface Authority {
   name: string;
   icon?: string;
   authorizations: string[]; // Array of authorization IDs
+  apps: string[]; // Array of app IDs that this authority has access to
 }
 
 export interface Authorization {
@@ -16,6 +17,13 @@ export interface Authorization {
   app: string; // App ID
 }
 
+export interface ApiRoute {
+  path: string;
+  method: string;
+  handler: string;
+  description: string;
+}
+
 export interface App {
   id: string;
   label: string;
@@ -23,6 +31,7 @@ export interface App {
   author: string;
   contactEmail: string;
   description: string;
+  apiRoutes: ApiRoute[];
 }
 
 export interface User {
@@ -45,7 +54,7 @@ export interface Session {
 }
 
 // Authority management
-export async function createAuthority(id: string, name: string, icon?: string, authorizations: string[] = []): Promise<Authority> {
+export async function createAuthority(id: string, name: string, icon?: string, authorizations: string[] = [], apps: string[] = []): Promise<Authority> {
   const redis = getRedisClient();
 
   const authority: Authority = {
@@ -53,6 +62,7 @@ export async function createAuthority(id: string, name: string, icon?: string, a
     name,
     icon,
     authorizations,
+    apps,
   };
 
   await redis.set(`authority:${id}`, JSON.stringify(authority));
@@ -208,7 +218,7 @@ export async function deleteAuthorization(id: string): Promise<void> {
 }
 
 // App management
-export async function createApp(id: string, label: string, version: string, author: string, contactEmail: string, description: string): Promise<App> {
+export async function createApp(id: string, label: string, version: string, author: string, contactEmail: string, description: string, apiRoutes: ApiRoute[] = []): Promise<App> {
   const redis = getRedisClient();
 
   const app: App = {
@@ -218,6 +228,7 @@ export async function createApp(id: string, label: string, version: string, auth
     author,
     contactEmail,
     description,
+    apiRoutes,
   };
 
   await redis.set(`app:${id}`, JSON.stringify(app));

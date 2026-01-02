@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { getCurrentUser } from '@/lib/auth';
+import { getAuthority, getUserAuthorizations, getAllApps } from '@/lib/db';
 
 export async function GET() {
   try {
@@ -14,6 +15,22 @@ export async function GET() {
 
     const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined;
 
+    // Get user's authority to determine available apps
+    const authority = await getAuthority(user.authority);
+    const authorizations = await getUserAuthorizations(user.id);
+
+    // Get user's apps from their authority
+    let userApps: any[] = [];
+    if (authority && authority.apps) {
+      const allApps = await getAllApps();
+      userApps = allApps
+        .filter(app => authority.apps.includes(app.id))
+        .map(app => ({
+          id: app.id,
+          label: app.label,
+        }));
+    }
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -21,9 +38,11 @@ export async function GET() {
         username: user.username,
         email: user.email,
         authority: user.authority,
-        isAdmin: user.isAdmin,
+        isAdmin: authorizations.includes('admin'),
         profilePicture: profilePictureUrl,
-      }
+      },
+      authorizations,
+      userApps,
     });
   } catch (error) {
     console.error('Failed to get current user:', error);
