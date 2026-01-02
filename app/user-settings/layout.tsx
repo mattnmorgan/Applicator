@@ -29,10 +29,11 @@ export default async function UserSettingsLayout({
   }
 
   const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined;
+  const hasAdminAuth = user.authorizations.includes('admin');
 
   return (
     <>
-      <Navigation displayName={user.displayName} profilePicture={profilePictureUrl} isAdmin={user.isAdmin} />
+      <Navigation displayName={user.displayName} profilePicture={profilePictureUrl} isAdmin={hasAdminAuth} />
       <div style={{
         minHeight: 'calc(100vh - 64px)',
         background: '#0f172a',

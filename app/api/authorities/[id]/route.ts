@@ -45,7 +45,6 @@ export async function PATCH(
     const formData = await request.formData();
 
     const name = formData.get('name') as string;
-    const isAdmin = formData.get('isAdmin') === 'true';
     const iconFile = formData.get('icon') as File | null;
     const clearIcon = formData.get('clearIcon') === 'true';
     const authorizationsJson = formData.get('authorizations') as string;
@@ -125,7 +124,6 @@ export async function PATCH(
     }
 
     updates.name = name;
-    updates.isAdmin = isAdmin;
 
     await updateAuthority(id, updates);
 

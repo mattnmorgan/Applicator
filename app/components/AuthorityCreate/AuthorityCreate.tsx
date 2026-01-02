@@ -10,7 +10,6 @@ interface AuthorityCreateProps {
   editAuthority?: {
     id: string;
     name: string;
-    isAdmin: boolean;
     icon?: string;
     authorizations?: string[];
   };
@@ -26,7 +25,6 @@ interface Authorization {
 
 export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuthority }: AuthorityCreateProps) {
   const [name, setName] = useState(editAuthority?.name || '');
-  const [isAdmin, setIsAdmin] = useState(editAuthority?.isAdmin || false);
   const [iconFile, setIconFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>(editAuthority?.icon || '');
   const [clearIcon, setClearIcon] = useState(false);
@@ -104,7 +102,6 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
       const formData = new FormData();
       if (!isSystemAuthority) {
         formData.append('name', name.trim());
-        formData.append('isAdmin', isAdmin.toString());
       }
       if (iconFile) {
         formData.append('icon', iconFile);
@@ -203,22 +200,6 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
             />
             <label htmlFor="iconFile" className={styles.fileLabel}>
               {iconFile ? iconFile.name : 'Choose file'}
-            </label>
-          </div>
-        </div>
-
-        <div className={styles.formGroup}>
-          <div className={styles.checkboxGroup}>
-            <input
-              type="checkbox"
-              id="isAdmin"
-              className={styles.checkbox}
-              checked={isAdmin}
-              onChange={(e) => setIsAdmin(e.target.checked)}
-              disabled={isSystemAuthority}
-            />
-            <label htmlFor="isAdmin" className={styles.checkboxLabel}>
-              Has administrator privileges
             </label>
           </div>
         </div>

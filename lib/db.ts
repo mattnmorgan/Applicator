@@ -5,7 +5,6 @@ import { v4 as uuidv4 } from 'uuid';
 export interface Authority {
   id: string;
   name: string;
-  isAdmin: boolean;
   icon?: string;
   authorizations: string[]; // Array of authorization IDs
 }
@@ -46,13 +45,12 @@ export interface Session {
 }
 
 // Authority management
-export async function createAuthority(id: string, name: string, isAdmin: boolean, icon?: string, authorizations: string[] = []): Promise<Authority> {
+export async function createAuthority(id: string, name: string, icon?: string, authorizations: string[] = []): Promise<Authority> {
   const redis = getRedisClient();
 
   const authority: Authority = {
     id,
     name,
-    isAdmin,
     icon,
     authorizations,
   };
@@ -108,9 +106,9 @@ export async function initializeAuthorities(): Promise<void> {
 
   // Create the three default authorities
   // Admin authority has the 'admin' authorization
-  await createAuthority('admin', 'Administrator', true, undefined, ['admin']);
-  await createAuthority('user', 'User', false, undefined, []);
-  await createAuthority('guest', 'Guest', false, undefined, []);
+  await createAuthority('admin', 'Administrator', undefined, ['admin']);
+  await createAuthority('user', 'User', undefined, []);
+  await createAuthority('guest', 'Guest', undefined, []);
 }
 
 export async function getAllAuthorities(): Promise<Authority[]> {
@@ -269,6 +267,36 @@ export async function deleteApp(id: string): Promise<void> {
   await redis.del(`app:${id}`);
 }
 
+// Helper function to check if a user has a specific authorization
+export async function userHasAuthorization(userId: string, authorizationId: string): Promise<boolean> {
+  const user = await getUserById(userId);
+  if (!user) {
+    return false;
+  }
+
+  const authority = await getAuthority(user.authority);
+  if (!authority) {
+    return false;
+  }
+
+  return authority.authorizations.includes(authorizationId);
+}
+
+// Helper function to get all authorizations for a user
+export async function getUserAuthorizations(userId: string): Promise<string[]> {
+  const user = await getUserById(userId);
+  if (!user) {
+    return [];
+  }
+
+  const authority = await getAuthority(user.authority);
+  if (!authority) {
+    return [];
+  }
+
+  return authority.authorizations;
+}
+
 // User management
 export async function createUser(
   username: string,
@@ -299,19 +327,6 @@ export async function createUser(
   await redis.set(`user:username:${username}`, userId);
 
   return user;
-}
-
-export async function getUserWithAuthority(userId: string): Promise<(User & { isAdmin: boolean }) | null> {
-  const user = await getUserById(userId);
-  if (!user) {
-    return null;
-  }
-
-  const authority = await getAuthority(user.authority);
-  return {
-    ...user,
-    isAdmin: authority?.isAdmin || false,
-  };
 }
 
 export async function getUserById(userId: string): Promise<User | null> {

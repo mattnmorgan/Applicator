@@ -15,52 +15,58 @@ function sortMenuItems(items: TabsetItem[]): TabsetItem[] {
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
-const unsortedSettingsMenuItems: TabsetItem[] = [
-  {
-    label: 'Home',
-    path: '/settings',
-  },
-  {
-    label: 'Apps',
-    path: '/settings/apps',
-  },
-  {
-    label: 'User Management',
-    clickable: false,
-    children: [
-      {
-        label: 'Users',
-        path: '/settings/user-management/users',
-      },
-      {
-        label: 'Access Management',
-        clickable: false,
-        children: [
-          {
-            label: 'Authorities',
-            path: '/settings/user-management/access-management/authorities',
-          },
-          {
-            label: 'Authorizations',
-            path: '/settings/user-management/access-management/authorizations',
-          },
-        ],
-      },
-    ],
-  },
-  {
-    label: 'Debug',
-    clickable: false,
-    children: [
-      {
-        label: 'Database',
-        path: '/settings/debug/database',
-      },
-    ],
-  },
-];
+function getSettingsMenuItems(hasDeveloperAuth: boolean): TabsetItem[] {
+  const unsortedSettingsMenuItems: TabsetItem[] = [
+    {
+      label: 'Home',
+      path: '/settings',
+    },
+    {
+      label: 'Apps',
+      path: '/settings/apps',
+    },
+    {
+      label: 'User Management',
+      clickable: false,
+      children: [
+        {
+          label: 'Users',
+          path: '/settings/user-management/users',
+        },
+        {
+          label: 'Access Management',
+          clickable: false,
+          children: [
+            {
+              label: 'Authorities',
+              path: '/settings/user-management/access-management/authorities',
+            },
+            {
+              label: 'Authorizations',
+              path: '/settings/user-management/access-management/authorizations',
+            },
+          ],
+        },
+      ],
+    },
+  ];
 
-const settingsMenuItems = sortMenuItems(unsortedSettingsMenuItems);
+  // Only add Debug menu if user has developer authorization
+  if (hasDeveloperAuth) {
+    unsortedSettingsMenuItems.push({
+      label: 'Debug',
+      clickable: false,
+      children: [
+        {
+          label: 'Database',
+          path: '/settings/debug/database',
+        },
+      ],
+    });
+  }
+
+  return sortMenuItems(unsortedSettingsMenuItems);
+}
 
 export default async function SettingsLayout({
   children,
@@ -79,23 +85,27 @@ export default async function SettingsLayout({
     redirect('/login');
   }
 
-  // Check if user is an administrator
-  if (!user.isAdmin) {
+  // Check if user has admin authorization
+  const hasAdminAuth = user.authorizations.includes('admin');
+  const hasDeveloperAuth = user.authorizations.includes('developer');
+
+  if (!hasAdminAuth) {
     const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined;
 
     return (
       <>
-        <Navigation displayName={user.displayName} profilePicture={profilePictureUrl} isAdmin={user.isAdmin} />
+        <Navigation displayName={user.displayName} profilePicture={profilePictureUrl} isAdmin={hasAdminAuth} />
         <AccessDenied message="You do not have permission to access System Settings." />
       </>
     );
   }
 
   const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined;
+  const settingsMenuItems = getSettingsMenuItems(hasDeveloperAuth);
 
   return (
     <>
-      <Navigation displayName={user.displayName} profilePicture={profilePictureUrl} isAdmin={user.isAdmin} />
+      <Navigation displayName={user.displayName} profilePicture={profilePictureUrl} isAdmin={hasAdminAuth} />
       <div style={{
         minHeight: 'calc(100vh - 64px)',
         background: '#0f172a',

@@ -10,7 +10,6 @@ import styles from './AuthorityList.module.css';
 interface Authority {
   id: string;
   name: string;
-  isAdmin: boolean;
   icon?: string;
   authorizations?: string[];
 }
@@ -119,7 +118,6 @@ export default function AuthorityList() {
         editAuthority={editingAuthority ? {
           id: editingAuthority.id,
           name: editingAuthority.name,
-          isAdmin: editingAuthority.isAdmin,
           icon: editingAuthority.icon,
           authorizations: editingAuthority.authorizations,
         } : undefined}
@@ -211,13 +209,6 @@ export default function AuthorityList() {
               <div className={styles.nameColumn}>
                 <div className={styles.authorityName}>{authority.name}</div>
               </div>
-            </div>
-            <div className={styles.statusColumn}>
-              {authority.isAdmin && (
-                <span className={`${styles.badge} ${styles.badgeAdmin}`}>
-                  Administrator
-                </span>
-              )}
             </div>
           </Row>
         ))}

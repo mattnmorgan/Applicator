@@ -5,13 +5,12 @@ export async function GET() {
   try {
     const users = await getAllUsers();
 
-    // Remove password hashes and add isAdmin and authorityName from authority
+    // Remove password hashes and add authorityName from authority
     const sanitizedUsers = await Promise.all(
       users.map(async ({ passwordHash, ...user }) => {
         const authority = await getAuthority(user.authority);
         return {
           ...user,
-          isAdmin: authority?.isAdmin || false,
           authorityName: authority?.name || 'Unknown',
           profilePicture: user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined,
         };
