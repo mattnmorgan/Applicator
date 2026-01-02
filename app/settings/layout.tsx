@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { isFirstTimeSetup } from '@/lib/db';
+import { getBrandSettings } from '@/lib/brand';
 import Navigation from '../components/Navigation';
 import Tabset, { TabsetItem } from '../components/Tabset';
 import AccessDenied from '../components/AccessDenied';
@@ -89,23 +90,35 @@ export default async function SettingsLayout({
   const hasAdminAuth = user.authorizations.includes('admin');
   const hasDeveloperAuth = user.authorizations.includes('developer');
 
-  if (!hasAdminAuth) {
-    const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined;
+  const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined;
+  const brandSettings = await getBrandSettings();
 
+  if (!hasAdminAuth) {
     return (
       <>
-        <Navigation displayName={user.displayName} profilePicture={profilePictureUrl} isAdmin={hasAdminAuth} />
+        <Navigation
+          displayName={user.displayName}
+          profilePicture={profilePictureUrl}
+          isAdmin={hasAdminAuth}
+          brandName={brandSettings.brandName}
+          brandIcon={brandSettings.brandIcon}
+        />
         <AccessDenied message="You do not have permission to access System Settings." />
       </>
     );
   }
 
-  const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined;
   const settingsMenuItems = getSettingsMenuItems(hasDeveloperAuth);
 
   return (
     <>
-      <Navigation displayName={user.displayName} profilePicture={profilePictureUrl} isAdmin={hasAdminAuth} />
+      <Navigation
+        displayName={user.displayName}
+        profilePicture={profilePictureUrl}
+        isAdmin={hasAdminAuth}
+        brandName={brandSettings.brandName}
+        brandIcon={brandSettings.brandIcon}
+      />
       <div style={{
         minHeight: 'calc(100vh - 64px)',
         background: '#0f172a',

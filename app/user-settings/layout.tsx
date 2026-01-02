@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { isFirstTimeSetup } from '@/lib/db';
+import { getBrandSettings } from '@/lib/brand';
 import Navigation from '../components/Navigation';
 import Tabset, { TabsetItem } from '../components/Tabset';
 
@@ -30,10 +31,17 @@ export default async function UserSettingsLayout({
 
   const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined;
   const hasAdminAuth = user.authorizations.includes('admin');
+  const brandSettings = await getBrandSettings();
 
   return (
     <>
-      <Navigation displayName={user.displayName} profilePicture={profilePictureUrl} isAdmin={hasAdminAuth} />
+      <Navigation
+        displayName={user.displayName}
+        profilePicture={profilePictureUrl}
+        isAdmin={hasAdminAuth}
+        brandName={brandSettings.brandName}
+        brandIcon={brandSettings.brandIcon}
+      />
       <div style={{
         minHeight: 'calc(100vh - 64px)',
         background: '#0f172a',

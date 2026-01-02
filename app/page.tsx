@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { isFirstTimeSetup } from '@/lib/db';
+import { getBrandSettings } from '@/lib/brand';
 import Navigation from './components/Navigation';
 
 export default async function HomePage() {
@@ -17,10 +18,17 @@ export default async function HomePage() {
   }
 
   const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined;
+  const brandSettings = await getBrandSettings();
 
   return (
     <>
-      <Navigation displayName={user.displayName} profilePicture={profilePictureUrl} isAdmin={user.isAdmin} />
+      <Navigation
+        displayName={user.displayName}
+        profilePicture={profilePictureUrl}
+        isAdmin={user.isAdmin}
+        brandName={brandSettings.brandName}
+        brandIcon={brandSettings.brandIcon}
+      />
       <div style={{
         minHeight: '100vh',
         display: 'flex',

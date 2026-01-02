@@ -9,9 +9,11 @@ interface NavigationProps {
   displayName: string;
   profilePicture?: string;
   isAdmin?: boolean;
+  brandName?: string;
+  brandIcon?: string;
 }
 
-export default function Navigation({ displayName, profilePicture, isAdmin = false }: NavigationProps) {
+export default function Navigation({ displayName, profilePicture, isAdmin = false, brandName = 'Applicator', brandIcon }: NavigationProps) {
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -64,9 +66,22 @@ export default function Navigation({ displayName, profilePicture, isAdmin = fals
 
   return (
     <nav className={styles.nav}>
-      <h1 className={styles.title}>
-        Applicator
-      </h1>
+      <div className={styles.title} style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        {brandIcon && (
+          <img
+            src={brandIcon}
+            alt="Brand icon"
+            style={{
+              height: '32px',
+              width: '32px',
+              objectFit: 'contain'
+            }}
+          />
+        )}
+        <h1 style={{ margin: 0, fontSize: '16px' }}>
+          {brandName}
+        </h1>
+      </div>
 
       <ButtonMenu
         options={menuOptions}

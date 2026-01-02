@@ -1,43 +1,106 @@
 'use client';
 
 import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import FolderBrowser from '../components/FolderBrowser';
 import Toast from '../components/Toast';
 
 export default function SettingsPage() {
+  const router = useRouter();
   const [storage, setStorage] = useState('');
   const [originalStorage, setOriginalStorage] = useState('');
+  const [brandName, setBrandName] = useState('');
+  const [originalBrandName, setOriginalBrandName] = useState('');
+  const [brandIcon, setBrandIcon] = useState<File | null>(null);
+  const [brandIconPreview, setBrandIconPreview] = useState<string>('');
+  const [clearBrandIcon, setClearBrandIcon] = useState(false);
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   useEffect(() => {
-    fetchStorage();
+    fetchSettings();
   }, []);
 
-  const fetchStorage = async () => {
+  const fetchSettings = async () => {
     try {
-      const response = await fetch('/api/system/storage');
-      const data = await response.json();
-      setStorage(data.storage || '');
-      setOriginalStorage(data.storage || '');
+      const [storageRes, brandRes] = await Promise.all([
+        fetch('/api/system/storage'),
+        fetch('/api/system/brand'),
+      ]);
+
+      const storageData = await storageRes.json();
+      setStorage(storageData.storage || '');
+      setOriginalStorage(storageData.storage || '');
+
+      const brandData = await brandRes.json();
+      setBrandName(brandData.brandName || 'Applicator');
+      setOriginalBrandName(brandData.brandName || 'Applicator');
+      if (brandData.brandIcon) {
+        setBrandIconPreview(brandData.brandIcon);
+      }
     } catch (error) {
-      console.error('Failed to fetch storage:', error);
+      console.error('Failed to fetch settings:', error);
     }
+  };
+
+  const handleBrandIconChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      setBrandIcon(file);
+      setClearBrandIcon(false);
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        setBrandIconPreview(reader.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const handleClearBrandIcon = () => {
+    setBrandIcon(null);
+    setBrandIconPreview('');
+    setClearBrandIcon(true);
   };
 
   const handleSave = async () => {
     setSaving(true);
     try {
-      const response = await fetch('/api/system/storage', {
+      // Save storage setting
+      const storageResponse = await fetch('/api/system/storage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ storage }),
       });
 
-      if (response.ok) {
+      // Save brand settings
+      const brandFormData = new FormData();
+      brandFormData.append('brandName', brandName);
+
+      if (brandIcon) {
+        brandFormData.append('brandIcon', brandIcon);
+      }
+
+      if (clearBrandIcon) {
+        brandFormData.append('clearBrandIcon', 'true');
+      }
+
+      const brandResponse = await fetch('/api/system/brand', {
+        method: 'POST',
+        body: brandFormData,
+      });
+
+      if (storageResponse.ok && brandResponse.ok) {
         setOriginalStorage(storage);
+        setOriginalBrandName(brandName);
+        setBrandIcon(null);
+        setClearBrandIcon(false);
         setToast({ message: 'Settings saved successfully', type: 'success' });
+
+        // Refresh to update navigation
+        setTimeout(() => {
+          router.refresh();
+        }, 1000);
       } else {
         setToast({ message: 'Failed to save settings', type: 'error' });
       }
@@ -49,7 +112,7 @@ export default function SettingsPage() {
     }
   };
 
-  const hasChanges = storage !== originalStorage;
+  const hasChanges = storage !== originalStorage || brandName !== originalBrandName || brandIcon !== null || clearBrandIcon;
 
   return (
     <div>
@@ -107,6 +170,146 @@ export default function SettingsPage() {
         gap: '24px',
         maxWidth: '600px'
       }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px'
+        }}>
+          <label style={{
+            fontSize: '14px',
+            fontWeight: 500,
+            color: '#f1f5f9'
+          }}>
+            Brand Name
+          </label>
+          <input
+            type="text"
+            value={brandName}
+            onChange={(e) => setBrandName(e.target.value)}
+            placeholder="Applicator"
+            style={{
+              padding: '10px 12px',
+              background: '#0f172a',
+              border: '1px solid #475569',
+              borderRadius: '6px',
+              color: '#f1f5f9',
+              fontSize: '14px',
+              outline: 'none',
+              transition: 'border-color 0.2s'
+            }}
+            onFocus={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
+            onBlur={(e) => e.currentTarget.style.borderColor = '#475569'}
+          />
+          <p style={{
+            fontSize: '12px',
+            color: '#64748b',
+            margin: 0
+          }}>
+            The brand name shown in the navigation bar
+          </p>
+        </div>
+
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '8px'
+        }}>
+          <label style={{
+            fontSize: '14px',
+            fontWeight: 500,
+            color: '#f1f5f9'
+          }}>
+            Brand Icon
+          </label>
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+            {brandIconPreview && (
+              <div
+                onClick={handleClearBrandIcon}
+                style={{
+                  position: 'relative',
+                  width: '64px',
+                  height: '64px',
+                  borderRadius: '6px',
+                  overflow: 'hidden',
+                  cursor: 'pointer',
+                  border: '1px solid #475569'
+                }}
+              >
+                <img
+                  src={brandIconPreview}
+                  alt="Brand icon preview"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    objectFit: 'contain',
+                    background: '#1e293b'
+                  }}
+                />
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  bottom: 0,
+                  background: 'rgba(0, 0, 0, 0.5)',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  opacity: 0,
+                  transition: 'opacity 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
+                onMouseOut={(e) => e.currentTarget.style.opacity = '0'}
+                >
+                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                    <path
+                      d="M6 6L18 18M6 18L18 6"
+                      stroke="white"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                </div>
+              </div>
+            )}
+            <div style={{ flex: 1 }}>
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleBrandIconChange}
+                style={{ display: 'none' }}
+                id="brandIcon"
+              />
+              <label
+                htmlFor="brandIcon"
+                style={{
+                  display: 'inline-block',
+                  padding: '10px 20px',
+                  background: '#3b82f6',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  fontSize: '14px',
+                  fontWeight: 500,
+                  cursor: 'pointer',
+                  transition: 'background 0.2s'
+                }}
+                onMouseOver={(e) => e.currentTarget.style.background = '#2563eb'}
+                onMouseOut={(e) => e.currentTarget.style.background = '#3b82f6'}
+              >
+                {brandIcon ? brandIcon.name : 'Choose file'}
+              </label>
+            </div>
+          </div>
+          <p style={{
+            fontSize: '12px',
+            color: '#64748b',
+            margin: 0
+          }}>
+            The brand icon shown in the navigation bar (optional)
+          </p>
+        </div>
+
         <div style={{
           display: 'flex',
           flexDirection: 'column',
