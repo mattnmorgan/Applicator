@@ -20,7 +20,7 @@ export default async function HomePage() {
 
   return (
     <>
-      <Navigation displayName={user.displayName} profilePicture={profilePictureUrl} />
+      <Navigation displayName={user.displayName} profilePicture={profilePictureUrl} isAdmin={user.isAdmin} />
       <div style={{
         minHeight: '100vh',
         display: 'flex',

@@ -8,9 +8,10 @@ import styles from './Navigation.module.css';
 interface NavigationProps {
   displayName: string;
   profilePicture?: string;
+  isAdmin?: boolean;
 }
 
-export default function Navigation({ displayName, profilePicture }: NavigationProps) {
+export default function Navigation({ displayName, profilePicture, isAdmin = false }: NavigationProps) {
   const router = useRouter();
 
   const handleLogout = async () => {
@@ -29,7 +30,17 @@ export default function Navigation({ displayName, profilePicture }: NavigationPr
 
   const menuOptions = [
     {
-      label: 'Settings',
+      label: 'User Settings',
+      icon: (
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
+          <circle cx="12" cy="7" r="4" />
+        </svg>
+      ),
+      onClick: () => router.push('/user-settings'),
+    },
+    ...(isAdmin ? [{
+      label: 'System Settings',
       icon: (
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
           <circle cx="12" cy="12" r="3" />
@@ -37,7 +48,7 @@ export default function Navigation({ displayName, profilePicture }: NavigationPr
         </svg>
       ),
       onClick: () => router.push('/settings'),
-    },
+    }] : []),
     {
       label: 'Logout',
       icon: (

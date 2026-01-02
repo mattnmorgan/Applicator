@@ -4,34 +4,14 @@ import { isFirstTimeSetup } from '@/lib/db';
 import Navigation from '../components/Navigation';
 import Tabset, { TabsetItem } from '../components/Tabset';
 
-const settingsMenuItems: TabsetItem[] = [
+const userSettingsMenuItems: TabsetItem[] = [
   {
-    label: 'Home',
-    path: '/settings',
-  },
-  {
-    label: 'User Management',
-    clickable: false,
-    children: [
-      {
-        label: 'Users',
-        path: '/settings/user-management/users',
-      },
-    ],
-  },
-  {
-    label: 'Debug',
-    clickable: false,
-    children: [
-      {
-        label: 'Database',
-        path: '/settings/debug/database',
-      },
-    ],
+    label: 'Profile',
+    path: '/user-settings/profile',
   },
 ];
 
-export default async function SettingsLayout({
+export default async function UserSettingsLayout({
   children,
 }: {
   children: React.ReactNode;
@@ -75,7 +55,7 @@ export default async function SettingsLayout({
             border: '1px solid #334155',
             overflowY: 'auto',
           }}>
-            <Tabset items={settingsMenuItems} variant="vertical" searchable />
+            <Tabset items={userSettingsMenuItems} variant="vertical" searchable />
           </aside>
           <main style={{
             flex: 1,
