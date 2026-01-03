@@ -100,6 +100,19 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error uninstalling app:', error);
+
+    // Log uninstallation failure
+    try {
+      const body = await request.json().catch(() => ({}));
+      const appId = body.appId || 'unknown';
+      await logger.fromRequest(request).error(
+        'system',
+        `App uninstallation failed for '${appId}': ${error instanceof Error ? error.message : String(error)}`
+      );
+    } catch (logError) {
+      console.error('Failed to log uninstallation error:', logError);
+    }
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }

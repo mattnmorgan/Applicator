@@ -109,6 +109,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Safety check: prevent 'system' from being used as an app ID
+    if (appAttributes.id === 'system') {
+      await logger.fromRequest(request).error(
+        'system',
+        `App installation rejected: attempted to use reserved app ID 'system'`
+      );
+      return NextResponse.json(
+        { error: 'Invalid app ID: \'system\' is a reserved keyword and cannot be used as an app ID' },
+        { status: 400 }
+      );
+    }
+
     // Validate widgets if present
     if (appAttributes.widgets && Array.isArray(appAttributes.widgets)) {
       for (let i = 0; i < appAttributes.widgets.length; i++) {
@@ -245,6 +257,17 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     console.error('Error installing app:', error);
+
+    // Log installation failure
+    try {
+      await logger.fromRequest(request).error(
+        'system',
+        `App installation failed: ${error instanceof Error ? error.message : String(error)}`
+      );
+    } catch (logError) {
+      console.error('Failed to log installation error:', logError);
+    }
+
     return NextResponse.json(
       { error: 'Internal server error' },
       { status: 500 }
