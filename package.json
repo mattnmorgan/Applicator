@@ -7,6 +7,7 @@
   "scripts": {
     "wsl:redis": "wsl /usr/bin/redis-server --port 6380 --dir ./production --dbfilename ticketeer.rdb --appendonly yes --appendfilename ticketeer.aof",
     "redis": "redis-server --port 6380 --dir ./production --dbfilename ticketeer.rdb --appendonly yes --appendfilename ticketeer.aof",
+    "mac:redis": "/opt/homebrew/opt/redis/bin/redis-server --port 6380 --dir ./production --dbfilename ticketeer.rdb --appendonly yes --appendfilename ticketeer.aof",
     "dev": "next dev -H 0.0.0.0",
     "dev:local": "next dev",
     "build": "next build",
