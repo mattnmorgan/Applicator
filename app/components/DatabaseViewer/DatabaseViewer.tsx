@@ -85,7 +85,7 @@ function buildTree(keys: string[]): TreeNode[] {
   });
 
   function convertToTree(obj: any, prefix: string = ''): TreeNode[] {
-    return Object.keys(obj).map(key => {
+    return Object.keys(obj).sort().map(key => {
       const value = obj[key];
       const fullPrefix = prefix ? `${prefix}:${key}` : key;
 
