@@ -21,7 +21,7 @@ export default function AppPage() {
 
   // Fetch user data
   useEffect(() => {
-    fetch('/api/auth/me')
+    fetch('/api/system/auth/me')
       .then(res => res.json())
       .then(data => {
         if (data.user) {

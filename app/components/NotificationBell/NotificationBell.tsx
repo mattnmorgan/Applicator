@@ -193,7 +193,7 @@ export default function NotificationBell() {
 
   const fetchNotifications = async () => {
     try {
-      const response = await fetch('/api/notifications');
+      const response = await fetch('/api/system/notifications');
       if (response.ok) {
         const data = await response.json();
         setNotifications(data.notifications);
@@ -236,7 +236,7 @@ export default function NotificationBell() {
     if (unreadTimestamps.length === 0) return;
 
     try {
-      await fetch('/api/notifications/mark-read', {
+      await fetch('/api/system/notifications/mark-read', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ timestamps: unreadTimestamps, read: true }),
@@ -252,7 +252,7 @@ export default function NotificationBell() {
     if (timestamps.length === 0) return;
 
     try {
-      await fetch('/api/notifications/archive', {
+      await fetch('/api/system/notifications/archive', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ timestamps }),
@@ -265,7 +265,7 @@ export default function NotificationBell() {
 
   const handleMarkRead = async (timestamp: number, read: boolean) => {
     try {
-      await fetch('/api/notifications/mark-read', {
+      await fetch('/api/system/notifications/mark-read', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ timestamp, read }),
@@ -278,7 +278,7 @@ export default function NotificationBell() {
 
   const handleArchive = async (timestamp: number) => {
     try {
-      await fetch('/api/notifications/archive', {
+      await fetch('/api/system/notifications/archive', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ timestamp }),

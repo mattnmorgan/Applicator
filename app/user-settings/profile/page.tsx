@@ -25,7 +25,7 @@ export default function ProfilePage() {
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await fetch('/api/auth/me');
+      const response = await fetch('/api/system/auth/me');
       const data = await response.json();
 
       if (data.user) {
@@ -106,7 +106,7 @@ export default function ProfilePage() {
         formData.append('clearProfilePicture', 'true');
       }
 
-      const response = await fetch('/api/auth/update-profile', {
+      const response = await fetch('/api/system/auth/update-profile', {
         method: 'PATCH',
         body: formData,
       });

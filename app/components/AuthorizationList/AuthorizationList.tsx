@@ -18,7 +18,7 @@ export default function AuthorizationList() {
 
   const fetchAuthorizations = async () => {
     try {
-      const response = await fetch('/api/authorizations');
+      const response = await fetch('/api/system/model/authorizations');
       const data = await response.json();
       setAuthorizations(data.authorizations || []);
     } catch (error) {

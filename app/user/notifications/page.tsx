@@ -17,7 +17,7 @@ export default function NotificationsPage() {
   const fetchNotifications = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch('/api/notifications?includeArchived=true');
+      const response = await fetch('/api/system/notifications?includeArchived=true');
       if (response.ok) {
         const data = await response.json();
         setNotifications(data.notifications);
@@ -60,7 +60,7 @@ export default function NotificationsPage() {
 
   const handleMarkRead = async (timestamp: number, read: boolean) => {
     try {
-      await fetch('/api/notifications/mark-read', {
+      await fetch('/api/system/notifications/mark-read', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ timestamp, read }),
@@ -73,7 +73,7 @@ export default function NotificationsPage() {
 
   const handleArchive = async (timestamp: number) => {
     try {
-      await fetch('/api/notifications/archive', {
+      await fetch('/api/system/notifications/archive', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ timestamp }),

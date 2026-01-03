@@ -18,7 +18,7 @@ export default function SystemSettingsWidgetPage() {
   useEffect(() => {
     async function fetchWidgetInfo() {
       try {
-        const response = await fetch(`/api/widgets/${widgetId}/system`);
+        const response = await fetch(`/api/system/apps/widgets/${widgetId}/system`);
         if (!response.ok) {
           const error = await response.json();
           setError(error.error || 'Widget not found');

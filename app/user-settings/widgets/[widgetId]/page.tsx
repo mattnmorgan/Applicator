@@ -17,7 +17,7 @@ export default function AppWidgetPage() {
   useEffect(() => {
     async function fetchWidgetInfo() {
       try {
-        const response = await fetch(`/api/widgets/${widgetId}`);
+        const response = await fetch(`/api/system/apps/widgets/${widgetId}`);
         if (!response.ok) {
           const error = await response.json();
           setError(error.error || 'Widget not found');

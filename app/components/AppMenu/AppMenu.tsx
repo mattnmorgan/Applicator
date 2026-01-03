@@ -23,7 +23,7 @@ export default function AppMenu({ onTabChange }: AppMenuProps) {
 
   async function loadApps() {
     try {
-      const response = await fetch('/api/auth/me');
+      const response = await fetch('/api/system/auth/me');
       if (response.ok) {
         const data = await response.json();
         const userApps = data.userApps || [];

@@ -42,7 +42,7 @@ export default function UserCreate({ onCancel, onUserCreated, editUser }: UserCr
 
   const fetchAuthorities = async () => {
     try {
-      const response = await fetch('/api/authorities');
+      const response = await fetch('/api/system/model/authorities');
       const data = await response.json();
       setAuthorities(data.authorities || []);
     } catch (error) {
@@ -96,7 +96,7 @@ export default function UserCreate({ onCancel, onUserCreated, editUser }: UserCr
         formData.append('clearProfilePicture', 'true');
       }
 
-      const url = isEditMode ? `/api/users/${editUser.id}` : '/api/users/create';
+      const url = isEditMode ? `/api/system/model/users/${editUser.id}` : '/api/system/model/users/create';
       const response = await fetch(url, {
         method: isEditMode ? 'PATCH' : 'POST',
         body: formData,

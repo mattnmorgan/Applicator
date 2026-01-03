@@ -26,7 +26,7 @@ export default function AuthorityList() {
 
   const fetchAuthorities = async () => {
     try {
-      const response = await fetch('/api/authorities');
+      const response = await fetch('/api/system/model/authorities');
       const data = await response.json();
       setAuthorities(data.authorities || []);
     } catch (error) {
@@ -53,7 +53,7 @@ export default function AuthorityList() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/authorities/delete', {
+      const response = await fetch('/api/system/model/authorities/delete', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -101,7 +101,7 @@ export default function AuthorityList() {
   };
 
   const handleEditAuthority = async (authorityId: string) => {
-    const response = await fetch(`/api/authorities/${authorityId}`);
+    const response = await fetch(`/api/system/model/authorities/${authorityId}`);
     const data = await response.json();
     if (data.authority) {
       setEditingAuthority(data.authority);

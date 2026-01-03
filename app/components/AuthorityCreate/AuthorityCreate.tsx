@@ -56,7 +56,7 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
     const fetchData = async () => {
       try {
         const [authResponse, appsResponse] = await Promise.all([
-          fetch('/api/authorizations'),
+          fetch('/api/system/model/authorizations'),
           fetch('/api/system/apps'),
         ]);
         const authData = await authResponse.json();
@@ -149,7 +149,7 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
       // Add apps
       formData.append('apps', JSON.stringify(Array.from(selectedApps)));
 
-      const url = isEditMode ? `/api/authorities/${editAuthority.id}` : '/api/authorities/create';
+      const url = isEditMode ? `/api/system/model/authorities/${editAuthority.id}` : '/api/system/model/authorities/create';
       const response = await fetch(url, {
         method: isEditMode ? 'PATCH' : 'POST',
         body: formData,

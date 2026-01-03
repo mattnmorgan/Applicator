@@ -28,7 +28,7 @@ export default function UserList() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/users');
+      const response = await fetch('/api/system/model/users');
       const data = await response.json();
       setUsers(data.users || []);
     } catch (error) {
@@ -63,7 +63,7 @@ export default function UserList() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/users/status', {
+      const response = await fetch('/api/system/model/users/status', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -98,7 +98,7 @@ export default function UserList() {
   };
 
   const handleEditUser = async (userId: string) => {
-    const response = await fetch(`/api/users/${userId}`);
+    const response = await fetch(`/api/system/model/users/${userId}`);
     const data = await response.json();
     if (data.user) {
       setEditingUser(data.user);
