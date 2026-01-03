@@ -13,26 +13,6 @@ export type WidgetComponent = ComponentType<Record<string, unknown>>;
  * App export structure stored in the global namespace
  */
 export interface AppExports {
-  getAppAttributes: () => {
-    appId: string;
-    name: string;
-    version: string;
-    author: string;
-    contactEmail: string;
-    description: string;
-    icon?: string;
-    authorizations?: Array<{
-      id: string;
-      name: string;
-      description: string;
-    }>;
-    apiRoutes?: Array<{
-      path: string;
-      method: string;
-      handler: string;
-      description: string;
-    }>;
-  };
   AppMount: (container: HTMLElement, context: { appId: string }) => void;
   AppUnmount: () => void;
   widgets: Record<string, WidgetComponent>;

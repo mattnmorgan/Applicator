@@ -54,7 +54,6 @@ if (typeof window !== 'undefined') {
   }
 
   (window as any).__APPLICATOR_PLUGINS__['app-id'] = {
-    getAppAttributes,
     AppMount,
     AppUnmount,
     widgets: {

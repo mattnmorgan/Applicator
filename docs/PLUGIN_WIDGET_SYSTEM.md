@@ -60,7 +60,6 @@ if (typeof window !== 'undefined') {
 
   // Store app-specific exports under the app ID
   (window as any).__APPLICATOR_PLUGINS__['my-app'] = {
-    getAppAttributes,
     AppMount,
     AppUnmount,
     widgets: {
@@ -109,7 +108,6 @@ if (appExports?.AppUnmount) {
 ```
 window.__APPLICATOR_PLUGINS__ = {
   'task': {
-    getAppAttributes: Function,
     AppMount: Function,
     AppUnmount: Function,
     widgets: {
@@ -119,7 +117,6 @@ window.__APPLICATOR_PLUGINS__ = {
     }
   },
   'another-app': {
-    getAppAttributes: Function,
     AppMount: Function,
     AppUnmount: Function,
     widgets: {
@@ -272,7 +269,6 @@ if (typeof window !== 'undefined') {
   }
 
   (window as any).__APPLICATOR_PLUGINS__['your-app-id'] = {
-    getAppAttributes,
     AppMount,
     AppUnmount,
     widgets: {
