@@ -2,7 +2,7 @@
  * File API for Vibe Applicator Plugins
  *
  * Provides sandboxed file system access for plugins.
- * Each app has its own directory under system/apps/[app-id]/
+ * Each app has its own directory under system/files/[app-id]/
  */
 
 import fs from 'fs/promises';
@@ -25,7 +25,7 @@ export class FileManager {
       throw new Error('System storage not configured');
     }
 
-    const appDir = path.join(storagePath, 'apps', this.appId);
+    const appDir = path.join(storagePath, 'files', this.appId);
 
     // Ensure the directory exists
     await fs.mkdir(appDir, { recursive: true });

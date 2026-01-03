@@ -12,7 +12,8 @@
     "dev:local": "next dev",
     "build": "next build",
     "start": "next start",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build:apps": "node scripts/build-apps.js"
   },
   "license": "ISC",
   "dependencies": {
