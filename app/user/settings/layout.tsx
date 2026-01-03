@@ -5,6 +5,16 @@ import { getBrandSettings } from "@/lib/brand";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/Tabset";
 
+// Helper function to recursively sort menu items alphabetically
+function sortMenuItems(items: TabsetItem[]): TabsetItem[] {
+  return items
+    .map((item) => ({
+      ...item,
+      children: item.children ? sortMenuItems(item.children) : undefined,
+    }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+}
+
 async function getUserSettingsMenuItems(): Promise<TabsetItem[]> {
   const items: TabsetItem[] = [
     {
@@ -60,7 +70,7 @@ async function getUserSettingsMenuItems(): Promise<TabsetItem[]> {
     });
   }
 
-  return items;
+  return sortMenuItems(items);
 }
 
 export default async function UserSettingsLayout({
