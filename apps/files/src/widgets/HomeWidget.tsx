@@ -242,10 +242,65 @@ export default function HomeWidget() {
     e.stopPropagation();
     setIsDragging(false);
 
-    const files = e.dataTransfer.files;
-    if (files && files.length > 0) {
-      await handleUploadWithCheck(files);
+    const items = e.dataTransfer.items;
+    if (items && items.length > 0) {
+      const fileList = await getAllFiles(items);
+      if (fileList.length > 0) {
+        // Convert array to FileList-like object
+        const dt = new DataTransfer();
+        fileList.forEach(file => dt.items.add(file));
+        await handleUploadWithCheck(dt.files);
+      }
+    } else {
+      // Fallback to files if items not supported
+      const files = e.dataTransfer.files;
+      if (files && files.length > 0) {
+        await handleUploadWithCheck(files);
+      }
     }
+  };
+
+  const getAllFiles = async (items: DataTransferItemList): Promise<File[]> => {
+    const files: File[] = [];
+
+    const traverseFileTree = async (item: any, path: string = ''): Promise<void> => {
+      return new Promise((resolve) => {
+        if (item.isFile) {
+          item.file((file: File) => {
+            // Preserve relative path in file name for nested files
+            if (path) {
+              const relativePath = path + file.name;
+              // Store original path as a property (note: this won't upload nested structure, just flat files)
+              files.push(file);
+            } else {
+              files.push(file);
+            }
+            resolve();
+          });
+        } else if (item.isDirectory) {
+          const dirReader = item.createReader();
+          dirReader.readEntries(async (entries: any[]) => {
+            for (const entry of entries) {
+              await traverseFileTree(entry, path + item.name + '/');
+            }
+            resolve();
+          });
+        } else {
+          resolve();
+        }
+      });
+    };
+
+    const promises: Promise<void>[] = [];
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i].webkitGetAsEntry();
+      if (item) {
+        promises.push(traverseFileTree(item));
+      }
+    }
+
+    await Promise.all(promises);
+    return files;
   };
 
   const handleDelete = (file: FileItem) => {
@@ -1050,8 +1105,8 @@ export default function HomeWidget() {
             display: 'flex',
             flexDirection: 'column',
           }}>
-            <h3 style={{ margin: '0 0 16px 0', color: '#f1f5f9' }}>Confirm File Overwrite</h3>
-            <p style={{ color: '#e2e8f0', marginBottom: '16px' }}>
+            <h3 style={{ margin: '0 0 20px 0', color: '#f1f5f9' }}>Confirm File Overwrite</h3>
+            <p style={{ color: '#e2e8f0', marginBottom: '12px' }}>
               The following {filesToOverwrite.length === 1 ? 'file' : 'files'} will be overwritten:
             </p>
             <div style={{
@@ -1060,17 +1115,27 @@ export default function HomeWidget() {
               background: '#0f172a',
               border: '1px solid #334155',
               borderRadius: '4px',
-              padding: '12px',
-              marginBottom: '24px',
+              padding: '16px',
+              marginBottom: '16px',
               maxHeight: '300px',
             }}>
-              <ul style={{ margin: 0, paddingLeft: '20px', color: '#fbbf24' }}>
-                {filesToOverwrite.map((fileName, index) => (
-                  <li key={index} style={{ marginBottom: '8px' }}>{fileName}</li>
-                ))}
-              </ul>
+              {filesToOverwrite.map((fileName, index) => (
+                <div
+                  key={index}
+                  style={{
+                    color: '#fbbf24',
+                    padding: '8px 12px',
+                    background: index % 2 === 0 ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                    fontFamily: 'monospace',
+                  }}
+                >
+                  {fileName}
+                </div>
+              ))}
             </div>
-            <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '24px' }}>
+            <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '20px' }}>
               Do you want to proceed with the upload?
             </p>
             <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>

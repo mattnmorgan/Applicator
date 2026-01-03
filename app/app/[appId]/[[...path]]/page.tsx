@@ -19,6 +19,7 @@ export default function AppPage() {
   } | null>(null);
   const [brandName, setBrandName] = useState("Applicator");
   const [brandIcon, setBrandIcon] = useState<string | undefined>(undefined);
+  const [appVersion, setAppVersion] = useState<string | null>(null);
 
   // Fetch user data
   useEffect(() => {
@@ -51,8 +52,24 @@ export default function AppPage() {
       });
   }, []);
 
+  // Fetch app version
   useEffect(() => {
     if (!appId) return;
+
+    fetch(`/api/system/apps/${appId}`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.version) {
+          setAppVersion(data.version);
+        }
+      })
+      .catch((err) => {
+        console.error("Error fetching app version:", err);
+      });
+  }, [appId]);
+
+  useEffect(() => {
+    if (!appId || !appVersion) return;
 
     const scripts: HTMLScriptElement[] = [];
 
@@ -92,7 +109,7 @@ export default function AppPage() {
         await new Promise(resolve => setTimeout(resolve, 50));
 
         const script = document.createElement("script");
-        script.src = `/api/system/assets/apps/${appId}`;
+        script.src = `/api/system/assets/apps/${appId}?v=${appVersion}`;
         script.async = true;
 
         script.onload = () => {
@@ -160,7 +177,7 @@ export default function AppPage() {
         }
       });
     };
-  }, [appId, path]);
+  }, [appId, appVersion, path]);
 
   return (
     <>
