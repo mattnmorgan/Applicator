@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import Row from '../Row';
 import AppView from '../AppView/AppView';
 import Toast from '../Toast';
+import ConfirmModal from '../ConfirmModal';
 import styles from './AppList.module.css';
 
 interface Widget {
@@ -36,6 +37,7 @@ export default function AppList() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const upgradeFileInputRef = useRef<HTMLInputElement>(null);
   const [upgradeAppId, setUpgradeAppId] = useState<string | null>(null);
+  const [confirmUninstall, setConfirmUninstall] = useState<{ appId: string; appName: string } | null>(null);
 
   const fetchApps = async () => {
     try {
@@ -133,12 +135,17 @@ export default function AppList() {
     }
   };
 
-  const handleUninstall = async (appId: string, appName: string) => {
-    if (!confirm(`Are you sure you want to uninstall "${appName}"? This will delete all app data, authorizations, and remove it from all authorities.`)) {
-      return;
-    }
+  const handleUninstallClick = (appId: string, appName: string) => {
+    setConfirmUninstall({ appId, appName });
+  };
 
+  const handleUninstall = async () => {
+    if (!confirmUninstall) return;
+
+    const { appId, appName } = confirmUninstall;
+    setConfirmUninstall(null);
     setUninstalling(appId);
+
     try {
       const response = await fetch('/api/system/apps/uninstall', {
         method: 'POST',
@@ -179,6 +186,18 @@ export default function AppList() {
           message={toast.message}
           type={toast.type}
           onClose={() => setToast(null)}
+        />
+      )}
+
+      {confirmUninstall && (
+        <ConfirmModal
+          title="Uninstall App"
+          message={`Are you sure you want to uninstall "${confirmUninstall.appName}"? This will delete all app data, authorizations, and remove it from all authorities.`}
+          confirmText="Uninstall"
+          cancelText="Cancel"
+          onConfirm={handleUninstall}
+          onCancel={() => setConfirmUninstall(null)}
+          danger
         />
       )}
 
@@ -276,7 +295,7 @@ export default function AppList() {
                   <button
                     onClick={(e) => {
                       e.stopPropagation();
-                      handleUninstall(app.id, app.label);
+                      handleUninstallClick(app.id, app.label);
                     }}
                     disabled={uninstalling === app.id}
                     className={styles.uninstallButton}
