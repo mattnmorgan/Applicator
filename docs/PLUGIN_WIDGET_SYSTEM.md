@@ -173,7 +173,7 @@ export default function MyWidget() {
 Widgets can use:
 - **React State** for UI state
 - **localStorage** for user preferences
-- **API calls** to `/api/app-api/[appId]/[endpoint]` for data
+- **API calls** to `/api/[appId]/[endpoint]` for data
 
 ### Example Widget
 
@@ -190,7 +190,7 @@ export default function MyHomeWidget() {
 
   async function loadData() {
     try {
-      const response = await fetch('/api/app-api/my-app/stats');
+      const response = await fetch('/api/my-app/stats');
       if (response.ok) {
         const json = await response.json();
         setData(json);
