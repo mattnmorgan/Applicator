@@ -17,6 +17,7 @@ export default function AppPage() {
     profilePicture?: string;
     isAdmin: boolean;
   } | null>(null);
+  const [userApps, setUserApps] = useState<Array<{ id: string; label: string }>>([]);
   const [brandName, setBrandName] = useState("Applicator");
   const [brandIcon, setBrandIcon] = useState<string | undefined>(undefined);
   const [appVersion, setAppVersion] = useState<string | null>(null);
@@ -32,6 +33,7 @@ export default function AppPage() {
             profilePicture: data.user.profilePicture,
             isAdmin: data.user.isAdmin || false,
           });
+          setUserApps(data.userApps || []);
         }
       })
       .catch((err) => {
@@ -52,21 +54,38 @@ export default function AppPage() {
       });
   }, []);
 
-  // Fetch app version
+  // Fetch app version and check authorization
   useEffect(() => {
-    if (!appId) return;
+    if (!appId || !user) return;
+
+    // Check if user has access to this app
+    const hasAccess = userApps.some((app) => app.id === appId);
+    if (!hasAccess) {
+      setError(`Access denied: You do not have permission to access this app`);
+      setLoading(false);
+      return;
+    }
 
     fetch(`/api/system/apps/${appId}`)
-      .then((res) => res.json())
+      .then((res) => {
+        if (res.status === 404) {
+          setError(`App "${appId}" does not exist`);
+          setLoading(false);
+          return null;
+        }
+        return res.json();
+      })
       .then((data) => {
-        if (data.version) {
+        if (data && data.version) {
           setAppVersion(data.version);
         }
       })
       .catch((err) => {
         console.error("Error fetching app version:", err);
+        setError("Failed to load app");
+        setLoading(false);
       });
-  }, [appId]);
+  }, [appId, user, userApps]);
 
   useEffect(() => {
     if (!appId || !appVersion) return;
@@ -196,6 +215,7 @@ export default function AppPage() {
           bottom: "0",
           left: "0",
           right: "0",
+          background: "#0f172a",
         }}
       >
         <div style={{ height: "100%" }}>
@@ -208,8 +228,10 @@ export default function AppPage() {
           )}
 
           {error && (
-            <div style={{ background: '#7f1d1d', border: '1px solid #991b1b', borderRadius: '8px', padding: '16px' }}>
-              <p style={{ color: '#fca5a5' }}>{error}</p>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
+              <div style={{ background: '#7f1d1d', border: '1px solid #991b1b', borderRadius: '8px', padding: '32px', maxWidth: '500px', textAlign: 'center' }}>
+                <p style={{ color: '#fca5a5', fontSize: '16px', margin: '0' }}>{error}</p>
+              </div>
             </div>
           )}
 
