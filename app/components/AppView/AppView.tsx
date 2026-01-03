@@ -140,7 +140,7 @@ export default function AppView({ appId, onBack }: AppViewProps) {
             {app.apiRoutes.map((route, index) => (
               <div key={index} className={styles.routeRow}>
                 <div className={styles.routeMethod}>{route.method}</div>
-                <div className={styles.routePath}>/api/app-api/{app.id}/{route.path}</div>
+                <div className={styles.routePath}>/api/{app.id}/{route.path}</div>
                 <div className={styles.routeDescription}>{route.description}</div>
               </div>
             ))}
