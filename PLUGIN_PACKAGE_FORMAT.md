@@ -123,11 +123,20 @@ const path = require('path');
 const archiver = require('archiver');
 
 async function buildPackage() {
+  // Read app.json to get version
+  const appJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'app.json'), 'utf8'));
+  const version = `${appJson.version.major}.${appJson.version.minor}.${appJson.version.dev}`;
+
   const outputDir = path.resolve(__dirname, 'dist');
-  const zipPath = path.join(outputDir, 'my-app.zip');
+  const zipPath = path.join(outputDir, `my-app-${version}.zip`);
 
   const output = fs.createWriteStream(zipPath);
   const archive = archiver('zip', { zlib: { level: 9 } });
+
+  output.on('close', () => {
+    console.log(`✓ Package created: my-app-${version}.zip (${archive.pointer()} bytes)`);
+    console.log(`  Version: ${version}`);
+  });
 
   archive.pipe(output);
   archive.file('app.json', { name: 'app.json' });
@@ -138,7 +147,10 @@ async function buildPackage() {
   await archive.finalize();
 }
 
-buildPackage();
+buildPackage().catch(err => {
+  console.error('Error building package:', err);
+  process.exit(1);
+});
 ```
 
 ### 3. Package.json Scripts
@@ -160,7 +172,7 @@ cd my-app
 npm run build
 ```
 
-This will create `dist/my-app.zip` ready for installation.
+This will create `dist/my-app-{version}.zip` ready for installation (e.g., `my-app-1.0.0.zip`). The version is automatically read from `app.json` and included in the filename.
 
 ## Installing an App
 

@@ -3,8 +3,12 @@ const path = require('path');
 const archiver = require('archiver');
 
 async function buildPackage() {
+  // Read app.json to get version
+  const appJson = JSON.parse(fs.readFileSync(path.join(__dirname, 'app.json'), 'utf8'));
+  const version = `${appJson.version.major}.${appJson.version.minor}.${appJson.version.dev}`;
+
   const outputDir = path.resolve(__dirname, 'dist');
-  const zipPath = path.join(outputDir, 'files.zip');
+  const zipPath = path.join(outputDir, `files-${version}.zip`);
 
   // Ensure output directory exists
   if (!fs.existsSync(outputDir)) {
@@ -19,12 +23,13 @@ async function buildPackage() {
 
   // Listen for events
   output.on('close', () => {
-    console.log(`✓ Package created: files.zip (${archive.pointer()} bytes)`);
-    console.log('Package contents:');
-    console.log('  - app.json (metadata)');
-    console.log('  - app.png (icon)');
-    console.log('  - files.js (UI bundle)');
-    console.log('  - api/*.js (API handlers)');
+    console.log(`✓ Package created: files-${version}.zip (${archive.pointer()} bytes)`);
+    console.log(`  Version: ${version}`);
+    console.log('  Package contents:');
+    console.log('    - app.json (metadata)');
+    console.log('    - app.png (icon)');
+    console.log('    - files.js (UI bundle)');
+    console.log('    - api/*.js (API handlers)');
   });
 
   archive.on('error', (err) => {
