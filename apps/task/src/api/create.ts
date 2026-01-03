@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, createPlugin, requireAuthorization } from '@/lib/sdk';
+import { requireAuthorization } from '@/lib/sdk';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function POST(request: NextRequest) {
+export async function POST(request: NextRequest, context: { plugin: any }) {
   try {
-    const sessionId = request.cookies.get('session')?.value;
-    if (!sessionId) {
+    const { plugin } = context;
+
+    if (!plugin.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const session = await getSession(sessionId);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const plugin = createPlugin('task', session.userId);
 
     // Check permission
     await requireAuthorization(plugin, 'task:manage');
@@ -61,7 +55,7 @@ export async function POST(request: NextRequest) {
       assignedTo: assignedTo || undefined,
       dueDate: dueDate || undefined,
       tags: tagsJson ? JSON.parse(tagsJson) : [],
-      createdBy: session.userId,
+      createdBy: plugin.userId,
     };
 
     // Handle file upload

@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest, context: { plugin: any }) {
   try {
+    const { plugin } = context;
+
     const formData = await req.formData();
     const file = formData.get('file') as File;
     const directory = formData.get('directory') as string || '';
@@ -21,7 +23,7 @@ export async function POST(req: NextRequest, context: { plugin: any }) {
     const filePath = directory ? `${directory}/${file.name}` : file.name;
 
     // Write file using plugin SDK
-    await context.plugin.files.writeFile(filePath, buffer);
+    await plugin.files.writeFile(filePath, buffer);
 
     return NextResponse.json({
       success: true,

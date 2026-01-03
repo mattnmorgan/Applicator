@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getApp, getSystemSetting } from '@/lib/db';
+import { createPlugin, getSession } from '@/lib/sdk';
 import * as path from 'path';
 import * as fs from 'fs';
 import { createRequire } from 'module';
@@ -110,8 +111,23 @@ async function handleRequest(
       );
     }
 
-    // Execute the handler
-    return await handler(request);
+    // Get session for user context (optional)
+    const sessionId = request.cookies.get('session')?.value;
+    let userId: string | undefined;
+
+    if (sessionId) {
+      const session = await getSession(sessionId);
+      if (session) {
+        userId = session.userId;
+      }
+    }
+
+    // Create plugin context
+    const plugin = createPlugin(appId, userId);
+    const context = { plugin };
+
+    // Execute the handler with context
+    return await handler(request, context);
   } catch (error) {
     console.error('Error handling app API request:', error);
     console.error('Error details:', error instanceof Error ? error.message : String(error));

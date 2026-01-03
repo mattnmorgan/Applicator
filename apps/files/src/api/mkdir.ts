@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function POST(req: NextRequest, context: { plugin: any }) {
   try {
+    const { plugin } = context;
     const body = await req.json();
     const { path: dirPath } = body;
 
@@ -13,7 +14,7 @@ export async function POST(req: NextRequest, context: { plugin: any }) {
     }
 
     // Check if directory already exists
-    const exists = await context.plugin.files.exists(dirPath);
+    const exists = await plugin.files.exists(dirPath);
     if (exists) {
       return NextResponse.json(
         { error: 'Directory already exists' },
@@ -22,7 +23,7 @@ export async function POST(req: NextRequest, context: { plugin: any }) {
     }
 
     // Create directory
-    await context.plugin.files.createDirectory(dirPath);
+    await plugin.files.createDirectory(dirPath);
 
     return NextResponse.json({
       success: true,

@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, createPlugin, requireAuthorization } from '@/lib/sdk';
 
-export async function DELETE(request: NextRequest) {
+import { requireAuthorization } from '@/lib/sdk';
+export async function DELETE(request: NextRequest, context: { plugin: any }) {
   try {
-    const sessionId = request.cookies.get('session')?.value;
-    if (!sessionId) {
+    const { plugin } = context;
+
+    if (!plugin.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const session = await getSession(sessionId);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const plugin = createPlugin('task', session.userId);
 
     // Check permission
     await requireAuthorization(plugin, 'task:manage');
@@ -33,7 +27,7 @@ export async function DELETE(request: NextRequest) {
 
     // Check ownership or view-all permission
     const canViewAll = await plugin.system.checkMyAuthorization('task:view-all');
-    if (!canViewAll && existing.data.createdBy !== session.userId) {
+    if (!canViewAll && existing.data.createdBy !== plugin.userId) {
       return NextResponse.json(
         { error: 'You can only delete tasks you created' },
         { status: 403 }

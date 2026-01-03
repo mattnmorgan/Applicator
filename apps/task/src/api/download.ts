@@ -1,19 +1,13 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, createPlugin, requireAuthorization } from '@/lib/sdk';
 
-export async function GET(request: NextRequest) {
+import { requireAuthorization } from '@/lib/sdk';
+export async function GET(request: NextRequest, context: { plugin: any }) {
   try {
-    const sessionId = request.cookies.get('session')?.value;
-    if (!sessionId) {
+    const { plugin } = context;
+
+    if (!plugin.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const session = await getSession(sessionId);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const plugin = createPlugin('task', session.userId);
 
     // Check permission
     await requireAuthorization(plugin, 'task:manage');
@@ -40,8 +34,8 @@ export async function GET(request: NextRequest) {
     const canViewAll = await plugin.system.checkMyAuthorization('task:view-all');
     if (
       !canViewAll &&
-      task.data.createdBy !== session.userId &&
-      task.data.assignedTo !== session.userId
+      task.data.createdBy !== plugin.userId &&
+      task.data.assignedTo !== plugin.userId
     ) {
       return NextResponse.json(
         { error: 'You do not have permission to view this task' },

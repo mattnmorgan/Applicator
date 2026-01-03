@@ -1,20 +1,14 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, createPlugin, requireAuthorization } from '@/lib/sdk';
+import { requireAuthorization } from '@/lib/sdk';
 import { v4 as uuidv4 } from 'uuid';
 
-export async function PATCH(request: NextRequest) {
+export async function PATCH(request: NextRequest, context: { plugin: any }) {
   try {
-    const sessionId = request.cookies.get('session')?.value;
-    if (!sessionId) {
+    const { plugin } = context;
+
+    if (!plugin.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const session = await getSession(sessionId);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const plugin = createPlugin('task', session.userId);
 
     // Check permission
     await requireAuthorization(plugin, 'task:manage');
@@ -42,8 +36,8 @@ export async function PATCH(request: NextRequest) {
     const canViewAll = await plugin.system.checkMyAuthorization('task:view-all');
     if (
       !canViewAll &&
-      existing.data.createdBy !== session.userId &&
-      existing.data.assignedTo !== session.userId
+      existing.data.createdBy !== plugin.userId &&
+      existing.data.assignedTo !== plugin.userId
     ) {
       return NextResponse.json(
         { error: 'You do not have permission to update this task' },

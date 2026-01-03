@@ -29,10 +29,13 @@ export default function AppList() {
   const [apps, setApps] = useState<App[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [installing, setInstalling] = useState(false);
+  const [upgrading, setUpgrading] = useState<string | null>(null);
   const [uninstalling, setUninstalling] = useState<string | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const upgradeFileInputRef = useRef<HTMLInputElement>(null);
+  const [upgradeAppId, setUpgradeAppId] = useState<string | null>(null);
 
   const fetchApps = async () => {
     try {
@@ -81,6 +84,51 @@ export default function AppList() {
       setInstalling(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleUpgradeClick = (appId: string) => {
+    setUpgradeAppId(appId);
+    upgradeFileInputRef.current?.click();
+  };
+
+  const handleUpgradeFileChange = async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !upgradeAppId) return;
+
+    const appToUpgrade = apps.find(a => a.id === upgradeAppId);
+    setUpgrading(upgradeAppId);
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+      formData.append('appId', upgradeAppId);
+
+      const response = await fetch('/api/system/apps/upgrade', {
+        method: 'POST',
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setToast({
+          message: `App "${data.name}" upgraded successfully from v${data.oldVersion} to v${data.newVersion}!`,
+          type: 'success'
+        });
+        await fetchApps();
+      } else {
+        setToast({ message: data.error || 'Failed to upgrade app', type: 'error' });
+      }
+    } catch (error) {
+      console.error('Error upgrading app:', error);
+      setToast({ message: 'Failed to upgrade app', type: 'error' });
+    } finally {
+      setUpgrading(null);
+      setUpgradeAppId(null);
+      if (upgradeFileInputRef.current) {
+        upgradeFileInputRef.current.value = '';
       }
     }
   };
@@ -156,6 +204,13 @@ export default function AppList() {
           onChange={handleFileChange}
           style={{ display: 'none' }}
         />
+        <input
+          ref={upgradeFileInputRef}
+          type="file"
+          accept=".zip"
+          onChange={handleUpgradeFileChange}
+          style={{ display: 'none' }}
+        />
       </div>
 
       <div className={styles.appList}>
@@ -208,6 +263,16 @@ export default function AppList() {
                       Settings
                     </button>
                   )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUpgradeClick(app.id);
+                    }}
+                    disabled={upgrading === app.id}
+                    className={styles.upgradeButton}
+                  >
+                    {upgrading === app.id ? 'Upgrading...' : 'Upgrade'}
+                  </button>
                   <button
                     onClick={(e) => {
                       e.stopPropagation();

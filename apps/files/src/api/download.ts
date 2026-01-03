@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest, context: { plugin: any }) {
   try {
+    const { plugin } = context;
     const { searchParams } = new URL(req.url);
     const filePath = searchParams.get('path');
 
@@ -13,7 +14,7 @@ export async function GET(req: NextRequest, context: { plugin: any }) {
     }
 
     // Check if file exists
-    const exists = await context.plugin.files.exists(filePath);
+    const exists = await plugin.files.exists(filePath);
     if (!exists) {
       return NextResponse.json(
         { error: 'File not found' },
@@ -22,11 +23,11 @@ export async function GET(req: NextRequest, context: { plugin: any }) {
     }
 
     // Read file
-    const fileBuffer = await context.plugin.files.readFile(filePath);
+    const fileBuffer = await plugin.files.readFile(filePath);
     const fileName = filePath.split('/').pop() || 'download';
 
     // Return file as download
-    return new NextResponse(fileBuffer, {
+    return new NextResponse(new Uint8Array(fileBuffer), {
       headers: {
         'Content-Disposition': `attachment; filename="${fileName}"`,
         'Content-Type': 'application/octet-stream',

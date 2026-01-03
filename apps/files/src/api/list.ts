@@ -2,18 +2,20 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function GET(req: NextRequest, context: { plugin: any }) {
   try {
+    const { plugin } = context;
     const { searchParams } = new URL(req.url);
     const directory = searchParams.get('directory') || '';
 
     // List files in directory
-    const files = await context.plugin.files.listFiles(directory);
+    const files = await plugin.files.listFiles(directory);
 
     // Get metadata for each file
     const filesWithMetadata = await Promise.all(
       files.map(async (fileName: string) => {
         const filePath = directory ? `${directory}/${fileName}` : fileName;
         try {
-          const metadata = await context.plugin.files.getMetadata(filePath);
+    const { plugin } = context;
+          const metadata = await plugin.files.getMetadata(filePath);
           return {
             name: fileName,
             path: filePath,

@@ -1,19 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, createPlugin } from '@/lib/sdk';
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest, context: { plugin: any }) {
   try {
-    const sessionId = request.cookies.get('session')?.value;
-    if (!sessionId) {
+    const { plugin } = context;
+
+    if (!plugin.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const session = await getSession(sessionId);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const plugin = createPlugin('task', session.userId);
 
     // Check if user can view all tasks
     const canViewAll = await plugin.system.checkMyAuthorization('task:view-all');
@@ -26,8 +19,8 @@ export async function GET(request: NextRequest) {
     for (const record of result.records) {
       if (
         canViewAll ||
-        record.data.createdBy === session.userId ||
-        record.data.assignedTo === session.userId
+        record.data.createdBy === plugin.userId ||
+        record.data.assignedTo === plugin.userId
       ) {
         // Enrich with user names
         let createdByName = 'Unknown';

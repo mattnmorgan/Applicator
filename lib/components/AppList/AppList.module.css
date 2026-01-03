@@ -151,6 +151,28 @@
   color: white;
 }
 
+.upgradeButton {
+  padding: 6px 12px;
+  background: transparent;
+  border: 1px solid #fbbf24;
+  border-radius: 6px;
+  color: #fbbf24;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+
+.upgradeButton:hover:not(:disabled) {
+  background: #fbbf24;
+  color: #0f172a;
+}
+
+.upgradeButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 .uninstallButton {
   padding: 6px 12px;
   background: transparent;

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function PUT(req: NextRequest, context: { plugin: any }) {
   try {
+    const { plugin } = context;
     const body = await req.json();
     const { oldPath, newName } = body;
 
@@ -13,7 +14,7 @@ export async function PUT(req: NextRequest, context: { plugin: any }) {
     }
 
     // Check if file exists
-    const exists = await context.plugin.files.exists(oldPath);
+    const exists = await plugin.files.exists(oldPath);
     if (!exists) {
       return NextResponse.json(
         { error: 'File not found' },
@@ -30,7 +31,7 @@ export async function PUT(req: NextRequest, context: { plugin: any }) {
     const newPath = directory ? `${directory}/${newName}` : newName;
 
     // Check if new path already exists
-    const newExists = await context.plugin.files.exists(newPath);
+    const newExists = await plugin.files.exists(newPath);
     if (newExists) {
       return NextResponse.json(
         { error: 'A file with that name already exists' },
@@ -39,14 +40,14 @@ export async function PUT(req: NextRequest, context: { plugin: any }) {
     }
 
     // Read and write to new location, then delete old
-    const content = await context.plugin.files.readFile(oldPath);
-    await context.plugin.files.writeFile(newPath, content);
+    const content = await plugin.files.readFile(oldPath);
+    await plugin.files.writeFile(newPath, content);
 
-    const metadata = await context.plugin.files.getMetadata(oldPath);
+    const metadata = await plugin.files.getMetadata(oldPath);
     if (metadata.isDirectory) {
-      await context.plugin.files.deleteDirectory(oldPath, true);
+      await plugin.files.deleteDirectory(oldPath, true);
     } else {
-      await context.plugin.files.deleteFile(oldPath);
+      await plugin.files.deleteFile(oldPath);
     }
 
     return NextResponse.json({

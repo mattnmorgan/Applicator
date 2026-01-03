@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 
 export async function DELETE(req: NextRequest, context: { plugin: any }) {
   try {
+    const { plugin } = context;
     const { searchParams } = new URL(req.url);
     const filePath = searchParams.get('path');
 
@@ -13,7 +14,7 @@ export async function DELETE(req: NextRequest, context: { plugin: any }) {
     }
 
     // Check if file exists
-    const exists = await context.plugin.files.exists(filePath);
+    const exists = await plugin.files.exists(filePath);
     if (!exists) {
       return NextResponse.json(
         { error: 'File not found' },
@@ -22,14 +23,14 @@ export async function DELETE(req: NextRequest, context: { plugin: any }) {
     }
 
     // Get metadata to check if it's a directory
-    const metadata = await context.plugin.files.getMetadata(filePath);
+    const metadata = await plugin.files.getMetadata(filePath);
 
     if (metadata.isDirectory) {
       // Delete directory recursively
-      await context.plugin.files.deleteDirectory(filePath, true);
+      await plugin.files.deleteDirectory(filePath, true);
     } else {
       // Delete file
-      await context.plugin.files.deleteFile(filePath);
+      await plugin.files.deleteFile(filePath);
     }
 
     return NextResponse.json({

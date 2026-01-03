@@ -1,7 +1,7 @@
 {
   "id": "task",
   "name": "Task Manager",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Vibe Applicator",
   "contactEmail": "support@vibeapplicator.com",
   "description": "Manage tasks with assignments, priorities, and status tracking",

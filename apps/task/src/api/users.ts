@@ -1,25 +1,18 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, createPlugin } from '@/lib/sdk';
 
-export async function GET(request: NextRequest) {
+export async function GET(request: NextRequest, context: { plugin: any }) {
   try {
-    const sessionId = request.cookies.get('session')?.value;
-    if (!sessionId) {
+    const { plugin } = context;
+
+    if (!plugin.userId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
-
-    const session = await getSession(sessionId);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
-    }
-
-    const plugin = createPlugin('task', session.userId);
 
     // Get all active users
     const users = await plugin.system.getUsers(false);
 
     // Return simplified user data for assignment dropdown
-    const userList = users.map((user) => ({
+    const userList = users.map((user: any) => ({
       id: user.id,
       username: user.username,
       displayName: user.displayName,

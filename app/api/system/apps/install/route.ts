@@ -103,6 +103,10 @@ export async function POST(request: NextRequest) {
     // Validate required attributes
     if (!appAttributes.id || !appAttributes.name || !appAttributes.version ||
         !appAttributes.author || !appAttributes.description) {
+      await logger.fromRequest(request).error(
+        'system',
+        `App installation rejected: Missing required app attributes (id: ${appAttributes.id || 'missing'}, name: ${appAttributes.name || 'missing'}, version: ${appAttributes.version || 'missing'}, author: ${appAttributes.author || 'missing'}, description: ${appAttributes.description ? 'present' : 'missing'})`
+      );
       return NextResponse.json(
         { error: 'Missing required app attributes' },
         { status: 400 }
