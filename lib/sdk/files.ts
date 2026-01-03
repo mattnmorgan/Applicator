@@ -143,6 +143,28 @@ export class FileManager {
   }
 
   /**
+   * List directory contents with metadata
+   * @param dirPath Relative path to directory within the app's directory (default: root)
+   * @returns Array of items with name and isDirectory properties
+   */
+  async listDirectory(dirPath: string = ''): Promise<Array<{ name: string; isDirectory: boolean }>> {
+    const resolvedPath = await this.resolvePath(dirPath);
+
+    try {
+      const entries = await fs.readdir(resolvedPath, { withFileTypes: true });
+      return entries.map(entry => ({
+        name: entry.name,
+        isDirectory: entry.isDirectory(),
+      }));
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        return [];
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Get file metadata
    * @param filePath Relative path within the app's directory
    */
@@ -192,6 +214,29 @@ export class FileManager {
     } catch (error: any) {
       if (error.code === 'ENOENT') {
         throw new Error(`Directory not found: ${dirPath}`);
+      }
+      throw error;
+    }
+  }
+
+  /**
+   * Rename or move a file or directory
+   * @param oldPath Current path (relative to app directory)
+   * @param newPath New path (relative to app directory)
+   */
+  async rename(oldPath: string, newPath: string): Promise<void> {
+    const oldResolved = await this.resolvePath(oldPath);
+    const newResolved = await this.resolvePath(newPath);
+
+    // Ensure parent directory exists for destination
+    const newDir = path.dirname(newResolved);
+    await fs.mkdir(newDir, { recursive: true });
+
+    try {
+      await fs.rename(oldResolved, newResolved);
+    } catch (error: any) {
+      if (error.code === 'ENOENT') {
+        throw new Error(`Source path not found: ${oldPath}`);
       }
       throw error;
     }

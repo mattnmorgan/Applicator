@@ -37,16 +37,8 @@ export async function PUT(req: NextRequest, context: { plugin: any }) {
       );
     }
 
-    // Read and write to new location, then delete old
-    const content = await plugin.files.readFile(sourcePath);
-    await plugin.files.writeFile(destinationPath, content);
-
-    const metadata = await plugin.files.getMetadata(sourcePath);
-    if (metadata.isDirectory) {
-      await plugin.files.deleteDirectory(sourcePath, true);
-    } else {
-      await plugin.files.deleteFile(sourcePath);
-    }
+    // Use rename for efficient move operation (works for both files and directories)
+    await plugin.files.rename(sourcePath, destinationPath);
 
     return NextResponse.json({
       success: true,

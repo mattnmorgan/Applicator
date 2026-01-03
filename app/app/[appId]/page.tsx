@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useParams } from 'next/navigation';
-import { useEffect, useRef, useState } from 'react';
-import Navigation from '@/lib/components/Navigation/Navigation';
-import AppMenu from '@/lib/components/AppMenu/AppMenu';
+import { useParams } from "next/navigation";
+import { useEffect, useRef, useState } from "react";
+import Navigation from "@/lib/components/Navigation/Navigation";
+import AppMenu from "@/lib/components/AppMenu/AppMenu";
 
 export default function AppPage() {
   const params = useParams();
@@ -16,37 +16,37 @@ export default function AppPage() {
     profilePicture?: string;
     isAdmin: boolean;
   } | null>(null);
-  const [brandName, setBrandName] = useState('Applicator');
+  const [brandName, setBrandName] = useState("Applicator");
   const [brandIcon, setBrandIcon] = useState<string | undefined>(undefined);
 
   // Fetch user data
   useEffect(() => {
-    fetch('/api/system/auth/me')
-      .then(res => res.json())
-      .then(data => {
+    fetch("/api/system/auth/me")
+      .then((res) => res.json())
+      .then((data) => {
         if (data.user) {
           setUser({
             displayName: data.user.displayName,
             profilePicture: data.user.profilePicture,
-            isAdmin: data.user.isAdmin || false
+            isAdmin: data.user.isAdmin || false,
           });
         }
       })
-      .catch(err => {
-        console.error('Error fetching user data:', err);
+      .catch((err) => {
+        console.error("Error fetching user data:", err);
       });
   }, []);
 
   // Fetch brand settings
   useEffect(() => {
-    fetch('/api/system/brand')
-      .then(res => res.json())
-      .then(data => {
-        setBrandName(data.brandName || 'Applicator');
+    fetch("/api/system/brand")
+      .then((res) => res.json())
+      .then((data) => {
+        setBrandName(data.brandName || "Applicator");
         setBrandIcon(data.brandIcon);
       })
-      .catch(err => {
-        console.error('Error fetching brand settings:', err);
+      .catch((err) => {
+        console.error("Error fetching brand settings:", err);
       });
   }, []);
 
@@ -65,17 +65,18 @@ export default function AppPage() {
           return;
         }
 
-        const reactScript = document.createElement('script');
-        reactScript.src = '/assets/react.production.min.js';
+        const reactScript = document.createElement("script");
+        reactScript.src = "/assets/react.production.min.js";
         reactScript.onload = () => {
-          const reactDOMScript = document.createElement('script');
-          reactDOMScript.src = '/assets/react-dom.production.min.js';
+          const reactDOMScript = document.createElement("script");
+          reactDOMScript.src = "/assets/react-dom.production.min.js";
           reactDOMScript.onload = () => resolve();
-          reactDOMScript.onerror = () => reject(new Error('Failed to load ReactDOM'));
+          reactDOMScript.onerror = () =>
+            reject(new Error("Failed to load ReactDOM"));
           document.body.appendChild(reactDOMScript);
           scripts.push(reactDOMScript);
         };
-        reactScript.onerror = () => reject(new Error('Failed to load React'));
+        reactScript.onerror = () => reject(new Error("Failed to load React"));
         document.body.appendChild(reactScript);
         scripts.push(reactScript);
       });
@@ -86,7 +87,7 @@ export default function AppPage() {
       try {
         await loadReact();
 
-        const script = document.createElement('script');
+        const script = document.createElement("script");
         script.src = `/api/system/assets/apps/${appId}`;
         script.async = true;
 
@@ -96,31 +97,36 @@ export default function AppPage() {
             // @ts-ignore
             const appExports = window.__APPLICATOR_PLUGINS__?.[appId];
 
-            if (appExports?.AppMount && typeof appExports.AppMount === 'function') {
+            if (
+              appExports?.AppMount &&
+              typeof appExports.AppMount === "function"
+            ) {
               appExports.AppMount(containerRef.current, { appId });
               setLoading(false);
             } else {
-              console.error('App export structure:', appExports);
-              setError('App does not export a mount function in __APPLICATOR_PLUGINS__');
+              console.error("App export structure:", appExports);
+              setError(
+                "App does not export a mount function in __APPLICATOR_PLUGINS__"
+              );
               setLoading(false);
             }
           } catch (err) {
-            console.error('Error mounting app:', err);
-            setError('Failed to mount app');
+            console.error("Error mounting app:", err);
+            setError("Failed to mount app");
             setLoading(false);
           }
         };
 
         script.onerror = () => {
-          setError('Failed to load app');
+          setError("Failed to load app");
           setLoading(false);
         };
 
         document.body.appendChild(script);
         scripts.push(script);
       } catch (err) {
-        console.error('Error loading dependencies:', err);
-        setError('Failed to load app dependencies');
+        console.error("Error loading dependencies:", err);
+        setError("Failed to load app dependencies");
         setLoading(false);
       }
     };
@@ -132,15 +138,18 @@ export default function AppPage() {
       try {
         // @ts-ignore
         const appExports = window.__APPLICATOR_PLUGINS__?.[appId];
-        if (appExports?.AppUnmount && typeof appExports.AppUnmount === 'function') {
+        if (
+          appExports?.AppUnmount &&
+          typeof appExports.AppUnmount === "function"
+        ) {
           appExports.AppUnmount();
         }
       } catch (err) {
-        console.error('Error unmounting app:', err);
+        console.error("Error unmounting app:", err);
       }
 
       // Remove all scripts
-      scripts.forEach(script => {
+      scripts.forEach((script) => {
         if (script.parentNode) {
           document.body.removeChild(script);
         }
@@ -151,18 +160,28 @@ export default function AppPage() {
   return (
     <>
       <Navigation
-        displayName={user?.displayName || ''}
+        displayName={user?.displayName || ""}
         profilePicture={user?.profilePicture}
         isAdmin={user?.isAdmin || false}
         brandName={brandName}
         brandIcon={brandIcon}
       />
       <AppMenu />
-      <div className="min-h-screen bg-gray-50 dark:bg-gray-900" style={{ paddingTop: '113px' }}>
-        <div className="container mx-auto px-4 py-8">
+      <div
+        style={{
+          position: "fixed",
+          top: "113px",
+          bottom: "0",
+          left: "0",
+          right: "0",
+        }}
+      >
+        <div style={{ height: "100%" }}>
           {loading && (
             <div className="flex items-center justify-center h-64">
-              <div className="text-gray-600 dark:text-gray-400">Loading app...</div>
+              <div className="text-gray-600 dark:text-gray-400">
+                Loading app...
+              </div>
             </div>
           )}
 
@@ -172,7 +191,7 @@ export default function AppPage() {
             </div>
           )}
 
-          <div ref={containerRef} className="app-container" />
+          <div ref={containerRef} style={{ height: "100%" }} />
         </div>
       </div>
     </>
