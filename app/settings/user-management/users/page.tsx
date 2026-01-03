@@ -1,6 +1,6 @@
 'use client';
 
-import UserList from '@/app/components/UserList';
+import UserList from '@/lib/components/UserList';
 
 export default function UsersPage() {
   return (

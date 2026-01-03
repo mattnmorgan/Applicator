@@ -2,9 +2,9 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { isFirstTimeSetup } from '@/lib/db';
 import { getBrandSettings } from '@/lib/brand';
-import Navigation from '../components/Navigation';
-import Tabset, { TabsetItem } from '../components/Tabset';
-import AccessDenied from '../components/AccessDenied';
+import Navigation from '@/lib/components/Navigation';
+import Tabset, { TabsetItem } from '@/lib/components/Tabset';
+import AccessDenied from '@/lib/components/AccessDenied';
 
 // Helper function to recursively sort menu items alphabetically
 function sortMenuItems(items: TabsetItem[]): TabsetItem[] {

@@ -2,8 +2,8 @@ import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
 import { isFirstTimeSetup, getAllApps, getAuthority } from "@/lib/db";
 import { getBrandSettings } from "@/lib/brand";
-import Navigation from "../../components/Navigation";
-import Tabset, { TabsetItem } from "../../components/Tabset";
+import Navigation from "@/lib/components/Navigation";
+import Tabset, { TabsetItem } from "@/lib/components/Tabset";
 
 async function getUserSettingsMenuItems(): Promise<TabsetItem[]> {
   const items: TabsetItem[] = [

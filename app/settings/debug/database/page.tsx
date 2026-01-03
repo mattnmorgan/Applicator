@@ -1,6 +1,6 @@
 'use client';
 
-import DatabaseViewer from '@/app/components/DatabaseViewer';
+import DatabaseViewer from '@/lib/components/DatabaseViewer';
 
 export default function DatabasePage() {
   return (

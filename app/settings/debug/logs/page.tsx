@@ -1,6 +1,6 @@
 'use client';
 
-import LoggingViewer from '@/app/components/LoggingViewer';
+import LoggingViewer from '@/lib/components/LoggingViewer';
 
 export default function LogsPage() {
   return (

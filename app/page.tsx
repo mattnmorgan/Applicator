@@ -2,8 +2,8 @@ import { redirect } from 'next/navigation';
 import { getCurrentUser } from '@/lib/auth';
 import { isFirstTimeSetup } from '@/lib/db';
 import { getBrandSettings } from '@/lib/brand';
-import Navigation from './components/Navigation';
-import AppMenu from './components/AppMenu/AppMenu';
+import Navigation from '@/lib/components/Navigation';
+import AppMenu from '@/lib/components/AppMenu/AppMenu';
 
 export default async function HomePage() {
   // Check if first-time setup is needed

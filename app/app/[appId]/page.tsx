@@ -2,8 +2,8 @@
 
 import { useParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
-import Navigation from '@/app/components/Navigation/Navigation';
-import AppMenu from '@/app/components/AppMenu/AppMenu';
+import Navigation from '@/lib/components/Navigation/Navigation';
+import AppMenu from '@/lib/components/AppMenu/AppMenu';
 
 export default function AppPage() {
   const params = useParams();

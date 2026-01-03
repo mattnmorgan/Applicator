@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import FolderBrowser from '../components/FolderBrowser';
-import Toast from '../components/Toast';
+import FolderBrowser from '@/lib/components/FolderBrowser';
+import Toast from '@/lib/components/Toast';
 
 export default function SettingsPage() {
   const router = useRouter();
