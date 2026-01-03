@@ -135,9 +135,9 @@ export default function AppView({ appId, onBack }: AppViewProps) {
         </div>
       )}
 
-      <div className={styles.section}>
-        <h2 className={styles.sectionTitle}>API Routes</h2>
-        {app.apiRoutes && app.apiRoutes.length > 0 ? (
+      {app.apiRoutes && app.apiRoutes.length > 0 && (
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>API Routes</h2>
           <div className={styles.routeList}>
             {app.apiRoutes.map((route, index) => (
               <div key={index} className={styles.routeRow}>
@@ -147,10 +147,8 @@ export default function AppView({ appId, onBack }: AppViewProps) {
               </div>
             ))}
           </div>
-        ) : (
-          <p className={styles.noRoutes}>No API routes defined</p>
-        )}
-      </div>
+        </div>
+      )}
     </div>
   );
 }
