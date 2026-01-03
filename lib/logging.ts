@@ -1,8 +1,8 @@
-import { getRedisClient } from './redis';
-import { getSession } from './db';
-import { NextRequest } from 'next/server';
+import { getRedisClient } from "./redis";
+import { getSession, getSystemSetting } from "./db";
+import { NextRequest } from "next/server";
 
-export type LogLevel = 'debug' | 'info' | 'warning' | 'error';
+export type LogLevel = "debug" | "info" | "warning" | "error";
 
 export interface LogEntry {
   timestamp: string;
@@ -16,20 +16,44 @@ export interface LogEntry {
  * Format a timestamp in MM-DD-YYYY HH:MM:SS format (24-hour)
  */
 export function formatTimestamp(date: Date): string {
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
   const year = date.getFullYear();
-  const hours = String(date.getHours()).padStart(2, '0');
-  const minutes = String(date.getMinutes()).padStart(2, '0');
-  const seconds = String(date.getSeconds()).padStart(2, '0');
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
 
   return `${month}-${day}-${year} ${hours}:${minutes}:${seconds}`;
 }
 
 /**
+ * Check if logging is enabled
+ */
+async function isLoggingEnabled(): Promise<boolean> {
+  try {
+    const enabled = await getSystemSetting("loggingEnabled");
+    return enabled === "true";
+  } catch (error) {
+    // Default to false if there's an error reading the setting
+    return false;
+  }
+}
+
+/**
  * Store a log entry in Redis
  */
-async function logToRedis(level: LogLevel, sender: string, message: string, userId?: string): Promise<void> {
+async function logToRedis(
+  level: LogLevel,
+  sender: string,
+  message: string,
+  userId?: string
+): Promise<void> {
+  // Check if logging is enabled
+  const enabled = await isLoggingEnabled();
+  if (!enabled) {
+    return; // Don't store logs if logging is disabled
+  }
+
   const redis = getRedisClient();
   const now = new Date();
   const timestamp = formatTimestamp(now);
@@ -52,22 +76,24 @@ async function logToRedis(level: LogLevel, sender: string, message: string, user
 /**
  * Extract userId from a request's session cookie
  */
-async function getUserIdFromRequest(request: Request | NextRequest): Promise<string | undefined> {
+async function getUserIdFromRequest(
+  request: Request | NextRequest
+): Promise<string | undefined> {
   try {
     // Get session cookie
     let sessionId: string | undefined;
 
-    if ('cookies' in request && typeof request.cookies.get === 'function') {
+    if ("cookies" in request && typeof request.cookies.get === "function") {
       // NextRequest
-      sessionId = (request as NextRequest).cookies.get('session')?.value;
+      sessionId = (request as NextRequest).cookies.get("session")?.value;
     } else {
       // Standard Request - parse cookie header
-      const cookieHeader = request.headers.get('cookie');
+      const cookieHeader = request.headers.get("cookie");
       if (cookieHeader) {
-        const cookies = cookieHeader.split(';').map(c => c.trim());
-        const sessionCookie = cookies.find(c => c.startsWith('session='));
+        const cookies = cookieHeader.split(";").map((c) => c.trim());
+        const sessionCookie = cookies.find((c) => c.startsWith("session="));
         if (sessionCookie) {
-          sessionId = sessionCookie.split('=')[1];
+          sessionId = sessionCookie.split("=")[1];
         }
       }
     }
@@ -92,29 +118,45 @@ export const logger = {
   /**
    * Log a debug message (legacy - userId must be provided manually)
    */
-  debug: async (sender: string, message: string, userId?: string): Promise<void> => {
-    await logToRedis('debug', sender, message, userId);
+  debug: async (
+    sender: string,
+    message: string,
+    userId?: string
+  ): Promise<void> => {
+    await logToRedis("debug", sender, message, userId);
   },
 
   /**
    * Log an info message (legacy - userId must be provided manually)
    */
-  info: async (sender: string, message: string, userId?: string): Promise<void> => {
-    await logToRedis('info', sender, message, userId);
+  info: async (
+    sender: string,
+    message: string,
+    userId?: string
+  ): Promise<void> => {
+    await logToRedis("info", sender, message, userId);
   },
 
   /**
    * Log a warning message (legacy - userId must be provided manually)
    */
-  warn: async (sender: string, message: string, userId?: string): Promise<void> => {
-    await logToRedis('warning', sender, message, userId);
+  warn: async (
+    sender: string,
+    message: string,
+    userId?: string
+  ): Promise<void> => {
+    await logToRedis("warning", sender, message, userId);
   },
 
   /**
    * Log an error message (legacy - userId must be provided manually)
    */
-  error: async (sender: string, message: string, userId?: string): Promise<void> => {
-    await logToRedis('error', sender, message, userId);
+  error: async (
+    sender: string,
+    message: string,
+    userId?: string
+  ): Promise<void> => {
+    await logToRedis("error", sender, message, userId);
   },
 
   /**
@@ -123,22 +165,22 @@ export const logger = {
   fromRequest: (request: Request | NextRequest) => ({
     debug: async (sender: string, message: string): Promise<void> => {
       const userId = await getUserIdFromRequest(request);
-      await logToRedis('debug', sender, message, userId);
+      await logToRedis("debug", sender, message, userId);
     },
 
     info: async (sender: string, message: string): Promise<void> => {
       const userId = await getUserIdFromRequest(request);
-      await logToRedis('info', sender, message, userId);
+      await logToRedis("info", sender, message, userId);
     },
 
     warn: async (sender: string, message: string): Promise<void> => {
       const userId = await getUserIdFromRequest(request);
-      await logToRedis('warning', sender, message, userId);
+      await logToRedis("warning", sender, message, userId);
     },
 
     error: async (sender: string, message: string): Promise<void> => {
       const userId = await getUserIdFromRequest(request);
-      await logToRedis('error', sender, message, userId);
+      await logToRedis("error", sender, message, userId);
     },
   }),
 };
@@ -149,11 +191,14 @@ export const logger = {
  * @param offset - Number of entries to skip (default: 0)
  * @returns Array of log entries sorted by timestamp (newest first)
  */
-export async function getLogs(limit: number = 100, offset: number = 0): Promise<LogEntry[]> {
+export async function getLogs(
+  limit: number = 100,
+  offset: number = 0
+): Promise<LogEntry[]> {
   const redis = getRedisClient();
 
   // Get all log keys
-  const keys = await redis.keys('log:*');
+  const keys = await redis.keys("log:*");
 
   // Sort keys in reverse chronological order (newest first)
   keys.sort().reverse();
@@ -180,7 +225,7 @@ export async function clearLogs(): Promise<void> {
   const redis = getRedisClient();
 
   // Get all log keys
-  const keys = await redis.keys('log:*');
+  const keys = await redis.keys("log:*");
 
   // Delete all log keys
   if (keys.length > 0) {
@@ -193,6 +238,6 @@ export async function clearLogs(): Promise<void> {
  */
 export async function getLogCount(): Promise<number> {
   const redis = getRedisClient();
-  const keys = await redis.keys('log:*');
+  const keys = await redis.keys("log:*");
   return keys.length;
 }

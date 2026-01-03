@@ -14,14 +14,30 @@ interface LogEntry {
 export default function LoggingViewer() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [loading, setLoading] = useState(false);
+  const [loggingEnabled, setLoggingEnabled] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const limit = 100;
 
+  const fetchLoggingStatus = async () => {
+    try {
+      const response = await fetch('/api/system/logging-enabled');
+      if (response.ok) {
+        const data = await response.json();
+        setLoggingEnabled(data.enabled);
+      }
+    } catch (error) {
+      console.error('Failed to fetch logging status:', error);
+    }
+  };
+
   const fetchLogs = async (reset: boolean = false) => {
     setLoading(true);
     try {
+      // Check logging status first
+      await fetchLoggingStatus();
+
       const currentOffset = reset ? 0 : offset;
       const response = await fetch(`/api/system/logs?limit=${limit}&offset=${currentOffset}`);
       if (response.ok) {
@@ -140,7 +156,14 @@ export default function LoggingViewer() {
 
       <div className={styles.logsContainer}>
         <div className={styles.logsScroll}>
-          {logs.length === 0 && !loading ? (
+          {!loggingEnabled ? (
+            <div className={styles.emptyState}>
+              <p style={{ margin: 0, marginBottom: '8px' }}>Enable to capture debug logs</p>
+              <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
+                Go to Settings → Home to enable logging
+              </p>
+            </div>
+          ) : logs.length === 0 && !loading ? (
             <div className={styles.emptyState}>
               No log messages found
             </div>
