@@ -36,7 +36,7 @@ export default function AppList() {
 
   const fetchApps = async () => {
     try {
-      const response = await fetch('/api/apps');
+      const response = await fetch('/api/system/apps');
       const data = await response.json();
       setApps(data.apps || []);
     } catch (error) {
@@ -61,7 +61,7 @@ export default function AppList() {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await fetch('/api/apps/install', {
+      const response = await fetch('/api/system/apps/install', {
         method: 'POST',
         body: formData,
       });
@@ -92,7 +92,7 @@ export default function AppList() {
 
     setUninstalling(appId);
     try {
-      const response = await fetch('/api/apps/uninstall', {
+      const response = await fetch('/api/system/apps/uninstall', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ appId }),
@@ -167,7 +167,7 @@ export default function AppList() {
                   {(app.label || 'U').charAt(0).toUpperCase()}
                 </span>
                 <img
-                  src={`/api/assets/apps/icons/${app.id}`}
+                  src={`/api/system/assets/apps/icons/${app.id}`}
                   alt={app.label}
                   onError={(e) => {
                     // If image fails to load, hide it to show the fallback letter

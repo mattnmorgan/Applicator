@@ -108,7 +108,7 @@ export default async function SettingsLayout({
   const hasAdminAuth = user.authorizations.includes('admin');
   const hasDeveloperAuth = user.authorizations.includes('developer');
 
-  const profilePictureUrl = user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined;
+  const profilePictureUrl = user.profilePicture ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}` : undefined;
   const brandSettings = await getBrandSettings();
 
   if (!hasAdminAuth) {

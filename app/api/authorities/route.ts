@@ -8,7 +8,7 @@ export async function GET() {
     // Add icon URLs with cache busting
     const authoritiesWithIcons = allAuthorities.map(authority => ({
       ...authority,
-      icon: authority.icon ? `/api/assets/authorities/icons/${authority.id}?t=${Date.now()}` : undefined,
+      icon: authority.icon ? `/api/system/assets/icons/authorities/${authority.id}?t=${Date.now()}` : undefined,
     }));
 
     // Sort authorities alphabetically by name

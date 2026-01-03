@@ -10,7 +10,7 @@ export async function GET() {
 
     return NextResponse.json({
       brandName: brandName || 'Applicator',
-      brandIcon: brandIcon ? `/api/assets/system/brand?t=${Date.now()}` : undefined,
+      brandIcon: brandIcon ? `/api/system/assets/brand?t=${Date.now()}` : undefined,
     });
   } catch (error) {
     console.error('Failed to fetch brand settings:', error);

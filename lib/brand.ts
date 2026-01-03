@@ -6,6 +6,6 @@ export async function getBrandSettings() {
 
   return {
     brandName: brandName || 'Applicator',
-    brandIcon: brandIcon ? `/api/assets/system/brand?t=${Date.now()}` : undefined,
+    brandIcon: brandIcon ? `/api/system/assets/brand?t=${Date.now()}` : undefined,
   };
 }

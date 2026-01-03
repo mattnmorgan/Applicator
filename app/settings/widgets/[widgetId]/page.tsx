@@ -94,7 +94,7 @@ export default function SystemSettingsWidgetPage() {
         if (!appExports) {
           // Load the app script
           const script = document.createElement('script');
-          script.src = `/api/assets/apps/${appId}`;
+          script.src = `/api/system/assets/apps/${appId}`;
 
           await new Promise((resolve, reject) => {
             script.onload = resolve;

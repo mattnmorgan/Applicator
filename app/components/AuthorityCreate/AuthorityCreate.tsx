@@ -57,7 +57,7 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
       try {
         const [authResponse, appsResponse] = await Promise.all([
           fetch('/api/authorizations'),
-          fetch('/api/apps'),
+          fetch('/api/system/apps'),
         ]);
         const authData = await authResponse.json();
         const appsData = await appsResponse.json();

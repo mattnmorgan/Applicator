@@ -81,7 +81,7 @@ export default async function UserSettingsLayout({
   }
 
   const profilePictureUrl = user.profilePicture
-    ? `/api/assets/users/icons/${user.id}?t=${Date.now()}`
+    ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}`
     : undefined;
   const hasAdminAuth = user.authorizations.includes("admin");
   const brandSettings = await getBrandSettings();

@@ -20,7 +20,7 @@ export async function GET(
     }
 
     // Return icon URL if icon exists
-    const iconUrl = authority.icon ? `/api/assets/authorities/icons/${id}?t=${Date.now()}` : undefined;
+    const iconUrl = authority.icon ? `/api/system/assets/icons/authorities/${id}?t=${Date.now()}` : undefined;
 
     return NextResponse.json({
       authority: {

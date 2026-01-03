@@ -12,7 +12,7 @@ export async function GET() {
         return {
           ...user,
           authorityName: authority?.name || 'Unknown',
-          profilePicture: user.profilePicture ? `/api/assets/users/icons/${user.id}?t=${Date.now()}` : undefined,
+          profilePicture: user.profilePicture ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}` : undefined,
         };
       })
     );

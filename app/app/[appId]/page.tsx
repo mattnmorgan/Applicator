@@ -87,7 +87,7 @@ export default function AppPage() {
         await loadReact();
 
         const script = document.createElement('script');
-        script.src = `/api/assets/apps/${appId}`;
+        script.src = `/api/system/assets/apps/${appId}`;
         script.async = true;
 
         script.onload = () => {

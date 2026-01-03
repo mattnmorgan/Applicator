@@ -47,14 +47,14 @@ export default function AppView({ appId, onBack }: AppViewProps) {
   async function loadApp() {
     try {
       setLoading(true);
-      const response = await fetch(`/api/apps?id=${appId}`);
+      const response = await fetch(`/api/system/apps?id=${appId}`);
       if (response.ok) {
         const data = await response.json();
         const appData = data.apps?.find((a: App) => a.id === appId);
         if (appData) {
           setApp(appData);
           // Try to load icon
-          const iconResponse = await fetch(`/api/assets/apps/icons/${appId}`);
+          const iconResponse = await fetch(`/api/system/assets/apps/icons/${appId}`);
           if (iconResponse.ok) {
             const blob = await iconResponse.blob();
             setIconUrl(URL.createObjectURL(blob));
