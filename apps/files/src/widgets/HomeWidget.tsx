@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import ButtonIcon from '@/lib/components/ButtonIcon';
 
 interface FileItem {
   name: string;
@@ -383,63 +384,58 @@ export default function HomeWidget() {
     <div style={{ height: '100%', padding: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box' }}>
       {/* Header */}
       <div style={{ marginBottom: '16px', flexShrink: 0 }}>
-        {/* Breadcrumb Navigation */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', marginBottom: '12px', flexWrap: 'wrap' }}>
-          {getPathParts().map((part, index) => (
-            <React.Fragment key={part.path}>
-              {index > 0 && <span style={{ color: '#94a3b8' }}>{'>'}</span>}
-              <button
-                onClick={() => navigateToDirectory(part.path)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: index === getPathParts().length - 1 ? '#3b82f6' : '#e2e8f0',
-                  cursor: 'pointer',
-                  padding: '4px 8px',
-                  fontSize: '14px',
-                  fontWeight: index === getPathParts().length - 1 ? 'bold' : 'normal',
-                }}
-              >
-                {part.label}
-              </button>
-            </React.Fragment>
-          ))}
-        </div>
+        {/* Breadcrumb Navigation and Action Buttons */}
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '12px', flexWrap: 'wrap' }}>
+          {/* Breadcrumb Navigation */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', flex: 1 }}>
+            {getPathParts().map((part, index) => (
+              <React.Fragment key={part.path}>
+                {index > 0 && <span style={{ color: '#94a3b8' }}>{'>'}</span>}
+                <button
+                  onClick={() => navigateToDirectory(part.path)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: index === getPathParts().length - 1 ? '#3b82f6' : '#e2e8f0',
+                    cursor: 'pointer',
+                    padding: '4px 8px',
+                    fontSize: '14px',
+                    fontWeight: index === getPathParts().length - 1 ? 'bold' : 'normal',
+                  }}
+                >
+                  {part.label}
+                </button>
+              </React.Fragment>
+            ))}
+          </div>
 
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <label style={{
-            padding: '8px 16px',
-            background: '#3b82f6',
-            color: '#fff',
-            borderRadius: '4px',
-            cursor: uploading ? 'not-allowed' : 'pointer',
-            fontSize: '14px',
-            opacity: uploading ? 0.6 : 1,
-          }}>
-            {uploading ? 'Uploading...' : 'Upload File'}
-            <input
-              type="file"
-              onChange={handleUpload}
-              disabled={uploading}
-              style={{ display: 'none' }}
+          {/* Action Buttons */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            <label style={{ display: 'inline-flex', cursor: uploading ? 'not-allowed' : 'pointer' }}>
+              <ButtonIcon
+                icon={<span style={{ fontSize: '18px' }}>⬆️</span>}
+                label={uploading ? 'Uploading...' : 'Upload File'}
+                onClick={() => {}}
+                variant="bordered"
+                subvariant="info"
+                disabled={uploading}
+              />
+              <input
+                type="file"
+                onChange={handleUpload}
+                disabled={uploading}
+                style={{ display: 'none' }}
+              />
+            </label>
+
+            <ButtonIcon
+              icon={<span style={{ fontSize: '18px' }}>📁</span>}
+              label="New Folder"
+              onClick={() => setShowNewFolderModal(true)}
+              variant="bordered"
+              subvariant="neutral"
             />
-          </label>
-
-          <button
-            onClick={() => setShowNewFolderModal(true)}
-            style={{
-              padding: '8px 16px',
-              background: '#10b981',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px',
-            }}
-          >
-            New Folder
-          </button>
+          </div>
         </div>
       </div>
 
@@ -472,7 +468,6 @@ export default function HomeWidget() {
             <thead>
               <tr style={{ borderBottom: '1px solid #334155' }}>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#e2e8f0', fontSize: '14px' }}>Name</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#e2e8f0', fontSize: '14px' }}>Type</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#e2e8f0', fontSize: '14px' }}>Size</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#e2e8f0', fontSize: '14px' }}>Modified</th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#e2e8f0', fontSize: '14px' }}>Actions</th>
@@ -482,11 +477,12 @@ export default function HomeWidget() {
               {files.map((file) => (
                 <tr key={file.path} style={{ borderBottom: '1px solid #334155' }}>
                   <td style={{ padding: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                      <span>{getFileIcon(file)}</span>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                      <span style={{ flexShrink: 0 }}>{getFileIcon(file)}</span>
                       {file.isDirectory ? (
                         <button
                           onClick={() => navigateToDirectory(file.path)}
+                          title={file.name}
                           style={{
                             background: 'none',
                             border: 'none',
@@ -494,6 +490,12 @@ export default function HomeWidget() {
                             cursor: 'pointer',
                             fontSize: '14px',
                             textDecoration: 'underline',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            textAlign: 'left',
+                            flex: 1,
+                            minWidth: 0,
                           }}
                         >
                           {file.name}
@@ -501,6 +503,7 @@ export default function HomeWidget() {
                       ) : (
                         <button
                           onClick={() => handlePreview(file)}
+                          title={file.name}
                           style={{
                             background: 'none',
                             border: 'none',
@@ -508,6 +511,12 @@ export default function HomeWidget() {
                             cursor: 'pointer',
                             fontSize: '14px',
                             textDecoration: 'underline',
+                            overflow: 'hidden',
+                            textOverflow: 'ellipsis',
+                            whiteSpace: 'nowrap',
+                            textAlign: 'left',
+                            flex: 1,
+                            minWidth: 0,
                           }}
                         >
                           {file.name}
@@ -516,51 +525,36 @@ export default function HomeWidget() {
                     </div>
                   </td>
                   <td style={{ padding: '12px', color: '#94a3b8', fontSize: '14px' }}>
-                    {file.isDirectory ? 'Folder' : file.type}
-                  </td>
-                  <td style={{ padding: '12px', color: '#94a3b8', fontSize: '14px' }}>
                     {file.isDirectory ? '-' : formatFileSize(file.size)}
                   </td>
                   <td style={{ padding: '12px', color: '#94a3b8', fontSize: '14px' }}>
                     {formatDate(file.modifiedAt)}
                   </td>
                   <td style={{ padding: '12px' }}>
-                    <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
                       {!file.isDirectory && (
-                        <button
+                        <ButtonIcon
+                          icon={<span style={{ fontSize: '16px' }}>⬇️</span>}
+                          label="Download"
                           onClick={() => handleDownload(file)}
-                          style={{
-                            padding: '4px 8px',
-                            background: '#3b82f6',
-                            color: '#fff',
-                            border: 'none',
-                            borderRadius: '4px',
-                            cursor: 'pointer',
-                            fontSize: '12px',
-                          }}
-                        >
-                          Download
-                        </button>
+                          variant="bare"
+                          subvariant="info"
+                        />
                       )}
-                      <button
+                      <ButtonIcon
+                        icon={<span style={{ fontSize: '16px' }}>✏️</span>}
+                        label="Rename"
                         onClick={() => {
                           setSelectedFile(file);
                           setNewName(file.name);
                           setShowRenameModal(true);
                         }}
-                        style={{
-                          padding: '4px 8px',
-                          background: '#fbbf24',
-                          color: '#0f172a',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                        }}
-                      >
-                        Rename
-                      </button>
-                      <button
+                        variant="bare"
+                        subvariant="warning"
+                      />
+                      <ButtonIcon
+                        icon={<span style={{ fontSize: '16px' }}>📤</span>}
+                        label="Move"
                         onClick={() => {
                           setSelectedFile(file);
                           setTargetPath('');
@@ -569,19 +563,12 @@ export default function HomeWidget() {
                           loadMoveDirectories('');
                           setShowMoveModal(true);
                         }}
-                        style={{
-                          padding: '4px 8px',
-                          background: '#10b981',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                        }}
-                      >
-                        Move
-                      </button>
-                      <button
+                        variant="bare"
+                        subvariant="info"
+                      />
+                      <ButtonIcon
+                        icon={<span style={{ fontSize: '16px' }}>📋</span>}
+                        label="Copy"
                         onClick={() => {
                           setSelectedFile(file);
                           setCopyTargetPath('');
@@ -590,32 +577,16 @@ export default function HomeWidget() {
                           loadCopyDirectories('');
                           setShowCopyModal(true);
                         }}
-                        style={{
-                          padding: '4px 8px',
-                          background: '#8b5cf6',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                        }}
-                      >
-                        Copy
-                      </button>
-                      <button
+                        variant="bare"
+                        subvariant="info"
+                      />
+                      <ButtonIcon
+                        icon={<span style={{ fontSize: '16px' }}>🗑️</span>}
+                        label="Delete"
                         onClick={() => handleDelete(file)}
-                        style={{
-                          padding: '4px 8px',
-                          background: '#ef4444',
-                          color: '#fff',
-                          border: 'none',
-                          borderRadius: '4px',
-                          cursor: 'pointer',
-                          fontSize: '12px',
-                        }}
-                      >
-                        Delete
-                      </button>
+                        variant="bare"
+                        subvariant="danger"
+                      />
                     </div>
                   </td>
                 </tr>

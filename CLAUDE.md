@@ -84,3 +84,25 @@ if (typeof window !== 'undefined') {
 - TypeScript is used throughout
 - Redis for session storage
 - File-based database for apps and records
+
+## Development Workflow
+
+### App Version Management
+**IMPORTANT**: When making changes to an app in `/apps/[app-name]/`, ALWAYS update the version in `app.json`:
+
+```json
+{
+  "version": "1.0.8"
+}
+```
+
+Follow semantic versioning (MAJOR.MINOR.PATCH):
+- Increment PATCH (e.g., `1.0.8` → `1.0.9`) for bug fixes and minor changes
+- Increment MINOR (e.g., `1.0.9` → `1.1.0`) for new features
+- Increment MAJOR (e.g., `1.1.0` → `2.0.0`) for breaking changes
+
+### Development Server
+**DO NOT attempt to kill or restart the dev server** (`npm run dev`) - let the user manage it. The server runs with hot reload and will automatically pick up changes.
+
+### File Operations
+**DO NOT create `nul` files** - These are Windows null device files that should never be created in the project directory. If you see a `nul` file, it was created by mistake and should be removed.
