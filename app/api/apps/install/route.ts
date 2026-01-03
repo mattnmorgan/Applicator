@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/db';
 import { userHasAuthorization, createApp, createAuthorization, getApp } from '@/lib/db';
 import { getSystemSetting } from '@/lib/db';
+import { logger } from '@/lib/logging';
 import path from 'path';
 import fs from 'fs/promises';
 import AdmZip from 'adm-zip';
@@ -233,6 +234,9 @@ export async function POST(request: NextRequest) {
       const iconPath = path.join(appDir, 'app.png');
       await fs.writeFile(iconPath, iconData);
     }
+
+    // Log app installation
+    await logger.fromRequest(request).info('system', `Application installed: ${appAttributes.name} v${appAttributes.version} (${appAttributes.id})`);
 
     return NextResponse.json({
       success: true,

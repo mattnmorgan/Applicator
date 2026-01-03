@@ -1,10 +1,28 @@
 import { NextResponse } from 'next/server';
-import { createUser, getSystemSetting, updateUser } from '@/lib/db';
+import { createUser, getSystemSetting, updateUser, getSession, userHasAuthorization } from '@/lib/db';
+import { logger } from '@/lib/logging';
 import fs from 'fs';
 import path from 'path';
 
 export async function POST(request: Request) {
   try {
+    // Check authentication - user creation requires admin authorization
+    const sessionId = request.headers.get('cookie')?.split(';').find(c => c.trim().startsWith('session='))?.split('=')[1];
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const session = await getSession(sessionId);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user has admin authorization
+    const hasAdmin = await userHasAuthorization(session.userId, 'admin');
+    if (!hasAdmin) {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+    }
+
     const formData = await request.formData();
 
     const displayName = formData.get('displayName') as string;
@@ -61,6 +79,9 @@ export async function POST(request: Request) {
       const relativePath = path.join('system', 'users', 'icons', user.id, fileName);
       await updateUser(user.id, { profilePicture: relativePath });
     }
+
+    // Log user creation
+    await logger.fromRequest(request).info('system', `User created: ${username} (${user.id})`);
 
     return NextResponse.json({
       success: true,

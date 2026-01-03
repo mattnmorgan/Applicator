@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getUserById, getAuthority, updateUser } from '@/lib/db';
+import { getUserById, getAuthority, updateUser, getSession } from '@/lib/db';
+import { logger } from '@/lib/logging';
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
@@ -46,6 +47,17 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Check authentication
+    const sessionId = request.headers.get('cookie')?.split(';').find(c => c.trim().startsWith('session='))?.split('=')[1];
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const session = await getSession(sessionId);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const { id } = await params;
     const formData = await request.formData();
 
@@ -119,6 +131,9 @@ export async function PATCH(
     }
 
     await updateUser(id, updates);
+
+    // Log user modification
+    await logger.fromRequest(request).info('system', `User modified: ${username} (${id})`);
 
     return NextResponse.json({
       success: true,

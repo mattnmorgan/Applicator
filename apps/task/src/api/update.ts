@@ -103,6 +103,12 @@ export async function PATCH(request: NextRequest) {
 
     const updated = await plugin.records.update(taskId, updates);
 
+    // Log task update
+    if (updated) {
+      const taskTitle = updated.data.title || existing.data.title;
+      await plugin.logger.info(`Task updated: ${taskTitle}`);
+    }
+
     return NextResponse.json({ success: true, task: updated });
   } catch (error: any) {
     console.error('Error updating task:', error);

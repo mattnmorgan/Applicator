@@ -44,6 +44,10 @@ module.exports = {
   externals: {
     // Mark Next.js modules as external since they'll be available in the runtime
     'next/server': 'commonjs2 next/server',
+    // Mark ioredis as external since it's used by the SDK and available in main app
+    'ioredis': 'commonjs2 ioredis',
+    // Mark uuid as external (used by SDK)
+    'uuid': 'commonjs2 uuid',
   },
   mode: 'production',
 };
