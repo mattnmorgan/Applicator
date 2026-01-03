@@ -13,7 +13,7 @@ export default function TestLogsPage() {
     setMessage('');
 
     try {
-      const response = await fetch('/api/test/logging/create-log', {
+      const response = await fetch('/api/system/test/logging/create-log', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -119,7 +119,7 @@ export default function DatabaseViewer() {
 
   const fetchKeys = async () => {
     try {
-      const response = await fetch('/api/debug/redis/keys');
+      const response = await fetch('/api/system/debug/redis/keys');
       const data = await response.json();
       setKeys(data.keys || []);
       setTreeData(buildTree(data.keys || []));
@@ -131,7 +131,7 @@ export default function DatabaseViewer() {
   const fetchValue = async (key: string) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/debug/redis/value?key=${encodeURIComponent(key)}`);
+      const response = await fetch(`/api/system/debug/redis/value?key=${encodeURIComponent(key)}`);
       const data = await response.json();
 
       let formattedValue = '';
@@ -180,7 +180,7 @@ export default function DatabaseViewer() {
       }
       // Otherwise, save as plain string
 
-      const response = await fetch('/api/debug/redis/value', {
+      const response = await fetch('/api/system/debug/redis/value', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -205,7 +205,7 @@ export default function DatabaseViewer() {
     if (!confirm(`Are you sure you want to delete "${selectedKey}"?`)) return;
 
     try {
-      const response = await fetch(`/api/debug/redis/value?key=${encodeURIComponent(selectedKey)}`, {
+      const response = await fetch(`/api/system/debug/redis/value?key=${encodeURIComponent(selectedKey)}`, {
         method: 'DELETE',
       });
 
@@ -245,7 +245,7 @@ export default function DatabaseViewer() {
 
   const handleFlushDatabase = async () => {
     try {
-      const response = await fetch('/api/debug/redis/flush', {
+      const response = await fetch('/api/system/debug/redis/flush', {
         method: 'POST',
       });
 

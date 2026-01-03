@@ -13,7 +13,7 @@ export default function TestNotificationsPage() {
     setMessage('');
 
     try {
-      const response = await fetch('/api/test/notifications/send-notification', {
+      const response = await fetch('/api/system/test/notifications/send-notification', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ type }),
