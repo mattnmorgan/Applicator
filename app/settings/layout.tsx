@@ -159,7 +159,7 @@ export default async function SettingsLayout({
             border: '1px solid #334155',
             overflowY: 'auto',
           }}>
-            <Tabset items={settingsMenuItems} variant="vertical" searchable />
+            <Tabset items={settingsMenuItems} variant="vertical" searchable autoExpand />
           </aside>
           <main style={{
             flex: 1,

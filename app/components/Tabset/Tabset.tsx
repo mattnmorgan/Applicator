@@ -15,6 +15,7 @@ interface TabsetProps {
   items: TabsetItem[];
   variant?: 'vertical' | 'horizontal';
   searchable?: boolean;
+  autoExpand?: boolean;
 }
 
 interface TreeItemProps {
@@ -22,10 +23,11 @@ interface TreeItemProps {
   currentPath: string;
   searchTerm: string;
   onNavigate: (path: string) => void;
+  autoExpand?: boolean;
 }
 
-function TreeItem({ item, currentPath, searchTerm, onNavigate }: TreeItemProps) {
-  const [isExpanded, setIsExpanded] = useState(false);
+function TreeItem({ item, currentPath, searchTerm, onNavigate, autoExpand = false }: TreeItemProps) {
+  const [isExpanded, setIsExpanded] = useState(autoExpand);
   const hasChildren = item.children && item.children.length > 0;
   const isClickable = item.clickable !== false && item.path !== undefined;
   const isActive = item.path === currentPath;
@@ -94,6 +96,7 @@ function TreeItem({ item, currentPath, searchTerm, onNavigate }: TreeItemProps) 
               currentPath={currentPath}
               searchTerm={searchTerm}
               onNavigate={onNavigate}
+              autoExpand={autoExpand}
             />
           ))}
         </div>
@@ -102,7 +105,7 @@ function TreeItem({ item, currentPath, searchTerm, onNavigate }: TreeItemProps) 
   );
 }
 
-export default function Tabset({ items, variant = 'vertical', searchable = false }: TabsetProps) {
+export default function Tabset({ items, variant = 'vertical', searchable = false, autoExpand = false }: TabsetProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [searchTerm, setSearchTerm] = useState('');
@@ -153,6 +156,7 @@ export default function Tabset({ items, variant = 'vertical', searchable = false
           currentPath={pathname}
           searchTerm={searchTerm}
           onNavigate={handleNavigate}
+          autoExpand={autoExpand}
         />
       ))}
     </div>

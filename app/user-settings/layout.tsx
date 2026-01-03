@@ -128,6 +128,7 @@ export default async function UserSettingsLayout({
               items={userSettingsMenuItems}
               variant="vertical"
               searchable
+              autoExpand
             />
           </aside>
           <main
