@@ -655,7 +655,7 @@ export default function HomeWidget() {
 
   return (
     <div
-      style={{ height: '100%', padding: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box' }}
+      style={{ height: '100%', padding: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', position: 'relative' }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
@@ -983,100 +983,85 @@ export default function HomeWidget() {
       {showPreviewModal && (
         <div
           style={{
-            position: 'fixed',
+            position: 'absolute',
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            background: 'rgba(0, 0, 0, 0.8)',
+            background: '#0f172a',
             display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
+            flexDirection: 'column',
             zIndex: 1000,
-            padding: '20px',
-          }}
-          onClick={() => {
-            setShowPreviewModal(false);
-            setPreviewUrl('');
-            setPreviewContent('');
           }}
         >
-          <div
-            style={{
-              background: '#1e293b',
-              borderRadius: '8px',
-              minWidth: '50vw',
-              minHeight: '50vh',
-              maxWidth: '90vw',
-              maxHeight: '90vh',
-              display: 'flex',
-              flexDirection: 'column',
-              overflow: 'hidden',
-            }}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <div style={{
-              padding: '16px',
-              borderBottom: '1px solid #334155',
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-            }}>
-              <h3 style={{ margin: 0, color: '#f1f5f9', fontSize: '18px' }}>{selectedFile?.name}</h3>
-              <button
-                onClick={() => {
-                  setShowPreviewModal(false);
-                  setPreviewUrl('');
-                  setPreviewContent('');
-                }}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#94a3b8',
-                  cursor: 'pointer',
-                  fontSize: '24px',
-                  padding: '0 8px',
-                }}
-              >
-                ×
-              </button>
+          <div style={{
+            padding: '16px 24px',
+            borderBottom: '1px solid #334155',
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            background: '#1e293b',
+          }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+              <h3 style={{ margin: 0, color: '#94a3b8', fontSize: '14px', fontWeight: 'normal' }}>Preview</h3>
+              <h2 style={{ margin: 0, color: '#f1f5f9', fontSize: '18px' }}>{selectedFile?.name}</h2>
             </div>
-            <div style={{
-              flex: 1,
-              overflow: 'auto',
-              padding: '16px',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              {previewType === 'image' && (
-                <img
-                  src={previewUrl}
-                  alt={selectedFile?.name}
-                  style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-                />
-              )}
-              {previewType === 'pdf' && (
-                <iframe
-                  src={`${previewUrl}#view=FitH`}
-                  style={{ width: '100%', height: '100%', border: 'none', minHeight: '500px' }}
-                  title={selectedFile?.name}
-                />
-              )}
-              {previewType === 'text' && (
-                <pre style={{
-                  margin: 0,
-                  color: '#e2e8f0',
-                  fontSize: '13px',
-                  fontFamily: 'monospace',
-                  whiteSpace: 'pre-wrap',
-                  wordBreak: 'break-word',
-                  width: '100%',
-                }}>
-                  {previewContent}
-                </pre>
-              )}
-            </div>
+            <button
+              onClick={() => {
+                setShowPreviewModal(false);
+                setPreviewUrl('');
+                setPreviewContent('');
+              }}
+              style={{
+                background: '#334155',
+                border: '1px solid #475569',
+                borderRadius: '4px',
+                color: '#f1f5f9',
+                cursor: 'pointer',
+                fontSize: '16px',
+                padding: '8px 16px',
+              }}
+            >
+              Close
+            </button>
+          </div>
+          <div style={{
+            flex: 1,
+            overflow: 'auto',
+            display: 'flex',
+            alignItems: previewType === 'text' ? 'flex-start' : 'center',
+            justifyContent: 'center',
+            padding: '24px',
+          }}>
+            {previewType === 'image' && (
+              <img
+                src={previewUrl}
+                alt={selectedFile?.name}
+                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+              />
+            )}
+            {previewType === 'pdf' && (
+              <iframe
+                src={`${previewUrl}#view=FitH`}
+                style={{ width: '100%', height: '100%', border: 'none' }}
+                title={selectedFile?.name}
+              />
+            )}
+            {previewType === 'text' && (
+              <pre style={{
+                margin: 0,
+                color: '#e2e8f0',
+                fontSize: '14px',
+                fontFamily: 'monospace',
+                whiteSpace: 'pre-wrap',
+                wordBreak: 'break-word',
+                width: '100%',
+                maxWidth: '1200px',
+                overflow: 'visible',
+              }}>
+                {previewContent}
+              </pre>
+            )}
           </div>
         </div>
       )}
