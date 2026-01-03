@@ -130,15 +130,15 @@ export default function AppView({ appId, onBack }: AppViewProps) {
       {app.dependencies && Object.keys(app.dependencies).length > 0 && (
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Dependencies</h2>
-          <div className={styles.widgetList}>
+          <div className={styles.dependencyList}>
             {Object.entries(app.dependencies).map(([depId, requiredVersion]) => {
               const depApp = allApps.find(a => a.id === depId);
               return (
-                <div key={depId} style={{ display: 'flex', alignItems: 'center', padding: '12px', background: '#1e293b', borderRadius: '8px', marginBottom: '8px' }}>
-                  <div style={{ width: '48px', height: '48px', borderRadius: '8px', background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '16px', flexShrink: 0 }}>
+                <div key={depId} className={styles.dependencyRow}>
+                  <div className={styles.dependencyIcon}>
                     {depApp ? (
                       <>
-                        <span style={{ position: 'absolute', color: '#94a3b8', fontSize: '20px', fontWeight: 'bold' }}>
+                        <span className={styles.dependencyIconFallback}>
                           {depApp.label.charAt(0).toUpperCase()}
                         </span>
                         <img
@@ -155,26 +155,27 @@ export default function AppView({ appId, onBack }: AppViewProps) {
                               sibling.style.display = 'none';
                             }
                           }}
-                          style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover', position: 'relative' }}
                         />
                       </>
                     ) : (
-                      <span style={{ color: '#94a3b8', fontSize: '20px', fontWeight: 'bold' }}>?</span>
+                      <span className={styles.dependencyIconFallback}>?</span>
                     )}
                   </div>
-                  <div style={{ flex: 1 }}>
-                    <div style={{ color: '#f1f5f9', fontWeight: '500', marginBottom: '4px' }}>
+                  <div className={styles.dependencyInfo}>
+                    <div className={styles.dependencyName}>
                       {depApp?.label || depId}
                     </div>
-                    <div style={{ color: '#94a3b8', fontSize: '14px' }}>
-                      Required: v{formatVersion(requiredVersion)}
+                    <div className={styles.dependencyVersions}>
+                      <span className={styles.versionRequired}>
+                        Required: v{formatVersion(requiredVersion)}
+                      </span>
                       {depApp && (
-                        <span style={{ marginLeft: '8px', color: '#34d399' }}>
+                        <span className={styles.versionInstalled}>
                           • Installed: v{formatVersion(depApp.version)}
                         </span>
                       )}
                       {!depApp && (
-                        <span style={{ marginLeft: '8px', color: '#ef4444' }}>
+                        <span className={styles.versionMissing}>
                           • Not installed
                         </span>
                       )}

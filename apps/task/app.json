@@ -9,7 +9,13 @@
   "author": "Vibe Applicator",
   "contactEmail": "support@vibeapplicator.com",
   "description": "Manage tasks with assignments, priorities, and status tracking",
-  "dependencies": {},
+  "dependencies": {
+    "files": {
+      "major": 1,
+      "minor": 0,
+      "dev": 0
+    }
+  },
   "authorizations": [
     {
       "id": "manage",

@@ -218,3 +218,85 @@
   color: #60a5fa;
   white-space: nowrap;
 }
+
+.dependencyList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dependencyRow {
+  display: flex;
+  align-items: center;
+  padding: 12px;
+  background: #1e293b;
+  border-radius: 8px;
+  border: 1px solid #334155;
+  transition: all 0.2s ease;
+}
+
+.dependencyRow:hover {
+  background: #334155;
+  border-color: #475569;
+}
+
+.dependencyIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  background: #334155;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-right: 16px;
+  flex-shrink: 0;
+  overflow: hidden;
+  border: 1px solid #475569;
+}
+
+.dependencyIcon img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.dependencyIconFallback {
+  color: #94a3b8;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.dependencyInfo {
+  flex: 1;
+  min-width: 0;
+}
+
+.dependencyName {
+  color: #f1f5f9;
+  font-weight: 500;
+  font-size: 15px;
+  margin-bottom: 4px;
+}
+
+.dependencyVersions {
+  color: #94a3b8;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.versionRequired {
+  color: #94a3b8;
+}
+
+.versionInstalled {
+  color: #34d399;
+  font-weight: 500;
+}
+
+.versionMissing {
+  color: #ef4444;
+  font-weight: 500;
+}
