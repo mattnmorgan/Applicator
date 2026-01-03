@@ -100,8 +100,10 @@ export default function AppView({ appId, onBack }: AppViewProps) {
           <img src={iconUrl} alt={`${app.label} icon`} className={styles.icon} />
         )}
         <div className={styles.details}>
-          <h1 className={styles.title}>{app.label}</h1>
-          <p className={styles.version}>Version {app.version}</p>
+          <div className={styles.titleRow}>
+            <h1 className={styles.title}>{app.label}</h1>
+            <span className={styles.versionBadge}>v{app.version}</span>
+          </div>
           <p className={styles.author}>
             by {app.author}
             {app.contactEmail && (
