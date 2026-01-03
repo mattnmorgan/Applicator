@@ -3,6 +3,7 @@
 import { useRouter } from 'next/navigation';
 import ButtonMenu from '../ButtonMenu';
 import ProfileIndicator from '../ProfileIndicator';
+import NotificationBell from '../NotificationBell';
 import styles from './Navigation.module.css';
 
 interface NavigationProps {
@@ -87,26 +88,29 @@ export default function Navigation({ displayName, profilePicture, isAdmin = fals
         </h1>
       </div>
 
-      <ButtonMenu options={menuOptions}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <ProfileIndicator displayName={displayName} profilePicture={profilePicture} />
-          <svg
-            width="12"
-            height="12"
-            viewBox="0 0 12 12"
-            fill="none"
-            style={{ transition: 'transform 0.2s' }}
-          >
-            <path
-              d="M3 4.5L6 7.5L9 4.5"
-              stroke="#94a3b8"
-              strokeWidth="1.5"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            />
-          </svg>
-        </div>
-      </ButtonMenu>
+      <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+        <NotificationBell />
+        <ButtonMenu options={menuOptions}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <ProfileIndicator displayName={displayName} profilePicture={profilePicture} />
+            <svg
+              width="12"
+              height="12"
+              viewBox="0 0 12 12"
+              fill="none"
+              style={{ transition: 'transform 0.2s' }}
+            >
+              <path
+                d="M3 4.5L6 7.5L9 4.5"
+                stroke="#94a3b8"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+          </div>
+        </ButtonMenu>
+      </div>
     </nav>
   );
 }

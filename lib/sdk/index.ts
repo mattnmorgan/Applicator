@@ -67,6 +67,12 @@ export {
   type LoggerOptions,
 } from './logging';
 
+export {
+  NotificationManager,
+  createNotificationManager,
+  type SendNotificationParams,
+} from './notifications';
+
 export type {
   App,
   User,
@@ -74,11 +80,17 @@ export type {
   Authorization,
 } from '../db';
 
+export type {
+  Notification,
+  NotificationType,
+} from '../notifications';
+
 import { createRecordManager, RecordManager } from './records';
 import { createSystemInterface, SystemInterface } from './system';
 import { createFileManager, FileManager } from './files';
 import { createWidgetManager, WidgetManager } from './widgets';
 import { createLogger, Logger } from './logging';
+import { createNotificationManager, NotificationManager } from './notifications';
 
 export interface PluginContext {
   appId: string;
@@ -93,6 +105,7 @@ export interface Plugin<T = any> {
   files: FileManager;
   widgets: WidgetManager;
   logger: Logger;
+  notifications: NotificationManager;
 }
 
 /**
@@ -129,6 +142,10 @@ export interface Plugin<T = any> {
  * // Use logger
  * await plugin.logger.info('Operation completed successfully');
  * await plugin.logger.error('Failed to process data');
+ *
+ * // Use notifications
+ * await plugin.notifications.success('Task completed!');
+ * await plugin.notifications.error('Something went wrong');
  * ```
  */
 export function createPlugin<T = any>(
@@ -143,6 +160,7 @@ export function createPlugin<T = any>(
     files: createFileManager(appId),
     widgets: createWidgetManager(appId),
     logger: createLogger(appId, userId),
+    notifications: createNotificationManager(appId, userId),
   };
 }
 

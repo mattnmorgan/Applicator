@@ -66,6 +66,20 @@ function getSettingsMenuItems(hasDeveloperAuth: boolean): TabsetItem[] {
           label: 'Logs',
           path: '/settings/debug/logs',
         },
+        {
+          label: 'Test',
+          clickable: false,
+          children: [
+            {
+              label: 'Logs',
+              path: '/settings/test/logs',
+            },
+            {
+              label: 'Notifications',
+              path: '/settings/test/notifications',
+            },
+          ],
+        },
       ],
     });
   }
