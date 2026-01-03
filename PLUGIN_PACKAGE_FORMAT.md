@@ -35,10 +35,21 @@ The `app.json` file contains all app metadata:
 {
   "id": "task",                    // Unique app identifier
   "name": "Task Manager",          // Display name (stored as 'label' in database)
-  "version": "1.0.0",             // Semantic version
+  "version": {                     // Version object (major.minor.dev)
+    "major": 1,                    // Breaking changes (resets minor and dev to 0)
+    "minor": 0,                    // New features (resets dev to 0)
+    "dev": 0                       // Bug fixes and minor changes
+  },
   "author": "Your Name",          // Author name
   "contactEmail": "you@example.com", // Support email (optional)
   "description": "App description", // Short description
+  "dependencies": {                // Apps this app depends on (optional)
+    "files": {                     // Dependency app ID
+      "major": 1,                  // Minimum required version
+      "minor": 2,
+      "dev": 0
+    }
+  },
   "authorizations": [              // Permissions this app defines
     {
       "id": "manage",              // Permission ID (will be prefixed with appId:)
@@ -56,6 +67,33 @@ The `app.json` file contains all app metadata:
   ]
 }
 ```
+
+### Version Format
+
+Versions use a three-part structure instead of semantic versioning strings:
+
+- **major**: Increment for breaking changes. Resets minor and dev to 0.
+- **minor**: Increment for new features. Resets dev to 0.
+- **dev**: Increment for bug fixes and minor changes.
+
+Examples:
+- Bug fix: `{ major: 1, minor: 0, dev: 8 }` → `{ major: 1, minor: 0, dev: 9 }`
+- New feature: `{ major: 1, minor: 0, dev: 9 }` → `{ major: 1, minor: 1, dev: 0 }`
+- Breaking change: `{ major: 1, minor: 1, dev: 0 }` → `{ major: 2, minor: 0, dev: 0 }`
+
+### Dependencies
+
+Apps can declare dependencies on other apps. The system enforces:
+
+1. **Installation validation**: All dependencies must be installed with minimum required versions
+2. **Upgrade validation**: Dependencies are re-validated during upgrades
+3. **Uninstall protection**: Apps cannot be uninstalled if other apps depend on them
+4. **Self-dependency check**: Apps cannot depend on themselves
+5. **Version comparison**: Installed versions must meet or exceed required versions
+
+The UI shows dependency information:
+- Plugin details page displays all dependencies with icons, names, and version requirements
+- Uninstall button is disabled with a tooltip when other apps depend on the plugin
 
 ## Building an App Package
 

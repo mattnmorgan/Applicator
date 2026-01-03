@@ -19,15 +19,26 @@ interface Widget {
   appId: string;
 }
 
+interface AppVersion {
+  major: number;
+  minor: number;
+  dev: number;
+}
+
 interface App {
   id: string;
   label: string;
-  version: string;
+  version: AppVersion;
   author: string;
   contactEmail: string;
   description: string;
   apiRoutes: ApiRoute[];
   widgets?: Widget[];
+  dependencies?: Record<string, AppVersion>;
+}
+
+function formatVersion(version: AppVersion): string {
+  return `${version.major}.${version.minor}.${version.dev}`;
 }
 
 interface AppViewProps {
@@ -37,6 +48,7 @@ interface AppViewProps {
 
 export default function AppView({ appId, onBack }: AppViewProps) {
   const [app, setApp] = useState<App | null>(null);
+  const [allApps, setAllApps] = useState<App[]>([]);
   const [iconUrl, setIconUrl] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -47,9 +59,10 @@ export default function AppView({ appId, onBack }: AppViewProps) {
   async function loadApp() {
     try {
       setLoading(true);
-      const response = await fetch(`/api/system/apps?id=${appId}`);
+      const response = await fetch(`/api/system/apps`);
       if (response.ok) {
         const data = await response.json();
+        setAllApps(data.apps || []);
         const appData = data.apps?.find((a: App) => a.id === appId);
         if (appData) {
           setApp(appData);
@@ -102,7 +115,7 @@ export default function AppView({ appId, onBack }: AppViewProps) {
         <div className={styles.details}>
           <div className={styles.titleRow}>
             <h1 className={styles.title}>{app.label}</h1>
-            <span className={styles.versionBadge}>v{app.version}</span>
+            <span className={styles.versionBadge}>v{formatVersion(app.version)}</span>
           </div>
           <p className={styles.author}>
             by {app.author}
@@ -113,6 +126,66 @@ export default function AppView({ appId, onBack }: AppViewProps) {
           <p className={styles.description}>{app.description}</p>
         </div>
       </div>
+
+      {app.dependencies && Object.keys(app.dependencies).length > 0 && (
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>Dependencies</h2>
+          <div className={styles.widgetList}>
+            {Object.entries(app.dependencies).map(([depId, requiredVersion]) => {
+              const depApp = allApps.find(a => a.id === depId);
+              return (
+                <div key={depId} style={{ display: 'flex', alignItems: 'center', padding: '12px', background: '#1e293b', borderRadius: '8px', marginBottom: '8px' }}>
+                  <div style={{ width: '48px', height: '48px', borderRadius: '8px', background: '#334155', display: 'flex', alignItems: 'center', justifyContent: 'center', marginRight: '16px', flexShrink: 0 }}>
+                    {depApp ? (
+                      <>
+                        <span style={{ position: 'absolute', color: '#94a3b8', fontSize: '20px', fontWeight: 'bold' }}>
+                          {depApp.label.charAt(0).toUpperCase()}
+                        </span>
+                        <img
+                          src={`/api/system/assets/apps/icons/${depId}`}
+                          alt={depApp?.label || depId}
+                          onError={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                          }}
+                          onLoad={(e) => {
+                            const target = e.target as HTMLImageElement;
+                            const sibling = target.previousElementSibling as HTMLElement;
+                            if (sibling) {
+                              sibling.style.display = 'none';
+                            }
+                          }}
+                          style={{ width: '48px', height: '48px', borderRadius: '8px', objectFit: 'cover', position: 'relative' }}
+                        />
+                      </>
+                    ) : (
+                      <span style={{ color: '#94a3b8', fontSize: '20px', fontWeight: 'bold' }}>?</span>
+                    )}
+                  </div>
+                  <div style={{ flex: 1 }}>
+                    <div style={{ color: '#f1f5f9', fontWeight: '500', marginBottom: '4px' }}>
+                      {depApp?.label || depId}
+                    </div>
+                    <div style={{ color: '#94a3b8', fontSize: '14px' }}>
+                      Required: v{formatVersion(requiredVersion)}
+                      {depApp && (
+                        <span style={{ marginLeft: '8px', color: '#34d399' }}>
+                          • Installed: v{formatVersion(depApp.version)}
+                        </span>
+                      )}
+                      {!depApp && (
+                        <span style={{ marginLeft: '8px', color: '#ef4444' }}>
+                          • Not installed
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {app.widgets && app.widgets.length > 0 && (
         <div className={styles.section}>

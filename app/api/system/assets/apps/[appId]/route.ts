@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSystemSetting, getApp } from '@/lib/db';
+import { getSystemSetting, getApp, formatVersion } from '@/lib/db';
 import path from 'path';
 import fs from 'fs/promises';
 
@@ -36,7 +36,7 @@ export async function GET(
         headers: {
           'Content-Type': 'application/javascript',
           'Cache-Control': 'public, max-age=31536000, immutable',
-          'ETag': `"${appId}-${app.version}"`,
+          'ETag': `"${appId}-${formatVersion(app.version)}"`,
         },
       });
     } catch (error) {

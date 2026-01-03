@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, userHasAuthorization, getApp, deleteApp, getAllAuthorizations, deleteAuthorization, getAllAuthorities, updateAuthority } from '@/lib/db';
+import { getSession, userHasAuthorization, getApp, deleteApp, getAllAuthorizations, deleteAuthorization, getAllAuthorities, updateAuthority, getAllApps } from '@/lib/db';
 import { getSystemSetting } from '@/lib/db';
 import { logger } from '@/lib/logging';
 import { createRecordManager } from '@/lib/sdk';
@@ -41,8 +41,28 @@ export async function POST(request: NextRequest) {
 
     // Prevent uninstalling system app
     if (appId === 'system') {
+      const errorMsg = `App uninstallation rejected: Cannot uninstall system app`;
+      await logger.fromRequest(request).error('system', errorMsg);
       return NextResponse.json(
         { error: 'Cannot uninstall system app' },
+        { status: 400 }
+      );
+    }
+
+    // Check if any other apps depend on this app
+    const allApps = await getAllApps();
+    const dependentApps = allApps.filter(otherApp =>
+      otherApp.id !== appId &&
+      otherApp.dependencies &&
+      Object.keys(otherApp.dependencies).includes(appId)
+    );
+
+    if (dependentApps.length > 0) {
+      const dependentAppNames = dependentApps.map(a => a.label).join(', ');
+      const errorMsg = `App uninstallation rejected: Cannot uninstall '${app.label}' because it is required by: ${dependentAppNames}`;
+      await logger.fromRequest(request).error('system', errorMsg);
+      return NextResponse.json(
+        { error: `Cannot uninstall this app because it is required by: ${dependentAppNames}` },
         { status: 400 }
       );
     }

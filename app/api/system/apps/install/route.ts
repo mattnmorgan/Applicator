@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession } from '@/lib/db';
-import { userHasAuthorization, createApp, createAuthorization, getApp } from '@/lib/db';
-import { getSystemSetting } from '@/lib/db';
+import { userHasAuthorization, createApp, createAuthorization, getApp, getAllApps } from '@/lib/db';
+import { getSystemSetting, AppVersion, formatVersion, isVersionGreaterOrEqual } from '@/lib/db';
 import { logger } from '@/lib/logging';
 import path from 'path';
 import fs from 'fs/promises';
@@ -103,26 +103,74 @@ export async function POST(request: NextRequest) {
     // Validate required attributes
     if (!appAttributes.id || !appAttributes.name || !appAttributes.version ||
         !appAttributes.author || !appAttributes.description) {
-      await logger.fromRequest(request).error(
-        'system',
-        `App installation rejected: Missing required app attributes (id: ${appAttributes.id || 'missing'}, name: ${appAttributes.name || 'missing'}, version: ${appAttributes.version || 'missing'}, author: ${appAttributes.author || 'missing'}, description: ${appAttributes.description ? 'present' : 'missing'})`
-      );
+      const errorMsg = `App installation rejected: Missing required app attributes (id: ${appAttributes.id || 'missing'}, name: ${appAttributes.name || 'missing'}, version: ${appAttributes.version || 'missing'}, author: ${appAttributes.author || 'missing'}, description: ${appAttributes.description ? 'present' : 'missing'})`;
+      await logger.fromRequest(request).error('system', errorMsg);
       return NextResponse.json(
         { error: 'Missing required app attributes' },
         { status: 400 }
       );
     }
 
+    // Validate version format
+    if (!appAttributes.version.major && appAttributes.version.major !== 0 ||
+        !appAttributes.version.minor && appAttributes.version.minor !== 0 ||
+        !appAttributes.version.dev && appAttributes.version.dev !== 0) {
+      const errorMsg = `App installation rejected: Invalid version format for '${appAttributes.id}'. Version must have major, minor, and dev properties.`;
+      await logger.fromRequest(request).error('system', errorMsg);
+      return NextResponse.json(
+        { error: 'Invalid version format. Version must have major, minor, and dev properties.' },
+        { status: 400 }
+      );
+    }
+
     // Safety check: prevent 'system' from being used as an app ID
     if (appAttributes.id === 'system') {
-      await logger.fromRequest(request).error(
-        'system',
-        `App installation rejected: attempted to use reserved app ID 'system'`
-      );
+      const errorMsg = `App installation rejected: attempted to use reserved app ID 'system'`;
+      await logger.fromRequest(request).error('system', errorMsg);
       return NextResponse.json(
         { error: 'Invalid app ID: \'system\' is a reserved keyword and cannot be used as an app ID' },
         { status: 400 }
       );
+    }
+
+    // Validate dependencies - check for self-dependency
+    if (appAttributes.dependencies && appAttributes.dependencies[appAttributes.id]) {
+      const errorMsg = `App installation rejected: Plugin '${appAttributes.id}' cannot depend on itself`;
+      await logger.fromRequest(request).error('system', errorMsg);
+      return NextResponse.json(
+        { error: 'A plugin cannot require itself for installation' },
+        { status: 400 }
+      );
+    }
+
+    // Validate dependencies - check that all required dependencies are installed
+    if (appAttributes.dependencies && Object.keys(appAttributes.dependencies).length > 0) {
+      const allApps = await getAllApps();
+      const installedApps = new Map(allApps.map(app => [app.id, app]));
+
+      for (const [depId, requiredVersion] of Object.entries(appAttributes.dependencies)) {
+        const installedApp = installedApps.get(depId);
+
+        if (!installedApp) {
+          const errorMsg = `App installation rejected: Required dependency '${depId}' is not installed`;
+          await logger.fromRequest(request).error('system', errorMsg);
+          return NextResponse.json(
+            { error: `Required dependency '${depId}' is not installed` },
+            { status: 400 }
+          );
+        }
+
+        if (!isVersionGreaterOrEqual(installedApp.version, requiredVersion as AppVersion)) {
+          const installedVersionStr = formatVersion(installedApp.version);
+          const requiredVersionStr = formatVersion(requiredVersion as AppVersion);
+          const errorMsg = `App installation rejected: Dependency '${depId}' version ${installedVersionStr} does not meet minimum requirement ${requiredVersionStr}`;
+          await logger.fromRequest(request).error('system', errorMsg);
+          return NextResponse.json(
+            { error: `Dependency '${depId}' version ${installedVersionStr} does not meet minimum requirement ${requiredVersionStr}` },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     // Validate widgets if present
@@ -229,7 +277,8 @@ export async function POST(request: NextRequest) {
       appAttributes.contactEmail || '',
       appAttributes.description,
       appAttributes.apiRoutes || [],
-      processedWidgets
+      processedWidgets,
+      appAttributes.dependencies || {}
     );
 
     // Install authorizations
@@ -252,7 +301,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Log app installation
-    await logger.fromRequest(request).info('system', `Application installed: ${appAttributes.name} v${appAttributes.version} (${appAttributes.id})`);
+    await logger.fromRequest(request).info('system', `Application installed: ${appAttributes.name} v${formatVersion(appAttributes.version)} (${appAttributes.id})`);
 
     return NextResponse.json({
       success: true,

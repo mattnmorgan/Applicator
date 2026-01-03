@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getSession, userHasAuthorization, getApp, updateApp } from '@/lib/db';
-import { getSystemSetting } from '@/lib/db';
+import { getSession, userHasAuthorization, getApp, updateApp, getAllApps } from '@/lib/db';
+import { getSystemSetting, AppVersion, formatVersion, isVersionGreaterOrEqual, compareVersions } from '@/lib/db';
 import { logger } from '@/lib/logging';
 import path from 'path';
 import fs from 'fs/promises';
@@ -135,14 +135,75 @@ export async function POST(request: NextRequest) {
     // Validate required attributes
     if (!appAttributes.id || !appAttributes.name || !appAttributes.version ||
         !appAttributes.author || !appAttributes.description) {
-      await logger.fromRequest(request).error(
-        'system',
-        `App upgrade rejected: Missing required app attributes (id: ${appAttributes.id || 'missing'}, name: ${appAttributes.name || 'missing'}, version: ${appAttributes.version || 'missing'}, author: ${appAttributes.author || 'missing'}, description: ${appAttributes.description ? 'present' : 'missing'})`
-      );
+      const errorMsg = `App upgrade rejected: Missing required app attributes (id: ${appAttributes.id || 'missing'}, name: ${appAttributes.name || 'missing'}, version: ${appAttributes.version || 'missing'}, author: ${appAttributes.author || 'missing'}, description: ${appAttributes.description ? 'present' : 'missing'})`;
+      await logger.fromRequest(request).error('system', errorMsg);
       return NextResponse.json(
         { error: 'Missing required app attributes' },
         { status: 400 }
       );
+    }
+
+    // Validate version format
+    if (!appAttributes.version.major && appAttributes.version.major !== 0 ||
+        !appAttributes.version.minor && appAttributes.version.minor !== 0 ||
+        !appAttributes.version.dev && appAttributes.version.dev !== 0) {
+      const errorMsg = `App upgrade rejected: Invalid version format for '${appAttributes.id}'. Version must have major, minor, and dev properties.`;
+      await logger.fromRequest(request).error('system', errorMsg);
+      return NextResponse.json(
+        { error: 'Invalid version format. Version must have major, minor, and dev properties.' },
+        { status: 400 }
+      );
+    }
+
+    // Check if upgrading to the same version
+    if (compareVersions(appAttributes.version, existingApp.version) === 0) {
+      const versionStr = formatVersion(appAttributes.version);
+      const errorMsg = `App upgrade rejected: Cannot upgrade '${appAttributes.id}' to the same version ${versionStr}`;
+      await logger.fromRequest(request).error('system', errorMsg);
+      return NextResponse.json(
+        { error: `Cannot upgrade to the same version ${versionStr}` },
+        { status: 400 }
+      );
+    }
+
+    // Validate dependencies - check for self-dependency
+    if (appAttributes.dependencies && appAttributes.dependencies[appAttributes.id]) {
+      const errorMsg = `App upgrade rejected: Plugin '${appAttributes.id}' cannot depend on itself`;
+      await logger.fromRequest(request).error('system', errorMsg);
+      return NextResponse.json(
+        { error: 'A plugin cannot require itself for installation' },
+        { status: 400 }
+      );
+    }
+
+    // Validate dependencies - check that all required dependencies are installed
+    if (appAttributes.dependencies && Object.keys(appAttributes.dependencies).length > 0) {
+      const allApps = await getAllApps();
+      const installedApps = new Map(allApps.map(app => [app.id, app]));
+
+      for (const [depId, requiredVersion] of Object.entries(appAttributes.dependencies)) {
+        const installedApp = installedApps.get(depId);
+
+        if (!installedApp) {
+          const errorMsg = `App upgrade rejected: Required dependency '${depId}' is not installed`;
+          await logger.fromRequest(request).error('system', errorMsg);
+          return NextResponse.json(
+            { error: `Required dependency '${depId}' is not installed` },
+            { status: 400 }
+          );
+        }
+
+        if (!isVersionGreaterOrEqual(installedApp.version, requiredVersion as AppVersion)) {
+          const installedVersionStr = formatVersion(installedApp.version);
+          const requiredVersionStr = formatVersion(requiredVersion as AppVersion);
+          const errorMsg = `App upgrade rejected: Dependency '${depId}' version ${installedVersionStr} does not meet minimum requirement ${requiredVersionStr}`;
+          await logger.fromRequest(request).error('system', errorMsg);
+          return NextResponse.json(
+            { error: `Dependency '${depId}' version ${installedVersionStr} does not meet minimum requirement ${requiredVersionStr}` },
+            { status: 400 }
+          );
+        }
+      }
     }
 
     // Get system storage path
@@ -165,7 +226,7 @@ export async function POST(request: NextRequest) {
       if (upgradeHookExists) {
         await logger.fromRequest(request).info(
           'system',
-          `Running upgrade hook for ${appAttributes.name} (${oldVersion} → ${appAttributes.version})`
+          `Running upgrade hook for ${appAttributes.name} (${formatVersion(existingApp.version)} → ${formatVersion(appAttributes.version)})`
         );
 
         // Use createRequire to load the handler dynamically
@@ -179,8 +240,8 @@ export async function POST(request: NextRequest) {
 
         if (upgradeHook.Upgrade && typeof upgradeHook.Upgrade === 'function') {
           const context = {
-            oldVersion,
-            newVersion: appAttributes.version,
+            oldVersion: formatVersion(existingApp.version),
+            newVersion: formatVersion(appAttributes.version),
             appId: appAttributes.id,
           };
 
@@ -188,10 +249,8 @@ export async function POST(request: NextRequest) {
         }
       }
     } catch (error: any) {
-      await logger.fromRequest(request).error(
-        'system',
-        `App upgrade hook failed for ${appAttributes.name}: ${error.message}`
-      );
+      const errorMsg = `App upgrade hook failed for ${appAttributes.name}: ${error.message}`;
+      await logger.fromRequest(request).error('system', errorMsg);
       return NextResponse.json(
         { error: `Upgrade hook failed: ${error.message}` },
         { status: 500 }
@@ -248,6 +307,7 @@ export async function POST(request: NextRequest) {
         description: appAttributes.description,
         apiRoutes: appAttributes.apiRoutes || [],
         widgets: processedWidgets,
+        dependencies: appAttributes.dependencies || {},
       });
 
       // Delete backup after successful upgrade
@@ -260,15 +320,15 @@ export async function POST(request: NextRequest) {
       // Log app upgrade
       await logger.fromRequest(request).info(
         'system',
-        `Application upgraded: ${appAttributes.name} (${oldVersion} → ${appAttributes.version})`
+        `Application upgraded: ${appAttributes.name} (${formatVersion(existingApp.version)} → ${formatVersion(appAttributes.version)})`
       );
 
       return NextResponse.json({
         success: true,
         appId: appAttributes.id,
         name: appAttributes.name,
-        oldVersion,
-        newVersion: appAttributes.version,
+        oldVersion: formatVersion(existingApp.version),
+        newVersion: formatVersion(appAttributes.version),
       });
     } catch (error) {
       // Restore backup on error

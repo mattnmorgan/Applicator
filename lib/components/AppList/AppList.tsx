@@ -16,14 +16,38 @@ interface Widget {
   appId: string;
 }
 
+interface AppVersion {
+  major: number;
+  minor: number;
+  dev: number;
+}
+
 interface App {
   id: string;
   label: string;
-  version: string;
+  version: AppVersion;
   author: string;
   contactEmail: string;
   description: string;
   widgets?: Widget[];
+  dependencies?: Record<string, AppVersion>;
+}
+
+function formatVersion(version: AppVersion): string {
+  return `${version.major}.${version.minor}.${version.dev}`;
+}
+
+function canUninstallApp(appId: string, apps: App[]): { canUninstall: boolean; dependents: string[] } {
+  const dependentApps = apps.filter(app =>
+    app.id !== appId &&
+    app.dependencies &&
+    Object.keys(app.dependencies).includes(appId)
+  );
+
+  return {
+    canUninstall: dependentApps.length === 0,
+    dependents: dependentApps.map(app => app.label)
+  };
 }
 
 export default function AppList() {
@@ -262,48 +286,80 @@ export default function AppList() {
               <div className={styles.contentColumn}>
                 <div className={styles.headerRow}>
                   <div className={styles.appLabel}>{app.label || 'Unknown App'}</div>
-                  <span className={styles.versionBadge}>v{app.version || '0.0.0'}</span>
+                  <span className={styles.versionBadge}>v{formatVersion(app.version)}</span>
                 </div>
                 <div className={styles.appDescription}>{app.description || 'No description'}</div>
               </div>
-              {app.id !== 'system' && (
-                <div className={styles.buttonGroup}>
-                  {app.widgets && app.widgets.some(w => w.target === 'system-settings') && (
+              {app.id !== 'system' && (() => {
+                const { canUninstall, dependents } = canUninstallApp(app.id, apps);
+                return (
+                  <div className={styles.buttonGroup}>
+                    {app.widgets && app.widgets.some(w => w.target === 'system-settings') && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const systemWidget = app.widgets!.find(w => w.target === 'system-settings');
+                          if (systemWidget) {
+                            window.location.href = `/settings/widgets/${systemWidget.id}`;
+                          }
+                        }}
+                        className={styles.settingsButton}
+                      >
+                        Settings
+                      </button>
+                    )}
                     <button
                       onClick={(e) => {
                         e.stopPropagation();
-                        const systemWidget = app.widgets!.find(w => w.target === 'system-settings');
-                        if (systemWidget) {
-                          window.location.href = `/settings/widgets/${systemWidget.id}`;
-                        }
+                        handleUpgradeClick(app.id);
                       }}
-                      className={styles.settingsButton}
+                      disabled={upgrading === app.id}
+                      className={styles.upgradeButton}
                     >
-                      Settings
+                      {upgrading === app.id ? 'Upgrading...' : 'Upgrade'}
                     </button>
-                  )}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUpgradeClick(app.id);
-                    }}
-                    disabled={upgrading === app.id}
-                    className={styles.upgradeButton}
-                  >
-                    {upgrading === app.id ? 'Upgrading...' : 'Upgrade'}
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleUninstallClick(app.id, app.label);
-                    }}
-                    disabled={uninstalling === app.id}
-                    className={styles.uninstallButton}
-                  >
-                    {uninstalling === app.id ? 'Uninstalling...' : 'Uninstall'}
-                  </button>
-                </div>
-              )}
+                    <div style={{ position: 'relative', display: 'inline-block' }}>
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          if (canUninstall) {
+                            handleUninstallClick(app.id, app.label);
+                          }
+                        }}
+                        disabled={uninstalling === app.id || !canUninstall}
+                        className={styles.uninstallButton}
+                        title={!canUninstall ? `Required by: ${dependents.join(', ')}` : ''}
+                      >
+                        {uninstalling === app.id ? 'Uninstalling...' : 'Uninstall'}
+                      </button>
+                      {!canUninstall && (
+                        <span
+                          style={{
+                            position: 'absolute',
+                            top: '-2px',
+                            right: '-8px',
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: '16px',
+                            height: '16px',
+                            borderRadius: '50%',
+                            background: '#3b82f6',
+                            color: '#f1f5f9',
+                            fontSize: '11px',
+                            fontWeight: 'bold',
+                            cursor: 'help',
+                            border: '2px solid #1e293b'
+                          }}
+                          title={`Cannot uninstall: Required by ${dependents.join(', ')}`}
+                        >
+                          i
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })()}
             </div>
           </Row>
         ))}

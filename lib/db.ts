@@ -1,6 +1,39 @@
-import { getRedisClient } from './redis';
-import bcrypt from 'bcryptjs';
-import { v4 as uuidv4 } from 'uuid';
+import { getRedisClient } from "./redis";
+import bcrypt from "bcryptjs";
+import { v4 as uuidv4 } from "uuid";
+
+// Version interface and utility functions
+export interface AppVersion {
+  major: number;
+  minor: number;
+  dev: number;
+}
+
+export function formatVersion(version: AppVersion): string {
+  return `${version.major}.${version.minor}.${version.dev}`;
+}
+
+export function parseVersion(versionString: string): AppVersion {
+  const parts = versionString.split(".").map((p) => parseInt(p, 10));
+  return {
+    major: parts[0] || 0,
+    minor: parts[1] || 0,
+    dev: parts[2] || 0,
+  };
+}
+
+export function compareVersions(v1: AppVersion, v2: AppVersion): number {
+  if (v1.major !== v2.major) return v1.major - v2.major;
+  if (v1.minor !== v2.minor) return v1.minor - v2.minor;
+  return v1.dev - v2.dev;
+}
+
+export function isVersionGreaterOrEqual(
+  installed: AppVersion,
+  required: AppVersion
+): boolean {
+  return compareVersions(installed, required) >= 0;
+}
 
 export interface Authority {
   id: string;
@@ -28,7 +61,7 @@ export interface Widget {
   id: string; // Unique ID for the widget
   name: string;
   description: string;
-  target: 'home' | 'user-settings' | 'system-settings';
+  target: "home" | "user-settings" | "system-settings";
   component: string; // Name of the component exported by the app
   appId: string; // App ID that this widget belongs to
 }
@@ -36,12 +69,13 @@ export interface Widget {
 export interface App {
   id: string;
   label: string;
-  version: string;
+  version: AppVersion;
   author: string;
   contactEmail: string;
   description: string;
   apiRoutes: ApiRoute[];
   widgets?: Widget[];
+  dependencies?: Record<string, AppVersion>; // Map of app IDs to minimum required versions
 }
 
 export interface User {
@@ -64,7 +98,13 @@ export interface Session {
 }
 
 // Authority management
-export async function createAuthority(id: string, name: string, icon?: string, authorizations: string[] = [], apps: string[] = []): Promise<Authority> {
+export async function createAuthority(
+  id: string,
+  name: string,
+  icon?: string,
+  authorizations: string[] = [],
+  apps: string[] = []
+): Promise<Authority> {
   const redis = getRedisClient();
 
   const authority: Authority = {
@@ -94,46 +134,46 @@ export async function initializeAuthorities(): Promise<void> {
   const redis = getRedisClient();
 
   // Check if authorities already exist
-  const existingAdmin = await redis.get('authority:admin');
+  const existingAdmin = await redis.get("authority:admin");
   if (existingAdmin) {
     return; // Authorities already initialized
   }
 
   // Create the system app
   await createApp(
-    'system',
-    'System',
-    '1.0',
-    'System',
-    'system@localhost',
-    'Core system application'
+    "system",
+    "System",
+    { major: 1, minor: 0, dev: 0 },
+    "Matthew Morgan",
+    "matthew@morgantech.info",
+    "Core system application"
   );
 
   // Create default authorizations
   await createAuthorization(
-    'admin',
-    'Administrator',
-    'Permits administrator access to the system',
-    'system'
+    "admin",
+    "Administrator",
+    "Permits administrator access to the system",
+    "system"
   );
 
   await createAuthorization(
-    'developer',
-    'Developer',
-    'Permits developer access to the system',
-    'system'
+    "developer",
+    "Developer",
+    "Permits developer access to the system",
+    "system"
   );
 
   // Create the three default authorities
   // Admin authority has the 'admin' authorization
-  await createAuthority('admin', 'Administrator', undefined, ['admin']);
-  await createAuthority('user', 'User', undefined, []);
-  await createAuthority('guest', 'Guest', undefined, []);
+  await createAuthority("admin", "Administrator", undefined, ["admin"]);
+  await createAuthority("user", "User", undefined, []);
+  await createAuthority("guest", "Guest", undefined, []);
 }
 
 export async function getAllAuthorities(): Promise<Authority[]> {
   const redis = getRedisClient();
-  const keys = await redis.keys('authority:*');
+  const keys = await redis.keys("authority:*");
 
   const authorities: Authority[] = [];
   for (const key of keys) {
@@ -146,12 +186,15 @@ export async function getAllAuthorities(): Promise<Authority[]> {
   return authorities;
 }
 
-export async function updateAuthority(id: string, updates: Partial<Omit<Authority, 'id'>>): Promise<void> {
+export async function updateAuthority(
+  id: string,
+  updates: Partial<Omit<Authority, "id">>
+): Promise<void> {
   const redis = getRedisClient();
   const authority = await getAuthority(id);
 
   if (!authority) {
-    throw new Error('Authority not found');
+    throw new Error("Authority not found");
   }
 
   const updatedAuthority = { ...authority, ...updates };
@@ -163,14 +206,21 @@ export async function deleteAuthority(id: string): Promise<void> {
   await redis.del(`authority:${id}`);
 }
 
-export async function getUserCountByAuthority(authorityId: string): Promise<number> {
+export async function getUserCountByAuthority(
+  authorityId: string
+): Promise<number> {
   const redis = getRedisClient();
   const users = await getAllUsers();
-  return users.filter(user => user.authority === authorityId).length;
+  return users.filter((user) => user.authority === authorityId).length;
 }
 
 // Authorization management
-export async function createAuthorization(id: string, name: string, description: string, app: string): Promise<Authorization> {
+export async function createAuthorization(
+  id: string,
+  name: string,
+  description: string,
+  app: string
+): Promise<Authorization> {
   const redis = getRedisClient();
 
   const authorization: Authorization = {
@@ -184,7 +234,9 @@ export async function createAuthorization(id: string, name: string, description:
   return authorization;
 }
 
-export async function getAuthorization(id: string): Promise<Authorization | null> {
+export async function getAuthorization(
+  id: string
+): Promise<Authorization | null> {
   const redis = getRedisClient();
   const authorizationData = await redis.get(`authorization:${id}`);
 
@@ -197,7 +249,7 @@ export async function getAuthorization(id: string): Promise<Authorization | null
 
 export async function getAllAuthorizations(): Promise<Authorization[]> {
   const redis = getRedisClient();
-  const keys = await redis.keys('authorization:*');
+  const keys = await redis.keys("authorization:*");
 
   const authorizations: Authorization[] = [];
   for (const key of keys) {
@@ -210,12 +262,15 @@ export async function getAllAuthorizations(): Promise<Authorization[]> {
   return authorizations;
 }
 
-export async function updateAuthorization(id: string, updates: Partial<Omit<Authorization, 'id'>>): Promise<void> {
+export async function updateAuthorization(
+  id: string,
+  updates: Partial<Omit<Authorization, "id">>
+): Promise<void> {
   const redis = getRedisClient();
   const authorization = await getAuthorization(id);
 
   if (!authorization) {
-    throw new Error('Authorization not found');
+    throw new Error("Authorization not found");
   }
 
   const updatedAuthorization = { ...authorization, ...updates };
@@ -228,7 +283,17 @@ export async function deleteAuthorization(id: string): Promise<void> {
 }
 
 // App management
-export async function createApp(id: string, label: string, version: string, author: string, contactEmail: string, description: string, apiRoutes: ApiRoute[] = [], widgets: Widget[] = []): Promise<App> {
+export async function createApp(
+  id: string,
+  label: string,
+  version: AppVersion,
+  author: string,
+  contactEmail: string,
+  description: string,
+  apiRoutes: ApiRoute[] = [],
+  widgets: Widget[] = [],
+  dependencies: Record<string, AppVersion> = {}
+): Promise<App> {
   const redis = getRedisClient();
 
   const app: App = {
@@ -240,6 +305,7 @@ export async function createApp(id: string, label: string, version: string, auth
     description,
     apiRoutes,
     widgets,
+    dependencies,
   };
 
   await redis.set(`app:${id}`, JSON.stringify(app));
@@ -259,7 +325,7 @@ export async function getApp(id: string): Promise<App | null> {
 
 export async function getAllApps(): Promise<App[]> {
   const redis = getRedisClient();
-  const keys = await redis.keys('app:*');
+  const keys = await redis.keys("app:*");
 
   const apps: App[] = [];
   for (const key of keys) {
@@ -272,12 +338,15 @@ export async function getAllApps(): Promise<App[]> {
   return apps;
 }
 
-export async function updateApp(id: string, updates: Partial<Omit<App, 'id'>>): Promise<void> {
+export async function updateApp(
+  id: string,
+  updates: Partial<Omit<App, "id">>
+): Promise<void> {
   const redis = getRedisClient();
   const app = await getApp(id);
 
   if (!app) {
-    throw new Error('App not found');
+    throw new Error("App not found");
   }
 
   const updatedApp = { ...app, ...updates };
@@ -290,7 +359,10 @@ export async function deleteApp(id: string): Promise<void> {
 }
 
 // Helper function to check if a user has a specific authorization
-export async function userHasAuthorization(userId: string, authorizationId: string): Promise<boolean> {
+export async function userHasAuthorization(
+  userId: string,
+  authorizationId: string
+): Promise<boolean> {
   const user = await getUserById(userId);
   if (!user) {
     return false;
@@ -325,7 +397,7 @@ export async function createUser(
   email: string,
   displayName: string,
   password: string,
-  authority: string = 'user'
+  authority: string = "user"
 ): Promise<User> {
   const redis = getRedisClient();
   const userId = uuidv4();
@@ -362,7 +434,9 @@ export async function getUserById(userId: string): Promise<User | null> {
   return JSON.parse(userData) as User;
 }
 
-export async function getUserByUsername(username: string): Promise<User | null> {
+export async function getUserByUsername(
+  username: string
+): Promise<User | null> {
   const redis = getRedisClient();
   const userId = await redis.get(`user:username:${username}`);
 
@@ -373,16 +447,19 @@ export async function getUserByUsername(username: string): Promise<User | null> 
   return getUserById(userId);
 }
 
-export async function verifyPassword(password: string, passwordHash: string): Promise<boolean> {
+export async function verifyPassword(
+  password: string,
+  passwordHash: string
+): Promise<boolean> {
   return bcrypt.compare(password, passwordHash);
 }
 
 export async function getAllUsers(): Promise<User[]> {
   const redis = getRedisClient();
-  const keys = await redis.keys('user:*');
+  const keys = await redis.keys("user:*");
 
   // Filter out username mapping keys
-  const userKeys = keys.filter(key => !key.includes('user:username:'));
+  const userKeys = keys.filter((key) => !key.includes("user:username:"));
 
   const users: User[] = [];
   for (const key of userKeys) {
@@ -395,24 +472,30 @@ export async function getAllUsers(): Promise<User[]> {
   return users;
 }
 
-export async function updateUserStatus(userId: string, isActive: boolean): Promise<void> {
+export async function updateUserStatus(
+  userId: string,
+  isActive: boolean
+): Promise<void> {
   const redis = getRedisClient();
   const user = await getUserById(userId);
 
   if (!user) {
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
 
   user.isActive = isActive;
   await redis.set(`user:${userId}`, JSON.stringify(user));
 }
 
-export async function updateUser(userId: string, updates: Partial<Omit<User, 'id'>>): Promise<void> {
+export async function updateUser(
+  userId: string,
+  updates: Partial<Omit<User, "id">>
+): Promise<void> {
   const redis = getRedisClient();
   const user = await getUserById(userId);
 
   if (!user) {
-    throw new Error('User not found');
+    throw new Error("User not found");
   }
 
   const updatedUser = { ...user, ...updates };
@@ -478,12 +561,15 @@ export async function getSystemSetting(key: string): Promise<string | null> {
   return redis.get(`settings:system:${key}`);
 }
 
-export async function setSystemSetting(key: string, value: string): Promise<void> {
+export async function setSystemSetting(
+  key: string,
+  value: string
+): Promise<void> {
   const redis = getRedisClient();
   await redis.set(`settings:system:${key}`, value);
 }
 
 export async function isFirstTimeSetup(): Promise<boolean> {
-  const adminUserId = await getSystemSetting('administratorUserId');
+  const adminUserId = await getSystemSetting("administratorUserId");
   return adminUserId === null;
 }

@@ -92,14 +92,43 @@ if (typeof window !== 'undefined') {
 
 ```json
 {
-  "version": "1.0.8"
+  "version": {
+    "major": 1,
+    "minor": 0,
+    "dev": 8
+  }
 }
 ```
 
-Follow semantic versioning (MAJOR.MINOR.PATCH):
-- Increment PATCH (e.g., `1.0.8` → `1.0.9`) for bug fixes and minor changes
-- Increment MINOR (e.g., `1.0.9` → `1.1.0`) for new features
-- Increment MAJOR (e.g., `1.1.0` → `2.0.0`) for breaking changes
+Version follows a three-part structure:
+- **major**: Increment for breaking changes (resets minor and dev to 0)
+- **minor**: Increment for new features (resets dev to 0)
+- **dev**: Increment for bug fixes and minor changes
+
+Examples:
+- Bug fix: `{ major: 1, minor: 0, dev: 8 }` → `{ major: 1, minor: 0, dev: 9 }`
+- New feature: `{ major: 1, minor: 0, dev: 9 }` → `{ major: 1, minor: 1, dev: 0 }`
+- Breaking change: `{ major: 1, minor: 1, dev: 0 }` → `{ major: 2, minor: 0, dev: 0 }`
+
+### Dependencies
+Apps can specify dependencies on other apps in `app.json`:
+
+```json
+{
+  "dependencies": {
+    "files": {
+      "major": 1,
+      "minor": 2,
+      "dev": 0
+    }
+  }
+}
+```
+
+- The system verifies dependencies during installation and upgrade
+- Apps cannot be uninstalled if other apps depend on them
+- Apps cannot depend on themselves
+- All dependencies must be installed with minimum required versions
 
 ### Development Server
 **DO NOT attempt to kill or restart the dev server** (`npm run dev`) - let the user manage it. The server runs with hot reload and will automatically pick up changes.

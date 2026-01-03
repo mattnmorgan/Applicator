@@ -596,13 +596,20 @@ interface Record<T> {
 ### App
 
 ```typescript
+interface AppVersion {
+  major: number;
+  minor: number;
+  dev: number;
+}
+
 interface App {
   id: string;
   label: string;
-  version: string;
+  version: AppVersion;
   author: string;
   contactEmail: string;
   description: string;
+  dependencies?: Record<string, AppVersion>;
 }
 ```
 
