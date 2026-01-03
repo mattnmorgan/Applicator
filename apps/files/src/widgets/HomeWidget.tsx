@@ -33,6 +33,9 @@ export default function HomeWidget() {
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTargets, setDeleteTargets] = useState<FileItem[]>([]);
+  const [showOverwriteModal, setShowOverwriteModal] = useState(false);
+  const [filesToOverwrite, setFilesToOverwrite] = useState<string[]>([]);
+  const [pendingUpload, setPendingUpload] = useState<FileList | null>(null);
   const [newName, setNewName] = useState('');
   const [targetPath, setTargetPath] = useState('');
   const [moveDirectories, setMoveDirectories] = useState<DirectoryItem[]>([]);
@@ -119,9 +122,55 @@ export default function HomeWidget() {
     }
   };
 
-  const handleUpload = async (fileList: FileList | null) => {
+  const checkForOverwrites = (fileList: FileList): string[] => {
+    const overwrites: string[] = [];
+    const existingFileNames = new Set(files.map(f => f.name));
+
+    for (let i = 0; i < fileList.length; i++) {
+      if (existingFileNames.has(fileList[i].name)) {
+        overwrites.push(fileList[i].name);
+      }
+    }
+
+    return overwrites;
+  };
+
+  const handleUploadWithCheck = async (fileList: FileList | null) => {
     if (!fileList || fileList.length === 0) return;
 
+    const overwrites = checkForOverwrites(fileList);
+
+    if (overwrites.length > 0) {
+      // Show confirmation modal
+      setFilesToOverwrite(overwrites);
+      setPendingUpload(fileList);
+      setShowOverwriteModal(true);
+      return;
+    }
+
+    // No overwrites, proceed with upload
+    await performUpload(fileList);
+  };
+
+  const confirmOverwrite = async () => {
+    setShowOverwriteModal(false);
+    if (pendingUpload) {
+      await performUpload(pendingUpload);
+      setPendingUpload(null);
+      setFilesToOverwrite([]);
+    }
+  };
+
+  const cancelOverwrite = () => {
+    setShowOverwriteModal(false);
+    setPendingUpload(null);
+    setFilesToOverwrite([]);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const performUpload = async (fileList: FileList) => {
     setUploading(true);
     setError('');
     setUploadProgress(`Uploading ${fileList.length} file(s)...`);
@@ -195,7 +244,7 @@ export default function HomeWidget() {
 
     const files = e.dataTransfer.files;
     if (files && files.length > 0) {
-      await handleUpload(files);
+      await handleUploadWithCheck(files);
     }
   };
 
@@ -597,7 +646,7 @@ export default function HomeWidget() {
               ref={fileInputRef}
               type="file"
               multiple
-              onChange={(e) => handleUpload(e.target.files)}
+              onChange={(e) => handleUploadWithCheck(e.target.files)}
               disabled={uploading}
               style={{ display: 'none' }}
             />
@@ -972,6 +1021,86 @@ export default function HomeWidget() {
                   {previewContent}
                 </pre>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Overwrite Confirmation Modal */}
+      {showOverwriteModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            background: '#1e293b',
+            padding: '24px',
+            borderRadius: '8px',
+            width: '500px',
+            maxWidth: '90vw',
+            maxHeight: '80vh',
+            display: 'flex',
+            flexDirection: 'column',
+          }}>
+            <h3 style={{ margin: '0 0 16px 0', color: '#f1f5f9' }}>Confirm File Overwrite</h3>
+            <p style={{ color: '#e2e8f0', marginBottom: '16px' }}>
+              The following {filesToOverwrite.length === 1 ? 'file' : 'files'} will be overwritten:
+            </p>
+            <div style={{
+              flex: 1,
+              overflow: 'auto',
+              background: '#0f172a',
+              border: '1px solid #334155',
+              borderRadius: '4px',
+              padding: '12px',
+              marginBottom: '24px',
+              maxHeight: '300px',
+            }}>
+              <ul style={{ margin: 0, paddingLeft: '20px', color: '#fbbf24' }}>
+                {filesToOverwrite.map((fileName, index) => (
+                  <li key={index} style={{ marginBottom: '8px' }}>{fileName}</li>
+                ))}
+              </ul>
+            </div>
+            <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '24px' }}>
+              Do you want to proceed with the upload?
+            </p>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={cancelOverwrite}
+                style={{
+                  padding: '8px 16px',
+                  background: '#334155',
+                  color: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmOverwrite}
+                style={{
+                  padding: '8px 16px',
+                  background: '#fbbf24',
+                  color: '#0f172a',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                }}
+              >
+                Overwrite
+              </button>
             </div>
           </div>
         </div>
