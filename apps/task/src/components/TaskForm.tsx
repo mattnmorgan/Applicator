@@ -36,7 +36,7 @@ export default function TaskForm({ task, onSubmit, onCancel }: TaskFormProps) {
 
   async function loadUsers() {
     try {
-      const response = await fetch('/api/app-api/task/users');
+      const response = await fetch('/api/task/users');
       if (response.ok) {
         const data = await response.json();
         setUsers(data.users || []);

@@ -22,7 +22,7 @@ export default function HomeWidget() {
 
   async function loadStats() {
     try {
-      const response = await fetch('/api/app-api/task/list');
+      const response = await fetch('/api/task/list');
       if (response.ok) {
         const data = await response.json();
         const tasks = data.tasks || [];

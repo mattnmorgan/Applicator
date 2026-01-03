@@ -3,7 +3,7 @@ import TaskList from './components/TaskList';
 import TaskForm from './components/TaskForm';
 import { Task } from './types';
 
-const API_BASE = '/api/app-api/task';
+const API_BASE = '/api/task';
 
 export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);

@@ -105,7 +105,7 @@ export default function TaskList({ tasks, onEdit, onDelete, onStatusChange }: Ta
               {task.attachmentFileName && (
                 <div className="mt-3">
                   <a
-                    href={`/api/app-api/task/download?taskId=${task.id}`}
+                    href={`/api/task/download?taskId=${task.id}`}
                     download={task.attachmentFileName}
                     className="text-sm text-blue-600 dark:text-blue-400 hover:underline flex items-center gap-1"
                   >
