@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
-import { getAuthority, updateAuthority, getSystemSetting } from '@/lib/db';
+import { getAuthority, updateAuthority, getSystemSetting, getSession, userHasAuthorization } from '@/lib/db';
+import { logger } from '@/lib/logging';
 import fs from 'fs';
 import path from 'path';
 
@@ -41,6 +42,23 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    // Check authentication - authority management requires admin authorization
+    const sessionId = request.headers.get('cookie')?.split(';').find(c => c.trim().startsWith('session='))?.split('=')[1];
+    if (!sessionId) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    const session = await getSession(sessionId);
+    if (!session) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
+    // Check if user has admin authorization
+    const hasAdmin = await userHasAuthorization(session.userId, 'admin');
+    if (!hasAdmin) {
+      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
+    }
+
     const { id } = await params;
     const formData = await request.formData();
 
@@ -116,6 +134,11 @@ export async function PATCH(
       }
 
       await updateAuthority(id, updates);
+
+      // Get authority for logging
+      const authority = await getAuthority(id);
+      await logger.fromRequest(request).info('system', `Authority modified: ${authority?.name || id} (${id})`);
+
       return NextResponse.json({
         success: true,
         message: 'Authority updated successfully'
@@ -133,6 +156,9 @@ export async function PATCH(
     updates.name = name;
 
     await updateAuthority(id, updates);
+
+    // Log authority modification
+    await logger.fromRequest(request).info('system', `Authority modified: ${name} (${id})`);
 
     return NextResponse.json({
       success: true,

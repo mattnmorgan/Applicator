@@ -79,6 +79,9 @@ export async function POST(request: NextRequest) {
 
     const record = await plugin.records.create(task);
 
+    // Log task creation
+    await plugin.logger.info(`Task created: ${title}`);
+
     return NextResponse.json({ success: true, task: record });
   } catch (error: any) {
     console.error('Error creating task:', error);

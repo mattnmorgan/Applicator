@@ -61,6 +61,12 @@ export {
   createFileManager,
 } from './files';
 
+export {
+  Logger,
+  createLogger,
+  type LoggerOptions,
+} from './logging';
+
 export type {
   App,
   User,
@@ -72,6 +78,7 @@ import { createRecordManager, RecordManager } from './records';
 import { createSystemInterface, SystemInterface } from './system';
 import { createFileManager, FileManager } from './files';
 import { createWidgetManager, WidgetManager } from './widgets';
+import { createLogger, Logger } from './logging';
 
 export interface PluginContext {
   appId: string;
@@ -85,6 +92,7 @@ export interface Plugin<T = any> {
   system: SystemInterface;
   files: FileManager;
   widgets: WidgetManager;
+  logger: Logger;
 }
 
 /**
@@ -117,6 +125,10 @@ export interface Plugin<T = any> {
  *   target: 'home',
  *   component: 'MyWidget'
  * });
+ *
+ * // Use logger
+ * await plugin.logger.info('Operation completed successfully');
+ * await plugin.logger.error('Failed to process data');
  * ```
  */
 export function createPlugin<T = any>(
@@ -130,6 +142,7 @@ export function createPlugin<T = any>(
     system: createSystemInterface(appId, userId),
     files: createFileManager(appId),
     widgets: createWidgetManager(appId),
+    logger: createLogger(appId, userId),
   };
 }
 

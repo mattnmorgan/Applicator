@@ -40,6 +40,10 @@ export async function DELETE(request: NextRequest) {
       );
     }
 
+    // Log task deletion (before deleting to capture task title)
+    const taskTitle = existing.data.title;
+    await plugin.logger.info(`Task deleted: ${taskTitle}`);
+
     await plugin.records.delete(taskId);
 
     return NextResponse.json({ success: true });

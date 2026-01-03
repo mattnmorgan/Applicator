@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSession, userHasAuthorization, getApp, deleteApp, getAllAuthorizations, deleteAuthorization, getAllAuthorities, updateAuthority } from '@/lib/db';
 import { getSystemSetting } from '@/lib/db';
+import { logger } from '@/lib/logging';
 import { createRecordManager } from '@/lib/sdk';
 import path from 'path';
 import fs from 'fs/promises';
@@ -89,6 +90,9 @@ export async function POST(request: NextRequest) {
       console.error('Error deleting app files:', error);
       // Continue even if file deletion fails
     }
+
+    // Log app uninstallation
+    await logger.fromRequest(request).info('system', `Application uninstalled: ${app.label} (${appId})`);
 
     return NextResponse.json({
       success: true,

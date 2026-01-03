@@ -62,6 +62,10 @@ function getSettingsMenuItems(hasDeveloperAuth: boolean): TabsetItem[] {
           label: 'Database',
           path: '/settings/debug/database',
         },
+        {
+          label: 'Logs',
+          path: '/settings/debug/logs',
+        },
       ],
     });
   }
