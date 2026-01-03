@@ -19,8 +19,17 @@ export default function AppWidgetPage() {
       try {
         const response = await fetch(`/api/system/apps/widgets/${widgetId}`);
         if (!response.ok) {
-          const error = await response.json();
-          setError(error.error || 'Widget not found');
+          const errorData = await response.json();
+
+          // Handle different error types
+          if (response.status === 403) {
+            setError('Access denied: You do not have permission to access this widget');
+          } else if (response.status === 404) {
+            setError(`Widget "${widgetId}" does not exist`);
+          } else {
+            setError(errorData.error || 'Widget not found');
+          }
+
           setLoading(false);
           return;
         }
@@ -168,15 +177,9 @@ export default function AppWidgetPage() {
       )}
 
       {error && (
-        <div style={{ padding: '32px' }}>
-          <div style={{
-            background: 'rgba(127, 29, 29, 0.2)',
-            border: '1px solid #ef4444',
-            borderRadius: '8px',
-            padding: '16px'
-          }}>
-            <h3 style={{ color: '#f87171', fontWeight: '600', marginBottom: '8px' }}>Error</h3>
-            <p style={{ color: '#fca5a5', fontSize: '14px' }}>{error}</p>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
+          <div style={{ background: '#7f1d1d', border: '1px solid #991b1b', borderRadius: '8px', padding: '32px', maxWidth: '500px', textAlign: 'center' }}>
+            <p style={{ color: '#fca5a5', fontSize: '16px', margin: '0' }}>{error}</p>
           </div>
         </div>
       )}
