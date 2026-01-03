@@ -108,6 +108,55 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Validate widgets if present
+    if (appAttributes.widgets && Array.isArray(appAttributes.widgets)) {
+      for (let i = 0; i < appAttributes.widgets.length; i++) {
+        const widget = appAttributes.widgets[i];
+
+        // Check that widget has an id
+        if (!widget.id) {
+          return NextResponse.json(
+            { error: `Widget at index ${i} is missing required 'id' field` },
+            { status: 400 }
+          );
+        }
+
+        // Check that widget has required fields
+        if (!widget.name || !widget.description || !widget.target || !widget.component) {
+          return NextResponse.json(
+            { error: `Widget '${widget.id}' is missing required fields (name, description, target, or component)` },
+            { status: 400 }
+          );
+        }
+
+        // Validate target
+        if (!['home', 'user-settings', 'system-settings'].includes(widget.target)) {
+          return NextResponse.json(
+            { error: `Widget '${widget.id}' has invalid target. Must be 'home', 'user-settings', or 'system-settings'` },
+            { status: 400 }
+          );
+        }
+
+        // Check that appId matches if provided
+        if (widget.appId && widget.appId !== appAttributes.id) {
+          return NextResponse.json(
+            { error: `Widget '${widget.id}' has mismatched appId. Expected '${appAttributes.id}', got '${widget.appId}'` },
+            { status: 400 }
+          );
+        }
+      }
+
+      // Check for duplicate widget IDs
+      const widgetIds = appAttributes.widgets.map((w: any) => w.id);
+      const duplicates = widgetIds.filter((id: string, index: number) => widgetIds.indexOf(id) !== index);
+      if (duplicates.length > 0) {
+        return NextResponse.json(
+          { error: `Duplicate widget IDs found: ${duplicates.join(', ')}` },
+          { status: 400 }
+        );
+      }
+    }
+
     // Check if app already exists
     const existingApp = await getApp(appAttributes.id);
     if (existingApp) {
@@ -144,6 +193,16 @@ export async function POST(request: NextRequest) {
       await fs.writeFile(handlerPath, handlerData);
     }
 
+    // Process widgets - ensure appId is set correctly
+    const processedWidgets = (appAttributes.widgets || []).map((widget: any) => ({
+      id: widget.id,
+      name: widget.name,
+      description: widget.description,
+      target: widget.target,
+      component: widget.component,
+      appId: appAttributes.id, // Always use the app's ID
+    }));
+
     // Create app in database
     await createApp(
       appAttributes.id,
@@ -153,7 +212,7 @@ export async function POST(request: NextRequest) {
       appAttributes.contactEmail || '',
       appAttributes.description,
       appAttributes.apiRoutes || [],
-      appAttributes.widgets || []
+      processedWidgets
     );
 
     // Install authorizations

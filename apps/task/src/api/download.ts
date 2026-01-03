@@ -52,8 +52,8 @@ export async function GET(request: NextRequest) {
     // Read file
     const fileBuffer = await plugin.files.readFile(task.data.attachmentFilePath);
 
-    // Return file
-    return new NextResponse(fileBuffer, {
+    // Return file - convert Buffer to Uint8Array for NextResponse compatibility
+    return new NextResponse(new Uint8Array(fileBuffer), {
       headers: {
         'Content-Type': 'application/octet-stream',
         'Content-Disposition': `attachment; filename="${task.data.attachmentFileName}"`,

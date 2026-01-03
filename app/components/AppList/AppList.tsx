@@ -3,7 +3,17 @@
 import { useState, useEffect, useRef } from 'react';
 import Row from '../Row';
 import AppView from '../AppView/AppView';
+import Toast from '../Toast';
 import styles from './AppList.module.css';
+
+interface Widget {
+  id: string;
+  name: string;
+  description: string;
+  target: 'home' | 'user-settings' | 'system-settings';
+  component: string;
+  appId: string;
+}
 
 interface App {
   id: string;
@@ -12,6 +22,7 @@ interface App {
   author: string;
   contactEmail: string;
   description: string;
+  widgets?: Widget[];
 }
 
 export default function AppList() {
@@ -20,6 +31,7 @@ export default function AppList() {
   const [installing, setInstalling] = useState(false);
   const [uninstalling, setUninstalling] = useState<string | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const fetchApps = async () => {
@@ -57,14 +69,14 @@ export default function AppList() {
       const data = await response.json();
 
       if (response.ok) {
-        alert(`App "${data.name}" installed successfully!`);
+        setToast({ message: `App "${data.name}" installed successfully!`, type: 'success' });
         await fetchApps();
       } else {
-        alert(`Failed to install app: ${data.error}`);
+        setToast({ message: data.error || 'Failed to install app', type: 'error' });
       }
     } catch (error) {
       console.error('Error installing app:', error);
-      alert('Failed to install app');
+      setToast({ message: 'Failed to install app', type: 'error' });
     } finally {
       setInstalling(false);
       if (fileInputRef.current) {
@@ -89,14 +101,14 @@ export default function AppList() {
       const data = await response.json();
 
       if (response.ok) {
-        alert('App uninstalled successfully!');
+        setToast({ message: 'App uninstalled successfully!', type: 'success' });
         await fetchApps();
       } else {
-        alert(`Failed to uninstall app: ${data.error}`);
+        setToast({ message: data.error || 'Failed to uninstall app', type: 'error' });
       }
     } catch (error) {
       console.error('Error uninstalling app:', error);
-      alert('Failed to uninstall app');
+      setToast({ message: 'Failed to uninstall app', type: 'error' });
     } finally {
       setUninstalling(null);
     }
@@ -114,6 +126,14 @@ export default function AppList() {
 
   return (
     <div className={styles.container}>
+      {toast && (
+        <Toast
+          message={toast.message}
+          type={toast.type}
+          onClose={() => setToast(null)}
+        />
+      )}
+
       <div className={styles.toolbar}>
         <input
           type="text"
@@ -173,16 +193,32 @@ export default function AppList() {
                 <div className={styles.appDescription}>{app.description || 'No description'}</div>
               </div>
               {app.id !== 'system' && (
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleUninstall(app.id, app.label);
-                  }}
-                  disabled={uninstalling === app.id}
-                  className={styles.uninstallButton}
-                >
-                  {uninstalling === app.id ? 'Uninstalling...' : 'Uninstall'}
-                </button>
+                <div className={styles.buttonGroup}>
+                  {app.widgets && app.widgets.some(w => w.target === 'system-settings') && (
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        const systemWidget = app.widgets!.find(w => w.target === 'system-settings');
+                        if (systemWidget) {
+                          window.location.href = `/settings/widgets/${systemWidget.id}`;
+                        }
+                      }}
+                      className={styles.settingsButton}
+                    >
+                      Settings
+                    </button>
+                  )}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleUninstall(app.id, app.label);
+                    }}
+                    disabled={uninstalling === app.id}
+                    className={styles.uninstallButton}
+                  >
+                    {uninstalling === app.id ? 'Uninstalling...' : 'Uninstall'}
+                  </button>
+                </div>
               )}
             </div>
           </Row>

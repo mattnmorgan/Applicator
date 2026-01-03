@@ -67,6 +67,32 @@ export function getAppAttributes() {
         description: 'Get all active users for task assignment',
       },
     ],
+    widgets: [
+      {
+        id: 'task-home-widget',
+        name: 'Quick Task View',
+        description: 'View and manage your tasks',
+        target: 'home',
+        component: 'HomeWidget',
+        appId: 'task',
+      },
+      {
+        id: 'task-settings-widget',
+        name: 'Task Settings',
+        description: 'Configure your task preferences',
+        target: 'user-settings',
+        component: 'SettingsWidget',
+        appId: 'task',
+      },
+      {
+        id: 'task-system-settings-widget',
+        name: 'Task System Settings',
+        description: 'Configure system-wide task settings',
+        target: 'system-settings',
+        component: 'SystemSettingsWidget',
+        appId: 'task',
+      },
+    ],
   };
 }
 

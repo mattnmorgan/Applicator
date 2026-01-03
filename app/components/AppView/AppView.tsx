@@ -10,6 +10,15 @@ interface ApiRoute {
   description: string;
 }
 
+interface Widget {
+  id: string;
+  name: string;
+  description: string;
+  target: 'home' | 'user-settings' | 'system-settings';
+  component: string;
+  appId: string;
+}
+
 interface App {
   id: string;
   label: string;
@@ -18,6 +27,7 @@ interface App {
   contactEmail: string;
   description: string;
   apiRoutes: ApiRoute[];
+  widgets?: Widget[];
 }
 
 interface AppViewProps {
@@ -101,6 +111,27 @@ export default function AppView({ appId, onBack }: AppViewProps) {
           <p className={styles.description}>{app.description}</p>
         </div>
       </div>
+
+      {app.widgets && app.widgets.length > 0 && (
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>Widgets</h2>
+          <div className={styles.widgetList}>
+            {app.widgets.map((widget) => (
+              <div key={widget.id} className={styles.widgetRow}>
+                <div className={styles.widgetInfo}>
+                  <div className={styles.widgetName}>{widget.name}</div>
+                  <div className={styles.widgetDescription}>{widget.description}</div>
+                </div>
+                <div className={styles.widgetTarget}>
+                  {widget.target === 'home' && 'Home Screen'}
+                  {widget.target === 'user-settings' && 'User Settings'}
+                  {widget.target === 'system-settings' && 'System Settings'}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className={styles.section}>
         <h2 className={styles.sectionTitle}>API Routes</h2>

@@ -25,10 +25,12 @@ export interface ApiRoute {
 }
 
 export interface Widget {
+  id: string; // Unique ID for the widget
   name: string;
   description: string;
   target: 'home' | 'user-settings' | 'system-settings';
   component: string; // Name of the component exported by the app
+  appId: string; // App ID that this widget belongs to
 }
 
 export interface App {

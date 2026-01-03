@@ -62,22 +62,28 @@
   ],
   "widgets": [
     {
-      "name": "Task Stats",
-      "description": "View task statistics on your home screen",
+      "id": "task-home-widget",
+      "name": "Quick Task View",
+      "description": "View and manage your tasks",
       "target": "home",
-      "component": "HomeWidget"
+      "component": "HomeWidget",
+      "appId": "task"
     },
     {
+      "id": "task-settings-widget",
       "name": "Task Settings",
-      "description": "Configure task manager preferences",
+      "description": "Configure your task preferences",
       "target": "user-settings",
-      "component": "SettingsWidget"
+      "component": "SettingsWidget",
+      "appId": "task"
     },
     {
-      "name": "Task Manager Settings",
-      "description": "System-wide task manager configuration",
+      "id": "task-system-settings-widget",
+      "name": "Task System Settings",
+      "description": "Configure system-wide task settings",
       "target": "system-settings",
-      "component": "SystemSettingsWidget"
+      "component": "SystemSettingsWidget",
+      "appId": "task"
     }
   ]
 }
