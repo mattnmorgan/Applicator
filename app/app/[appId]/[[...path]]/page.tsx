@@ -8,6 +8,7 @@ import AppMenu from "@/lib/components/AppMenu/AppMenu";
 export default function AppPage() {
   const params = useParams();
   const appId = params.appId as string;
+  const path = (params.path as string[]) || [];
   const containerRef = useRef<HTMLDivElement>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -87,6 +88,9 @@ export default function AppPage() {
       try {
         await loadReact();
 
+        // Give React a moment to fully initialize
+        await new Promise(resolve => setTimeout(resolve, 50));
+
         const script = document.createElement("script");
         script.src = `/api/system/assets/apps/${appId}`;
         script.async = true;
@@ -101,7 +105,8 @@ export default function AppPage() {
               appExports?.AppMount &&
               typeof appExports.AppMount === "function"
             ) {
-              appExports.AppMount(containerRef.current, { appId });
+              // Pass the path to the app
+              appExports.AppMount(containerRef.current, { appId, path });
               setLoading(false);
             } else {
               console.error("App export structure:", appExports);
@@ -155,7 +160,7 @@ export default function AppPage() {
         }
       });
     };
-  }, [appId]);
+  }, [appId, path]);
 
   return (
     <>
@@ -178,16 +183,16 @@ export default function AppPage() {
       >
         <div style={{ height: "100%" }}>
           {loading && (
-            <div className="flex items-center justify-center h-64">
-              <div className="text-gray-600 dark:text-gray-400">
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '256px' }}>
+              <div style={{ color: '#94a3b8' }}>
                 Loading app...
               </div>
             </div>
           )}
 
           {error && (
-            <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 rounded-lg p-4">
-              <p className="text-red-800 dark:text-red-200">{error}</p>
+            <div style={{ background: '#7f1d1d', border: '1px solid #991b1b', borderRadius: '8px', padding: '16px' }}>
+              <p style={{ color: '#fca5a5' }}>{error}</p>
             </div>
           )}
 

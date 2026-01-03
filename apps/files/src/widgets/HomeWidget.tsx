@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import ButtonIcon from '@/lib/components/ButtonIcon';
 
 interface FileItem {
@@ -22,22 +22,29 @@ export default function HomeWidget() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [uploading, setUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState('');
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
+  const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [showRenameModal, setShowRenameModal] = useState(false);
   const [showMoveModal, setShowMoveModal] = useState(false);
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [showBulkActionsMenu, setShowBulkActionsMenu] = useState(false);
   const [newName, setNewName] = useState('');
   const [targetPath, setTargetPath] = useState('');
   const [moveDirectories, setMoveDirectories] = useState<DirectoryItem[]>([]);
   const [moveBrowsePath, setMoveBrowsePath] = useState('');
+  const [moveExcludePaths, setMoveExcludePaths] = useState<string[]>([]);
   const [copyDirectories, setCopyDirectories] = useState<DirectoryItem[]>([]);
   const [copyBrowsePath, setCopyBrowsePath] = useState('');
   const [copyTargetPath, setCopyTargetPath] = useState('');
+  const [copyExcludePaths, setCopyExcludePaths] = useState<string[]>([]);
   const [previewUrl, setPreviewUrl] = useState('');
   const [previewType, setPreviewType] = useState<'image' | 'text' | 'pdf' | 'unsupported'>('unsupported');
   const [previewContent, setPreviewContent] = useState('');
+  const [isDragging, setIsDragging] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     loadFiles();
@@ -62,13 +69,15 @@ export default function HomeWidget() {
     }
   };
 
-  const loadMoveDirectories = async (path: string) => {
+  const loadMoveDirectories = async (path: string, excludePaths: string[] = []) => {
     try {
       const response = await fetch(`/api/files/list?directory=${encodeURIComponent(path)}`);
       const data = await response.json();
 
       if (data.success) {
-        const dirs = data.files.filter((f: DirectoryItem) => f.isDirectory);
+        const dirs = data.files.filter((f: DirectoryItem) =>
+          f.isDirectory && !excludePaths.includes(f.path)
+        );
         setMoveDirectories(dirs);
         setMoveBrowsePath(path);
       }
@@ -77,13 +86,15 @@ export default function HomeWidget() {
     }
   };
 
-  const loadCopyDirectories = async (path: string) => {
+  const loadCopyDirectories = async (path: string, excludePaths: string[] = []) => {
     try {
       const response = await fetch(`/api/files/list?directory=${encodeURIComponent(path)}`);
       const data = await response.json();
 
       if (data.success) {
-        const dirs = data.files.filter((f: DirectoryItem) => f.isDirectory);
+        const dirs = data.files.filter((f: DirectoryItem) =>
+          f.isDirectory && !excludePaths.includes(f.path)
+        );
         setCopyDirectories(dirs);
         setCopyBrowsePath(path);
       }
@@ -92,35 +103,83 @@ export default function HomeWidget() {
     }
   };
 
-  const handleUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const handleUpload = async (fileList: FileList | null) => {
+    if (!fileList || fileList.length === 0) return;
 
     setUploading(true);
     setError('');
-
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('directory', currentPath);
+    setUploadProgress(`Uploading ${fileList.length} file(s)...`);
 
     try {
-      const response = await fetch('/api/files/upload', {
-        method: 'POST',
-        body: formData,
-      });
+      let successCount = 0;
+      let failCount = 0;
 
-      const data = await response.json();
+      for (let i = 0; i < fileList.length; i++) {
+        const file = fileList[i];
+        setUploadProgress(`Uploading ${i + 1} of ${fileList.length}: ${file.name}`);
 
-      if (data.success) {
+        const formData = new FormData();
+        formData.append('file', file);
+        formData.append('directory', currentPath);
+
+        try {
+          const response = await fetch('/api/files/upload', {
+            method: 'POST',
+            body: formData,
+          });
+
+          const data = await response.json();
+
+          if (data.success) {
+            successCount++;
+          } else {
+            failCount++;
+            console.error(`Failed to upload ${file.name}:`, data.error);
+          }
+        } catch (err) {
+          failCount++;
+          console.error(`Failed to upload ${file.name}:`, err);
+        }
+      }
+
+      if (successCount > 0) {
         loadFiles();
-      } else {
-        setError(data.error || 'Failed to upload file');
+      }
+
+      if (failCount > 0) {
+        setError(`Failed to upload ${failCount} file(s)`);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to upload file');
+      setError(err.message || 'Failed to upload files');
     } finally {
       setUploading(false);
-      e.target.value = '';
+      setUploadProgress('');
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
+    }
+  };
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+  };
+
+  const handleDrop = async (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsDragging(false);
+
+    const files = e.dataTransfer.files;
+    if (files && files.length > 0) {
+      await handleUpload(files);
     }
   };
 
@@ -147,6 +206,69 @@ export default function HomeWidget() {
     }
   };
 
+  const handleBulkDelete = async () => {
+    const selectedItems = files.filter(f => selectedFiles.has(f.path));
+    if (!confirm(`Are you sure you want to delete ${selectedItems.length} selected item(s)?`)) {
+      return;
+    }
+
+    setError('');
+    let successCount = 0;
+    let failCount = 0;
+
+    for (const file of selectedItems) {
+      try {
+        const response = await fetch(`/api/files/delete?path=${encodeURIComponent(file.path)}`, {
+          method: 'DELETE',
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (err: any) {
+        failCount++;
+      }
+    }
+
+    if (failCount > 0) {
+      setError(`Failed to delete ${failCount} item(s)`);
+    }
+
+    setSelectedFiles(new Set());
+    setShowBulkActionsMenu(false);
+    loadFiles();
+  };
+
+  const handleBulkMove = () => {
+    const selectedItems = files.filter(f => selectedFiles.has(f.path));
+    const selectedFolderPaths = selectedItems.filter(f => f.isDirectory).map(f => f.path);
+
+    setTargetPath('');
+    setMoveBrowsePath('');
+    setMoveDirectories([]);
+    setMoveExcludePaths(selectedFolderPaths);
+    loadMoveDirectories('', selectedFolderPaths);
+    setShowMoveModal(true);
+    setShowBulkActionsMenu(false);
+  };
+
+  const handleBulkCopy = () => {
+    const selectedItems = files.filter(f => selectedFiles.has(f.path));
+    const selectedFolderPaths = selectedItems.filter(f => f.isDirectory).map(f => f.path);
+
+    setCopyTargetPath('');
+    setCopyBrowsePath('');
+    setCopyDirectories([]);
+    setCopyExcludePaths(selectedFolderPaths);
+    loadCopyDirectories('', selectedFolderPaths);
+    setShowCopyModal(true);
+    setShowBulkActionsMenu(false);
+  };
+
   const handleDownload = (file: FileItem) => {
     window.open(`/api/files/download?path=${encodeURIComponent(file.path)}`, '_blank');
   };
@@ -157,7 +279,6 @@ export default function HomeWidget() {
     setSelectedFile(file);
     const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
 
-    // Determine preview type
     const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
     const textExts = ['txt', 'md', 'json', 'js', 'ts', 'tsx', 'jsx', 'css', 'html', 'xml', 'log', 'csv'];
     const pdfExts = ['pdf'];
@@ -171,7 +292,6 @@ export default function HomeWidget() {
       setPreviewUrl(`/api/files/download?path=${encodeURIComponent(file.path)}&inline=true`);
       setShowPreviewModal(true);
     } else if (textExts.includes(fileExt)) {
-      // Fetch text content
       try {
         const response = await fetch(`/api/files/download?path=${encodeURIComponent(file.path)}&inline=true`);
         const text = await response.text();
@@ -216,65 +336,97 @@ export default function HomeWidget() {
   };
 
   const handleMove = async () => {
-    if (!selectedFile) return;
+    const itemsToMove = selectedFiles.size > 0
+      ? files.filter(f => selectedFiles.has(f.path))
+      : selectedFile ? [selectedFile] : [];
+
+    if (itemsToMove.length === 0) return;
 
     setError('');
-    try {
-      const response = await fetch('/api/files/move', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sourcePath: selectedFile.path,
-          destinationDir: targetPath,
-        }),
-      });
+    let successCount = 0;
+    let failCount = 0;
 
-      const data = await response.json();
+    for (const file of itemsToMove) {
+      try {
+        const response = await fetch('/api/files/move', {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sourcePath: file.path,
+            destinationDir: targetPath,
+          }),
+        });
 
-      if (data.success) {
-        setShowMoveModal(false);
-        setTargetPath('');
-        setSelectedFile(null);
-        setMoveBrowsePath('');
-        setMoveDirectories([]);
-        loadFiles();
-      } else {
-        setError(data.error || 'Failed to move file');
+        const data = await response.json();
+
+        if (data.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (err: any) {
+        failCount++;
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to move file');
     }
+
+    if (failCount > 0) {
+      setError(`Failed to move ${failCount} item(s)`);
+    }
+
+    setShowMoveModal(false);
+    setTargetPath('');
+    setSelectedFile(null);
+    setSelectedFiles(new Set());
+    setMoveBrowsePath('');
+    setMoveDirectories([]);
+    loadFiles();
   };
 
   const handleCopy = async () => {
-    if (!selectedFile) return;
+    const itemsToCopy = selectedFiles.size > 0
+      ? files.filter(f => selectedFiles.has(f.path))
+      : selectedFile ? [selectedFile] : [];
+
+    if (itemsToCopy.length === 0) return;
 
     setError('');
-    try {
-      const response = await fetch('/api/files/copy', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          sourcePath: selectedFile.path,
-          destinationDir: copyTargetPath,
-        }),
-      });
+    let successCount = 0;
+    let failCount = 0;
 
-      const data = await response.json();
+    for (const file of itemsToCopy) {
+      try {
+        const response = await fetch('/api/files/copy', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            sourcePath: file.path,
+            destinationDir: copyTargetPath,
+          }),
+        });
 
-      if (data.success) {
-        setShowCopyModal(false);
-        setCopyTargetPath('');
-        setSelectedFile(null);
-        setCopyBrowsePath('');
-        setCopyDirectories([]);
-        loadFiles();
-      } else {
-        setError(data.error || 'Failed to copy file');
+        const data = await response.json();
+
+        if (data.success) {
+          successCount++;
+        } else {
+          failCount++;
+        }
+      } catch (err: any) {
+        failCount++;
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to copy file');
     }
+
+    if (failCount > 0) {
+      setError(`Failed to copy ${failCount} item(s)`);
+    }
+
+    setShowCopyModal(false);
+    setCopyTargetPath('');
+    setSelectedFile(null);
+    setSelectedFiles(new Set());
+    setCopyBrowsePath('');
+    setCopyDirectories([]);
+    loadFiles();
   };
 
   const handleCreateFolder = async () => {
@@ -306,6 +458,25 @@ export default function HomeWidget() {
 
   const navigateToDirectory = (path: string) => {
     setCurrentPath(path);
+    setSelectedFiles(new Set());
+  };
+
+  const toggleFileSelection = (filePath: string) => {
+    const newSelection = new Set(selectedFiles);
+    if (newSelection.has(filePath)) {
+      newSelection.delete(filePath);
+    } else {
+      newSelection.add(filePath);
+    }
+    setSelectedFiles(newSelection);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedFiles.size === files.length) {
+      setSelectedFiles(new Set());
+    } else {
+      setSelectedFiles(new Set(files.map(f => f.path)));
+    }
   };
 
   const getMovePathParts = () => {
@@ -381,11 +552,16 @@ export default function HomeWidget() {
   };
 
   return (
-    <div style={{ height: '100%', padding: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box' }}>
+    <div
+      style={{ height: '100%', padding: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box' }}
+      onDragOver={handleDragOver}
+      onDragLeave={handleDragLeave}
+      onDrop={handleDrop}
+    >
       {/* Header */}
-      <div style={{ marginBottom: '16px', flexShrink: 0 }}>
+      <div style={{ marginBottom: '8px', flexShrink: 0 }}>
         {/* Breadcrumb Navigation and Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '12px', flexWrap: 'wrap' }}>
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '8px', flexWrap: 'wrap' }}>
           {/* Breadcrumb Navigation */}
           <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', flex: 1 }}>
             {getPathParts().map((part, index) => (
@@ -411,22 +587,22 @@ export default function HomeWidget() {
 
           {/* Action Buttons */}
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-            <label style={{ display: 'inline-flex', cursor: uploading ? 'not-allowed' : 'pointer' }}>
-              <ButtonIcon
-                icon={<span style={{ fontSize: '18px' }}>⬆️</span>}
-                label={uploading ? 'Uploading...' : 'Upload File'}
-                onClick={() => {}}
-                variant="bordered"
-                subvariant="info"
-                disabled={uploading}
-              />
-              <input
-                type="file"
-                onChange={handleUpload}
-                disabled={uploading}
-                style={{ display: 'none' }}
-              />
-            </label>
+            <ButtonIcon
+              icon={<span style={{ fontSize: '18px' }}>⬆️</span>}
+              label={uploading ? 'Uploading...' : 'Upload File'}
+              onClick={() => fileInputRef.current?.click()}
+              variant="bordered"
+              subvariant="info"
+              disabled={uploading}
+            />
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              onChange={(e) => handleUpload(e.target.files)}
+              disabled={uploading}
+              style={{ display: 'none' }}
+            />
 
             <ButtonIcon
               icon={<span style={{ fontSize: '18px' }}>📁</span>}
@@ -437,6 +613,20 @@ export default function HomeWidget() {
             />
           </div>
         </div>
+
+        {/* Upload Progress */}
+        {uploadProgress && (
+          <div style={{
+            padding: '8px 12px',
+            background: '#1e293b',
+            borderRadius: '4px',
+            fontSize: '12px',
+            color: '#94a3b8',
+            marginBottom: '8px'
+          }}>
+            {uploadProgress}
+          </div>
+        )}
       </div>
 
       {/* Error Message */}
@@ -453,6 +643,29 @@ export default function HomeWidget() {
         </div>
       )}
 
+      {/* Drag Overlay */}
+      {isDragging && (
+        <div style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(59, 130, 246, 0.1)',
+          border: '2px dashed #3b82f6',
+          borderRadius: '8px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10,
+          pointerEvents: 'none',
+        }}>
+          <div style={{ color: '#3b82f6', fontSize: '24px', fontWeight: 'bold' }}>
+            Drop files to upload
+          </div>
+        </div>
+      )}
+
       {/* File List */}
       <div style={{ flex: 1, overflow: 'auto', background: '#1e293b', borderRadius: '4px', minHeight: 0 }}>
         {loading ? (
@@ -464,18 +677,40 @@ export default function HomeWidget() {
             No files in this directory
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <thead>
               <tr style={{ borderBottom: '1px solid #334155' }}>
+                <th style={{ padding: '12px', textAlign: 'left', width: '40px' }}>
+                  <input
+                    type="checkbox"
+                    checked={selectedFiles.size === files.length && files.length > 0}
+                    onChange={toggleSelectAll}
+                    style={{ cursor: 'pointer' }}
+                  />
+                </th>
                 <th style={{ padding: '12px', textAlign: 'left', color: '#e2e8f0', fontSize: '14px' }}>Name</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#e2e8f0', fontSize: '14px' }}>Size</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#e2e8f0', fontSize: '14px' }}>Modified</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#e2e8f0', fontSize: '14px' }}>Actions</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#e2e8f0', fontSize: '14px', width: '120px' }}>Size</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#e2e8f0', fontSize: '14px', width: '180px' }}>Modified</th>
+                <th style={{ padding: '12px', textAlign: 'left', color: '#e2e8f0', fontSize: '14px', width: '200px' }}>Actions</th>
               </tr>
             </thead>
             <tbody>
               {files.map((file) => (
-                <tr key={file.path} style={{ borderBottom: '1px solid #334155' }}>
+                <tr
+                  key={file.path}
+                  style={{
+                    borderBottom: '1px solid #334155',
+                    background: selectedFiles.has(file.path) ? '#334155' : 'transparent'
+                  }}
+                >
+                  <td style={{ padding: '12px' }}>
+                    <input
+                      type="checkbox"
+                      checked={selectedFiles.has(file.path)}
+                      onChange={() => toggleFileSelection(file.path)}
+                      style={{ cursor: 'pointer' }}
+                    />
+                  </td>
                   <td style={{ padding: '12px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
                       <span style={{ flexShrink: 0 }}>{getFileIcon(file)}</span>
@@ -557,10 +792,12 @@ export default function HomeWidget() {
                         label="Move"
                         onClick={() => {
                           setSelectedFile(file);
+                          const excludePaths = file.isDirectory ? [file.path] : [];
                           setTargetPath('');
                           setMoveBrowsePath('');
                           setMoveDirectories([]);
-                          loadMoveDirectories('');
+                          setMoveExcludePaths(excludePaths);
+                          loadMoveDirectories('', excludePaths);
                           setShowMoveModal(true);
                         }}
                         variant="bare"
@@ -571,10 +808,12 @@ export default function HomeWidget() {
                         label="Copy"
                         onClick={() => {
                           setSelectedFile(file);
+                          const excludePaths = file.isDirectory ? [file.path] : [];
                           setCopyTargetPath('');
                           setCopyBrowsePath('');
                           setCopyDirectories([]);
-                          loadCopyDirectories('');
+                          setCopyExcludePaths(excludePaths);
+                          loadCopyDirectories('', excludePaths);
                           setShowCopyModal(true);
                         }}
                         variant="bare"
@@ -595,6 +834,108 @@ export default function HomeWidget() {
           </table>
         )}
       </div>
+
+      {/* Bulk Actions Floating Button */}
+      {selectedFiles.size > 0 && (
+        <div style={{
+          position: 'fixed',
+          bottom: '32px',
+          right: '32px',
+          zIndex: 100,
+        }}>
+          <button
+            onClick={() => setShowBulkActionsMenu(!showBulkActionsMenu)}
+            style={{
+              background: '#3b82f6',
+              color: '#fff',
+              border: 'none',
+              borderRadius: '50%',
+              width: '64px',
+              height: '64px',
+              cursor: 'pointer',
+              fontSize: '24px',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              position: 'relative',
+            }}
+          >
+            {selectedFiles.size}
+            {showBulkActionsMenu && (
+              <div
+                style={{
+                  position: 'absolute',
+                  bottom: '72px',
+                  right: '0',
+                  background: '#1e293b',
+                  border: '1px solid #334155',
+                  borderRadius: '8px',
+                  padding: '8px',
+                  minWidth: '160px',
+                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+                }}
+                onClick={(e) => e.stopPropagation()}
+              >
+                <button
+                  onClick={handleBulkMove}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: 'none',
+                    border: 'none',
+                    color: '#e2e8f0',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#334155'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                >
+                  📤 Move
+                </button>
+                <button
+                  onClick={handleBulkCopy}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: 'none',
+                    border: 'none',
+                    color: '#e2e8f0',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#334155'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                >
+                  📋 Copy
+                </button>
+                <button
+                  onClick={handleBulkDelete}
+                  style={{
+                    width: '100%',
+                    padding: '12px',
+                    background: 'none',
+                    border: 'none',
+                    color: '#ef4444',
+                    textAlign: 'left',
+                    cursor: 'pointer',
+                    borderRadius: '4px',
+                    fontSize: '14px',
+                  }}
+                  onMouseEnter={(e) => e.currentTarget.style.background = '#334155'}
+                  onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
+                >
+                  🗑️ Delete
+                </button>
+              </div>
+            )}
+          </button>
+        </div>
+      )}
 
       {/* Preview Modal */}
       {showPreviewModal && (
@@ -795,7 +1136,9 @@ export default function HomeWidget() {
             display: 'flex',
             flexDirection: 'column',
           }}>
-            <h3 style={{ margin: '0 0 16px 0', color: '#f1f5f9' }}>Move {selectedFile?.name}</h3>
+            <h3 style={{ margin: '0 0 16px 0', color: '#f1f5f9' }}>
+              Move {selectedFiles.size > 0 ? `${selectedFiles.size} item(s)` : selectedFile?.name}
+            </h3>
 
             {/* Path breadcrumbs */}
             <div style={{
@@ -814,7 +1157,7 @@ export default function HomeWidget() {
                   <button
                     onClick={() => {
                       setTargetPath(part.path);
-                      loadMoveDirectories(part.path);
+                      loadMoveDirectories(part.path, moveExcludePaths);
                     }}
                     style={{
                       background: 'none',
@@ -853,7 +1196,7 @@ export default function HomeWidget() {
                     key={dir.path}
                     onClick={() => {
                       setTargetPath(dir.path);
-                      loadMoveDirectories(dir.path);
+                      loadMoveDirectories(dir.path, moveExcludePaths);
                     }}
                     style={{
                       padding: '12px',
@@ -950,7 +1293,9 @@ export default function HomeWidget() {
             display: 'flex',
             flexDirection: 'column',
           }}>
-            <h3 style={{ margin: '0 0 16px 0', color: '#f1f5f9' }}>Copy {selectedFile?.name}</h3>
+            <h3 style={{ margin: '0 0 16px 0', color: '#f1f5f9' }}>
+              Copy {selectedFiles.size > 0 ? `${selectedFiles.size} item(s)` : selectedFile?.name}
+            </h3>
 
             {/* Path breadcrumbs */}
             <div style={{
@@ -969,7 +1314,7 @@ export default function HomeWidget() {
                   <button
                     onClick={() => {
                       setCopyTargetPath(part.path);
-                      loadCopyDirectories(part.path);
+                      loadCopyDirectories(part.path, copyExcludePaths);
                     }}
                     style={{
                       background: 'none',
@@ -1008,7 +1353,7 @@ export default function HomeWidget() {
                     key={dir.path}
                     onClick={() => {
                       setCopyTargetPath(dir.path);
-                      loadCopyDirectories(dir.path);
+                      loadCopyDirectories(dir.path, copyExcludePaths);
                     }}
                     style={{
                       padding: '12px',
