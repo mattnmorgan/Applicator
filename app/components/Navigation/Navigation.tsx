@@ -40,7 +40,7 @@ export default function Navigation({ displayName, profilePicture, isAdmin = fals
           <circle cx="12" cy="7" r="4" />
         </svg>
       ),
-      onClick: () => router.push('/user-settings'),
+      onClick: () => router.push('/user/settings'),
     },
     ...(isAdmin ? [{
       label: 'System Settings',
