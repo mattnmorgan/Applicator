@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ButtonIcon from '@/lib/components/ButtonIcon';
+import ButtonMenu from '@/lib/components/ButtonMenu';
 
 interface FileItem {
   name: string;
@@ -30,7 +31,8 @@ export default function HomeWidget() {
   const [showCopyModal, setShowCopyModal] = useState(false);
   const [showNewFolderModal, setShowNewFolderModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [showBulkActionsMenu, setShowBulkActionsMenu] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deleteTargets, setDeleteTargets] = useState<FileItem[]>([]);
   const [newName, setNewName] = useState('');
   const [targetPath, setTargetPath] = useState('');
   const [moveDirectories, setMoveDirectories] = useState<DirectoryItem[]>([]);
@@ -75,9 +77,16 @@ export default function HomeWidget() {
       const data = await response.json();
 
       if (data.success) {
-        const dirs = data.files.filter((f: DirectoryItem) =>
-          f.isDirectory && !excludePaths.includes(f.path)
-        );
+        const dirs = data.files.filter((f: DirectoryItem) => {
+          if (!f.isDirectory) return false;
+          // Exclude exact matches
+          if (excludePaths.includes(f.path)) return false;
+          // Exclude subdirectories of excluded paths
+          for (const excludePath of excludePaths) {
+            if (f.path.startsWith(excludePath + '/')) return false;
+          }
+          return true;
+        });
         setMoveDirectories(dirs);
         setMoveBrowsePath(path);
       }
@@ -92,9 +101,16 @@ export default function HomeWidget() {
       const data = await response.json();
 
       if (data.success) {
-        const dirs = data.files.filter((f: DirectoryItem) =>
-          f.isDirectory && !excludePaths.includes(f.path)
-        );
+        const dirs = data.files.filter((f: DirectoryItem) => {
+          if (!f.isDirectory) return false;
+          // Exclude exact matches
+          if (excludePaths.includes(f.path)) return false;
+          // Exclude subdirectories of excluded paths
+          for (const excludePath of excludePaths) {
+            if (f.path.startsWith(excludePath + '/')) return false;
+          }
+          return true;
+        });
         setCopyDirectories(dirs);
         setCopyBrowsePath(path);
       }
@@ -183,40 +199,23 @@ export default function HomeWidget() {
     }
   };
 
-  const handleDelete = async (file: FileItem) => {
-    if (!confirm(`Are you sure you want to delete ${file.name}?`)) {
-      return;
-    }
-
-    setError('');
-    try {
-      const response = await fetch(`/api/files/delete?path=${encodeURIComponent(file.path)}`, {
-        method: 'DELETE',
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        loadFiles();
-      } else {
-        setError(data.error || 'Failed to delete file');
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to delete file');
-    }
+  const handleDelete = (file: FileItem) => {
+    setDeleteTargets([file]);
+    setShowDeleteModal(true);
   };
 
-  const handleBulkDelete = async () => {
+  const handleBulkDeleteClick = () => {
     const selectedItems = files.filter(f => selectedFiles.has(f.path));
-    if (!confirm(`Are you sure you want to delete ${selectedItems.length} selected item(s)?`)) {
-      return;
-    }
+    setDeleteTargets(selectedItems);
+    setShowDeleteModal(true);
+  };
 
+  const confirmDelete = async () => {
     setError('');
     let successCount = 0;
     let failCount = 0;
 
-    for (const file of selectedItems) {
+    for (const file of deleteTargets) {
       try {
         const response = await fetch(`/api/files/delete?path=${encodeURIComponent(file.path)}`, {
           method: 'DELETE',
@@ -238,8 +237,9 @@ export default function HomeWidget() {
       setError(`Failed to delete ${failCount} item(s)`);
     }
 
+    setShowDeleteModal(false);
+    setDeleteTargets([]);
     setSelectedFiles(new Set());
-    setShowBulkActionsMenu(false);
     loadFiles();
   };
 
@@ -253,7 +253,6 @@ export default function HomeWidget() {
     setMoveExcludePaths(selectedFolderPaths);
     loadMoveDirectories('', selectedFolderPaths);
     setShowMoveModal(true);
-    setShowBulkActionsMenu(false);
   };
 
   const handleBulkCopy = () => {
@@ -266,7 +265,6 @@ export default function HomeWidget() {
     setCopyExcludePaths(selectedFolderPaths);
     loadCopyDirectories('', selectedFolderPaths);
     setShowCopyModal(true);
-    setShowBulkActionsMenu(false);
   };
 
   const handleDownload = (file: FileItem) => {
@@ -611,6 +609,47 @@ export default function HomeWidget() {
               variant="bordered"
               subvariant="neutral"
             />
+
+            <ButtonMenu
+              disabled={selectedFiles.size === 0}
+              alignment="right"
+              trigger={
+                <button
+                  disabled={selectedFiles.size === 0}
+                  style={{
+                    background: '#1e293b',
+                    border: '1px solid #334155',
+                    borderRadius: '4px',
+                    padding: '6px 12px',
+                    color: selectedFiles.size === 0 ? '#64748b' : '#e2e8f0',
+                    cursor: selectedFiles.size === 0 ? 'not-allowed' : 'pointer',
+                    fontSize: '14px',
+                    opacity: selectedFiles.size === 0 ? 0.5 : 1,
+                  }}
+                >
+                  Actions {selectedFiles.size > 0 && `(${selectedFiles.size})`}
+                </button>
+              }
+              options={[
+                {
+                  label: 'Move',
+                  icon: <span>📤</span>,
+                  onClick: handleBulkMove
+                },
+                {
+                  label: 'Copy',
+                  icon: <span>📋</span>,
+                  onClick: handleBulkCopy
+                },
+                {
+                  label: 'Delete',
+                  icon: <span>🗑️</span>,
+                  onClick: handleBulkDeleteClick
+                }
+              ]}
+            >
+              {null}
+            </ButtonMenu>
           </div>
         </div>
 
@@ -835,107 +874,6 @@ export default function HomeWidget() {
         )}
       </div>
 
-      {/* Bulk Actions Floating Button */}
-      {selectedFiles.size > 0 && (
-        <div style={{
-          position: 'fixed',
-          bottom: '32px',
-          right: '32px',
-          zIndex: 100,
-        }}>
-          <button
-            onClick={() => setShowBulkActionsMenu(!showBulkActionsMenu)}
-            style={{
-              background: '#3b82f6',
-              color: '#fff',
-              border: 'none',
-              borderRadius: '50%',
-              width: '64px',
-              height: '64px',
-              cursor: 'pointer',
-              fontSize: '24px',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              position: 'relative',
-            }}
-          >
-            {selectedFiles.size}
-            {showBulkActionsMenu && (
-              <div
-                style={{
-                  position: 'absolute',
-                  bottom: '72px',
-                  right: '0',
-                  background: '#1e293b',
-                  border: '1px solid #334155',
-                  borderRadius: '8px',
-                  padding: '8px',
-                  minWidth: '160px',
-                  boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
-                }}
-                onClick={(e) => e.stopPropagation()}
-              >
-                <button
-                  onClick={handleBulkMove}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: 'none',
-                    border: 'none',
-                    color: '#e2e8f0',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#334155'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
-                >
-                  📤 Move
-                </button>
-                <button
-                  onClick={handleBulkCopy}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: 'none',
-                    border: 'none',
-                    color: '#e2e8f0',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#334155'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
-                >
-                  📋 Copy
-                </button>
-                <button
-                  onClick={handleBulkDelete}
-                  style={{
-                    width: '100%',
-                    padding: '12px',
-                    background: 'none',
-                    border: 'none',
-                    color: '#ef4444',
-                    textAlign: 'left',
-                    cursor: 'pointer',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                  }}
-                  onMouseEnter={(e) => e.currentTarget.style.background = '#334155'}
-                  onMouseLeave={(e) => e.currentTarget.style.background = 'none'}
-                >
-                  🗑️ Delete
-                </button>
-              </div>
-            )}
-          </button>
-        </div>
-      )}
 
       {/* Preview Modal */}
       {showPreviewModal && (
@@ -1034,6 +972,68 @@ export default function HomeWidget() {
                   {previewContent}
                 </pre>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Delete Confirmation Modal */}
+      {showDeleteModal && (
+        <div style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          background: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 1000,
+        }}>
+          <div style={{
+            background: '#1e293b',
+            padding: '24px',
+            borderRadius: '8px',
+            width: '400px',
+            maxWidth: '90vw',
+          }}>
+            <h3 style={{ margin: '0 0 16px 0', color: '#f1f5f9' }}>Confirm Delete</h3>
+            <p style={{ color: '#e2e8f0', marginBottom: '24px' }}>
+              {deleteTargets.length === 1
+                ? `Are you sure you want to delete "${deleteTargets[0].name}"?`
+                : `Are you sure you want to delete ${deleteTargets.length} selected item(s)?`}
+            </p>
+            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+              <button
+                onClick={() => {
+                  setShowDeleteModal(false);
+                  setDeleteTargets([]);
+                }}
+                style={{
+                  padding: '8px 16px',
+                  background: '#334155',
+                  color: '#f1f5f9',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmDelete}
+                style={{
+                  padding: '8px 16px',
+                  background: '#ef4444',
+                  color: '#fff',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                }}
+              >
+                Delete
+              </button>
             </div>
           </div>
         </div>
