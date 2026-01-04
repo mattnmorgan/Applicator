@@ -120,6 +120,8 @@ export default async function SettingsLayout({
           isAdmin={hasAdminAuth}
           brandName={brandSettings.brandName}
           brandIcon={brandSettings.brandIcon}
+          authorizations={user.authorizations}
+          isAssumedIdentity={user.isAssumedIdentity}
         />
         <AccessDenied message="You do not have permission to access System Settings." />
       </>
@@ -136,6 +138,8 @@ export default async function SettingsLayout({
         isAdmin={hasAdminAuth}
         brandName={brandSettings.brandName}
         brandIcon={brandSettings.brandIcon}
+        authorizations={user.authorizations}
+        isAssumedIdentity={user.isAssumedIdentity}
       />
       <div style={{
         minHeight: 'calc(100vh - 64px)',

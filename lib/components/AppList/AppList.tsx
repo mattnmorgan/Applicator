@@ -62,6 +62,8 @@ export default function AppList() {
   const upgradeFileInputRef = useRef<HTMLInputElement>(null);
   const [upgradeAppId, setUpgradeAppId] = useState<string | null>(null);
   const [confirmUninstall, setConfirmUninstall] = useState<{ appId: string; appName: string } | null>(null);
+  const [upgradingSystem, setUpgradingSystem] = useState(false);
+  const [systemNeedsUpgrade, setSystemNeedsUpgrade] = useState(false);
 
   const fetchApps = async () => {
     try {
@@ -73,8 +75,19 @@ export default function AppList() {
     }
   };
 
+  const checkSystemVersion = async () => {
+    try {
+      const response = await fetch('/api/system/version');
+      const data = await response.json();
+      setSystemNeedsUpgrade(data.needsUpgrade || false);
+    } catch (error) {
+      console.error('Failed to check system version:', error);
+    }
+  };
+
   useEffect(() => {
     fetchApps();
+    checkSystemVersion();
   }, []);
 
   const handleInstallClick = () => {
@@ -193,6 +206,33 @@ export default function AppList() {
     }
   };
 
+  const handleSystemUpgrade = async () => {
+    setUpgradingSystem(true);
+    try {
+      const response = await fetch('/api/system/apps/upgrade-system', {
+        method: 'POST',
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        setToast({
+          message: `System upgraded successfully from v${data.oldVersion} to v${data.newVersion}!`,
+          type: 'success'
+        });
+        await fetchApps();
+        await checkSystemVersion();
+      } else {
+        setToast({ message: data.error || 'Failed to upgrade system', type: 'error' });
+      }
+    } catch (error) {
+      console.error('Error upgrading system:', error);
+      setToast({ message: 'Failed to upgrade system', type: 'error' });
+    } finally {
+      setUpgradingSystem(false);
+    }
+  };
+
   const filteredApps = apps.filter(app =>
     app.label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     app.description?.toLowerCase().includes(searchQuery.toLowerCase())
@@ -290,7 +330,21 @@ export default function AppList() {
                 </div>
                 <div className={styles.appDescription}>{app.description || 'No description'}</div>
               </div>
-              {app.id !== 'system' && (() => {
+              {app.id === 'system' ? (
+                <div className={styles.buttonGroup}>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      handleSystemUpgrade();
+                    }}
+                    disabled={upgradingSystem || !systemNeedsUpgrade}
+                    className={styles.upgradeButton}
+                    title={!systemNeedsUpgrade ? 'System is up to date' : ''}
+                  >
+                    {upgradingSystem ? 'Upgrading...' : systemNeedsUpgrade ? 'Upgrade' : 'Up to Date'}
+                  </button>
+                </div>
+              ) : (() => {
                 const { canUninstall, dependents } = canUninstallApp(app.id, apps);
                 return (
                   <div className={styles.buttonGroup}>

@@ -30,6 +30,8 @@ export default async function HomePage() {
         isAdmin={hasAdminAuth}
         brandName={brandSettings.brandName}
         brandIcon={brandSettings.brandIcon}
+        authorizations={user.authorizations}
+        isAssumedIdentity={user.isAssumedIdentity}
       />
       <AppMenu />
       <div style={{

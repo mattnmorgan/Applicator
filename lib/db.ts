@@ -95,6 +95,7 @@ export interface Session {
   userId: string;
   createdAt: string;
   expiresAt: string;
+  originalSessionId?: string; // Reference to the original session when assuming identity
 }
 
 // Authority management
@@ -114,6 +115,11 @@ export async function createAuthority(
     authorizations,
     apps,
   };
+  const existingAuthority = await redis.get(`authority:${id}`);
+
+  if (existingAuthority) {
+    return JSON.parse(existingAuthority) as Authority;
+  }
 
   await redis.set(`authority:${id}`, JSON.stringify(authority));
   return authority;
@@ -161,6 +167,13 @@ export async function initializeAuthorities(): Promise<void> {
     "developer",
     "Developer",
     "Permits developer access to the system",
+    "system"
+  );
+
+  await createAuthorization(
+    "assume-identity",
+    "Assume User Identities",
+    "Allows user to impersonate other users in the system",
     "system"
   );
 
@@ -229,6 +242,11 @@ export async function createAuthorization(
     description,
     app,
   };
+  const existingAuthorization = await redis.get(`authorization:${id}`);
+
+  if (existingAuthorization) {
+    return JSON.parse(existingAuthorization) as Authorization;
+  }
 
   await redis.set(`authorization:${id}`, JSON.stringify(authorization));
   return authorization;

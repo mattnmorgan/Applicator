@@ -105,6 +105,8 @@ export default async function UserSettingsLayout({
         isAdmin={hasAdminAuth}
         brandName={brandSettings.brandName}
         brandIcon={brandSettings.brandIcon}
+        authorizations={user.authorizations}
+        isAssumedIdentity={user.isAssumedIdentity}
       />
       <div
         style={{

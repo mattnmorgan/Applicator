@@ -18,6 +18,8 @@ export default function AppPage() {
     isAdmin: boolean;
   } | null>(null);
   const [userApps, setUserApps] = useState<Array<{ id: string; label: string }>>([]);
+  const [authorizations, setAuthorizations] = useState<string[]>([]);
+  const [isAssumedIdentity, setIsAssumedIdentity] = useState(false);
   const [brandName, setBrandName] = useState("Applicator");
   const [brandIcon, setBrandIcon] = useState<string | undefined>(undefined);
   const [appVersion, setAppVersion] = useState<string | null>(null);
@@ -34,6 +36,8 @@ export default function AppPage() {
             isAdmin: data.user.isAdmin || false,
           });
           setUserApps(data.userApps || []);
+          setAuthorizations(data.authorizations || []);
+          setIsAssumedIdentity(data.isAssumedIdentity || false);
         }
       })
       .catch((err) => {
@@ -206,6 +210,8 @@ export default function AppPage() {
         isAdmin={user?.isAdmin || false}
         brandName={brandName}
         brandIcon={brandIcon}
+        authorizations={authorizations}
+        isAssumedIdentity={isAssumedIdentity}
       />
       <AppMenu />
       <div

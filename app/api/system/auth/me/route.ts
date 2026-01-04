@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
+import { cookies } from 'next/headers';
 import { getCurrentUser } from '@/lib/auth';
-import { getAuthority, getUserAuthorizations, getAllApps } from '@/lib/db';
+import { getAuthority, getUserAuthorizations, getAllApps, getSession } from '@/lib/db';
 
 export async function GET() {
   try {
@@ -12,6 +13,12 @@ export async function GET() {
         { status: 401 }
       );
     }
+
+    // Check if this is an assumed identity
+    const cookieStore = await cookies();
+    const sessionId = cookieStore.get('session')?.value;
+    const session = sessionId ? await getSession(sessionId) : null;
+    const isAssumedIdentity = !!session?.originalSessionId;
 
     const profilePictureUrl = user.profilePicture ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}` : undefined;
 
@@ -43,6 +50,7 @@ export async function GET() {
       },
       authorizations,
       userApps,
+      isAssumedIdentity,
     });
   } catch (error) {
     console.error('Failed to get current user:', error);
