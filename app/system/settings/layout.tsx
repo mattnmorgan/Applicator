@@ -20,11 +20,11 @@ function getSettingsMenuItems(hasDeveloperAuth: boolean): TabsetItem[] {
   const unsortedSettingsMenuItems: TabsetItem[] = [
     {
       label: "Home",
-      path: "/settings",
+      path: "/system/settings",
     },
     {
       label: "Apps",
-      path: "/settings/apps",
+      path: "/system/settings/apps",
     },
     {
       label: "User Management",
@@ -32,7 +32,7 @@ function getSettingsMenuItems(hasDeveloperAuth: boolean): TabsetItem[] {
       children: [
         {
           label: "Users",
-          path: "/settings/user-management/users",
+          path: "/system/settings/user-management/users",
         },
         {
           label: "Access Management",
@@ -40,11 +40,11 @@ function getSettingsMenuItems(hasDeveloperAuth: boolean): TabsetItem[] {
           children: [
             {
               label: "Authorities",
-              path: "/settings/user-management/access-management/authorities",
+              path: "/system/settings/user-management/access-management/authorities",
             },
             {
               label: "Authorizations",
-              path: "/settings/user-management/access-management/authorizations",
+              path: "/system/settings/user-management/access-management/authorizations",
             },
           ],
         },
@@ -60,11 +60,11 @@ function getSettingsMenuItems(hasDeveloperAuth: boolean): TabsetItem[] {
       children: [
         {
           label: "Database",
-          path: "/settings/debug/database",
+          path: "/system/settings/debug/database",
         },
         {
           label: "Logs",
-          path: "/settings/debug/logs",
+          path: "/system/settings/debug/logs",
         },
         {
           label: "Test",
@@ -72,11 +72,11 @@ function getSettingsMenuItems(hasDeveloperAuth: boolean): TabsetItem[] {
           children: [
             {
               label: "Logs",
-              path: "/settings/debug/test/logs",
+              path: "/system/settings/debug/test/logs",
             },
             {
               label: "Notifications",
-              path: "/settings/debug/test/notifications",
+              path: "/system/settings/debug/test/notifications",
             },
           ],
         },
@@ -95,7 +95,7 @@ export default async function SettingsLayout({
   // Check if first-time setup is needed
   const needsSetup = await isFirstTimeSetup();
   if (needsSetup) {
-    redirect("/setup");
+    redirect("/system/setup");
   }
 
   // Check if user is authenticated

@@ -81,7 +81,7 @@ export default async function UserSettingsLayout({
   // Check if first-time setup is needed
   const needsSetup = await isFirstTimeSetup();
   if (needsSetup) {
-    redirect("/setup");
+    redirect("/system/setup");
   }
 
   // Check if user is authenticated
