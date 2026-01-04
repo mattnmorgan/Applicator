@@ -80,10 +80,7 @@ export async function POST(request: NextRequest) {
       appAttributes = JSON.parse(appJsonEntry.getData().toString("utf8"));
 
       // Extract UI bundle (app.js or {appId}.js)
-      const bundleEntry = zipEntries.find(
-        (e) =>
-          e.entryName === `${appAttributes.id}.js` || e.entryName === "task.js"
-      );
+      const bundleEntry = zipEntries.find((e) => e.entryName === "app.js");
       if (!bundleEntry) {
         return NextResponse.json(
           { error: "Invalid app package: missing UI bundle" },
@@ -328,7 +325,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Save the UI bundle (in root of app directory)
-    const bundlePath = path.join(appDir, `${appAttributes.id}.js`);
+    const bundlePath = path.join(appDir, `app.js`);
     await fs.writeFile(bundlePath, uiBundle, "utf-8");
 
     // Save API handlers
