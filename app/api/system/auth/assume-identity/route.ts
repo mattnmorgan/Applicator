@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { cookies } from 'next/headers';
 import { v4 as uuidv4 } from 'uuid';
-import { getCurrentUser, userHasAuthorization } from '@/lib/auth';
-import { getUserById, getRedisClient } from '@/lib/db';
+import { getCurrentUser } from '@/lib/auth';
+import { getUserById, userHasAuthorization } from '@/lib/db';
+import { getRedisClient } from '@/lib/redis';
 import type { Session } from '@/lib/db';
 
 export async function POST(request: NextRequest) {

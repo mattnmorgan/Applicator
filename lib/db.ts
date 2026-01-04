@@ -137,14 +137,6 @@ export async function getAuthority(id: string): Promise<Authority | null> {
 }
 
 export async function initializeAuthorities(): Promise<void> {
-  const redis = getRedisClient();
-
-  // Check if authorities already exist
-  const existingAdmin = await redis.get("authority:admin");
-  if (existingAdmin) {
-    return; // Authorities already initialized
-  }
-
   // Create the system app
   await createApp(
     "system",
@@ -325,6 +317,11 @@ export async function createApp(
     widgets,
     dependencies,
   };
+  const existingApp = await redis.get(`app:${id}`);
+
+  if (existingApp) {
+    return JSON.parse(existingApp) as App;
+  }
 
   await redis.set(`app:${id}`, JSON.stringify(app));
   return app;

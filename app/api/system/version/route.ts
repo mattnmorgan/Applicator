@@ -5,7 +5,7 @@ import { getApp } from '@/lib/db';
 const CURRENT_SYSTEM_VERSION = {
   major: 1,
   minor: 0,
-  dev: 1,
+  dev: 2,
 };
 
 export async function GET() {
