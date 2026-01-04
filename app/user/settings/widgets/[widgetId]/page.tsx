@@ -17,7 +17,9 @@ export default function AppWidgetPage() {
   useEffect(() => {
     async function fetchWidgetInfo() {
       try {
-        const response = await fetch(`/api/system/apps/widgets/${widgetId}`);
+        const response = await fetch(
+          `/api/system/apps/${appId}/widgets/${widgetId}`
+        );
         if (!response.ok) {
           const errorData = await response.json();
 

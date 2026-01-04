@@ -145,7 +145,19 @@ export async function initializeAuthorities(): Promise<void> {
     { major: 1, minor: 0, dev: 0 },
     "Matthew Morgan",
     "matthew@morgantech.info",
-    "Core system application"
+    "Core system application",
+    [],
+    [
+      {
+        name: "",
+        description: "",
+        id: "",
+        target: "system-settings",
+        component: "",
+        appId: "system",
+      },
+    ],
+    {}
   );
 
   // Create default authorizations

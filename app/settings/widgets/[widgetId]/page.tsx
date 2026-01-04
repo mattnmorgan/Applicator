@@ -19,7 +19,7 @@ export default function SystemSettingsWidgetPage() {
     async function fetchWidgetInfo() {
       try {
         const response = await fetch(
-          `/api/system/apps/widgets/${widgetId}/system`
+          `/api/system/apps/${appId}/widgets/${widgetId}/system`
         );
         if (!response.ok) {
           const error = await response.json();
