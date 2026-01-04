@@ -159,6 +159,10 @@ export const logger = {
     await logToRedis("error", sender, message, userId);
   },
 
+  trace: async (sender: string, userId?: string): Promise<void> => {
+    await logToRedis("debug", sender, new Error().stack, userId);
+  },
+
   /**
    * Create a request-aware logger that automatically extracts userId
    */
@@ -181,6 +185,11 @@ export const logger = {
     error: async (sender: string, message: string): Promise<void> => {
       const userId = await getUserIdFromRequest(request);
       await logToRedis("error", sender, message, userId);
+    },
+
+    trace: async (sender: string): Promise<void> => {
+      const userId = await getUserIdFromRequest(request);
+      await logToRedis("debug", sender, new Error().stack, userId);
     },
   }),
 };

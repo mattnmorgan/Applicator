@@ -1,28 +1,38 @@
-import { NextRequest, NextResponse } from 'next/server';
-import { getSession, userHasAuthorization, getApp, deleteApp, getAllAuthorizations, deleteAuthorization, getAllAuthorities, updateAuthority, getAllApps } from '@/lib/db';
-import { getSystemSetting } from '@/lib/db';
-import { logger } from '@/lib/logging';
-import { createRecordManager } from '@/lib/sdk';
-import path from 'path';
-import fs from 'fs/promises';
+import { NextRequest, NextResponse } from "next/server";
+import {
+  getSession,
+  userHasAuthorization,
+  getApp,
+  deleteApp,
+  getAllAuthorizations,
+  deleteAuthorization,
+  getAllAuthorities,
+  updateAuthority,
+  getAllApps,
+} from "@/lib/db";
+import { getSystemSetting } from "@/lib/db";
+import { logger } from "@/lib/logging";
+import { createRecordManager } from "@/lib/sdk";
+import path from "path";
+import fs from "fs/promises";
 
 export async function POST(request: NextRequest) {
   try {
     // Check authentication
-    const sessionId = request.cookies.get('session')?.value;
+    const sessionId = request.cookies.get("session")?.value;
     if (!sessionId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const session = await getSession(sessionId);
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     // Check if user has admin authorization
-    const hasAdmin = await userHasAuthorization(session.userId, 'admin');
+    const hasAdmin = await userHasAuthorization(session.userId, "admin");
     if (!hasAdmin) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Parse request body
@@ -30,39 +40,45 @@ export async function POST(request: NextRequest) {
     const { appId } = body;
 
     if (!appId) {
-      return NextResponse.json({ error: 'App ID is required' }, { status: 400 });
+      return NextResponse.json(
+        { error: "App ID is required" },
+        { status: 400 }
+      );
     }
 
     // Check if app exists
     const app = await getApp(appId);
     if (!app) {
-      return NextResponse.json({ error: 'App not found' }, { status: 404 });
+      return NextResponse.json({ error: "App not found" }, { status: 404 });
     }
 
     // Prevent uninstalling system app
-    if (appId === 'system') {
+    if (appId === "system") {
       const errorMsg = `App uninstallation rejected: Cannot uninstall system app`;
-      await logger.fromRequest(request).error('system', errorMsg);
+      await logger.fromRequest(request).error("system", errorMsg);
       return NextResponse.json(
-        { error: 'Cannot uninstall system app' },
+        { error: "Cannot uninstall system app" },
         { status: 400 }
       );
     }
 
     // Check if any other apps depend on this app
     const allApps = await getAllApps();
-    const dependentApps = allApps.filter(otherApp =>
-      otherApp.id !== appId &&
-      otherApp.dependencies &&
-      Object.keys(otherApp.dependencies).includes(appId)
+    const dependentApps = allApps.filter(
+      (otherApp) =>
+        otherApp.id !== appId &&
+        otherApp.dependencies &&
+        Object.keys(otherApp.dependencies).includes(appId)
     );
 
     if (dependentApps.length > 0) {
-      const dependentAppNames = dependentApps.map(a => a.label).join(', ');
+      const dependentAppNames = dependentApps.map((a) => a.label).join(", ");
       const errorMsg = `App uninstallation rejected: Cannot uninstall '${app.label}' because it is required by: ${dependentAppNames}`;
-      await logger.fromRequest(request).error('system', errorMsg);
+      await logger.fromRequest(request).error("system", errorMsg);
       return NextResponse.json(
-        { error: `Cannot uninstall this app because it is required by: ${dependentAppNames}` },
+        {
+          error: `Cannot uninstall this app because it is required by: ${dependentAppNames}`,
+        },
         { status: 400 }
       );
     }
@@ -73,7 +89,9 @@ export async function POST(request: NextRequest) {
 
     // Delete all authorizations for this app
     const allAuthorizations = await getAllAuthorizations();
-    const appAuthorizations = allAuthorizations.filter(auth => auth.app === appId);
+    const appAuthorizations = allAuthorizations.filter(
+      (auth) => auth.app === appId
+    );
 
     for (const auth of appAuthorizations) {
       await deleteAuthorization(auth.id);
@@ -83,16 +101,24 @@ export async function POST(request: NextRequest) {
     const authorities = await getAllAuthorities();
     for (const authority of authorities) {
       if (authority.apps && authority.apps.includes(appId)) {
-        const updatedApps = authority.apps.filter(id => id !== appId);
-        await updateAuthority(authority.id, { apps: updatedApps });
+        const updatedApps = authority.apps.filter((id) => id !== appId);
+        await updateAuthority(
+          authority.userId ? `user-specific:${authority.id}` : authority.id,
+          { apps: updatedApps }
+        );
       }
 
       // Also remove app's authorizations from authorities
       const updatedAuthorizations = authority.authorizations.filter(
-        authId => !authId.startsWith(`${appId}:`)
+        (authId) => !authId.startsWith(`${appId}:`)
       );
       if (updatedAuthorizations.length !== authority.authorizations.length) {
-        await updateAuthority(authority.id, { authorizations: updatedAuthorizations });
+        await updateAuthority(
+          authority.userId ? `user-specific:${authority.id}` : authority.id,
+          {
+            authorizations: updatedAuthorizations,
+          }
+        );
       }
     }
 
@@ -101,40 +127,47 @@ export async function POST(request: NextRequest) {
 
     // Delete app directory from storage (includes icon, bundle, and API handlers)
     try {
-      const storagePath = await getSystemSetting('storage');
+      const storagePath = await getSystemSetting("storage");
       if (storagePath) {
-        const appDir = path.join(storagePath, 'apps', appId);
+        const appDir = path.join(storagePath, "apps", appId);
         await fs.rm(appDir, { recursive: true, force: true });
       }
     } catch (error) {
-      console.error('Error deleting app files:', error);
+      console.error("Error deleting app files:", error);
       // Continue even if file deletion fails
     }
 
     // Log app uninstallation
-    await logger.fromRequest(request).info('system', `Application uninstalled: ${app.label} (${appId})`);
+    await logger
+      .fromRequest(request)
+      .info("system", `Application uninstalled: ${app.label} (${appId})`);
 
     return NextResponse.json({
       success: true,
-      message: 'App uninstalled successfully',
+      message: "App uninstalled successfully",
     });
   } catch (error) {
-    console.error('Error uninstalling app:', error);
+    console.error("Error uninstalling app:", error);
 
     // Log uninstallation failure
     try {
       const body = await request.json().catch(() => ({}));
-      const appId = body.appId || 'unknown';
-      await logger.fromRequest(request).error(
-        'system',
-        `App uninstallation failed for '${appId}': ${error instanceof Error ? error.message : String(error)}`
-      );
+      const appId = body.appId || "unknown";
+      await logger
+        .fromRequest(request)
+        .error(
+          "system",
+          `App uninstallation failed for '${appId}': ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        );
+      await logger.fromRequest(request).debug("system", error.stack);
     } catch (logError) {
-      console.error('Failed to log uninstallation error:', logError);
+      console.error("Failed to log uninstallation error:", logError);
     }
 
     return NextResponse.json(
-      { error: 'Internal server error' },
+      { error: "Internal server error" },
       { status: 500 }
     );
   }

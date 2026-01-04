@@ -24,7 +24,7 @@
  * ```
  */
 
-import { logger as systemLogger, type LogLevel } from '../logging';
+import { logger as systemLogger, type LogLevel } from "../logging";
 
 export interface LoggerOptions {
   appId: string;
@@ -70,6 +70,10 @@ export class Logger {
    */
   async debug(message: string): Promise<void> {
     await systemLogger.debug(this.appId, message, this.userId);
+  }
+
+  async trace(): Promise<void> {
+    await systemLogger.trace(this.appId, this.userId);
   }
 }
 
