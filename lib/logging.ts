@@ -160,7 +160,7 @@ export const logger = {
   },
 
   trace: async (sender: string, userId?: string): Promise<void> => {
-    await logToRedis("debug", sender, new Error().stack, userId);
+    await logToRedis("debug", sender, new Error().stack || "", userId);
   },
 
   /**
@@ -189,7 +189,7 @@ export const logger = {
 
     trace: async (sender: string): Promise<void> => {
       const userId = await getUserIdFromRequest(request);
-      await logToRedis("debug", sender, new Error().stack, userId);
+      await logToRedis("debug", sender, new Error().stack || "", userId);
     },
   }),
 };

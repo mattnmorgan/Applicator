@@ -52,6 +52,9 @@ async function buildPackage() {
   // Add all API handler files
   archive.directory("dist/api/", "api");
 
+  // Add all asset files
+  archive.directory("dist/assets/", "assets");
+
   // Finalize the archive
   await archive.finalize();
 }
