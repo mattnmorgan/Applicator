@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import ProfileIndicator from '../ProfileIndicator';
-import ButtonMenu from '../ButtonMenu';
-import Row from '../Row';
-import UserCreate from '../UserCreate';
-import styles from './UserList.module.css';
+import { useState, useEffect } from "react";
+import ProfileIndicator from "../ProfileIndicator";
+import ButtonMenu from "../ButtonMenu";
+import Row from "../Row";
+import UserCreate from "../UserCreate";
+import styles from "./UserList.module.css";
 
 interface User {
   id: string;
@@ -16,23 +16,33 @@ interface User {
   profilePicture?: string;
   authority: string;
   authorityName: string;
+  allAuthorizations: {
+    authorizations: string[];
+    userAuthorizations: string[];
+  };
+  allAccesses: {
+    accesses: string[];
+    userAccesses: string[];
+  };
 }
 
 export default function UserList() {
   const [users, setUsers] = useState<User[]>([]);
-  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(new Set());
-  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(
+    new Set()
+  );
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/system/model/users');
+      const response = await fetch("/api/system/model/users");
       const data = await response.json();
       setUsers(data.users || []);
     } catch (error) {
-      console.error('Failed to fetch users:', error);
+      console.error("Failed to fetch users:", error);
     }
   };
 
@@ -42,7 +52,7 @@ export default function UserList() {
 
   const handleSelectAll = (checked: boolean) => {
     if (checked) {
-      setSelectedUserIds(new Set(filteredUsers.map(u => u.id)));
+      setSelectedUserIds(new Set(filteredUsers.map((u) => u.id)));
     } else {
       setSelectedUserIds(new Set());
     }
@@ -63,9 +73,9 @@ export default function UserList() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/system/model/users/status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/system/model/users/status", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userIds: Array.from(selectedUserIds),
           isActive,
@@ -77,18 +87,21 @@ export default function UserList() {
         setSelectedUserIds(new Set());
       }
     } catch (error) {
-      console.error('Failed to update user status:', error);
+      console.error("Failed to update user status:", error);
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredUsers = users.filter(user =>
-    user.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.username.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredUsers = users.filter(
+    (user) =>
+      user.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.username.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  const allSelected = filteredUsers.length > 0 && filteredUsers.every(u => selectedUserIds.has(u.id));
+  const allSelected =
+    filteredUsers.length > 0 &&
+    filteredUsers.every((u) => selectedUserIds.has(u.id));
   const someSelected = selectedUserIds.size > 0;
 
   const handleUserCreated = async () => {
@@ -113,14 +126,20 @@ export default function UserList() {
           setEditingUser(null);
         }}
         onUserCreated={handleUserCreated}
-        editUser={editingUser ? {
-          id: editingUser.id,
-          displayName: editingUser.displayName,
-          username: editingUser.username,
-          email: editingUser.email,
-          authority: editingUser.authority,
-          profilePicture: editingUser.profilePicture,
-        } : undefined}
+        editUser={
+          editingUser
+            ? {
+                id: editingUser.id,
+                displayName: editingUser.displayName,
+                username: editingUser.username,
+                email: editingUser.email,
+                authority: editingUser.authority,
+                profilePicture: editingUser.profilePicture,
+                authorizations: editingUser.allAuthorizations,
+                apps: editingUser.allAppAccess,
+              }
+            : undefined
+        }
       />
     );
   }
@@ -128,7 +147,10 @@ export default function UserList() {
   return (
     <div className={styles.container}>
       <div className={styles.toolbar}>
-        <button className={styles.addButton} onClick={() => setShowCreateUser(true)}>
+        <button
+          className={styles.addButton}
+          onClick={() => setShowCreateUser(true)}
+        >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path
               d="M8 3V13M3 8H13"
@@ -143,14 +165,18 @@ export default function UserList() {
           disabled={!someSelected}
           alignment="left"
           trigger={
-            <button className={`${styles.actionButton} ${!someSelected ? styles.actionButtonDisabled : ''}`}>
+            <button
+              className={`${styles.actionButton} ${
+                !someSelected ? styles.actionButtonDisabled : ""
+              }`}
+            >
               <span>Actions</span>
               <svg
                 width="12"
                 height="12"
                 viewBox="0 0 12 12"
                 fill="none"
-                style={{ transition: 'transform 0.2s' }}
+                style={{ transition: "transform 0.2s" }}
               >
                 <path
                   d="M3 4.5L6 7.5L9 4.5"
@@ -163,10 +189,16 @@ export default function UserList() {
             </button>
           }
         >
-          <div className={styles.menuItem} onClick={() => handleUpdateStatus(true)}>
+          <div
+            className={styles.menuItem}
+            onClick={() => handleUpdateStatus(true)}
+          >
             Activate
           </div>
-          <div className={styles.menuItem} onClick={() => handleUpdateStatus(false)}>
+          <div
+            className={styles.menuItem}
+            onClick={() => handleUpdateStatus(false)}
+          >
             Deactivate
           </div>
         </ButtonMenu>
@@ -181,7 +213,7 @@ export default function UserList() {
       </div>
 
       <div className={styles.userList}>
-        {filteredUsers.map(user => (
+        {filteredUsers.map((user) => (
           <Row key={user.id}>
             <input
               type="checkbox"
@@ -189,7 +221,11 @@ export default function UserList() {
               checked={selectedUserIds.has(user.id)}
               onChange={(e) => handleSelectUser(user.id, e.target.checked)}
             />
-            <div className={styles.userInfo} onClick={() => handleEditUser(user.id)} style={{ cursor: 'pointer' }}>
+            <div
+              className={styles.userInfo}
+              onClick={() => handleEditUser(user.id)}
+              style={{ cursor: "pointer" }}
+            >
               <ProfileIndicator
                 displayName={user.displayName}
                 profilePicture={user.profilePicture}
@@ -199,17 +235,19 @@ export default function UserList() {
               <span className={styles.badgeAuthority}>
                 {user.authorityName}
               </span>
-              <span className={`${styles.badge} ${user.isActive ? styles.badgeActive : styles.badgeInactive}`}>
-                {user.isActive ? 'Active' : 'Inactive'}
+              <span
+                className={`${styles.badge} ${
+                  user.isActive ? styles.badgeActive : styles.badgeInactive
+                }`}
+              >
+                {user.isActive ? "Active" : "Inactive"}
               </span>
             </div>
           </Row>
         ))}
 
         {filteredUsers.length === 0 && (
-          <div className={styles.emptyState}>
-            No users found
-          </div>
+          <div className={styles.emptyState}>No users found</div>
         )}
       </div>
     </div>

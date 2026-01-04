@@ -13,9 +13,9 @@ import {
   type User,
   type Authority,
   type Authorization,
-} from './db';
+} from "./db";
 
-export interface UserWithAuthority extends Omit<User, 'passwordHash'> {
+export interface UserWithAuthority extends Omit<User, "passwordHash"> {
   authorityName?: string;
 }
 
@@ -68,7 +68,9 @@ export class SystemInterface {
    * @param includeInactive Whether to include inactive users (default: false)
    * @returns Array of all users with their authority names
    */
-  async getUsers(includeInactive: boolean = false): Promise<UserWithAuthority[]> {
+  async getUsers(
+    includeInactive: boolean = false
+  ): Promise<UserWithAuthority[]> {
     const users = await getAllUsers();
     const authorities = await getAllAuthorities();
     const authorityMap = new Map(authorities.map((a) => [a.id, a.name]));
@@ -197,7 +199,7 @@ export class SystemInterface {
    * @returns Array of authorization IDs the user has
    */
   async getUserAuthorizationIds(userId: string): Promise<string[]> {
-    return await getUserAuthorizations(userId);
+    return (await getUserAuthorizations(userId)).authorizations;
   }
 
   /**
@@ -211,7 +213,7 @@ export class SystemInterface {
     const authIds = await getUserAuthorizations(userId);
     const allAuths = await this.getAuthorizations();
 
-    return allAuths.filter((auth) => authIds.includes(auth.id));
+    return allAuths.filter((auth) => authIds.authorizations.includes(auth.id));
   }
 
   /**
@@ -223,7 +225,7 @@ export class SystemInterface {
   async checkMyAuthorization(authorizationId: string): Promise<boolean> {
     if (!this.requestingUserId) {
       throw new Error(
-        'requestingUserId must be set to use checkMyAuthorization'
+        "requestingUserId must be set to use checkMyAuthorization"
       );
     }
     return await userHasAuthorization(this.requestingUserId, authorizationId);
@@ -237,10 +239,10 @@ export class SystemInterface {
   async getMyAuthorizationIds(): Promise<string[]> {
     if (!this.requestingUserId) {
       throw new Error(
-        'requestingUserId must be set to use getMyAuthorizationIds'
+        "requestingUserId must be set to use getMyAuthorizationIds"
       );
     }
-    return await getUserAuthorizations(this.requestingUserId);
+    return (await getUserAuthorizations(this.requestingUserId)).authorizations;
   }
 
   /**
@@ -251,7 +253,7 @@ export class SystemInterface {
   async getMyAuthorizationDetails(): Promise<AuthorizationWithApp[]> {
     if (!this.requestingUserId) {
       throw new Error(
-        'requestingUserId must be set to use getMyAuthorizationDetails'
+        "requestingUserId must be set to use getMyAuthorizationDetails"
       );
     }
     return await this.getUserAuthorizationDetails(this.requestingUserId);
@@ -264,7 +266,7 @@ export class SystemInterface {
    */
   async getMyUserInfo(): Promise<UserWithAuthority | null> {
     if (!this.requestingUserId) {
-      throw new Error('requestingUserId must be set to use getMyUserInfo');
+      throw new Error("requestingUserId must be set to use getMyUserInfo");
     }
     return await this.getUser(this.requestingUserId);
   }

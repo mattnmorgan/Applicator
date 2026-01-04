@@ -41,6 +41,7 @@ export interface Authority {
   icon?: string;
   authorizations: string[]; // Array of authorization IDs
   apps: string[]; // Array of app IDs that this authority has access to
+  userId?: string; // User ID if this is a user-specific authority
 }
 
 export interface Authorization {
@@ -219,6 +220,47 @@ export async function getUserCountByAuthority(
   return users.filter((user) => user.authority === authorityId).length;
 }
 
+// User-specific authority management
+export async function createOrUpdateUserAuthority(
+  userId: string,
+  customAuthorizations: string[] = [],
+  customApps: string[] = []
+): Promise<Authority | null> {
+  const redis = getRedisClient();
+  const user = await getUserById(userId);
+
+  if (!user) {
+    return null;
+  }
+
+  // Create or update user-specific authority
+  const userAuthority: Authority = {
+    id: userId,
+    name: `${user.displayName}`,
+    authorizations: customAuthorizations,
+    apps: customApps,
+    userId: userId,
+  };
+
+  await redis.set(
+    `authority:user-specific:${userId}`,
+    JSON.stringify(userAuthority)
+  );
+  return userAuthority;
+}
+
+export async function getUserAuthority(
+  userId: string
+): Promise<Authority | null> {
+  const userAuthorityId = `user-specific:${userId}`;
+  return await getAuthority(userAuthorityId);
+}
+
+export async function deleteUserAuthority(userId: string): Promise<void> {
+  const userAuthorityId = `user-specific:${userId}`;
+  await deleteAuthority(userAuthorityId);
+}
+
 // Authorization management
 export async function createAuthorization(
   id: string,
@@ -383,27 +425,84 @@ export async function userHasAuthorization(
     return false;
   }
 
+  // Check role-based authority
   const authority = await getAuthority(user.authority);
-  if (!authority) {
-    return false;
+  if (authority && authority.authorizations.includes(authorizationId)) {
+    return true;
   }
 
-  return authority.authorizations.includes(authorizationId);
+  // Check user-specific authority
+  const userAuthority = await getUserAuthority(userId);
+  if (userAuthority && userAuthority.authorizations.includes(authorizationId)) {
+    return true;
+  }
+
+  return false;
 }
 
 // Helper function to get all authorizations for a user
-export async function getUserAuthorizations(userId: string): Promise<string[]> {
+export async function getUserAuthorizations(
+  userId: string
+): Promise<{ authorizations: string[]; userAuthorizations: string[] }> {
   const user = await getUserById(userId);
   if (!user) {
-    return [];
+    return { authorizations: [], userAuthorizations: [] };
   }
 
+  const authorizationsSet = new Set<string>();
+  const userAuthorizations: string[] = [];
+
+  // Add role-based authorizations
   const authority = await getAuthority(user.authority);
-  if (!authority) {
-    return [];
+  if (authority && authority.authorizations) {
+    authority.authorizations.forEach((authId) => {
+      authorizationsSet.add(authId);
+    });
   }
 
-  return authority.authorizations;
+  // Add user-specific authority authorizations
+  const userAuthority = await getUserAuthority(userId);
+  if (userAuthority && userAuthority.authorizations) {
+    userAuthority.authorizations.forEach((authId) => {
+      authorizationsSet.add(authId);
+      userAuthorizations.push(authId);
+    });
+  }
+
+  return {
+    authorizations: Array.from(authorizationsSet),
+    userAuthorizations: userAuthorizations,
+  };
+}
+
+// Helper function to get all app access for a user
+export async function getUserAppAccess(
+  userId: string
+): Promise<{ accesses: string[]; userAccesses: string[] }> {
+  const user = await getUserById(userId);
+  if (!user) {
+    return { accesses: [], userAccesses: [] };
+  }
+
+  const appsSet = new Set<string>();
+  const userAppAccesses: string[] = [];
+
+  // Add role-based app access
+  const authority = await getAuthority(user.authority);
+  if (authority && authority.apps) {
+    authority.apps.forEach((appId) => appsSet.add(appId));
+  }
+
+  // Add user-specific authority app access
+  const userAuthority = await getUserAuthority(userId);
+  if (userAuthority && userAuthority.apps) {
+    userAuthority.apps.forEach((appId) => {
+      appsSet.add(appId);
+      userAppAccesses.push(appId);
+    });
+  }
+
+  return { accesses: Array.from(appsSet), userAccesses: userAppAccesses };
 }
 
 // User management

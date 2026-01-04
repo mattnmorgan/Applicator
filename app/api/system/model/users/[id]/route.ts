@@ -1,10 +1,18 @@
-import { NextResponse } from 'next/server';
-import { getUserById, getAuthority, updateUser, getSession } from '@/lib/db';
-import { logger } from '@/lib/logging';
-import bcrypt from 'bcryptjs';
-import fs from 'fs';
-import path from 'path';
-import { getSystemSetting } from '@/lib/db';
+import { NextResponse } from "next/server";
+import {
+  getUserById,
+  getAuthority,
+  updateUser,
+  getSession,
+  createOrUpdateUserAuthority,
+  getUserAuthorizations,
+  getUserAppAccess,
+} from "@/lib/db";
+import { logger } from "@/lib/logging";
+import bcrypt from "bcryptjs";
+import fs from "fs";
+import path from "path";
+import { getSystemSetting } from "@/lib/db";
 
 export async function GET(
   request: Request,
@@ -15,13 +23,14 @@ export async function GET(
     const user = await getUserById(id);
 
     if (!user) {
-      return NextResponse.json(
-        { error: 'User not found' },
-        { status: 404 }
-      );
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
     const authority = await getAuthority(user.authority);
+
+    // Get all authorizations and app access for the user (merging role and user-specific)
+    const allAuthorizations = await getUserAuthorizations(id);
+    const allAppAccess = await getUserAppAccess(id);
 
     // Remove password hash and return user data
     const { passwordHash, ...sanitizedUser } = user;
@@ -29,14 +38,18 @@ export async function GET(
     return NextResponse.json({
       user: {
         ...sanitizedUser,
-        authorityName: authority?.name || 'Unknown',
-        profilePicture: user.profilePicture ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}` : undefined,
-      }
+        authorityName: authority?.name || "Unknown",
+        profilePicture: user.profilePicture
+          ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}`
+          : undefined,
+        allAuthorizations,
+        allAppAccess,
+      },
     });
   } catch (error) {
-    console.error('Failed to fetch user:', error);
+    console.error("Failed to fetch user:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch user' },
+      { error: "Failed to fetch user" },
       { status: 500 }
     );
   }
@@ -48,30 +61,44 @@ export async function PATCH(
 ) {
   try {
     // Check authentication
-    const sessionId = request.headers.get('cookie')?.split(';').find(c => c.trim().startsWith('session='))?.split('=')[1];
+    const sessionId = request.headers
+      .get("cookie")
+      ?.split(";")
+      .find((c) => c.trim().startsWith("session="))
+      ?.split("=")[1];
     if (!sessionId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const session = await getSession(sessionId);
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { id } = await params;
     const formData = await request.formData();
 
-    const displayName = formData.get('displayName') as string;
-    const username = formData.get('username') as string;
-    const email = formData.get('email') as string;
-    const password = formData.get('password') as string;
-    const authority = formData.get('authority') as string;
-    const profilePictureFile = formData.get('profilePicture') as File | null;
-    const clearProfilePicture = formData.get('clearProfilePicture') === 'true';
+    const displayName = formData.get("displayName") as string;
+    const username = formData.get("username") as string;
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+    const authority = formData.get("authority") as string;
+    const profilePictureFile = formData.get("profilePicture") as File | null;
+    const clearProfilePicture = formData.get("clearProfilePicture") === "true";
+
+    // Get custom authorizations and apps
+    const customAuthorizationsJson = formData.get(
+      "customAuthorizations"
+    ) as string;
+    const customAppsJson = formData.get("customApps") as string;
+    const customAuthorizations = customAuthorizationsJson
+      ? JSON.parse(customAuthorizationsJson)
+      : [];
+    const customApps = customAppsJson ? JSON.parse(customAppsJson) : [];
 
     if (!displayName || !username || !email) {
       return NextResponse.json(
-        { error: 'Display name, username, and email are required' },
+        { error: "Display name, username, and email are required" },
         { status: 400 }
       );
     }
@@ -97,17 +124,17 @@ export async function PATCH(
 
     // Handle profile picture upload if provided
     if (profilePictureFile) {
-      const systemStorage = await getSystemSetting('storage');
+      const systemStorage = await getSystemSetting("storage");
 
       if (!systemStorage) {
         return NextResponse.json(
-          { error: 'System storage not configured' },
+          { error: "System storage not configured" },
           { status: 500 }
         );
       }
 
       // Create directory structure
-      const userIconsDir = path.join(systemStorage, 'system', 'users', 'icons');
+      const userIconsDir = path.join(systemStorage, "system", "users", "icons");
       const userIconPath = path.join(userIconsDir, id);
 
       if (!fs.existsSync(userIconsDir)) {
@@ -119,30 +146,35 @@ export async function PATCH(
       }
 
       // Get file extension and save
-      const fileExtension = profilePictureFile.name.split('.').pop() || 'jpg';
+      const fileExtension = profilePictureFile.name.split(".").pop() || "jpg";
       const fileName = `profile.${fileExtension}`;
       const filePath = path.join(userIconPath, fileName);
 
       const buffer = Buffer.from(await profilePictureFile.arrayBuffer());
       fs.writeFileSync(filePath, buffer);
 
-      const relativePath = path.join('system', 'users', 'icons', id, fileName);
+      const relativePath = path.join("system", "users", "icons", id, fileName);
       updates.profilePicture = relativePath;
     }
 
     await updateUser(id, updates);
 
+    // Create or update user-specific authority based on custom authorizations and apps
+    await createOrUpdateUserAuthority(id, customAuthorizations, customApps);
+
     // Log user modification
-    await logger.fromRequest(request).info('system', `User modified: ${username} (${id})`);
+    await logger
+      .fromRequest(request)
+      .info("system", `User modified: ${username} (${id})`);
 
     return NextResponse.json({
       success: true,
-      message: 'User updated successfully'
+      message: "User updated successfully",
     });
   } catch (error) {
-    console.error('Failed to update user:', error);
+    console.error("Failed to update user:", error);
     return NextResponse.json(
-      { error: 'Failed to update user' },
+      { error: "Failed to update user" },
       { status: 500 }
     );
   }
