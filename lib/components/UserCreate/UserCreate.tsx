@@ -207,6 +207,8 @@ export default function UserCreate({
     }
   };
 
+  const filteredApps = availableApps.filter((app) => app.id !== "system");
+
   return (
     <div className={styles.container}>
       <div className={styles.header}>
@@ -368,12 +370,12 @@ export default function UserCreate({
               border: "1px solid #334155",
             }}
           >
-            {availableApps.length === 0 ? (
+            {filteredApps.length === 0 ? (
               <div style={{ color: "#94a3b8", fontSize: "14px" }}>
                 No apps available
               </div>
             ) : (
-              availableApps.map((app) => (
+              filteredApps.map((app) => (
                 <label
                   key={app.id}
                   style={{

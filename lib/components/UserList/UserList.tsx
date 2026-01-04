@@ -20,7 +20,7 @@ interface User {
     authorizations: string[];
     userAuthorizations: string[];
   };
-  allAccesses: {
+  allAppAccess: {
     accesses: string[];
     userAccesses: string[];
   };
