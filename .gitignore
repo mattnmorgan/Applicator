@@ -5,4 +5,4 @@ production/
 .env
 .env.local
 dist/
-logs/
+*.log

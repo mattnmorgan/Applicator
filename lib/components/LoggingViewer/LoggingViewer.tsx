@@ -40,7 +40,7 @@ export default function LoggingViewer() {
 
       const currentOffset = reset ? 0 : offset;
       const response = await fetch(
-        `/api/system/logs?limit=${limit}&offset=${currentOffset}`
+        `/api/system/model/logs?limit=${limit}&offset=${currentOffset}`
       );
       if (response.ok) {
         const data = await response.json();
@@ -69,7 +69,7 @@ export default function LoggingViewer() {
     }
 
     try {
-      const response = await fetch("/api/system/logs", {
+      const response = await fetch("/api/system/model/logs", {
         method: "DELETE",
       });
 

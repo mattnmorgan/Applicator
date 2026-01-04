@@ -1,23 +1,23 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import styles from './page.module.css';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import styles from "./page.module.css";
 
 export default function ProfilePage() {
   const router = useRouter();
-  const [displayName, setDisplayName] = useState('');
-  const [email, setEmail] = useState('');
-  const [currentPassword, setCurrentPassword] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [displayName, setDisplayName] = useState("");
+  const [email, setEmail] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>('');
+  const [previewUrl, setPreviewUrl] = useState<string>("");
   const [clearProfilePicture, setClearProfilePicture] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [error, setError] = useState('');
-  const [success, setSuccess] = useState('');
-  const [userId, setUserId] = useState('');
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState("");
+  const [userId, setUserId] = useState("");
 
   useEffect(() => {
     fetchCurrentUser();
@@ -25,7 +25,7 @@ export default function ProfilePage() {
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await fetch('/api/system/auth/me');
+      const response = await fetch("/api/system/auth/me");
       const data = await response.json();
 
       if (data.user) {
@@ -37,8 +37,8 @@ export default function ProfilePage() {
         }
       }
     } catch (error) {
-      console.error('Failed to fetch user:', error);
-      setError('Failed to load user information');
+      console.error("Failed to fetch user:", error);
+      setError("Failed to load user information");
     }
   };
 
@@ -57,32 +57,32 @@ export default function ProfilePage() {
 
   const handleClearPicture = () => {
     setProfilePicture(null);
-    setPreviewUrl('');
+    setPreviewUrl("");
     setClearProfilePicture(true);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
-    setSuccess('');
+    setError("");
+    setSuccess("");
 
     if (!displayName || !email) {
-      setError('Display name and email are required');
+      setError("Display name and email are required");
       return;
     }
 
     // Validate password change if provided
     if (newPassword) {
       if (!currentPassword) {
-        setError('Current password is required to set a new password');
+        setError("Current password is required to set a new password");
         return;
       }
       if (newPassword !== confirmPassword) {
-        setError('New passwords do not match');
+        setError("New passwords do not match");
         return;
       }
       if (newPassword.length < 6) {
-        setError('New password must be at least 6 characters');
+        setError("New password must be at least 6 characters");
         return;
       }
     }
@@ -90,38 +90,38 @@ export default function ProfilePage() {
     setSaving(true);
     try {
       const formData = new FormData();
-      formData.append('displayName', displayName);
-      formData.append('email', email);
+      formData.append("displayName", displayName);
+      formData.append("email", email);
 
       if (newPassword) {
-        formData.append('currentPassword', currentPassword);
-        formData.append('newPassword', newPassword);
+        formData.append("currentPassword", currentPassword);
+        formData.append("newPassword", newPassword);
       }
 
       if (profilePicture) {
-        formData.append('profilePicture', profilePicture);
+        formData.append("profilePicture", profilePicture);
       }
 
       if (clearProfilePicture) {
-        formData.append('clearProfilePicture', 'true');
+        formData.append("clearProfilePicture", "true");
       }
 
-      const response = await fetch('/api/system/auth/update-profile', {
-        method: 'PATCH',
+      const response = await fetch("/api/system/model/users/settings/profile", {
+        method: "PATCH",
         body: formData,
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setError(data.error || 'Failed to update profile');
+        setError(data.error || "Failed to update profile");
         return;
       }
 
-      setSuccess('Profile updated successfully');
-      setCurrentPassword('');
-      setNewPassword('');
-      setConfirmPassword('');
+      setSuccess("Profile updated successfully");
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
       setProfilePicture(null);
       setClearProfilePicture(false);
 
@@ -133,7 +133,7 @@ export default function ProfilePage() {
         router.refresh();
       }, 1000);
     } catch (err) {
-      setError('Failed to update profile');
+      setError("Failed to update profile");
     } finally {
       setSaving(false);
     }
@@ -146,17 +146,9 @@ export default function ProfilePage() {
       </div>
 
       <form onSubmit={handleSubmit} className={styles.form}>
-        {error && (
-          <div className={styles.error}>
-            {error}
-          </div>
-        )}
+        {error && <div className={styles.error}>{error}</div>}
 
-        {success && (
-          <div className={styles.success}>
-            {success}
-          </div>
-        )}
+        {success && <div className={styles.success}>{success}</div>}
 
         <div className={styles.formGroup}>
           <label className={styles.label}>Display Name *</label>
@@ -185,7 +177,11 @@ export default function ProfilePage() {
           <div className={styles.fileInputContainer}>
             {previewUrl && (
               <div className={styles.preview} onClick={handleClearPicture}>
-                <img src={previewUrl} alt="Preview" className={styles.previewImage} />
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className={styles.previewImage}
+                />
                 <div className={styles.previewOverlay}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path
@@ -206,12 +202,18 @@ export default function ProfilePage() {
               id="profilePicture"
             />
             <label htmlFor="profilePicture" className={styles.fileLabel}>
-              {profilePicture ? profilePicture.name : 'Choose file'}
+              {profilePicture ? profilePicture.name : "Choose file"}
             </label>
           </div>
         </div>
 
-        <hr style={{ border: 'none', borderTop: '1px solid #334155', margin: '12px 0' }} />
+        <hr
+          style={{
+            border: "none",
+            borderTop: "1px solid #334155",
+            margin: "12px 0",
+          }}
+        />
 
         <div className={styles.formGroup}>
           <label className={styles.label}>Current Password</label>
@@ -252,7 +254,7 @@ export default function ProfilePage() {
             className={styles.submitButton}
             disabled={saving}
           >
-            {saving ? 'Saving...' : 'Save Changes'}
+            {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
       </form>

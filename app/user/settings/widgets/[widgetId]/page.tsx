@@ -1,7 +1,7 @@
-'use client';
+"use client";
 
-import { useEffect, useState, useRef } from 'react';
-import { useParams } from 'next/navigation';
+import { useEffect, useState, useRef } from "react";
+import { useParams } from "next/navigation";
 
 export default function AppWidgetPage() {
   const params = useParams();
@@ -23,11 +23,13 @@ export default function AppWidgetPage() {
 
           // Handle different error types
           if (response.status === 403) {
-            setError('Access denied: You do not have permission to access this widget');
+            setError(
+              "Access denied: You do not have permission to access this widget"
+            );
           } else if (response.status === 404) {
             setError(`Widget "${widgetId}" does not exist`);
           } else {
-            setError(errorData.error || 'Widget not found');
+            setError(errorData.error || "Widget not found");
           }
 
           setLoading(false);
@@ -38,7 +40,7 @@ export default function AppWidgetPage() {
         setAppId(widgetInfo.appId);
         setWidgetName(widgetInfo.component);
       } catch (err) {
-        setError('Failed to load widget information');
+        setError("Failed to load widget information");
         setLoading(false);
       }
     }
@@ -68,13 +70,15 @@ export default function AppWidgetPage() {
             return;
           }
 
-          const reactScript = document.createElement('script');
-          reactScript.src = 'https://unpkg.com/react@18/umd/react.production.min.js';
-          reactScript.crossOrigin = 'anonymous';
+          const reactScript = document.createElement("script");
+          reactScript.src =
+            "https://unpkg.com/react@18/umd/react.production.min.js";
+          reactScript.crossOrigin = "anonymous";
 
-          const reactDOMScript = document.createElement('script');
-          reactDOMScript.src = 'https://unpkg.com/react-dom@18/umd/react-dom.production.min.js';
-          reactDOMScript.crossOrigin = 'anonymous';
+          const reactDOMScript = document.createElement("script");
+          reactDOMScript.src =
+            "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js";
+          reactDOMScript.crossOrigin = "anonymous";
 
           await new Promise((resolve, reject) => {
             reactScript.onload = resolve;
@@ -101,8 +105,8 @@ export default function AppWidgetPage() {
 
         if (!appExports) {
           // Load the app script
-          const script = document.createElement('script');
-          script.src = `/api/system/assets/apps/${appId}`;
+          const script = document.createElement("script");
+          script.src = `/api/system/apps/${appId}/assets`;
 
           await new Promise((resolve, reject) => {
             script.onload = resolve;
@@ -137,9 +141,13 @@ export default function AppWidgetPage() {
           setLoading(false);
         }
       } catch (err) {
-        console.error('Error loading widget:', err);
+        console.error("Error loading widget:", err);
         if (mounted) {
-          setError(`Failed to load widget: ${err instanceof Error ? err.message : String(err)}`);
+          setError(
+            `Failed to load widget: ${
+              err instanceof Error ? err.message : String(err)
+            }`
+          );
           setLoading(false);
         }
       }
@@ -155,12 +163,12 @@ export default function AppWidgetPage() {
         try {
           root.unmount();
         } catch (err) {
-          console.error('Error unmounting widget:', err);
+          console.error("Error unmounting widget:", err);
         }
       }
 
       // Cleanup scripts
-      scriptsRef.current.forEach(script => {
+      scriptsRef.current.forEach((script) => {
         if (script.parentNode) {
           document.body.removeChild(script);
         }
@@ -171,22 +179,47 @@ export default function AppWidgetPage() {
   return (
     <>
       {loading && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '32px' }}>
-          <div style={{ color: '#94a3b8' }}>Loading widget...</div>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            padding: "32px",
+          }}
+        >
+          <div style={{ color: "#94a3b8" }}>Loading widget...</div>
         </div>
       )}
 
       {error && (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: '300px' }}>
-          <div style={{ background: '#7f1d1d', border: '1px solid #991b1b', borderRadius: '8px', padding: '32px', maxWidth: '500px', textAlign: 'center' }}>
-            <p style={{ color: '#fca5a5', fontSize: '16px', margin: '0' }}>{error}</p>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            minHeight: "300px",
+          }}
+        >
+          <div
+            style={{
+              background: "#7f1d1d",
+              border: "1px solid #991b1b",
+              borderRadius: "8px",
+              padding: "32px",
+              maxWidth: "500px",
+              textAlign: "center",
+            }}
+          >
+            <p style={{ color: "#fca5a5", fontSize: "16px", margin: "0" }}>
+              {error}
+            </p>
           </div>
         </div>
       )}
 
       <div
         ref={containerRef}
-        style={{ display: loading || error ? 'none' : 'block' }}
+        style={{ display: loading || error ? "none" : "block" }}
       />
     </>
   );

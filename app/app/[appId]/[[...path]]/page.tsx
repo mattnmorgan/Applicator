@@ -134,7 +134,7 @@ export default function AppPage() {
         await new Promise((resolve) => setTimeout(resolve, 50));
 
         const script = document.createElement("script");
-        script.src = `/api/system/assets/apps/${appId}?v=${appVersion}`;
+        script.src = `/api/system/apps/${appId}/assets/?v=${appVersion}`;
         script.async = true;
 
         script.onload = () => {

@@ -341,7 +341,7 @@ export default function AppList() {
                   {(app.label || "U").charAt(0).toUpperCase()}
                 </span>
                 <img
-                  src={`/api/system/assets/apps/icons/${app.id}`}
+                  src={`/api/system/apps/${app.id}/assets/icon`}
                   alt={app.label}
                   onError={(e) => {
                     // If image fails to load, hide it to show the fallback letter
