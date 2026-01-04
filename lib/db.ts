@@ -200,7 +200,7 @@ export async function updateAuthority(
   const authority = await getAuthority(id);
 
   if (!authority) {
-    throw new Error("Authority not found");
+    throw new Error(`Authority not found: \"${id}\"`);
   }
 
   const updatedAuthority = { ...authority, ...updates };
