@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Tabset, { TabsetItem } from '../Tabset/Tabset';
-import styles from './AppMenu.module.css';
+import { useState, useEffect } from "react";
+import Tabset, { TabsetItem } from "../Tabset/Tabset";
+import styles from "./AppMenu.module.css";
 
 interface App {
   id: string;
@@ -23,14 +23,14 @@ export default function AppMenu({ onTabChange }: AppMenuProps) {
 
   async function loadApps() {
     try {
-      const response = await fetch('/api/system/auth/me');
+      const response = await fetch("/api/system/auth/me");
       if (response.ok) {
         const data = await response.json();
         const userApps = data.userApps || [];
         setApps(userApps);
       }
     } catch (error) {
-      console.error('Error loading apps:', error);
+      console.error("Error loading apps:", error);
     } finally {
       setLoading(false);
     }
@@ -48,10 +48,10 @@ export default function AppMenu({ onTabChange }: AppMenuProps) {
 
   const tabItems: TabsetItem[] = [
     {
-      label: 'Home',
-      path: '/',
+      label: "Home",
+      path: "/",
     },
-    ...apps.map(app => ({
+    ...apps.map((app) => ({
       label: app.label,
       path: `/app/${app.id}`,
     })),

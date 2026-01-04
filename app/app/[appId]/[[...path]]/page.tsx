@@ -17,7 +17,9 @@ export default function AppPage() {
     profilePicture?: string;
     isAdmin: boolean;
   } | null>(null);
-  const [userApps, setUserApps] = useState<Array<{ id: string; label: string }>>([]);
+  const [userApps, setUserApps] = useState<
+    Array<{ id: string; label: string }>
+  >([]);
   const [authorizations, setAuthorizations] = useState<string[]>([]);
   const [isAssumedIdentity, setIsAssumedIdentity] = useState(false);
   const [brandName, setBrandName] = useState("Applicator");
@@ -129,7 +131,7 @@ export default function AppPage() {
         await loadReact();
 
         // Give React a moment to fully initialize
-        await new Promise(resolve => setTimeout(resolve, 50));
+        await new Promise((resolve) => setTimeout(resolve, 50));
 
         const script = document.createElement("script");
         script.src = `/api/system/assets/apps/${appId}?v=${appVersion}`;
@@ -226,17 +228,40 @@ export default function AppPage() {
       >
         <div style={{ height: "100%" }}>
           {loading && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '256px' }}>
-              <div style={{ color: '#94a3b8' }}>
-                Loading app...
-              </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "256px",
+              }}
+            >
+              <div style={{ color: "#94a3b8" }}>Loading app...</div>
             </div>
           )}
 
           {error && (
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%' }}>
-              <div style={{ background: '#7f1d1d', border: '1px solid #991b1b', borderRadius: '8px', padding: '32px', maxWidth: '500px', textAlign: 'center' }}>
-                <p style={{ color: '#fca5a5', fontSize: '16px', margin: '0' }}>{error}</p>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+              }}
+            >
+              <div
+                style={{
+                  background: "#7f1d1d",
+                  border: "1px solid #991b1b",
+                  borderRadius: "8px",
+                  padding: "32px",
+                  maxWidth: "500px",
+                  textAlign: "center",
+                }}
+              >
+                <p style={{ color: "#fca5a5", fontSize: "16px", margin: "0" }}>
+                  {error}
+                </p>
               </div>
             </div>
           )}

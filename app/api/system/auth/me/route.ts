@@ -6,6 +6,7 @@ import {
   getUserAuthorizations,
   getAllApps,
   getSession,
+  getUserAuthority,
 } from "@/lib/db";
 
 export async function GET() {
@@ -28,19 +29,22 @@ export async function GET() {
 
     // Get user's authority to determine available apps
     const authority = await getAuthority(user.authority);
+    const userAuthority = await getUserAuthority(user.id);
     const { authorizations } = await getUserAuthorizations(user.id);
 
     // Get user's apps from their authority
-    let userApps: any[] = [];
-    if (authority && authority.apps) {
-      const allApps = await getAllApps();
-      userApps = allApps
-        .filter((app) => authority.apps.includes(app.id))
-        .map((app) => ({
-          id: app.id,
-          label: app.label,
-        }));
-    }
+    let userApps: { id: string; label: string }[] = (await getAllApps()).reduce(
+      (acc, app) => {
+        if (
+          authority?.apps?.includes(app.id) ||
+          userAuthority?.apps?.includes(app.id)
+        ) {
+          acc.push({ id: app.id, label: app.label });
+        }
+        return acc;
+      },
+      []
+    );
 
     return NextResponse.json({
       user: {
