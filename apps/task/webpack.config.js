@@ -1,35 +1,46 @@
-const path = require('path');
+const path = require("path");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 module.exports = {
-  entry: './src/index.tsx',
+  entry: "./src/index.tsx",
   output: {
-    path: path.resolve(__dirname, 'dist'),
-    filename: 'task.js',
+    path: path.resolve(__dirname, "dist"),
+    filename: "task.js",
     library: {
-      type: 'umd',
-      name: 'TaskApp',
+      type: "umd",
+      name: "TaskApp",
     },
-    globalObject: 'this',
+    globalObject: "this",
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js', '.jsx'],
+    extensions: [".tsx", ".ts", ".js", ".jsx"],
   },
   module: {
     rules: [
       {
         test: /\.tsx?$/,
-        use: 'ts-loader',
+        use: "ts-loader",
         exclude: [/node_modules/, /src\/api/],
       },
       {
         test: /\.css$/,
-        use: ['style-loader', 'css-loader'],
+        use: ["style-loader", "css-loader"],
       },
     ],
   },
   externals: {
-    react: 'React',
-    'react-dom': 'ReactDOM',
+    react: "React",
+    "react-dom": "ReactDOM",
   },
-  mode: 'production',
+  mode: "production",
+  plugins: [
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: "assets",
+          to: "assets",
+        },
+      ],
+    }),
+  ],
 };

@@ -1,35 +1,36 @@
-const path = require('path');
+const path = require("path");
+const CopyWebpackPlugin = require("copy-webpack-plugin");
 
 module.exports = {
-  entry: './src/index.tsx',
+  entry: "./src/index.tsx",
   output: {
-    path: path.resolve(__dirname, 'dist'),
-    filename: 'files.js',
+    path: path.resolve(__dirname, "dist"),
+    filename: "files.js",
     library: {
-      type: 'umd',
-      name: 'FilesApp',
+      type: "umd",
+      name: "FilesApp",
     },
-    globalObject: 'this',
+    globalObject: "this",
   },
   resolve: {
-    extensions: ['.tsx', '.ts', '.js', '.jsx'],
+    extensions: [".tsx", ".ts", ".js", ".jsx"],
     alias: {
-      '@': path.resolve(__dirname, '../../'),
+      "@": path.resolve(__dirname, "../../"),
     },
   },
   module: {
     rules: [
       {
         test: /\.tsx?$/,
-        use: 'ts-loader',
+        use: "ts-loader",
         exclude: [/node_modules/, /src\/api/],
       },
       {
         test: /\.module\.css$/,
         use: [
-          'style-loader',
+          "style-loader",
           {
-            loader: 'css-loader',
+            loader: "css-loader",
             options: {
               modules: true,
             },
@@ -39,13 +40,23 @@ module.exports = {
       {
         test: /\.css$/,
         exclude: /\.module\.css$/,
-        use: ['style-loader', 'css-loader'],
+        use: ["style-loader", "css-loader"],
       },
     ],
   },
   externals: {
-    react: 'React',
-    'react-dom': 'ReactDOM',
+    react: "React",
+    "react-dom": "ReactDOM",
   },
-  mode: 'production',
+  mode: "production",
+  plugins: [
+    new CopyWebpackPlugin({
+      patterns: [
+        {
+          from: "assets",
+          to: "assets",
+        },
+      ],
+    }),
+  ],
 };
