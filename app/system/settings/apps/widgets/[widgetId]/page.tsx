@@ -172,7 +172,7 @@ export default function SystemSettingsWidgetPage() {
     <>
       <div style={{ marginBottom: "24px" }}>
         <button
-          onClick={() => router.push("/settings/apps")}
+          onClick={() => router.push("/system/settings/apps")}
           style={{
             display: "inline-flex",
             alignItems: "center",
