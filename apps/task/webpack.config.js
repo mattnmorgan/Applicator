@@ -1,14 +1,16 @@
 const path = require("path");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 
+const LIBRARY_NAME = "TaskApp";
+
 module.exports = {
   entry: "./src/index.tsx",
   output: {
     path: path.resolve(__dirname, "dist"),
-    filename: "task.js",
+    filename: "app.js",
     library: {
       type: "umd",
-      name: "TaskApp",
+      name: LIBRARY_NAME,
     },
     globalObject: "this",
   },
@@ -39,6 +41,14 @@ module.exports = {
         {
           from: "assets",
           to: "assets",
+        },
+        {
+          from: "app.json",
+          to: "app.json",
+        },
+        {
+          from: "app.png",
+          to: "app.png",
         },
       ],
     }),
