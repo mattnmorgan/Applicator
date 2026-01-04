@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import React, { useState, useEffect } from 'react';
-import styles from './LoggingViewer.module.css';
+import React, { useState, useEffect } from "react";
+import styles from "./LoggingViewer.module.css";
 
 interface LogEntry {
   timestamp: string;
-  level: 'debug' | 'info' | 'warning' | 'error';
+  level: "debug" | "info" | "warning" | "error";
   sender: string;
   userId?: string;
   message: string;
@@ -22,13 +22,13 @@ export default function LoggingViewer() {
 
   const fetchLoggingStatus = async () => {
     try {
-      const response = await fetch('/api/system/logging-enabled');
+      const response = await fetch("/api/system/settings/logging");
       if (response.ok) {
         const data = await response.json();
         setLoggingEnabled(data.enabled);
       }
     } catch (error) {
-      console.error('Failed to fetch logging status:', error);
+      console.error("Failed to fetch logging status:", error);
     }
   };
 
@@ -39,7 +39,9 @@ export default function LoggingViewer() {
       await fetchLoggingStatus();
 
       const currentOffset = reset ? 0 : offset;
-      const response = await fetch(`/api/system/logs?limit=${limit}&offset=${currentOffset}`);
+      const response = await fetch(
+        `/api/system/logs?limit=${limit}&offset=${currentOffset}`
+      );
       if (response.ok) {
         const data = await response.json();
         if (reset) {
@@ -52,23 +54,23 @@ export default function LoggingViewer() {
         setTotalCount(data.totalCount);
         setHasMore(currentOffset + data.logs.length < data.totalCount);
       } else {
-        console.error('Failed to fetch logs');
+        console.error("Failed to fetch logs");
       }
     } catch (error) {
-      console.error('Error fetching logs:', error);
+      console.error("Error fetching logs:", error);
     } finally {
       setLoading(false);
     }
   };
 
   const clearLogs = async () => {
-    if (!confirm('Are you sure you want to clear all log messages?')) {
+    if (!confirm("Are you sure you want to clear all log messages?")) {
       return;
     }
 
     try {
-      const response = await fetch('/api/system/logs', {
-        method: 'DELETE',
+      const response = await fetch("/api/system/logs", {
+        method: "DELETE",
       });
 
       if (response.ok) {
@@ -77,10 +79,10 @@ export default function LoggingViewer() {
         setTotalCount(0);
         setHasMore(false);
       } else {
-        console.error('Failed to clear logs');
+        console.error("Failed to clear logs");
       }
     } catch (error) {
-      console.error('Error clearing logs:', error);
+      console.error("Error clearing logs:", error);
     }
   };
 
@@ -100,16 +102,16 @@ export default function LoggingViewer() {
 
   const getLevelColor = (level: string): string => {
     switch (level) {
-      case 'debug':
-        return '#34d399'; // green
-      case 'info':
-        return '#3b82f6'; // blue
-      case 'warning':
-        return '#fbbf24'; // yellow
-      case 'error':
-        return '#ef4444'; // red
+      case "debug":
+        return "#34d399"; // green
+      case "info":
+        return "#3b82f6"; // blue
+      case "warning":
+        return "#fbbf24"; // yellow
+      case "error":
+        return "#ef4444"; // red
       default:
-        return '#94a3b8'; // slate-400
+        return "#94a3b8"; // slate-400
     }
   };
 
@@ -158,22 +160,19 @@ export default function LoggingViewer() {
         <div className={styles.logsScroll}>
           {!loggingEnabled ? (
             <div className={styles.emptyState}>
-              <p style={{ margin: 0, marginBottom: '8px' }}>Enable to capture debug logs</p>
-              <p style={{ margin: 0, fontSize: '12px', color: '#64748b' }}>
+              <p style={{ margin: 0, marginBottom: "8px" }}>
+                Enable to capture debug logs
+              </p>
+              <p style={{ margin: 0, fontSize: "12px", color: "#64748b" }}>
                 Go to Settings → Home to enable logging
               </p>
             </div>
           ) : logs.length === 0 && !loading ? (
-            <div className={styles.emptyState}>
-              No log messages found
-            </div>
+            <div className={styles.emptyState}>No log messages found</div>
           ) : (
             <div>
               {logs.map((log, index) => (
-                <div
-                  key={index}
-                  className={styles.logEntry}
-                >
+                <div key={index} className={styles.logEntry}>
                   <div className={styles.logContent}>
                     <span
                       className={styles.logLevel}
@@ -181,20 +180,14 @@ export default function LoggingViewer() {
                     >
                       {log.level}
                     </span>
-                    <span className={styles.logTimestamp}>
-                      {log.timestamp}
-                    </span>
-                    <span className={styles.logSender}>
-                      [{log.sender}]
-                    </span>
+                    <span className={styles.logTimestamp}>{log.timestamp}</span>
+                    <span className={styles.logSender}>[{log.sender}]</span>
                     {log.userId && (
                       <span className={styles.logUserId}>
                         user:{log.userId.substring(0, 8)}
                       </span>
                     )}
-                    <span className={styles.logMessage}>
-                      {log.message}
-                    </span>
+                    <span className={styles.logMessage}>{log.message}</span>
                   </div>
                 </div>
               ))}
@@ -206,7 +199,7 @@ export default function LoggingViewer() {
                     disabled={loading}
                     className={styles.loadMoreButton}
                   >
-                    {loading ? 'Loading...' : 'Load More'}
+                    {loading ? "Loading..." : "Load More"}
                   </button>
                 </div>
               )}
@@ -216,9 +209,7 @@ export default function LoggingViewer() {
       </div>
 
       {loading && logs.length === 0 && (
-        <div className={styles.loadingOverlay}>
-          Loading logs...
-        </div>
+        <div className={styles.loadingOverlay}>Loading logs...</div>
       )}
     </div>
   );

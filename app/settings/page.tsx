@@ -1,24 +1,27 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import FolderBrowser from '@/lib/components/FolderBrowser';
-import Toast from '@/lib/components/Toast';
+import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
+import FolderBrowser from "@/lib/components/FolderBrowser";
+import Toast from "@/lib/components/Toast";
 
 export default function SettingsPage() {
   const router = useRouter();
-  const [storage, setStorage] = useState('');
-  const [originalStorage, setOriginalStorage] = useState('');
-  const [brandName, setBrandName] = useState('');
-  const [originalBrandName, setOriginalBrandName] = useState('');
+  const [storage, setStorage] = useState("");
+  const [originalStorage, setOriginalStorage] = useState("");
+  const [brandName, setBrandName] = useState("");
+  const [originalBrandName, setOriginalBrandName] = useState("");
   const [brandIcon, setBrandIcon] = useState<File | null>(null);
-  const [brandIconPreview, setBrandIconPreview] = useState<string>('');
+  const [brandIconPreview, setBrandIconPreview] = useState<string>("");
   const [clearBrandIcon, setClearBrandIcon] = useState(false);
   const [loggingEnabled, setLoggingEnabled] = useState(false);
   const [originalLoggingEnabled, setOriginalLoggingEnabled] = useState(false);
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
   useEffect(() => {
     fetchSettings();
@@ -27,18 +30,18 @@ export default function SettingsPage() {
   const fetchSettings = async () => {
     try {
       const [storageRes, brandRes, loggingRes] = await Promise.all([
-        fetch('/api/system/storage'),
-        fetch('/api/system/brand'),
-        fetch('/api/system/logging-enabled'),
+        fetch("/api/system/settings/storage"),
+        fetch("/api/system/settings/brand"),
+        fetch("/api/system/settings/logging"),
       ]);
 
       const storageData = await storageRes.json();
-      setStorage(storageData.storage || '');
-      setOriginalStorage(storageData.storage || '');
+      setStorage(storageData.storage || "");
+      setOriginalStorage(storageData.storage || "");
 
       const brandData = await brandRes.json();
-      setBrandName(brandData.brandName || 'Applicator');
-      setOriginalBrandName(brandData.brandName || 'Applicator');
+      setBrandName(brandData.brandName || "Applicator");
+      setOriginalBrandName(brandData.brandName || "Applicator");
       if (brandData.brandIcon) {
         setBrandIconPreview(brandData.brandIcon);
       }
@@ -47,7 +50,7 @@ export default function SettingsPage() {
       setLoggingEnabled(loggingData.enabled || false);
       setOriginalLoggingEnabled(loggingData.enabled || false);
     } catch (error) {
-      console.error('Failed to fetch settings:', error);
+      console.error("Failed to fetch settings:", error);
     }
   };
 
@@ -66,7 +69,7 @@ export default function SettingsPage() {
 
   const handleClearBrandIcon = () => {
     setBrandIcon(null);
-    setBrandIconPreview('');
+    setBrandIconPreview("");
     setClearBrandIcon(true);
   };
 
@@ -74,33 +77,33 @@ export default function SettingsPage() {
     setSaving(true);
     try {
       // Save storage setting
-      const storageResponse = await fetch('/api/system/storage', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const storageResponse = await fetch("/api/system/settings/storage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ storage }),
       });
 
       // Save brand settings
       const brandFormData = new FormData();
-      brandFormData.append('brandName', brandName);
+      brandFormData.append("brandName", brandName);
 
       if (brandIcon) {
-        brandFormData.append('brandIcon', brandIcon);
+        brandFormData.append("brandIcon", brandIcon);
       }
 
       if (clearBrandIcon) {
-        brandFormData.append('clearBrandIcon', 'true');
+        brandFormData.append("clearBrandIcon", "true");
       }
 
-      const brandResponse = await fetch('/api/system/brand', {
-        method: 'POST',
+      const brandResponse = await fetch("/api/system/settings/brand", {
+        method: "POST",
         body: brandFormData,
       });
 
       // Save logging enabled setting
-      const loggingResponse = await fetch('/api/system/logging-enabled', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const loggingResponse = await fetch("/api/system/settings/logging", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ enabled: loggingEnabled }),
       });
 
@@ -110,39 +113,48 @@ export default function SettingsPage() {
         setOriginalLoggingEnabled(loggingEnabled);
         setBrandIcon(null);
         setClearBrandIcon(false);
-        setToast({ message: 'Settings saved successfully', type: 'success' });
+        setToast({ message: "Settings saved successfully", type: "success" });
 
         // Refresh to update navigation
         setTimeout(() => {
           router.refresh();
         }, 1000);
       } else {
-        setToast({ message: 'Failed to save settings', type: 'error' });
+        setToast({ message: "Failed to save settings", type: "error" });
       }
     } catch (error) {
-      console.error('Failed to save settings:', error);
-      setToast({ message: 'Failed to save settings', type: 'error' });
+      console.error("Failed to save settings:", error);
+      setToast({ message: "Failed to save settings", type: "error" });
     } finally {
       setSaving(false);
     }
   };
 
-  const hasChanges = storage !== originalStorage || brandName !== originalBrandName || brandIcon !== null || clearBrandIcon || loggingEnabled !== originalLoggingEnabled;
+  const hasChanges =
+    storage !== originalStorage ||
+    brandName !== originalBrandName ||
+    brandIcon !== null ||
+    clearBrandIcon ||
+    loggingEnabled !== originalLoggingEnabled;
 
   return (
     <div>
-      <div style={{
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        marginBottom: '20px'
-      }}>
-        <h1 style={{
-          fontSize: '32px',
-          fontWeight: 'bold',
-          margin: 0,
-          color: '#f1f5f9'
-        }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          marginBottom: "20px",
+        }}
+      >
+        <h1
+          style={{
+            fontSize: "32px",
+            fontWeight: "bold",
+            margin: 0,
+            color: "#f1f5f9",
+          }}
+        >
           Settings
         </h1>
 
@@ -150,51 +162,74 @@ export default function SettingsPage() {
           onClick={handleSave}
           disabled={!hasChanges || saving}
           style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: '8px',
-            padding: '10px 20px',
-            background: hasChanges ? '#10b981' : '#475569',
-            color: 'white',
-            border: 'none',
-            borderRadius: '6px',
-            fontSize: '14px',
+            display: "flex",
+            alignItems: "center",
+            gap: "8px",
+            padding: "10px 20px",
+            background: hasChanges ? "#10b981" : "#475569",
+            color: "white",
+            border: "none",
+            borderRadius: "6px",
+            fontSize: "14px",
             fontWeight: 500,
-            cursor: hasChanges ? 'pointer' : 'not-allowed',
-            transition: 'background 0.2s'
+            cursor: hasChanges ? "pointer" : "not-allowed",
+            transition: "background 0.2s",
           }}
           onMouseOver={(e) => {
-            if (hasChanges) e.currentTarget.style.background = '#059669';
+            if (hasChanges) e.currentTarget.style.background = "#059669";
           }}
           onMouseOut={(e) => {
-            if (hasChanges) e.currentTarget.style.background = '#10b981';
+            if (hasChanges) e.currentTarget.style.background = "#10b981";
           }}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path d="M11 2H3C2.44772 2 2 2.44772 2 3V13C2 13.5523 2.44772 14 3 14H13C13.5523 14 14 13.5523 14 13V5L11 2Z" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M11 2V5H14" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
-            <path d="M10 9H6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            <path
+              d="M11 2H3C2.44772 2 2 2.44772 2 3V13C2 13.5523 2.44772 14 3 14H13C13.5523 14 14 13.5523 14 13V5L11 2Z"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M11 2V5H14"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+            <path
+              d="M10 9H6"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+            />
           </svg>
-          {saving ? 'Saving...' : 'Save'}
+          {saving ? "Saving..." : "Save"}
         </button>
       </div>
 
-      <div style={{
-        display: 'flex',
-        flexDirection: 'column',
-        gap: '24px',
-        maxWidth: '600px'
-      }}>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px'
-        }}>
-          <label style={{
-            fontSize: '14px',
-            fontWeight: 500,
-            color: '#f1f5f9'
-          }}>
+      <div
+        style={{
+          display: "flex",
+          flexDirection: "column",
+          gap: "24px",
+          maxWidth: "600px",
+        }}
+      >
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+          }}
+        >
+          <label
+            style={{
+              fontSize: "14px",
+              fontWeight: 500,
+              color: "#f1f5f9",
+            }}
+          >
             Brand Name
           </label>
           <input
@@ -203,78 +238,85 @@ export default function SettingsPage() {
             onChange={(e) => setBrandName(e.target.value)}
             placeholder="Applicator"
             style={{
-              padding: '10px 12px',
-              background: '#0f172a',
-              border: '1px solid #475569',
-              borderRadius: '6px',
-              color: '#f1f5f9',
-              fontSize: '14px',
-              outline: 'none',
-              transition: 'border-color 0.2s'
+              padding: "10px 12px",
+              background: "#0f172a",
+              border: "1px solid #475569",
+              borderRadius: "6px",
+              color: "#f1f5f9",
+              fontSize: "14px",
+              outline: "none",
+              transition: "border-color 0.2s",
             }}
-            onFocus={(e) => e.currentTarget.style.borderColor = '#3b82f6'}
-            onBlur={(e) => e.currentTarget.style.borderColor = '#475569'}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
+            onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
           />
-          <p style={{
-            fontSize: '12px',
-            color: '#64748b',
-            margin: 0
-          }}>
+          <p
+            style={{
+              fontSize: "12px",
+              color: "#64748b",
+              margin: 0,
+            }}
+          >
             The brand name shown in the navigation bar
           </p>
         </div>
 
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px'
-        }}>
-          <label style={{
-            fontSize: '14px',
-            fontWeight: 500,
-            color: '#f1f5f9'
-          }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+          }}
+        >
+          <label
+            style={{
+              fontSize: "14px",
+              fontWeight: 500,
+              color: "#f1f5f9",
+            }}
+          >
             Brand Icon
           </label>
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
+          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
             {brandIconPreview && (
               <div
                 onClick={handleClearBrandIcon}
                 style={{
-                  position: 'relative',
-                  width: '64px',
-                  height: '64px',
-                  borderRadius: '6px',
-                  overflow: 'hidden',
-                  cursor: 'pointer',
-                  border: '1px solid #475569'
+                  position: "relative",
+                  width: "64px",
+                  height: "64px",
+                  borderRadius: "6px",
+                  overflow: "hidden",
+                  cursor: "pointer",
+                  border: "1px solid #475569",
                 }}
               >
                 <img
                   src={brandIconPreview}
                   alt="Brand icon preview"
                   style={{
-                    width: '100%',
-                    height: '100%',
-                    objectFit: 'contain',
-                    background: '#1e293b'
+                    width: "100%",
+                    height: "100%",
+                    objectFit: "contain",
+                    background: "#1e293b",
                   }}
                 />
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  bottom: 0,
-                  background: 'rgba(0, 0, 0, 0.5)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: 0,
-                  transition: 'opacity 0.2s'
-                }}
-                onMouseOver={(e) => e.currentTarget.style.opacity = '1'}
-                onMouseOut={(e) => e.currentTarget.style.opacity = '0'}
+                <div
+                  style={{
+                    position: "absolute",
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    bottom: 0,
+                    background: "rgba(0, 0, 0, 0.5)",
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    opacity: 0,
+                    transition: "opacity 0.2s",
+                  }}
+                  onMouseOver={(e) => (e.currentTarget.style.opacity = "1")}
+                  onMouseOut={(e) => (e.currentTarget.style.opacity = "0")}
                 >
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path
@@ -292,52 +334,62 @@ export default function SettingsPage() {
                 type="file"
                 accept="image/*"
                 onChange={handleBrandIconChange}
-                style={{ display: 'none' }}
+                style={{ display: "none" }}
                 id="brandIcon"
               />
               <label
                 htmlFor="brandIcon"
                 style={{
-                  display: 'inline-block',
-                  padding: '10px 20px',
-                  background: '#3b82f6',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  fontSize: '14px',
+                  display: "inline-block",
+                  padding: "10px 20px",
+                  background: "#3b82f6",
+                  color: "white",
+                  border: "none",
+                  borderRadius: "6px",
+                  fontSize: "14px",
                   fontWeight: 500,
-                  cursor: 'pointer',
-                  transition: 'background 0.2s'
+                  cursor: "pointer",
+                  transition: "background 0.2s",
                 }}
-                onMouseOver={(e) => e.currentTarget.style.background = '#2563eb'}
-                onMouseOut={(e) => e.currentTarget.style.background = '#3b82f6'}
+                onMouseOver={(e) =>
+                  (e.currentTarget.style.background = "#2563eb")
+                }
+                onMouseOut={(e) =>
+                  (e.currentTarget.style.background = "#3b82f6")
+                }
               >
-                {brandIcon ? brandIcon.name : 'Choose file'}
+                {brandIcon ? brandIcon.name : "Choose file"}
               </label>
             </div>
           </div>
-          <p style={{
-            fontSize: '12px',
-            color: '#64748b',
-            margin: 0
-          }}>
+          <p
+            style={{
+              fontSize: "12px",
+              color: "#64748b",
+              margin: 0,
+            }}
+          >
             The brand icon shown in the navigation bar (optional)
           </p>
         </div>
 
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px'
-        }}>
-          <label style={{
-            fontSize: '14px',
-            fontWeight: 500,
-            color: '#f1f5f9'
-          }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+          }}
+        >
+          <label
+            style={{
+              fontSize: "14px",
+              fontWeight: 500,
+              color: "#f1f5f9",
+            }}
+          >
             System Storage
           </label>
-          <div style={{ display: 'flex', gap: '12px' }}>
+          <div style={{ display: "flex", gap: "12px" }}>
             <input
               type="text"
               value={storage}
@@ -345,78 +397,89 @@ export default function SettingsPage() {
               placeholder="No storage path selected"
               style={{
                 flex: 1,
-                padding: '10px 12px',
-                background: '#0f172a',
-                border: '1px solid #475569',
-                borderRadius: '6px',
-                color: '#94a3b8',
-                fontSize: '14px',
-                outline: 'none',
-                cursor: 'not-allowed'
+                padding: "10px 12px",
+                background: "#0f172a",
+                border: "1px solid #475569",
+                borderRadius: "6px",
+                color: "#94a3b8",
+                fontSize: "14px",
+                outline: "none",
+                cursor: "not-allowed",
               }}
             />
             <button
               onClick={() => setIsBrowserOpen(true)}
               style={{
-                padding: '10px 20px',
-                background: '#3b82f6',
-                color: 'white',
-                border: 'none',
-                borderRadius: '6px',
-                fontSize: '14px',
+                padding: "10px 20px",
+                background: "#3b82f6",
+                color: "white",
+                border: "none",
+                borderRadius: "6px",
+                fontSize: "14px",
                 fontWeight: 500,
-                cursor: 'pointer',
-                transition: 'background 0.2s'
+                cursor: "pointer",
+                transition: "background 0.2s",
               }}
-              onMouseOver={(e) => e.currentTarget.style.background = '#2563eb'}
-              onMouseOut={(e) => e.currentTarget.style.background = '#3b82f6'}
+              onMouseOver={(e) =>
+                (e.currentTarget.style.background = "#2563eb")
+              }
+              onMouseOut={(e) => (e.currentTarget.style.background = "#3b82f6")}
             >
               Browse
             </button>
           </div>
-          <p style={{
-            fontSize: '12px',
-            color: '#64748b',
-            margin: 0
-          }}>
+          <p
+            style={{
+              fontSize: "12px",
+              color: "#64748b",
+              margin: 0,
+            }}
+          >
             Select a folder where system files will be stored
           </p>
         </div>
 
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '8px'
-        }}>
-          <label style={{
-            fontSize: '14px',
-            fontWeight: 500,
-            color: '#f1f5f9',
-            display: 'flex',
-            alignItems: 'center',
-            gap: '10px',
-            cursor: 'pointer',
-            userSelect: 'none'
-          }}>
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+          }}
+        >
+          <label
+            style={{
+              fontSize: "14px",
+              fontWeight: 500,
+              color: "#f1f5f9",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+          >
             <input
               type="checkbox"
               checked={loggingEnabled}
               onChange={(e) => setLoggingEnabled(e.target.checked)}
               style={{
-                width: '18px',
-                height: '18px',
-                cursor: 'pointer',
-                accentColor: '#3b82f6'
+                width: "18px",
+                height: "18px",
+                cursor: "pointer",
+                accentColor: "#3b82f6",
               }}
             />
             Enable Logging
           </label>
-          <p style={{
-            fontSize: '12px',
-            color: '#64748b',
-            margin: 0
-          }}>
-            When enabled, system and application logs will be captured for debugging. Disabling will clear all existing logs.
+          <p
+            style={{
+              fontSize: "12px",
+              color: "#64748b",
+              margin: 0,
+            }}
+          >
+            When enabled, system and application logs will be captured for
+            debugging. Disabling will clear all existing logs.
           </p>
         </div>
       </div>

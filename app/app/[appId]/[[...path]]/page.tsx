@@ -49,7 +49,7 @@ export default function AppPage() {
 
   // Fetch brand settings
   useEffect(() => {
-    fetch("/api/system/brand")
+    fetch("/api/system/settings/brand")
       .then((res) => res.json())
       .then((data) => {
         setBrandName(data.brandName || "Applicator");
