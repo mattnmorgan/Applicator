@@ -26,6 +26,12 @@
  * ```
  */
 
+export type { default as App, Widget } from "@/lib/database/types/app";
+export type { default as User } from "@/lib/database/types/user";
+export type { default as Session } from "@/lib/database/types/session";
+export type { default as Authorization } from "@/lib/database/types/authorization";
+export type { default as Authority } from "@/lib/database/types/authority";
+
 // Re-export from sdk modules
 export {
   RecordManager,
@@ -34,7 +40,7 @@ export {
   type RecordManagerOptions,
   type ListRecordsOptions,
   type ListRecordsResult,
-} from './records';
+} from "./records";
 
 export {
   SystemInterface,
@@ -43,54 +49,33 @@ export {
   type AuthorityWithDetails,
   type AuthorizationWithApp,
   type SystemInterfaceOptions,
-} from './system';
+} from "./system";
 
-export {
-  getSession,
-  type Session,
-} from './auth';
+export { getSession } from "./auth";
 
-export {
-  WidgetManager,
-  createWidgetManager,
-  type Widget,
-} from './widgets';
+export { WidgetManager, createWidgetManager } from "./widgets";
 
-export {
-  FileManager,
-  createFileManager,
-} from './files';
+export { FileManager, createFileManager } from "./files";
 
-export {
-  Logger,
-  createLogger,
-  type LoggerOptions,
-} from './logging';
+export { Logger, createLogger, type LoggerOptions } from "./logging";
 
 export {
   NotificationManager,
   createNotificationManager,
   type SendNotificationParams,
-} from './notifications';
+} from "./notifications";
 
-export type {
-  App,
-  User,
-  Authority,
-  Authorization,
-} from '../db';
+export type { Notification, NotificationType } from "../notifications";
 
-export type {
-  Notification,
-  NotificationType,
-} from '../notifications';
-
-import { createRecordManager, RecordManager } from './records';
-import { createSystemInterface, SystemInterface } from './system';
-import { createFileManager, FileManager } from './files';
-import { createWidgetManager, WidgetManager } from './widgets';
-import { createLogger, Logger } from './logging';
-import { createNotificationManager, NotificationManager } from './notifications';
+import { createRecordManager, RecordManager } from "./records";
+import { createSystemInterface, SystemInterface } from "./system";
+import { createFileManager, FileManager } from "./files";
+import { createWidgetManager, WidgetManager } from "./widgets";
+import { createLogger, Logger } from "./logging";
+import {
+  createNotificationManager,
+  NotificationManager,
+} from "./notifications";
 
 export interface PluginContext {
   appId: string;
@@ -188,7 +173,7 @@ export async function requireAuthorization(
   authorizationId: string | string[]
 ): Promise<void> {
   if (!plugin.userId) {
-    throw new Error('User ID is required to check authorization');
+    throw new Error("User ID is required to check authorization");
   }
 
   const authIds = Array.isArray(authorizationId)
@@ -196,14 +181,14 @@ export async function requireAuthorization(
     : [authorizationId];
 
   const hasAny = await Promise.all(
-    authIds.map((id) => plugin.system.checkUserAuthorization(plugin.userId!, id))
+    authIds.map((id) =>
+      plugin.system.checkUserAuthorization(plugin.userId!, id)
+    )
   );
 
   if (!hasAny.some((has) => has)) {
-    const authNames = authIds.join(' or ');
-    throw new Error(
-      `User does not have required authorization: ${authNames}`
-    );
+    const authNames = authIds.join(" or ");
+    throw new Error(`User does not have required authorization: ${authNames}`);
   }
 }
 
@@ -228,7 +213,7 @@ export async function requireAllAuthorizations(
   authorizationIds: string[]
 ): Promise<void> {
   if (!plugin.userId) {
-    throw new Error('User ID is required to check authorization');
+    throw new Error("User ID is required to check authorization");
   }
 
   const hasAll = await Promise.all(
@@ -240,7 +225,7 @@ export async function requireAllAuthorizations(
   if (!hasAll.every((has) => has)) {
     const missingAuths = authorizationIds.filter((_, i) => !hasAll[i]);
     throw new Error(
-      `User is missing required authorizations: ${missingAuths.join(', ')}`
+      `User is missing required authorizations: ${missingAuths.join(", ")}`
     );
   }
 }

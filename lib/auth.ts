@@ -1,10 +1,6 @@
 import { cookies } from "next/headers";
-import {
-  getSession,
-  getUserById,
-  getUserAuthorizations,
-  type User,
-} from "./db";
+import { getSession, getUserById, getUserAuthorizations } from "./db";
+import User from "@/lib/database/types/user";
 
 export async function getCurrentUser(): Promise<
   (User & { authorizations: string[]; isAssumedIdentity: boolean }) | null

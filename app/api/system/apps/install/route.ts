@@ -230,6 +230,8 @@ export async function POST(request: NextRequest) {
 
     // Validate widgets if present
     if (appAttributes.widgets && Array.isArray(appAttributes.widgets)) {
+      let hasSystemWidget = false;
+
       for (let i = 0; i < appAttributes.widgets.length; i++) {
         const widget = appAttributes.widgets[i];
 
@@ -266,6 +268,20 @@ export async function POST(request: NextRequest) {
             },
             { status: 400 }
           );
+        }
+
+        // Validate singular system settings widget
+        if (widget.target === "system-settings") {
+          if (!hasSystemWidget) {
+            hasSystemWidget = true;
+          } else {
+            return NextResponse.json(
+              {
+                error: `An application cannot have more than one system widget.`,
+              },
+              { status: 400 }
+            );
+          }
         }
 
         // Check that appId matches if provided

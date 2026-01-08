@@ -1,13 +1,16 @@
 import { getRedisClient } from "./redis";
 import bcrypt from "bcryptjs";
 import { v4 as uuidv4 } from "uuid";
-
-// Version interface and utility functions
-export interface AppVersion {
-  major: number;
-  minor: number;
-  dev: number;
-}
+import {
+  AppVersion,
+  ApiRoute,
+  Widget,
+  default as App,
+} from "@/lib/database/types/app";
+import Authority from "@/lib/database/types/authority";
+import Authorization from "@/lib/database/types/authorization";
+import User from "@/lib/database/types/user";
+import Session from "@/lib/database/types/session";
 
 export function formatVersion(version: AppVersion): string {
   return `${version.major}.${version.minor}.${version.dev}`;
@@ -33,70 +36,6 @@ export function isVersionGreaterOrEqual(
   required: AppVersion
 ): boolean {
   return compareVersions(installed, required) >= 0;
-}
-
-export interface Authority {
-  id: string;
-  name: string;
-  icon?: string;
-  authorizations: string[]; // Array of authorization IDs
-  apps: string[]; // Array of app IDs that this authority has access to
-  userId?: string; // User ID if this is a user-specific authority
-}
-
-export interface Authorization {
-  id: string;
-  name: string;
-  description: string;
-  app: string; // App ID
-}
-
-export interface ApiRoute {
-  path: string;
-  method: string;
-  handler: string;
-  description: string;
-}
-
-export interface Widget {
-  id: string; // Unique ID for the widget
-  name: string;
-  description: string;
-  target: "home" | "user-settings" | "system-settings";
-  component: string; // Name of the component exported by the app
-  appId: string; // App ID that this widget belongs to
-}
-
-export interface App {
-  id: string;
-  label: string;
-  version: AppVersion;
-  author: string;
-  contactEmail: string;
-  description: string;
-  apiRoutes: ApiRoute[];
-  widgets?: Widget[];
-  dependencies?: Record<string, AppVersion>; // Map of app IDs to minimum required versions
-}
-
-export interface User {
-  id: string;
-  username: string;
-  email: string;
-  displayName: string;
-  passwordHash: string;
-  authority: string;
-  isActive: boolean;
-  profilePicture?: string;
-  createdAt: string;
-}
-
-export interface Session {
-  id: string;
-  userId: string;
-  createdAt: string;
-  expiresAt: string;
-  originalSessionId?: string; // Reference to the original session when assuming identity
 }
 
 // Authority management

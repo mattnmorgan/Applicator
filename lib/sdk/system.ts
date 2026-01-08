@@ -9,11 +9,11 @@ import {
   getApp,
   userHasAuthorization,
   getUserAuthorizations,
-  type App,
-  type User,
-  type Authority,
-  type Authorization,
 } from "../db";
+import App from "@/lib/database/types/app";
+import User from "@/lib/database/types/user";
+import Authority from "@/lib/database/types/authority";
+import Authorization from "@/lib/database/types/authorization";
 
 export interface UserWithAuthority extends Omit<User, "passwordHash"> {
   authorityName?: string;

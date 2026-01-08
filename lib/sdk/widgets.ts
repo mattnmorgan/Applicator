@@ -4,7 +4,8 @@
  * Provides utilities for registering and managing widgets that plugins can expose
  */
 
-import { getApp, updateApp, type Widget } from '../db';
+import { getApp, updateApp } from "../db";
+import { Widget } from "@/lib/database/types/app";
 
 export class WidgetManager {
   private appId: string;
@@ -26,7 +27,9 @@ export class WidgetManager {
     const widgets = app.widgets || [];
 
     // Check if widget with same component name already exists
-    const existingIndex = widgets.findIndex(w => w.component === widget.component);
+    const existingIndex = widgets.findIndex(
+      (w) => w.component === widget.component
+    );
     if (existingIndex !== -1) {
       // Update existing widget
       widgets[existingIndex] = widget;
@@ -48,7 +51,9 @@ export class WidgetManager {
       throw new Error(`App ${this.appId} not found`);
     }
 
-    const widgets = (app.widgets || []).filter(w => w.component !== componentName);
+    const widgets = (app.widgets || []).filter(
+      (w) => w.component !== componentName
+    );
     await updateApp(this.appId, { widgets });
   }
 
@@ -67,9 +72,11 @@ export class WidgetManager {
   /**
    * Get widgets by target type
    */
-  async getWidgetsByTarget(target: 'home' | 'user-settings' | 'system-settings'): Promise<Widget[]> {
+  async getWidgetsByTarget(
+    target: "home" | "user-settings" | "system-settings"
+  ): Promise<Widget[]> {
     const widgets = await this.getWidgets();
-    return widgets.filter(w => w.target === target);
+    return widgets.filter((w) => w.target === target);
   }
 }
 
