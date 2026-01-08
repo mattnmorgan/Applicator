@@ -256,6 +256,74 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Validate widgets if present
+    if (appAttributes.widgets && Array.isArray(appAttributes.widgets)) {
+      let hasSystemWidget = false;
+
+      for (let i = 0; i < appAttributes.widgets.length; i++) {
+        const widget = appAttributes.widgets[i];
+
+        // Check that widget has an id
+        if (!widget.id) {
+          return NextResponse.json(
+            { error: `Widget at index ${i} is missing required 'id' field` },
+            { status: 400 }
+          );
+        }
+
+        // Check that widget has required fields
+        if (
+          !widget.name ||
+          !widget.description ||
+          !widget.target ||
+          !widget.component
+        ) {
+          return NextResponse.json(
+            {
+              error: `Widget '${widget.id}' is missing required fields (name, description, target, or component)`,
+            },
+            { status: 400 }
+          );
+        }
+
+        // Validate target
+        if (
+          !["home", "user-settings", "system-settings"].includes(widget.target)
+        ) {
+          return NextResponse.json(
+            {
+              error: `Widget '${widget.id}' has invalid target. Must be 'home', 'user-settings', or 'system-settings'`,
+            },
+            { status: 400 }
+          );
+        }
+
+        // Validate singular system settings widget
+        if (widget.target === "system-settings") {
+          if (!hasSystemWidget) {
+            hasSystemWidget = true;
+          } else {
+            return NextResponse.json(
+              {
+                error: `An application cannot have more than one system widget.`,
+              },
+              { status: 400 }
+            );
+          }
+        }
+
+        // Check that appId matches if provided
+        if (widget.appId && widget.appId !== appAttributes.id) {
+          return NextResponse.json(
+            {
+              error: `Widget '${widget.id}' has mismatched appId. Expected '${appAttributes.id}', got '${widget.appId}'`,
+            },
+            { status: 400 }
+          );
+        }
+      }
+    }
+
     // Get system storage path
     const storagePath = await getSystemSetting("storage");
     if (!storagePath) {
