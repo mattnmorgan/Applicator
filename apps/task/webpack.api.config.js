@@ -7,15 +7,29 @@ const handlers = fs.readdirSync(apiDir)
   .filter(file => file.endsWith('.ts') && file !== 'index.ts')
   .reduce((entries, file) => {
     const name = file.replace('.ts', '');
-    entries[name] = `./src/api/${file}`;
+    entries[`api/${name}`] = `./src/api/${file}`;
     return entries;
   }, {});
+
+// Find all system handler files
+const systemDir = path.resolve(__dirname, 'src/system');
+if (fs.existsSync(systemDir)) {
+  const systemHandlers = fs.readdirSync(systemDir)
+    .filter(file => file.endsWith('.ts'))
+    .reduce((entries, file) => {
+      const name = file.replace('.ts', '');
+      entries[`system/${name}`] = `./src/system/${file}`;
+      return entries;
+    }, {});
+
+  Object.assign(handlers, systemHandlers);
+}
 
 module.exports = {
   entry: handlers,
   target: 'node',
   output: {
-    path: path.resolve(__dirname, 'dist/api'),
+    path: path.resolve(__dirname, 'dist'),
     filename: '[name].js',
     library: {
       type: 'commonjs2',

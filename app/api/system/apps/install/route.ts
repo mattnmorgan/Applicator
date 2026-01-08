@@ -6,6 +6,7 @@ import {
   createAuthorization,
   getApp,
   getAllApps,
+  deleteApp,
 } from "@/lib/db";
 import {
   getSystemSetting,
@@ -17,6 +18,7 @@ import { logger } from "@/lib/logging";
 import path from "path";
 import fs from "fs/promises";
 import AdmZip from "adm-zip";
+import { createRequire } from "module";
 
 export async function POST(request: NextRequest) {
   try {
@@ -402,6 +404,62 @@ export async function POST(request: NextRequest) {
     if (iconData) {
       const iconPath = path.join(appDir, "app.png");
       await fs.writeFile(iconPath, iconData);
+    }
+
+    // Call OnInstallation hook if it exists (with undefined for fresh install)
+    try {
+      const installationHookPath = path.join(appDir, "system", "install.js");
+      const installationHookExists = await fs
+        .access(installationHookPath)
+        .then(() => true)
+        .catch(() => false);
+
+      if (installationHookExists) {
+        await logger
+          .fromRequest(request)
+          .info(
+            "system",
+            `Running OnInstallation hook for ${appAttributes.name} v${formatVersion(
+              appAttributes.version
+            )}`
+          );
+
+        const require = createRequire(import.meta.url || __filename);
+        const absolutePath = path.resolve(installationHookPath);
+
+        // Clear cache to ensure fresh load
+        delete require.cache[absolutePath];
+        const installationHook = require(absolutePath);
+
+        if (
+          installationHook.OnInstallation &&
+          typeof installationHook.OnInstallation === "function"
+        ) {
+          const context = {
+            priorVersion: undefined, // Fresh install
+            currentVersion: formatVersion(appAttributes.version),
+            appId: appAttributes.id,
+          };
+
+          await installationHook.OnInstallation(context);
+        }
+      }
+    } catch (error: any) {
+      const errorMsg = `App installation hook failed for ${appAttributes.name}: ${error.message}`;
+      await logger.fromRequest(request).error("system", errorMsg);
+
+      // Clean up - remove app from database and delete files
+      try {
+        await deleteApp(appAttributes.id);
+        await fs.rm(appDir, { recursive: true, force: true });
+      } catch (cleanupError) {
+        console.error("Failed to clean up after installation hook failure:", cleanupError);
+      }
+
+      return NextResponse.json(
+        { error: `Installation hook failed: ${error.message}` },
+        { status: 500 }
+      );
     }
 
     // Log app installation

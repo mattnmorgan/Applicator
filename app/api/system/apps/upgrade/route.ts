@@ -268,52 +268,6 @@ export async function POST(request: NextRequest) {
     // Get app directory in system storage
     const appDir = path.join(storagePath, "apps", appAttributes.id);
 
-    // Call upgrade hook if it exists
-    try {
-      const upgradeHookPath = path.join(appDir, "api", "upgrade.js");
-      const upgradeHookExists = await fs
-        .access(upgradeHookPath)
-        .then(() => true)
-        .catch(() => false);
-
-      if (upgradeHookExists) {
-        await logger
-          .fromRequest(request)
-          .info(
-            "system",
-            `Running upgrade hook for ${appAttributes.name} (${formatVersion(
-              existingApp.version
-            )} → ${formatVersion(appAttributes.version)})`
-          );
-
-        // Use createRequire to load the handler dynamically
-        // This bypasses Next.js static analysis
-        const require = createRequire(import.meta.url || __filename);
-        const absolutePath = path.resolve(upgradeHookPath);
-
-        // Clear cache to ensure fresh load
-        delete require.cache[absolutePath];
-        const upgradeHook = require(absolutePath);
-
-        if (upgradeHook.Upgrade && typeof upgradeHook.Upgrade === "function") {
-          const context = {
-            oldVersion: formatVersion(existingApp.version),
-            newVersion: formatVersion(appAttributes.version),
-            appId: appAttributes.id,
-          };
-
-          await upgradeHook.Upgrade(context);
-        }
-      }
-    } catch (error: any) {
-      const errorMsg = `App upgrade hook failed for ${appAttributes.name}: ${error.message}`;
-      await logger.fromRequest(request).error("system", errorMsg);
-      return NextResponse.json(
-        { error: `Upgrade hook failed: ${error.message}` },
-        { status: 500 }
-      );
-    }
-
     // Backup old version (rename api directory)
     const apiDir = path.join(appDir, "api");
     const backupApiDir = path.join(appDir, `api.backup.${Date.now()}`);
@@ -374,6 +328,66 @@ export async function POST(request: NextRequest) {
         await fs.rm(backupApiDir, { recursive: true, force: true });
       } catch (error) {
         console.log("No backup to clean up");
+      }
+
+      // Call OnInstallation hook if it exists (with prior version for upgrade)
+      try {
+        const installationHookPath = path.join(appDir, "system", "install.js");
+        const installationHookExists = await fs
+          .access(installationHookPath)
+          .then(() => true)
+          .catch(() => false);
+
+        if (installationHookExists) {
+          await logger
+            .fromRequest(request)
+            .info(
+              "system",
+              `Running OnInstallation hook for ${appAttributes.name} (${formatVersion(
+                existingApp.version
+              )} → ${formatVersion(appAttributes.version)})`
+            );
+
+          const require = createRequire(import.meta.url || __filename);
+          const absolutePath = path.resolve(installationHookPath);
+
+          // Clear cache to ensure fresh load
+          delete require.cache[absolutePath];
+          const installationHook = require(absolutePath);
+
+          if (
+            installationHook.OnInstallation &&
+            typeof installationHook.OnInstallation === "function"
+          ) {
+            const context = {
+              priorVersion: formatVersion(existingApp.version),
+              currentVersion: formatVersion(appAttributes.version),
+              appId: appAttributes.id,
+            };
+
+            await installationHook.OnInstallation(context);
+          }
+        }
+      } catch (error: any) {
+        const errorMsg = `App installation hook failed for ${appAttributes.name}: ${error.message}`;
+        await logger.fromRequest(request).error("system", errorMsg);
+
+        // Rollback - restore the backup
+        try {
+          await fs.rm(apiDir, { recursive: true, force: true });
+          await fs.rename(backupApiDir, apiDir);
+          // Also restore the old bundle and icon
+          const oldBundlePath = path.join(appDir, `app.js.backup.${Date.now()}`);
+          const bundlePath = path.join(appDir, `app.js`);
+          // Note: We don't have backups of bundle/icon yet, but the API rollback is critical
+        } catch (rollbackError) {
+          console.error("Failed to rollback after installation hook failure:", rollbackError);
+        }
+
+        return NextResponse.json(
+          { error: `Installation hook failed: ${error.message}` },
+          { status: 500 }
+        );
       }
 
       // Log app upgrade

@@ -10,11 +10,12 @@ import {
   updateAuthority,
   getAllApps,
 } from "@/lib/db";
-import { getSystemSetting } from "@/lib/db";
+import { getSystemSetting, formatVersion } from "@/lib/db";
 import { logger } from "@/lib/logging";
 import { createRecordManager } from "@/lib/sdk";
 import path from "path";
 import fs from "fs/promises";
+import { createRequire } from "module";
 
 export async function POST(request: NextRequest) {
   try {
@@ -80,6 +81,54 @@ export async function POST(request: NextRequest) {
           error: `Cannot uninstall this app because it is required by: ${dependentAppNames}`,
         },
         { status: 400 }
+      );
+    }
+
+    // Call OnUninstallation hook if it exists
+    try {
+      const storagePath = await getSystemSetting("storage");
+      if (storagePath) {
+        const appDir = path.join(storagePath, "apps", appId);
+        const uninstallationHookPath = path.join(appDir, "system", "uninstall.js");
+        const uninstallationHookExists = await fs
+          .access(uninstallationHookPath)
+          .then(() => true)
+          .catch(() => false);
+
+        if (uninstallationHookExists) {
+          await logger
+            .fromRequest(request)
+            .info(
+              "system",
+              `Running OnUninstallation hook for ${app.label} v${formatVersion(app.version)}`
+            );
+
+          const require = createRequire(import.meta.url || __filename);
+          const absolutePath = path.resolve(uninstallationHookPath);
+
+          // Clear cache to ensure fresh load
+          delete require.cache[absolutePath];
+          const uninstallationHook = require(absolutePath);
+
+          if (
+            uninstallationHook.OnUninstallation &&
+            typeof uninstallationHook.OnUninstallation === "function"
+          ) {
+            const context = {
+              version: formatVersion(app.version),
+              appId: appId,
+            };
+
+            await uninstallationHook.OnUninstallation(context);
+          }
+        }
+      }
+    } catch (error: any) {
+      const errorMsg = `App uninstallation hook failed for ${app.label}: ${error.message}`;
+      await logger.fromRequest(request).error("system", errorMsg);
+      return NextResponse.json(
+        { error: `Uninstallation hook failed: ${error.message}` },
+        { status: 500 }
       );
     }
 
