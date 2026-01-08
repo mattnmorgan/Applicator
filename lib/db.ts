@@ -44,7 +44,9 @@ export async function createAuthority(
   name: string,
   icon?: string,
   authorizations: string[] = [],
-  apps: string[] = []
+  apps: string[] = [],
+  contextual?: boolean,
+  app?: string
 ): Promise<Authority> {
   const redis = getRedisClient();
 
@@ -54,6 +56,8 @@ export async function createAuthority(
     icon,
     authorizations,
     apps,
+    contextual,
+    app,
   };
   const existingAuthority = await redis.get(`authority:${id}`);
 
@@ -217,7 +221,8 @@ export async function createAuthorization(
   id: string,
   name: string,
   description: string,
-  app: string
+  app: string,
+  contextual?: boolean
 ): Promise<Authorization> {
   const redis = getRedisClient();
 
@@ -226,6 +231,7 @@ export async function createAuthorization(
     name,
     description,
     app,
+    contextual,
   };
   const existingAuthorization = await redis.get(`authorization:${id}`);
 

@@ -7,6 +7,7 @@ import {
   getAllAuthorizations,
   deleteAuthorization,
   getAllAuthorities,
+  deleteAuthority,
   updateAuthority,
   getAllApps,
 } from "@/lib/db";
@@ -146,9 +147,16 @@ export async function POST(request: NextRequest) {
       await deleteAuthorization(auth.id);
     }
 
-    // Remove app from all authorities
+    // Delete contextual authorities created by this app
     const authorities = await getAllAuthorities();
     for (const authority of authorities) {
+      // Delete contextual authorities created by this app
+      if (authority.contextual && authority.app === appId) {
+        await deleteAuthority(authority.id);
+        continue;
+      }
+
+      // Remove app from non-contextual authorities
       if (authority.apps && authority.apps.includes(appId)) {
         const updatedApps = authority.apps.filter((id) => id !== appId);
         await updateAuthority(
@@ -157,7 +165,7 @@ export async function POST(request: NextRequest) {
         );
       }
 
-      // Also remove app's authorizations from authorities
+      // Remove app's authorizations from non-contextual authorities
       const updatedAuthorizations = authority.authorizations.filter(
         (authId) => !authId.startsWith(`${appId}:`)
       );

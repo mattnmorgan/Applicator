@@ -4,7 +4,7 @@
   "version": {
     "major": 1,
     "minor": 0,
-    "dev": 3
+    "dev": 4
   },
   "author": "Vibe Applicator",
   "contactEmail": "support@vibeapplicator.com",
@@ -31,6 +31,20 @@
       "id": "view-all",
       "name": "View All Tasks",
       "description": "Can view tasks from all users"
+    },
+    {
+      "id": "task-admin",
+      "name": "Task Administration",
+      "description": "Administrative access to all task operations",
+      "contextual": true
+    }
+  ],
+  "authorities": [
+    {
+      "id": "task-administrator",
+      "name": "Task Administrator",
+      "description": "Full administrative access to task management system",
+      "authorizations": ["manage", "assign", "view-all", "task-admin"]
     }
   ],
   "apiRoutes": [

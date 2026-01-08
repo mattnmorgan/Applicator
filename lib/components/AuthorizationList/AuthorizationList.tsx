@@ -10,6 +10,7 @@ interface Authorization {
   description: string;
   app: string;
   appLabel: string;
+  contextual?: boolean;
 }
 
 export default function AuthorizationList() {
@@ -60,6 +61,11 @@ export default function AuthorizationList() {
               </div>
             </div>
             <div className={styles.appColumn}>
+              {authorization.contextual && (
+                <span className={styles.badgeContextual}>
+                  Contextual
+                </span>
+              )}
               <span className={`${styles.badge} ${authorization.app === 'system' ? styles.badgeSystem : styles.badgeApp}`}>
                 {authorization.appLabel}
               </span>

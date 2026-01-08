@@ -6,6 +6,7 @@ import styles from "./UserCreate.module.css";
 interface Authority {
   id: string;
   name: string;
+  contextual?: boolean;
 }
 
 interface Authorization {
@@ -14,6 +15,7 @@ interface Authorization {
   description: string;
   app: string;
   appLabel: string;
+  contextual?: boolean;
 }
 
 interface App {
@@ -85,7 +87,11 @@ export default function UserCreate({
     try {
       const response = await fetch("/api/system/model/authorities");
       const data = await response.json();
-      setAuthorities(data.authorities || []);
+      // Filter out contextual authorities
+      const nonContextualAuthorities = (data.authorities || []).filter(
+        (auth: Authority) => !auth.contextual
+      );
+      setAuthorities(nonContextualAuthorities);
     } catch (error) {
       console.error("Failed to fetch authorities:", error);
     }
@@ -95,7 +101,11 @@ export default function UserCreate({
     try {
       const response = await fetch("/api/system/model/authorizations");
       const data = await response.json();
-      setAvailableAuthorizations(data.authorizations || []);
+      // Filter out contextual authorizations
+      const nonContextualAuthorizations = (data.authorizations || []).filter(
+        (auth: Authorization) => !auth.contextual
+      );
+      setAvailableAuthorizations(nonContextualAuthorizations);
     } catch (error) {
       console.error("Failed to fetch authorizations:", error);
     }

@@ -14,4 +14,13 @@ export default interface Authority {
    * User identifier this authority is associated with
    */
   userId?: string;
+  /**
+   * If true, this authority is contextual and cannot be assigned to users
+   * Contextual authorities are created by apps and should not be editable or deletable
+   */
+  contextual?: boolean;
+  /**
+   * App that created this authority (only set if contextual is true)
+   */
+  app?: string;
 }

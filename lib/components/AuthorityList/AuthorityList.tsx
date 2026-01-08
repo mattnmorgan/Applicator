@@ -13,6 +13,9 @@ interface Authority {
   icon?: string;
   authorizations?: string[];
   apps?: string[];
+  contextual?: boolean;
+  app?: string;
+  appLabel?: string;
 }
 
 export default function AuthorityList() {
@@ -101,6 +104,13 @@ export default function AuthorityList() {
   };
 
   const handleEditAuthority = async (authorityId: string) => {
+    const authority = authorities.find(a => a.id === authorityId);
+    // Prevent editing contextual authorities
+    if (authority?.contextual) {
+      setToast({ message: 'Contextual authorities cannot be edited', type: 'error' });
+      return;
+    }
+
     const response = await fetch(`/api/system/model/authorities/${authorityId}`);
     const data = await response.json();
     if (data.authority) {
@@ -197,8 +207,10 @@ export default function AuthorityList() {
               className={styles.checkbox}
               checked={selectedAuthorityIds.has(authority.id)}
               onChange={(e) => handleSelectAuthority(authority.id, e.target.checked)}
+              disabled={authority.contextual}
+              style={{ opacity: authority.contextual ? 0.5 : 1, cursor: authority.contextual ? 'not-allowed' : 'pointer' }}
             />
-            <div className={styles.authorityInfo} onClick={() => handleEditAuthority(authority.id)} style={{ cursor: 'pointer' }}>
+            <div className={styles.authorityInfo} onClick={() => handleEditAuthority(authority.id)} style={{ cursor: authority.contextual ? 'not-allowed' : 'pointer' }}>
               {authority.icon ? (
                 <div className={styles.iconPlaceholder}>
                   <img src={authority.icon} alt={authority.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
@@ -211,6 +223,18 @@ export default function AuthorityList() {
               <div className={styles.nameColumn}>
                 <div className={styles.authorityName}>{authority.name}</div>
               </div>
+            </div>
+            <div className={styles.badgeColumn}>
+              {authority.contextual && (
+                <span className={styles.badgeContextual}>
+                  Contextual
+                </span>
+              )}
+              {authority.appLabel && (
+                <span className={styles.badgeApp}>
+                  {authority.appLabel}
+                </span>
+              )}
             </div>
           </Row>
         ))}

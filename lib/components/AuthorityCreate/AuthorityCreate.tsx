@@ -22,6 +22,7 @@ interface Authorization {
   description: string;
   app: string;
   appLabel: string;
+  contextual?: boolean;
 }
 
 interface App {
@@ -170,10 +171,12 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
     }
   };
 
-  const filteredAuthorizations = authorizations.filter(auth =>
-    auth.name.toLowerCase().includes(authorizationSearch.toLowerCase()) ||
-    auth.description.toLowerCase().includes(authorizationSearch.toLowerCase())
-  );
+  const filteredAuthorizations = authorizations
+    .filter(auth => !auth.contextual) // Exclude contextual authorizations
+    .filter(auth =>
+      auth.name.toLowerCase().includes(authorizationSearch.toLowerCase()) ||
+      auth.description.toLowerCase().includes(authorizationSearch.toLowerCase())
+    );
 
   const filteredApps = apps
     .filter(app => app.id !== 'system') // Exclude system app

@@ -4,6 +4,7 @@ import {
   userHasAuthorization,
   createApp,
   createAuthorization,
+  createAuthority,
   getApp,
   getAllApps,
   deleteApp,
@@ -395,7 +396,33 @@ export async function POST(request: NextRequest) {
           authId,
           auth.name,
           auth.description || "",
-          appAttributes.id
+          appAttributes.id,
+          auth.contextual || false
+        );
+      }
+    }
+
+    // Install contextual authorities
+    if (
+      appAttributes.authorities &&
+      Array.isArray(appAttributes.authorities)
+    ) {
+      for (const authority of appAttributes.authorities) {
+        const authorityId = `${appAttributes.id}:${authority.id}`;
+
+        // Map authorization IDs to full contextual authorization IDs
+        const authorizations = (authority.authorizations || []).map(
+          (authId: string) => `${appAttributes.id}:${authId}`
+        );
+
+        await createAuthority(
+          authorityId,
+          authority.name,
+          authority.icon,
+          authorizations,
+          [], // No apps for contextual authorities
+          true, // Mark as contextual
+          appAttributes.id // Track which app created this
         );
       }
     }
