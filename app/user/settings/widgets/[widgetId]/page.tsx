@@ -1,195 +1,131 @@
 "use client";
 
-import { useEffect, useState, useRef } from "react";
+import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import DynamicAppLoader from "@/lib/components/DynamicAppLoader";
 
 export default function AppWidgetPage() {
   const params = useParams();
-  const widgetId = params.widgetId as string;
-  const [subAppId, setSubAppId] = useState<string | null>(null);
-  const [mainAppId, setMainAppId] = useState<string | null>(null);
-  const [widgetName, setWidgetName] = useState<string | null>(null);
+  const compositeId = decodeURIComponent(params.widgetId as string);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const scriptsRef = useRef<HTMLScriptElement[]>([]);
+  const [moduleUrl, setModuleUrl] = useState<string | null>(null);
+  const [componentName, setComponentName] = useState<string | null>(null);
 
-  // Fetch widget info and verify access
+  // Parse composite ID and verify access
   useEffect(() => {
-    async function fetchWidgetInfo() {
+    async function parseAndFetchWidget() {
       try {
-        // We need to fetch the widget first to know which app to query
-        const response = await fetch(`/api/system/widgets/${widgetId}`);
-        if (!response.ok) {
-          const errorData = await response.json();
+        // Try to parse as composite ID (mainAppId:subAppId:widgetId)
+        const parts = compositeId.split(":");
 
-          // Handle different error types
-          if (response.status === 403) {
-            setError(
-              "Access denied: You do not have permission to access this widget"
-            );
-          } else if (response.status === 404) {
-            setError(`Widget "${widgetId}" does not exist`);
-          } else {
-            setError(errorData.error || "Widget not found");
+        let mainAppId: string;
+        let subAppId: string;
+        let widgetId: string;
+
+        if (parts.length === 3) {
+          // New format: mainAppId:subAppId:widgetId
+          [mainAppId, subAppId, widgetId] = parts;
+
+          // We still need to fetch the widget to get the component name and verify access
+          const response = await fetch(`/api/system/widgets/${widgetId}`);
+          if (!response.ok) {
+            const errorData = await response.json();
+
+            if (response.status === 403) {
+              setError(
+                "Access denied: You do not have permission to access this widget"
+              );
+            } else if (response.status === 404) {
+              setError(`Widget "${widgetId}" does not exist`);
+            } else {
+              setError(errorData.error || "Widget not found");
+            }
+
+            setLoading(false);
+            return;
           }
 
+          const widgetInfo = await response.json();
+          setComponentName(widgetInfo.component);
+
+          // Fetch app metadata to get version
+          const appResponse = await fetch(`/api/system/apps/${mainAppId}`);
+          if (!appResponse.ok) {
+            setError("Failed to load app information");
+            setLoading(false);
+            return;
+          }
+
+          const appData = await appResponse.json();
+          const versionString = `${appData.version.major}.${appData.version.minor}.${appData.version.dev}`;
+          const url = `/api/system/apps/${mainAppId}/assets/?v=${versionString}`;
+          setModuleUrl(url);
+          setLoading(false);
+          return;
+        } else if (parts.length === 1) {
+          // Old format: just widgetId, need to fetch from API
+          widgetId = parts[0];
+
+          const response = await fetch(`/api/system/widgets/${widgetId}`);
+          if (!response.ok) {
+            const errorData = await response.json();
+
+            if (response.status === 403) {
+              setError(
+                "Access denied: You do not have permission to access this widget"
+              );
+            } else if (response.status === 404) {
+              setError(`Widget "${widgetId}" does not exist`);
+            } else {
+              setError(errorData.error || "Widget not found");
+            }
+
+            setLoading(false);
+            return;
+          }
+
+          const widgetInfo = await response.json();
+          const fullAppId = widgetInfo.appId;
+          const appParts = fullAppId.split(":");
+
+          if (appParts.length !== 2) {
+            setError("Invalid widget app ID format");
+            setLoading(false);
+            return;
+          }
+
+          mainAppId = appParts[0];
+          subAppId = fullAppId;
+          setComponentName(widgetInfo.component);
+
+          // Get app version
+          const appResponse = await fetch(`/api/system/apps/${mainAppId}`);
+          if (!appResponse.ok) {
+            setError("Failed to load app information");
+            setLoading(false);
+            return;
+          }
+
+          const appData = await appResponse.json();
+          const versionString = `${appData.version.major}.${appData.version.minor}.${appData.version.dev}`;
+          setModuleUrl(`/api/system/apps/${mainAppId}/assets/?v=${versionString}`);
+          setLoading(false);
+          return;
+        } else {
+          setError("Invalid widget ID format");
           setLoading(false);
           return;
         }
-
-        const widgetInfo = await response.json();
-        // widgetInfo.appId is in format "mainAppId:subAppId"
-        const fullAppId = widgetInfo.appId;
-        const parts = fullAppId.split(":");
-        if (parts.length !== 2) {
-          setError("Invalid widget app ID format");
-          setLoading(false);
-          return;
-        }
-
-        setMainAppId(parts[0]);
-        setSubAppId(fullAppId);
-        setWidgetName(widgetInfo.component);
       } catch (err) {
+        console.error("Error loading widget:", err);
         setError("Failed to load widget information");
         setLoading(false);
       }
     }
 
-    fetchWidgetInfo();
-  }, [widgetId]);
-
-  // Load and render widget using ES modules
-  useEffect(() => {
-    if (!mainAppId || !widgetName) return;
-
-    let mounted = true;
-    let root: any = null;
-
-    async function loadWidget() {
-      try {
-        // Wait for container to be available
-        if (!containerRef.current) {
-          setTimeout(loadWidget, 50);
-          return;
-        }
-
-        // Load React first (required for widgets)
-        async function loadReact() {
-          // @ts-ignore
-          if (window.React && window.ReactDOM) {
-            return;
-          }
-
-          const reactScript = document.createElement("script");
-          reactScript.src =
-            "https://unpkg.com/react@18/umd/react.production.min.js";
-          reactScript.crossOrigin = "anonymous";
-
-          const reactDOMScript = document.createElement("script");
-          reactDOMScript.src =
-            "https://unpkg.com/react-dom@18/umd/react-dom.production.min.js";
-          reactDOMScript.crossOrigin = "anonymous";
-
-          await new Promise((resolve, reject) => {
-            reactScript.onload = resolve;
-            reactScript.onerror = reject;
-            document.body.appendChild(reactScript);
-            scriptsRef.current.push(reactScript);
-          });
-
-          await new Promise((resolve, reject) => {
-            reactDOMScript.onload = resolve;
-            reactDOMScript.onerror = reject;
-            document.body.appendChild(reactDOMScript);
-            scriptsRef.current.push(reactDOMScript);
-          });
-        }
-
-        await loadReact();
-
-        if (!mounted) return;
-
-        // Load app as ES module
-        const scriptId = `widget-${mainAppId}-${Date.now()}`;
-        const moduleSrc = `/api/system/apps/${mainAppId}/assets/`;
-
-        const script = document.createElement("script");
-        script.id = scriptId;
-        script.type = "module";
-        script.textContent = `
-          import * as appModule from "${moduleSrc}";
-          window.__WIDGET_MODULE_${scriptId.replace(/-/g, "_")} = appModule;
-        `;
-
-        await new Promise((resolve, reject) => {
-          script.onload = resolve;
-          script.onerror = reject;
-          document.head.appendChild(script);
-          scriptsRef.current.push(script);
-        });
-
-        if (!mounted) return;
-
-        // Access the imported module
-        // @ts-ignore
-        const appModule = window[`__WIDGET_MODULE_${scriptId.replace(/-/g, "_")}`];
-
-        if (!appModule?.widgets?.[widgetName]) {
-          setError(`Widget "${widgetName}" not found in app module`);
-          setLoading(false);
-          return;
-        }
-
-        // Render the widget using ReactDOM from the global scope
-        const WidgetComponent = appModule.widgets[widgetName];
-
-        // @ts-ignore - Use the global React and ReactDOM
-        const { createElement } = window.React;
-        const { createRoot } = window.ReactDOM;
-
-        root = createRoot(containerRef.current!);
-        root.render(createElement(WidgetComponent));
-
-        if (mounted) {
-          setLoading(false);
-        }
-      } catch (err) {
-        console.error("Error loading widget:", err);
-        if (mounted) {
-          setError(
-            `Failed to load widget: ${
-              err instanceof Error ? err.message : String(err)
-            }`
-          );
-          setLoading(false);
-        }
-      }
-    }
-
-    loadWidget();
-
-    return () => {
-      mounted = false;
-
-      // Unmount the React root if it was created
-      if (root) {
-        try {
-          root.unmount();
-        } catch (err) {
-          console.error("Error unmounting widget:", err);
-        }
-      }
-
-      // Cleanup scripts
-      scriptsRef.current.forEach((script) => {
-        if (script.parentNode) {
-          script.parentNode.removeChild(script);
-        }
-      });
-    };
-  }, [mainAppId, widgetName]);
+    parseAndFetchWidget();
+  }, [compositeId]);
 
   return (
     <>
@@ -232,10 +168,14 @@ export default function AppWidgetPage() {
         </div>
       )}
 
-      <div
-        ref={containerRef}
-        style={{ display: loading || error ? "none" : "block" }}
-      />
+      {moduleUrl && componentName && !error && (
+        <DynamicAppLoader
+          moduleUrl={moduleUrl}
+          componentName={componentName}
+          componentType="widget"
+          onError={(errorMessage) => setError(errorMessage)}
+        />
+      )}
     </>
   );
 }

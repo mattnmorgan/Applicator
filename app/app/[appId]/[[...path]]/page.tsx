@@ -1,9 +1,10 @@
 "use client";
 
 import { useParams } from "next/navigation";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import Navigation from "@/lib/components/Navigation/Navigation";
 import Tabset from "@/lib/components/Tabset/Tabset";
+import DynamicAppLoader from "@/lib/components/DynamicAppLoader";
 
 interface TabsetItem {
   label: string;
@@ -15,8 +16,6 @@ export default function AppPage() {
   // Decode the URL parameter to convert %3A back to :
   const fullAppId = decodeURIComponent(params.appId as string);
   const path = (params.path as string[]) || [];
-  const containerRef = useRef<HTMLDivElement>(null);
-  const rootRef = useRef<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<{
@@ -34,6 +33,7 @@ export default function AppPage() {
   const [appVersion, setAppVersion] = useState<string | null>(null);
   const [subAppComponent, setSubAppComponent] = useState<string | null>(null);
   const [homeMenuItems, setHomeMenuItems] = useState<TabsetItem[]>([]);
+  const [moduleUrl, setModuleUrl] = useState<string | null>(null);
 
   // Parse main app ID and sub-app ID from URL
   const mainAppId = fullAppId.includes(":")
@@ -139,6 +139,10 @@ export default function AppPage() {
           }
 
           setSubAppComponent(subApp.component);
+
+          // Set the module URL for the DynamicAppLoader
+          setModuleUrl(`/api/system/apps/${mainAppId}/assets/?v=${versionString}`);
+          setLoading(false);
         }
       })
       .catch((err) => {
@@ -147,206 +151,6 @@ export default function AppPage() {
         setLoading(false);
       });
   }, [fullAppId, mainAppId, subAppId, user, userSubApps]);
-
-  // Load and mount sub-app using ES modules
-  useEffect(() => {
-    if (!mainAppId || !appVersion || !subAppComponent || !containerRef.current)
-      return;
-
-    let mounted = true;
-    const scripts: HTMLScriptElement[] = [];
-
-    // Load React and ReactDOM first
-    const loadReact = () => {
-      return new Promise<void>((resolve, reject) => {
-        // Check if React is already loaded
-        // @ts-ignore
-        if (window.React && window.ReactDOM) {
-          resolve();
-          return;
-        }
-
-        const reactScript = document.createElement("script");
-        reactScript.src = "/assets/react.production.min.js";
-        reactScript.onload = () => {
-          const reactDOMScript = document.createElement("script");
-          reactDOMScript.src = "/assets/react-dom.production.min.js";
-          reactDOMScript.onload = () => resolve();
-          reactDOMScript.onerror = () =>
-            reject(new Error("Failed to load ReactDOM"));
-          document.body.appendChild(reactDOMScript);
-          scripts.push(reactDOMScript);
-        };
-        reactScript.onerror = () => reject(new Error("Failed to load React"));
-        document.body.appendChild(reactScript);
-        scripts.push(reactScript);
-      });
-    };
-
-    // Load the app bundle as ES module
-    const loadApp = async () => {
-      try {
-        await loadReact();
-
-        if (!mounted) return;
-
-        // Add import map for React and ReactDOM (must be added BEFORE any module scripts)
-        if (!document.querySelector('script[type="importmap"]')) {
-          // Create shim modules that re-export all React properties
-          const reactShimCode = `
-            const React = window.React;
-            export default React;
-            export const {
-              Component, PureComponent, memo, forwardRef,
-              createContext, useContext, useState, useEffect,
-              useLayoutEffect, useReducer, useCallback, useMemo,
-              useRef, useImperativeHandle, useDebugValue,
-              createElement, cloneElement, createFactory,
-              isValidElement, Children, Fragment, StrictMode,
-              Suspense, lazy, startTransition, useTransition,
-              useDeferredValue, useId, useSyncExternalStore
-            } = React;
-          `;
-
-          const reactDOMShimCode = `
-            const ReactDOM = window.ReactDOM;
-            export default ReactDOM;
-            export const { render, hydrate, unmountComponentAtNode, findDOMNode, createPortal, flushSync } = ReactDOM;
-          `;
-
-          const importMap = document.createElement("script");
-          importMap.type = "importmap";
-          importMap.textContent = JSON.stringify({
-            imports: {
-              React: "data:text/javascript;base64," + btoa(reactShimCode),
-              ReactDOM: "data:text/javascript;base64," + btoa(reactDOMShimCode),
-              react: "data:text/javascript;base64," + btoa(reactShimCode),
-              "react-dom":
-                "data:text/javascript;base64," + btoa(reactDOMShimCode),
-            },
-          });
-          document.head.prepend(importMap); // Use prepend to ensure it's first
-          scripts.push(importMap);
-        }
-
-        // Create unique script ID to avoid conflicts
-        const scriptId = `app-${mainAppId}-${Date.now()}`;
-        const moduleSrc = `/api/system/apps/${mainAppId}/assets/?v=${appVersion}`;
-        const moduleVarName = `__APP_MODULE_${scriptId.replace(/-/g, "_")}`;
-
-        // Create script element with type="module"
-        const script = document.createElement("script");
-        script.id = scriptId;
-        script.type = "module";
-        script.textContent = `
-          import * as appModule from "${moduleSrc}";
-          window.${moduleVarName} = appModule;
-          window.${moduleVarName}_loaded = true;
-        `;
-
-        document.head.appendChild(script);
-        scripts.push(script);
-
-        // Poll for module to be loaded (inline module scripts don't fire onload)
-        const pollInterval = setInterval(() => {
-          // @ts-ignore
-          if (window[`${moduleVarName}_loaded`]) {
-            clearInterval(pollInterval);
-
-            try {
-              if (!mounted || !containerRef.current) return;
-
-              // Access the imported module
-              // @ts-ignore
-              const appModule = window[moduleVarName];
-
-              if (!appModule || !appModule.apps) {
-                console.error("App module structure:", appModule);
-                setError("App does not export apps registry");
-                setLoading(false);
-                return;
-              }
-
-              // Get the sub-app component
-              const SubAppComponent = appModule.apps[subAppComponent];
-              if (!SubAppComponent) {
-                setError(
-                  `Component "${subAppComponent}" not found in app module`
-                );
-                setLoading(false);
-                return;
-              }
-
-              // Verify React is loaded
-              // @ts-ignore
-              if (!window.React || !window.ReactDOM) {
-                setError("React libraries not loaded");
-                setLoading(false);
-                return;
-              }
-
-              // Create React root and render using window.ReactDOM
-              if (containerRef.current) {
-                // Use ReactDOM from window for compatibility
-                // @ts-ignore
-                const { createRoot: windowCreateRoot } = window.ReactDOM;
-                const root = windowCreateRoot(containerRef.current);
-                rootRef.current = root;
-
-                // @ts-ignore - SubAppComponent is dynamically loaded
-                root.render(
-                  // @ts-ignore
-                  window.React.createElement(SubAppComponent, {
-                    path: remainingPath,
-                    appId: fullAppId,
-                  })
-                );
-
-                setLoading(false);
-              }
-            } catch (err) {
-              console.error("Error mounting sub-app:", err);
-              setError("Failed to mount sub-app");
-              setLoading(false);
-            }
-          }
-        }, 100);
-
-        // Timeout after 10 seconds
-        setTimeout(() => {
-          clearInterval(pollInterval);
-          // @ts-ignore
-          if (!window[`${moduleVarName}_loaded`]) {
-            setError("App module loading timeout");
-            setLoading(false);
-          }
-        }, 10000);
-      } catch (err) {
-        console.error("Error loading dependencies:", err);
-        setError("Failed to load app dependencies");
-        setLoading(false);
-      }
-    };
-
-    loadApp();
-
-    return () => {
-      mounted = false;
-
-      // Unmount React root
-      if (rootRef.current) {
-        rootRef.current.unmount();
-        rootRef.current = null;
-      }
-
-      // Remove all scripts
-      scripts.forEach((script) => {
-        if (script.parentNode) {
-          script.parentNode.removeChild(script);
-        }
-      });
-    };
-  }, [mainAppId, appVersion, subAppComponent, fullAppId, remainingPath]);
 
   return (
     <>
@@ -380,50 +184,56 @@ export default function AppPage() {
             overflow: "auto",
           }}
         >
-          <div style={{ height: "100%" }}>
-            {loading && (
+          {loading && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "256px",
+              }}
+            >
+              <div style={{ color: "#94a3b8" }}>Loading app...</div>
+            </div>
+          )}
+
+          {error && (
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
+              }}
+            >
               <div
                 style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "256px",
+                  background: "#7f1d1d",
+                  border: "1px solid #991b1b",
+                  borderRadius: "8px",
+                  padding: "32px",
+                  maxWidth: "500px",
+                  textAlign: "center",
                 }}
               >
-                <div style={{ color: "#94a3b8" }}>Loading app...</div>
+                <p style={{ color: "#fca5a5", fontSize: "16px", margin: "0" }}>
+                  {error}
+                </p>
               </div>
-            )}
+            </div>
+          )}
 
-            {error && (
-              <div
-                style={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  height: "100%",
-                }}
-              >
-                <div
-                  style={{
-                    background: "#7f1d1d",
-                    border: "1px solid #991b1b",
-                    borderRadius: "8px",
-                    padding: "32px",
-                    maxWidth: "500px",
-                    textAlign: "center",
-                  }}
-                >
-                  <p
-                    style={{ color: "#fca5a5", fontSize: "16px", margin: "0" }}
-                  >
-                    {error}
-                  </p>
-                </div>
-              </div>
-            )}
-
-            <div ref={containerRef} style={{ height: "100%" }} />
-          </div>
+          {moduleUrl && subAppComponent && !error && (
+            <DynamicAppLoader
+              moduleUrl={moduleUrl}
+              componentName={subAppComponent}
+              componentProps={{
+                path: remainingPath,
+                appId: fullAppId,
+              }}
+              onError={(errorMessage) => setError(errorMessage)}
+            />
+          )}
         </main>
       </div>
     </>

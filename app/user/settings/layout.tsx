@@ -61,15 +61,20 @@ async function getUserSettingsMenuItems(): Promise<TabsetItem[]> {
         continue;
       }
 
+      // Parse the full sub-app ID to get mainAppId and subAppId
+      const { mainAppId, subAppId } = parseSubAppId(fullSubAppId);
+
       // Filter widgets that target user-settings
       const settingsWidgets = subApp.widgets.filter(
         (w) => w.target === "user-settings"
       );
 
       for (const widget of settingsWidgets) {
+        // Create composite widget ID: mainAppId:subAppId:widgetId
+        const compositeWidgetId = `${mainAppId}:${subAppId}:${widget.id}`;
         appSettingsChildren.push({
           label: widget.name,
-          path: `/user/settings/widgets/${widget.id}`,
+          path: `/user/settings/widgets/${compositeWidgetId}`,
         });
       }
     } catch (error) {

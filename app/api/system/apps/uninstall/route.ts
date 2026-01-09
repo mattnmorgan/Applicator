@@ -91,7 +91,11 @@ export async function POST(request: NextRequest) {
       const storagePath = await getSystemSetting("storage");
       if (storagePath) {
         const appDir = path.join(storagePath, "apps", appId);
-        const uninstallationHookPath = path.join(appDir, "system", "uninstall.js");
+        const uninstallationHookPath = path.join(
+          appDir,
+          "system",
+          "uninstall.js"
+        );
         const uninstallationHookExists = await fs
           .access(uninstallationHookPath)
           .then(() => true)
@@ -102,7 +106,9 @@ export async function POST(request: NextRequest) {
             .fromRequest(request)
             .info(
               "system",
-              `Running OnUninstallation hook for ${app.label} v${formatVersion(app.version)}`
+              `Running OnUninstallation hook for ${app.label} v${formatVersion(
+                app.version
+              )}`
             );
 
           const require = createRequire(import.meta.url || __filename);
@@ -160,26 +166,34 @@ export async function POST(request: NextRequest) {
         continue;
       }
 
-      // Remove app from non-contextual authorities
-      if (authority.apps && authority.apps.includes(appId)) {
-        const updatedApps = authority.apps.filter((id) => id !== appId);
-        await updateAuthority(
-          authority.userId ? `user-specific:${authority.id}` : authority.id,
-          { apps: updatedApps }
+      // Remove main app and all subApps from non-contextual authorities
+      if (authority.apps) {
+        // Filter out the main app and all subApps (appId:*)
+        const updatedApps = authority.apps.filter(
+          (id) => id !== appId && !id.startsWith(`${appId}:`)
         );
+
+        // Only update if something changed
+        if (updatedApps.length !== authority.apps.length) {
+          await updateAuthority(
+            authority.userId ? `user-specific:${authority.id}` : authority.id,
+            { apps: updatedApps }
+          );
+        }
       }
 
       // Remove app's authorizations from non-contextual authorities
-      const updatedAuthorizations = authority.authorizations.filter(
-        (authId) => !authId.startsWith(`${appId}:`)
-      );
-      if (updatedAuthorizations.length !== authority.authorizations.length) {
-        await updateAuthority(
-          authority.userId ? `user-specific:${authority.id}` : authority.id,
-          {
-            authorizations: updatedAuthorizations,
-          }
+      if (authority.authorizations) {
+        const updatedAuthorizations = authority.authorizations.filter(
+          (authId) => !authId.startsWith(`${appId}:`)
         );
+
+        // Only update if something changed
+        if (updatedAuthorizations.length !== authority.authorizations.length) {
+          await updateAuthority(authority.id, {
+            authorizations: updatedAuthorizations,
+          });
+        }
       }
     }
 

@@ -4,7 +4,7 @@ import { getAllApps, getAuthority, getUserAuthority } from "@/lib/db";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: { widgetId: string } }
+  { params }: { params: Promise<{ widgetId: string }> }
 ) {
   try {
     const user = await getCurrentUser();
@@ -12,10 +12,11 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const { widgetId } = params;
+    const { widgetId } = await params;
 
     // Get all apps and search for the widget
     const apps = await getAllApps();
+
     let foundWidget: any = null;
     let foundAppId: string | null = null;
 

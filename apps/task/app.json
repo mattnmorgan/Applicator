@@ -110,7 +110,7 @@
         },
         {
           "id": "task-system-settings-widget",
-          "name": "Task System Settings",
+          "name": "Task Manager",
           "description": "Configure system-wide task settings",
           "target": "system-settings",
           "component": "SystemSettingsWidget",
