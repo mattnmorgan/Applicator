@@ -59,6 +59,10 @@ function getSettingsMenuItems(hasDeveloperAuth: boolean): TabsetItem[] {
       clickable: false,
       children: [
         {
+          label: "Api Endpoints",
+          path: "/system/settings/debug/api-endpoints",
+        },
+        {
           label: "Database",
           path: "/system/settings/debug/database",
         },

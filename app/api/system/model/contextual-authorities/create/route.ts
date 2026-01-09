@@ -16,7 +16,7 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { id, permission, app, user, authority, password } = body;
+    const { id, permission, app, createdBy, user, authority, password } = body;
 
     // Validate required fields
     if (!id || !permission || !app) {
@@ -46,7 +46,7 @@ export async function POST(request: NextRequest) {
       id,
       permission,
       app,
-      session.userId, // createdBy
+      createdBy,
       user,
       authority,
       hashedPassword
