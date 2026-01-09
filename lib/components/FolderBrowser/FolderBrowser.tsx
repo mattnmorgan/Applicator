@@ -37,7 +37,7 @@ export default function FolderBrowser({ isOpen, onClose, onConfirm, initialPath 
   const loadDrives = async () => {
     setLoading(true);
     try {
-      const response = await fetch('/api/system/filesystem');
+      const response = await fetch('/api/system/apps/fs');
       const data = await response.json();
       setDrives(data.drives || []);
       setPlatform(data.platform);
@@ -53,7 +53,7 @@ export default function FolderBrowser({ isOpen, onClose, onConfirm, initialPath 
   const loadDirectory = async (path: string) => {
     setLoading(true);
     try {
-      const response = await fetch(`/api/system/filesystem?path=${encodeURIComponent(path)}`);
+      const response = await fetch(`/api/system/apps/fs?path=${encodeURIComponent(path)}`);
       const data = await response.json();
       setDirectories(data.directories || []);
       setCurrentPath(data.currentPath);
@@ -95,11 +95,10 @@ export default function FolderBrowser({ isOpen, onClose, onConfirm, initialPath 
     if (!newFolderName.trim() || !currentPath) return;
 
     try {
-      const response = await fetch('/api/system/filesystem', {
-        method: 'POST',
+      const response = await fetch('/api/system/apps/fs', {
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'create',
           path: currentPath,
           name: newFolderName.trim(),
         }),
@@ -119,11 +118,10 @@ export default function FolderBrowser({ isOpen, onClose, onConfirm, initialPath 
     if (!confirm(`Are you sure you want to delete "${dir.name}"?`)) return;
 
     try {
-      const response = await fetch('/api/system/filesystem', {
-        method: 'POST',
+      const response = await fetch('/api/system/apps/fs', {
+        method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          action: 'delete',
           path: dir.path,
         }),
       });
