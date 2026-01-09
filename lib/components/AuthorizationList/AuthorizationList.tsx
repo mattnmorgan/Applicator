@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import Row from '../Row';
+import Badge from '../Badge/Badge';
 import styles from './AuthorizationList.module.css';
 
 interface Authorization {
@@ -62,13 +63,13 @@ export default function AuthorizationList() {
             </div>
             <div className={styles.appColumn}>
               {authorization.contextual && (
-                <span className={styles.badgeContextual}>
+                <Badge variant="yellow">
                   Contextual
-                </span>
+                </Badge>
               )}
-              <span className={`${styles.badge} ${authorization.app === 'system' ? styles.badgeSystem : styles.badgeApp}`}>
+              <Badge variant={authorization.app === 'system' ? 'purple' : 'blue'}>
                 {authorization.appLabel}
-              </span>
+              </Badge>
             </div>
           </Row>
         ))}

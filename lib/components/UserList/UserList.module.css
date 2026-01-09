@@ -107,34 +107,6 @@
   flex-shrink: 0;
 }
 
-.badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.badgeAuthority {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-  background: #3b82f633;
-  color: #3b82f6;
-}
-
-.badgeActive {
-  background: #10b98133;
-  color: #10b981;
-}
-
-.badgeInactive {
-  background: #ef444433;
-  color: #ef4444;
-}
-
 .emptyState {
   padding: 40px 20px;
   text-align: center;

@@ -6,7 +6,8 @@ import { useParams } from "next/navigation";
 export default function AppWidgetPage() {
   const params = useParams();
   const widgetId = params.widgetId as string;
-  const [appId, setAppId] = useState<string | null>(null);
+  const [subAppId, setSubAppId] = useState<string | null>(null);
+  const [mainAppId, setMainAppId] = useState<string | null>(null);
   const [widgetName, setWidgetName] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -17,9 +18,8 @@ export default function AppWidgetPage() {
   useEffect(() => {
     async function fetchWidgetInfo() {
       try {
-        const response = await fetch(
-          `/api/system/apps/${appId}/widgets/${widgetId}`
-        );
+        // We need to fetch the widget first to know which app to query
+        const response = await fetch(`/api/system/widgets/${widgetId}`);
         if (!response.ok) {
           const errorData = await response.json();
 
@@ -39,7 +39,17 @@ export default function AppWidgetPage() {
         }
 
         const widgetInfo = await response.json();
-        setAppId(widgetInfo.appId);
+        // widgetInfo.appId is in format "mainAppId:subAppId"
+        const fullAppId = widgetInfo.appId;
+        const parts = fullAppId.split(":");
+        if (parts.length !== 2) {
+          setError("Invalid widget app ID format");
+          setLoading(false);
+          return;
+        }
+
+        setMainAppId(parts[0]);
+        setSubAppId(fullAppId);
         setWidgetName(widgetInfo.component);
       } catch (err) {
         setError("Failed to load widget information");
@@ -50,9 +60,9 @@ export default function AppWidgetPage() {
     fetchWidgetInfo();
   }, [widgetId]);
 
-  // Load and render widget once we have appId and widgetName
+  // Load and render widget using ES modules
   useEffect(() => {
-    if (!appId || !widgetName) return;
+    if (!mainAppId || !widgetName) return;
 
     let mounted = true;
     let root: any = null;
@@ -101,36 +111,39 @@ export default function AppWidgetPage() {
 
         if (!mounted) return;
 
-        // Check if app is already loaded
-        // @ts-ignore
-        let appExports = window.__APPLICATOR_PLUGINS__?.[appId];
+        // Load app as ES module
+        const scriptId = `widget-${mainAppId}-${Date.now()}`;
+        const moduleSrc = `/api/system/apps/${mainAppId}/assets/`;
 
-        if (!appExports) {
-          // Load the app script
-          const script = document.createElement("script");
-          script.src = `/api/system/apps/${appId}/assets`;
+        const script = document.createElement("script");
+        script.id = scriptId;
+        script.type = "module";
+        script.textContent = `
+          import * as appModule from "${moduleSrc}";
+          window.__WIDGET_MODULE_${scriptId.replace(/-/g, "_")} = appModule;
+        `;
 
-          await new Promise((resolve, reject) => {
-            script.onload = resolve;
-            script.onerror = reject;
-            document.body.appendChild(script);
-            scriptsRef.current.push(script);
-          });
-
-          // @ts-ignore
-          appExports = window.__APPLICATOR_PLUGINS__?.[appId];
-        }
+        await new Promise((resolve, reject) => {
+          script.onload = resolve;
+          script.onerror = reject;
+          document.head.appendChild(script);
+          scriptsRef.current.push(script);
+        });
 
         if (!mounted) return;
 
-        if (!appExports?.widgets?.[widgetName]) {
-          setError(`Widget not found`);
+        // Access the imported module
+        // @ts-ignore
+        const appModule = window[`__WIDGET_MODULE_${scriptId.replace(/-/g, "_")}`];
+
+        if (!appModule?.widgets?.[widgetName]) {
+          setError(`Widget "${widgetName}" not found in app module`);
           setLoading(false);
           return;
         }
 
         // Render the widget using ReactDOM from the global scope
-        const WidgetComponent = appExports.widgets[widgetName];
+        const WidgetComponent = appModule.widgets[widgetName];
 
         // @ts-ignore - Use the global React and ReactDOM
         const { createElement } = window.React;
@@ -172,11 +185,11 @@ export default function AppWidgetPage() {
       // Cleanup scripts
       scriptsRef.current.forEach((script) => {
         if (script.parentNode) {
-          document.body.removeChild(script);
+          script.parentNode.removeChild(script);
         }
       });
     };
-  }, [appId, widgetName]);
+  }, [mainAppId, widgetName]);
 
   return (
     <>

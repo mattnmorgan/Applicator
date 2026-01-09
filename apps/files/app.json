@@ -4,7 +4,7 @@
   "version": {
     "major": 1,
     "minor": 2,
-    "dev": 2
+    "dev": 3
   },
   "author": "Matthew Morgan",
   "contactEmail": "matthew@morgantech.info",
@@ -64,6 +64,24 @@
       "method": "POST",
       "handler": "mkdir",
       "description": "Create a new directory"
+    }
+  ],
+  "subApps": [
+    {
+      "id": "browser",
+      "label": "File Browser",
+      "description": "Browse and manage files across applications",
+      "component": "Browser",
+      "widgets": [
+        {
+          "id": "files-home-widget",
+          "name": "Quick File Access",
+          "description": "Quick access to recent files",
+          "target": "home",
+          "component": "HomeWidget",
+          "appId": "files:browser"
+        }
+      ]
     }
   ]
 }

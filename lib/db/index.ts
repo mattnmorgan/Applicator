@@ -56,6 +56,11 @@ export {
   getAllApps,
   updateApp,
   deleteApp,
+  parseSubAppId,
+  getSubApp,
+  getUserSubApps,
+  getUserMainApps,
+  getAllWidgetsForApp,
 } from "./app";
 
 // Export user functions

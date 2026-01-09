@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import styles from "./AppView.module.css";
+import Accordion from "@/lib/components/Accordion/Accordion";
+import Badge from "@/lib/components/Badge/Badge";
 
 interface ApiRoute {
   path: string;
@@ -19,6 +21,14 @@ interface Widget {
   appId: string;
 }
 
+interface SubApp {
+  id: string;
+  label: string;
+  description: string;
+  component: string;
+  widgets?: Widget[];
+}
+
 interface AppVersion {
   major: number;
   minor: number;
@@ -34,11 +44,41 @@ interface App {
   description: string;
   apiRoutes: ApiRoute[];
   widgets?: Widget[];
+  subApps?: SubApp[];
   dependencies?: Record<string, AppVersion>;
 }
 
 function formatVersion(version: AppVersion): string {
   return `${version.major}.${version.minor}.${version.dev}`;
+}
+
+function getMethodBadgeVariant(method: string): "green" | "blue" | "yellow" | "red" | "purple" | "gray" {
+  switch (method.toUpperCase()) {
+    case "GET":
+      return "blue";
+    case "POST":
+      return "green";
+    case "PUT":
+    case "PATCH":
+      return "yellow";
+    case "DELETE":
+      return "red";
+    default:
+      return "gray";
+  }
+}
+
+function getTargetBadgeVariant(target: string): "green" | "blue" | "yellow" | "red" | "purple" | "gray" {
+  switch (target) {
+    case "home":
+      return "blue";
+    case "user-settings":
+      return "green";
+    case "system-settings":
+      return "purple";
+    default:
+      return "gray";
+  }
 }
 
 interface AppViewProps {
@@ -128,9 +168,9 @@ export default function AppView({ appId, onBack }: AppViewProps) {
         <div className={styles.details}>
           <div className={styles.titleRow}>
             <h1 className={styles.title}>{app.label}</h1>
-            <span className={styles.versionBadge}>
+            <Badge variant="gray">
               v{formatVersion(app.version)}
-            </span>
+            </Badge>
           </div>
           <p className={styles.author}>
             by {app.author}
@@ -206,6 +246,70 @@ export default function AppView({ appId, onBack }: AppViewProps) {
         </div>
       )}
 
+      {app.subApps && app.subApps.length > 0 && (
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>Sub-Applications</h2>
+          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+            {app.subApps.map((subApp) => (
+              <Accordion
+                key={subApp.id}
+                title={
+                  <div style={{ color: "#f1f5f9", fontSize: "16px", fontWeight: "500" }}>
+                    {subApp.label}
+                  </div>
+                }
+              >
+                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                  <div>
+                    <div style={{ color: "#cbd5e1", fontSize: "13px", fontWeight: "500", marginBottom: "8px" }}>
+                      Description
+                    </div>
+                    <div style={{ color: "#e2e8f0", fontSize: "14px" }}>
+                      {subApp.description}
+                    </div>
+                  </div>
+
+                  {subApp.widgets && subApp.widgets.length > 0 && (
+                    <div>
+                      <div style={{ color: "#cbd5e1", fontSize: "13px", fontWeight: "500", marginBottom: "8px" }}>
+                        Widgets ({subApp.widgets.length})
+                      </div>
+                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                        {subApp.widgets.map((widget) => (
+                          <div
+                            key={widget.id}
+                            style={{
+                              background: "#0f172a",
+                              border: "1px solid #334155",
+                              borderRadius: "6px",
+                              padding: "12px",
+                            }}
+                          >
+                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
+                              <div style={{ color: "#f1f5f9", fontSize: "14px", fontWeight: "500" }}>
+                                {widget.name}
+                              </div>
+                              <Badge variant={getTargetBadgeVariant(widget.target)}>
+                                {widget.target === "home" && "Home"}
+                                {widget.target === "user-settings" && "User Settings"}
+                                {widget.target === "system-settings" && "System Settings"}
+                              </Badge>
+                            </div>
+                            <div style={{ color: "#94a3b8", fontSize: "13px" }}>
+                              {widget.description}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              </Accordion>
+            ))}
+          </div>
+        </div>
+      )}
+
       {app.widgets && app.widgets.length > 0 && (
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Widgets</h2>
@@ -218,11 +322,11 @@ export default function AppView({ appId, onBack }: AppViewProps) {
                     {widget.description}
                   </div>
                 </div>
-                <div className={styles.widgetTarget}>
-                  {widget.target === "home" && "Home Screen"}
+                <Badge variant={getTargetBadgeVariant(widget.target)}>
+                  {widget.target === "home" && "Home"}
                   {widget.target === "user-settings" && "User Settings"}
                   {widget.target === "system-settings" && "System Settings"}
-                </div>
+                </Badge>
               </div>
             ))}
           </div>
@@ -235,7 +339,9 @@ export default function AppView({ appId, onBack }: AppViewProps) {
           <div className={styles.routeList}>
             {app.apiRoutes.map((route, index) => (
               <div key={index} className={styles.routeRow}>
-                <div className={styles.routeMethod}>{route.method}</div>
+                <Badge variant={getMethodBadgeVariant(route.method)}>
+                  {route.method}
+                </Badge>
                 <div className={styles.routePath}>
                   /api/{app.id}/{route.path}
                 </div>

@@ -1,6 +1,13 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { isFirstTimeSetup, getAllApps, getAuthority } from "@/lib/db";
+import {
+  isFirstTimeSetup,
+  getAllApps,
+  getAuthority,
+  getSubApp,
+  parseSubAppId,
+  getUserAuthority,
+} from "@/lib/db";
 import { getBrandSettings } from "@/lib/brand";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/Tabset";
@@ -29,39 +36,49 @@ async function getUserSettingsMenuItems(): Promise<TabsetItem[]> {
     return items;
   }
 
-  // Get user's authority to check which apps they can access
+  // Get user's authority and user authority to check which sub-apps they can access
   const authority = await getAuthority(user.authority);
-  if (!authority) {
+  const userAuthority = await getUserAuthority(user.id);
+
+  // Combine sub-app IDs from both authority and user authority
+  const subAppIds = [
+    ...(authority?.apps || []),
+    ...(userAuthority?.apps || []),
+  ];
+
+  if (subAppIds.length === 0) {
     return items;
   }
 
-  // Get all apps and find those with user-settings widgets
-  const allApps = await getAllApps();
+  // Build children array for app settings
+  const appSettingsChildren: TabsetItem[] = [];
 
-  // Filter to apps the user has access to
-  const accessibleApps = allApps.filter(
-    (app) =>
-      authority.apps?.includes(app.id) &&
-      app.widgets &&
-      app.widgets.some((w) => w.target === "user-settings")
-  );
+  // For each sub-app, get its widgets that target user-settings
+  for (const fullSubAppId of subAppIds) {
+    try {
+      const subApp = await getSubApp(fullSubAppId);
+      if (!subApp || !subApp.widgets) {
+        continue;
+      }
 
-  if (accessibleApps.length > 0) {
-    // Build children array for app settings
-    const appSettingsChildren: TabsetItem[] = [];
-
-    for (const app of accessibleApps) {
-      const settingsWidgets = app.widgets!.filter(
+      // Filter widgets that target user-settings
+      const settingsWidgets = subApp.widgets.filter(
         (w) => w.target === "user-settings"
       );
+
       for (const widget of settingsWidgets) {
         appSettingsChildren.push({
           label: widget.name,
           path: `/user/settings/widgets/${widget.id}`,
         });
       }
+    } catch (error) {
+      // Skip invalid sub-app IDs
+      console.error(`Error loading sub-app ${fullSubAppId}:`, error);
     }
+  }
 
+  if (appSettingsChildren.length > 0) {
     // Add non-clickable Apps header with children
     items.push({
       label: "Apps",

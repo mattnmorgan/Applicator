@@ -5,6 +5,7 @@ import Row from "../Row";
 import AppView from "../AppView/AppView";
 import Toast from "../Toast";
 import ConfirmModal from "../ConfirmModal";
+import Badge from "../Badge/Badge";
 import styles from "./AppList.module.css";
 
 interface Widget {
@@ -371,9 +372,9 @@ export default function AppList() {
                   <div className={styles.appLabel}>
                     {app.label || "Unknown App"}
                   </div>
-                  <span className={styles.versionBadge}>
+                  <Badge variant="gray">
                     v{formatVersion(app.version)}
-                  </span>
+                  </Badge>
                 </div>
                 <div className={styles.appDescription}>
                   {app.description || "No description"}

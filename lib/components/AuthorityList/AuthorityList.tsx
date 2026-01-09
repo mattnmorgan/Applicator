@@ -5,6 +5,7 @@ import ButtonMenu from '../ButtonMenu';
 import Row from '../Row';
 import Toast from '../Toast';
 import AuthorityCreate from '../AuthorityCreate';
+import Badge from '../Badge/Badge';
 import styles from './AuthorityList.module.css';
 
 interface Authority {
@@ -226,14 +227,14 @@ export default function AuthorityList() {
             </div>
             <div className={styles.badgeColumn}>
               {authority.contextual && (
-                <span className={styles.badgeContextual}>
+                <Badge variant="yellow">
                   Contextual
-                </span>
+                </Badge>
               )}
               {authority.appLabel && (
-                <span className={styles.badgeApp}>
+                <Badge variant={authority.app === 'system' ? 'purple' : 'blue'}>
                   {authority.appLabel}
-                </span>
+                </Badge>
               )}
             </div>
           </Row>

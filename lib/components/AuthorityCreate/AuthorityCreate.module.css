@@ -235,6 +235,9 @@
   color: #f1f5f9;
   font-size: 14px;
   font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .authorizationDescription {
@@ -244,24 +247,6 @@
 
 .authorizationApp {
   margin-top: 4px;
-}
-
-.badge {
-  display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
-  font-size: 12px;
-  font-weight: 500;
-}
-
-.badgeSystem {
-  background: #7c3aed33;
-  color: #a78bfa;
-}
-
-.badgeApp {
-  background: #3b82f633;
-  color: #60a5fa;
 }
 
 .emptyState {

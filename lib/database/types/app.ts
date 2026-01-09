@@ -17,7 +17,15 @@ export interface Widget {
   description: string;
   target: "home" | "user-settings" | "system-settings";
   component: string;
-  appId: string;
+  appId: string; // Format: "mainAppId:subAppId" for sub-app widgets
+}
+
+export interface SubApp {
+  id: string; // Unique within parent app (e.g., "manager")
+  label: string;
+  description: string;
+  component: string; // Component name in apps/ directory
+  widgets?: Widget[]; // Widgets specific to this sub-app
 }
 
 export default interface App {
@@ -28,7 +36,8 @@ export default interface App {
   contactEmail: string;
   description: string;
   apiRoutes?: ApiRoute[];
-  widgets?: Widget[];
+  subApps?: SubApp[]; // Sub-applications (if not provided, legacy format assumed)
+  widgets?: Widget[]; // Legacy: widgets at app level (deprecated, use subApps)
   /**
    * Map of app ids to minimum required versions for install to be permitted
    */

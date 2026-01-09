@@ -311,6 +311,231 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    // Validate sub-apps if present (new format)
+    if (appAttributes.subApps && Array.isArray(appAttributes.subApps)) {
+      const zipEntries = zip.getEntries();
+
+      if (appAttributes.subApps.length === 0) {
+        return NextResponse.json(
+          { error: "subApps array cannot be empty. At least one sub-app is required." },
+          { status: 400 }
+        );
+      }
+
+      // Check for apps/ directory
+      const hasAppsDir = zipEntries.some((e) => e.entryName.startsWith("apps/"));
+      if (!hasAppsDir) {
+        return NextResponse.json(
+          { error: "Package must contain 'apps/' directory for sub-app components" },
+          { status: 400 }
+        );
+      }
+
+      const subAppIds = new Set<string>();
+
+      for (let i = 0; i < appAttributes.subApps.length; i++) {
+        const subApp = appAttributes.subApps[i];
+
+        // Validate required sub-app fields
+        if (!subApp.id || !subApp.label || !subApp.description || !subApp.component) {
+          return NextResponse.json(
+            {
+              error: `Sub-app at index ${i} is missing required fields (id, label, description, or component)`,
+            },
+            { status: 400 }
+          );
+        }
+
+        // Check for duplicate sub-app IDs
+        if (subAppIds.has(subApp.id)) {
+          return NextResponse.json(
+            { error: `Duplicate sub-app ID found: ${subApp.id}` },
+            { status: 400 }
+          );
+        }
+        subAppIds.add(subApp.id);
+
+        // Validate component file exists
+        const componentPaths = [
+          `apps/${subApp.component}.tsx`,
+          `apps/${subApp.component}.ts`,
+          `apps/${subApp.component}.jsx`,
+          `apps/${subApp.component}.js`,
+        ];
+
+        const componentExists = componentPaths.some((p) =>
+          zipEntries.some((e) => e.entryName === p)
+        );
+
+        if (!componentExists) {
+          return NextResponse.json(
+            {
+              error: `Sub-app '${subApp.id}' component not found. Expected one of: ${componentPaths.join(", ")}`,
+            },
+            { status: 400 }
+          );
+        }
+
+        // Validate widgets for this sub-app
+        if (subApp.widgets && Array.isArray(subApp.widgets)) {
+          const hasWidgets = subApp.widgets.length > 0;
+
+          // Check for widgets/ directory if widgets are defined
+          if (hasWidgets) {
+            const hasWidgetsDir = zipEntries.some((e) =>
+              e.entryName.startsWith("widgets/")
+            );
+            if (!hasWidgetsDir) {
+              return NextResponse.json(
+                {
+                  error: "Package must contain 'widgets/' directory when widgets are defined",
+                },
+                { status: 400 }
+              );
+            }
+          }
+
+          let hasSystemWidget = false;
+
+          for (let j = 0; j < subApp.widgets.length; j++) {
+            const widget = subApp.widgets[j];
+
+            // Check widget has required fields
+            if (
+              !widget.id ||
+              !widget.name ||
+              !widget.description ||
+              !widget.target ||
+              !widget.component
+            ) {
+              return NextResponse.json(
+                {
+                  error: `Widget at index ${j} in sub-app '${subApp.id}' is missing required fields`,
+                },
+                { status: 400 }
+              );
+            }
+
+            // Validate target
+            if (
+              !["home", "user-settings", "system-settings"].includes(widget.target)
+            ) {
+              return NextResponse.json(
+                {
+                  error: `Widget '${widget.id}' has invalid target. Must be 'home', 'user-settings', or 'system-settings'`,
+                },
+                { status: 400 }
+              );
+            }
+
+            // Validate singular system settings widget per sub-app
+            if (widget.target === "system-settings") {
+              if (!hasSystemWidget) {
+                hasSystemWidget = true;
+              } else {
+                return NextResponse.json(
+                  {
+                    error: `Sub-app '${subApp.id}' cannot have more than one system widget`,
+                  },
+                  { status: 400 }
+                );
+              }
+            }
+
+            // Validate widget.appId format
+            if (!widget.appId) {
+              return NextResponse.json(
+                {
+                  error: `Widget '${widget.id}' is missing appId field`,
+                },
+                { status: 400 }
+              );
+            }
+
+            if (!widget.appId.includes(":")) {
+              return NextResponse.json(
+                {
+                  error: `Widget '${widget.id}' appId must be in format "mainAppId:subAppId"`,
+                },
+                { status: 400 }
+              );
+            }
+
+            const [mainId, subId] = widget.appId.split(":");
+            if (mainId !== appAttributes.id || subId !== subApp.id) {
+              return NextResponse.json(
+                {
+                  error: `Widget '${widget.id}' has incorrect appId. Expected '${appAttributes.id}:${subApp.id}', got '${widget.appId}'`,
+                },
+                { status: 400 }
+              );
+            }
+
+            // Validate widget component exists
+            const widgetPaths = [
+              `widgets/${widget.component}.tsx`,
+              `widgets/${widget.component}.ts`,
+              `widgets/${widget.component}.jsx`,
+              `widgets/${widget.component}.js`,
+            ];
+
+            const widgetExists = widgetPaths.some((p) =>
+              zipEntries.some((e) => e.entryName === p)
+            );
+
+            if (!widgetExists) {
+              return NextResponse.json(
+                {
+                  error: `Widget '${widget.id}' component not found. Expected one of: ${widgetPaths.join(", ")}`,
+                },
+                { status: 400 }
+              );
+            }
+          }
+
+          // Check for duplicate widget IDs within sub-app
+          const widgetIds = subApp.widgets.map((w: any) => w.id);
+          const duplicates = widgetIds.filter(
+            (id: string, index: number) => widgetIds.indexOf(id) !== index
+          );
+          if (duplicates.length > 0) {
+            return NextResponse.json(
+              {
+                error: `Duplicate widget IDs in sub-app '${subApp.id}': ${duplicates.join(", ")}`,
+              },
+              { status: 400 }
+            );
+          }
+        }
+      }
+    } else if (!appAttributes.widgets) {
+      // Legacy format auto-conversion
+      // If no subApps and no widgets, create a default sub-app
+      appAttributes.subApps = [
+        {
+          id: "main",
+          label: appAttributes.name,
+          description: appAttributes.description,
+          component: "App",
+          widgets: [],
+        },
+      ];
+    } else {
+      // Legacy format with widgets - convert to subApps
+      appAttributes.subApps = [
+        {
+          id: "main",
+          label: appAttributes.name,
+          description: appAttributes.description,
+          component: "App",
+          widgets: appAttributes.widgets.map((w: any) => ({
+            ...w,
+            appId: `${appAttributes.id}:main`,
+          })),
+        },
+      ];
+    }
+
     // Check if app already exists
     const existingApp = await getApp(appAttributes.id);
     if (existingApp) {
@@ -360,7 +585,7 @@ export async function POST(request: NextRequest) {
       await fs.writeFile(assetPath, asset);
     }
 
-    // Process widgets - ensure appId is set correctly
+    // Process widgets - ensure appId is set correctly (for legacy format)
     const processedWidgets = (appAttributes.widgets || []).map(
       (widget: any) => ({
         id: widget.id,
@@ -368,7 +593,7 @@ export async function POST(request: NextRequest) {
         description: widget.description,
         target: widget.target,
         component: widget.component,
-        appId: appAttributes.id, // Always use the app's ID
+        appId: widget.appId || appAttributes.id, // Use widget.appId if set (new format), else app ID (legacy)
       })
     );
 
@@ -382,7 +607,8 @@ export async function POST(request: NextRequest) {
       appAttributes.description,
       appAttributes.apiRoutes || [],
       processedWidgets,
-      appAttributes.dependencies || {}
+      appAttributes.dependencies || {},
+      appAttributes.subApps || undefined
     );
 
     // Install authorizations

@@ -7,6 +7,8 @@ import {
   getAllApps,
   getSession,
   getUserAuthority,
+  getSubApp,
+  parseSubAppId,
 } from "@/lib/db";
 
 export async function GET() {
@@ -32,19 +34,43 @@ export async function GET() {
     const userAuthority = await getUserAuthority(user.id);
     const { authorizations } = await getUserAuthorizations(user.id);
 
-    // Get user's apps from their authority
-    let userApps: { id: string; label: string }[] = (await getAllApps()).reduce(
-      (acc, app) => {
-        if (
-          authority?.apps?.includes(app.id) ||
-          userAuthority?.apps?.includes(app.id)
-        ) {
-          acc.push({ id: app.id, label: app.label });
+    // Get sub-app IDs from authority and user authority (format: "mainAppId:subAppId")
+    const subAppIds = [
+      ...(authority?.apps || []),
+      ...(userAuthority?.apps || []),
+    ];
+
+    // Map sub-app IDs to their full details
+    const userSubApps: Array<{
+      id: string;
+      label: string;
+      mainAppId: string;
+      subAppId: string;
+    }> = [];
+    const mainAppIds = new Set<string>();
+
+    for (const fullSubAppId of subAppIds) {
+      try {
+        const { mainAppId, subAppId } = parseSubAppId(fullSubAppId);
+        const subApp = await getSubApp(fullSubAppId);
+
+        if (subApp) {
+          userSubApps.push({
+            id: fullSubAppId,
+            label: subApp.label,
+            mainAppId,
+            subAppId,
+          });
+          mainAppIds.add(mainAppId);
         }
-        return acc;
-      },
-      []
-    );
+      } catch (error) {
+        // Skip invalid sub-app IDs
+        console.error(`Invalid sub-app ID: ${fullSubAppId}`, error);
+      }
+    }
+
+    // Get unique main app IDs for backward compatibility
+    const userMainApps = Array.from(mainAppIds);
 
     return NextResponse.json({
       user: {
@@ -57,7 +83,8 @@ export async function GET() {
         profilePicture: profilePictureUrl,
       },
       authorizations,
-      userApps,
+      userSubApps, // New: array of sub-apps with full details
+      userMainApps, // New: array of main app IDs (derived)
       isAssumedIdentity,
     });
   } catch (error) {

@@ -1,6 +1,12 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser } from "@/lib/auth";
-import { isFirstTimeSetup } from "@/lib/db";
+import {
+  isFirstTimeSetup,
+  getAllApps,
+  getAuthority,
+  getSubApp,
+  getUserAuthority,
+} from "@/lib/db";
 import { getBrandSettings } from "@/lib/brand";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/Tabset";
@@ -16,7 +22,10 @@ function sortMenuItems(items: TabsetItem[]): TabsetItem[] {
     .sort((a, b) => a.label.localeCompare(b.label));
 }
 
-function getSettingsMenuItems(hasDeveloperAuth: boolean): TabsetItem[] {
+async function getSettingsMenuItems(
+  hasDeveloperAuth: boolean,
+  userId: string
+): Promise<TabsetItem[]> {
   const unsortedSettingsMenuItems: TabsetItem[] = [
     {
       label: "Home",
@@ -51,6 +60,52 @@ function getSettingsMenuItems(hasDeveloperAuth: boolean): TabsetItem[] {
       ],
     },
   ];
+
+  // Load system-settings widgets from apps the user has access to
+  const authority = await getAuthority("admin"); // Admin users see all system settings
+  const userAuthority = await getUserAuthority(userId);
+
+  const subAppIds = [
+    ...(authority?.apps || []),
+    ...(userAuthority?.apps || []),
+  ];
+
+  if (subAppIds.length > 0) {
+    const appSettingsChildren: TabsetItem[] = [];
+
+    for (const fullSubAppId of subAppIds) {
+      try {
+        const subApp = await getSubApp(fullSubAppId);
+        if (!subApp || !subApp.widgets) {
+          continue;
+        }
+
+        // Filter widgets that target system-settings
+        const settingsWidgets = subApp.widgets.filter(
+          (w) => w.target === "system-settings"
+        );
+
+        for (const widget of settingsWidgets) {
+          appSettingsChildren.push({
+            label: widget.name,
+            path: `/system/settings/apps/widgets/${widget.id}`,
+          });
+        }
+      } catch (error) {
+        // Skip invalid sub-app IDs
+        console.error(`Error loading sub-app ${fullSubAppId}:`, error);
+      }
+    }
+
+    if (appSettingsChildren.length > 0) {
+      // Add App Settings section with children
+      unsortedSettingsMenuItems.push({
+        label: "App Settings",
+        clickable: false,
+        children: appSettingsChildren,
+      });
+    }
+  }
 
   // Only add Debug menu if user has developer authorization
   if (hasDeveloperAuth) {
@@ -134,7 +189,7 @@ export default async function SettingsLayout({
     );
   }
 
-  const settingsMenuItems = getSettingsMenuItems(hasDeveloperAuth);
+  const settingsMenuItems = await getSettingsMenuItems(hasDeveloperAuth, user.id);
 
   return (
     <>

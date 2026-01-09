@@ -5,6 +5,7 @@ import ProfileIndicator from "../ProfileIndicator";
 import ButtonMenu from "../ButtonMenu";
 import Row from "../Row";
 import UserCreate from "../UserCreate";
+import Badge from "../Badge/Badge";
 import styles from "./UserList.module.css";
 
 interface User {
@@ -232,16 +233,12 @@ export default function UserList() {
               />
             </div>
             <div className={styles.statusColumn}>
-              <span className={styles.badgeAuthority}>
+              <Badge variant="gray">
                 {user.authorityName}
-              </span>
-              <span
-                className={`${styles.badge} ${
-                  user.isActive ? styles.badgeActive : styles.badgeInactive
-                }`}
-              >
+              </Badge>
+              <Badge variant={user.isActive ? "green" : "red"}>
                 {user.isActive ? "Active" : "Inactive"}
-              </span>
+              </Badge>
             </div>
           </Row>
         ))}

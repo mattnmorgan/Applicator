@@ -64,16 +64,7 @@ export async function initializeAuthorities(): Promise<void> {
     "matthew@morgantech.info",
     "Core system application",
     [],
-    [
-      {
-        name: "",
-        description: "",
-        id: "",
-        target: "system-settings",
-        component: "",
-        appId: "system",
-      },
-    ],
+    [],
     {}
   );
 

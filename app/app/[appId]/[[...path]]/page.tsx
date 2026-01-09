@@ -2,14 +2,16 @@
 
 import { useParams } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
+import { createRoot, Root } from "react-dom/client";
 import Navigation from "@/lib/components/Navigation/Navigation";
 import AppMenu from "@/lib/components/AppMenu/AppMenu";
 
 export default function AppPage() {
   const params = useParams();
-  const appId = params.appId as string;
+  const fullAppId = params.appId as string;
   const path = (params.path as string[]) || [];
   const containerRef = useRef<HTMLDivElement>(null);
+  const rootRef = useRef<Root | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [user, setUser] = useState<{
@@ -17,7 +19,7 @@ export default function AppPage() {
     profilePicture?: string;
     isAdmin: boolean;
   } | null>(null);
-  const [userApps, setUserApps] = useState<
+  const [userSubApps, setUserSubApps] = useState<
     Array<{ id: string; label: string }>
   >([]);
   const [authorizations, setAuthorizations] = useState<string[]>([]);
@@ -25,6 +27,12 @@ export default function AppPage() {
   const [brandName, setBrandName] = useState("Applicator");
   const [brandIcon, setBrandIcon] = useState<string | undefined>(undefined);
   const [appVersion, setAppVersion] = useState<string | null>(null);
+  const [subAppComponent, setSubAppComponent] = useState<string | null>(null);
+
+  // Parse main app ID and sub-app ID from URL
+  const mainAppId = fullAppId.includes(":") ? fullAppId.split(":")[0] : fullAppId;
+  const subAppId = fullAppId.includes(":") ? fullAppId.split(":")[1] : path[0] || "main";
+  const remainingPath = fullAppId.includes(":") ? path : path.slice(1);
 
   // Fetch user data
   useEffect(() => {
@@ -37,7 +45,7 @@ export default function AppPage() {
             profilePicture: data.user.profilePicture,
             isAdmin: data.user.isAdmin || false,
           });
-          setUserApps(data.userApps || []);
+          setUserSubApps(data.userSubApps || []);
           setAuthorizations(data.authorizations || []);
           setIsAssumedIdentity(data.isAssumedIdentity || false);
         }
@@ -60,22 +68,23 @@ export default function AppPage() {
       });
   }, []);
 
-  // Fetch app version and check authorization
+  // Fetch app metadata and check authorization
   useEffect(() => {
-    if (!appId || !user) return;
+    if (!fullAppId || !user) return;
 
-    // Check if user has access to this app
-    const hasAccess = userApps.some((app) => app.id === appId);
+    // Check if user has access to this sub-app
+    const hasAccess = userSubApps.some((app) => app.id === fullAppId);
     if (!hasAccess) {
       setError(`Access denied: You do not have permission to access this app`);
       setLoading(false);
       return;
     }
 
-    fetch(`/api/system/apps/${appId}`)
+    // Fetch main app metadata
+    fetch(`/api/system/apps/${mainAppId}`)
       .then((res) => {
         if (res.status === 404) {
-          setError(`App "${appId}" does not exist`);
+          setError(`App "${mainAppId}" does not exist`);
           setLoading(false);
           return null;
         }
@@ -84,18 +93,30 @@ export default function AppPage() {
       .then((data) => {
         if (data && data.version) {
           setAppVersion(data.version);
+
+          // Find the sub-app to get component name
+          const subApp = data.subApps?.find((sa: any) => sa.id === subAppId);
+          if (!subApp) {
+            setError(`Sub-app "${subAppId}" not found in app "${mainAppId}"`);
+            setLoading(false);
+            return;
+          }
+
+          setSubAppComponent(subApp.component);
         }
       })
       .catch((err) => {
-        console.error("Error fetching app version:", err);
+        console.error("Error fetching app metadata:", err);
         setError("Failed to load app");
         setLoading(false);
       });
-  }, [appId, user, userApps]);
+  }, [fullAppId, mainAppId, subAppId, user, userSubApps]);
 
+  // Load and mount sub-app using ES modules
   useEffect(() => {
-    if (!appId || !appVersion) return;
+    if (!mainAppId || !appVersion || !subAppComponent || !containerRef.current) return;
 
+    let mounted = true;
     const scripts: HTMLScriptElement[] = [];
 
     // Load React and ReactDOM first
@@ -125,51 +146,79 @@ export default function AppPage() {
       });
     };
 
-    // Load the app bundle after React is ready
+    // Load the app bundle as ES module
     const loadApp = async () => {
       try {
         await loadReact();
 
-        // Give React a moment to fully initialize
-        await new Promise((resolve) => setTimeout(resolve, 50));
+        if (!mounted) return;
 
+        // Create unique script ID to avoid conflicts
+        const scriptId = `app-${mainAppId}-${Date.now()}`;
+        const moduleSrc = `/api/system/apps/${mainAppId}/assets/?v=${appVersion}`;
+
+        // Create script element with type="module"
         const script = document.createElement("script");
-        script.src = `/api/system/apps/${appId}/assets/?v=${appVersion}`;
-        script.async = true;
+        script.id = scriptId;
+        script.type = "module";
+        script.textContent = `
+          import * as appModule from "${moduleSrc}";
+          window.__APP_MODULE_${scriptId.replace(/-/g, "_")} = appModule;
+        `;
 
-        script.onload = () => {
+        // Wait for module to load
+        script.onload = async () => {
           try {
-            // Access the app from the global plugin namespace
-            // @ts-ignore
-            const appExports = window.__APPLICATOR_PLUGINS__?.[appId];
+            if (!mounted || !containerRef.current) return;
 
-            if (
-              appExports?.AppMount &&
-              typeof appExports.AppMount === "function"
-            ) {
-              // Pass the path to the app
-              appExports.AppMount(containerRef.current, { appId, path });
+            // Access the imported module
+            // @ts-ignore
+            const appModule = window[`__APP_MODULE_${scriptId.replace(/-/g, "_")}`];
+
+            if (!appModule || !appModule.apps) {
+              console.error("App module structure:", appModule);
+              setError("App does not export apps registry");
               setLoading(false);
-            } else {
-              console.error("App export structure:", appExports);
-              setError(
-                "App does not export a mount function in __APPLICATOR_PLUGINS__"
+              return;
+            }
+
+            // Get the sub-app component
+            const SubAppComponent = appModule.apps[subAppComponent];
+            if (!SubAppComponent) {
+              setError(`Component "${subAppComponent}" not found in app module`);
+              setLoading(false);
+              return;
+            }
+
+            // Create React root and render
+            if (containerRef.current) {
+              const root = createRoot(containerRef.current);
+              rootRef.current = root;
+
+              // @ts-ignore - SubAppComponent is dynamically loaded
+              root.render(
+                // @ts-ignore
+                window.React.createElement(SubAppComponent, {
+                  path: remainingPath,
+                  appId: fullAppId,
+                })
               );
+
               setLoading(false);
             }
           } catch (err) {
-            console.error("Error mounting app:", err);
-            setError("Failed to mount app");
+            console.error("Error mounting sub-app:", err);
+            setError("Failed to mount sub-app");
             setLoading(false);
           }
         };
 
         script.onerror = () => {
-          setError("Failed to load app");
+          setError("Failed to load app module");
           setLoading(false);
         };
 
-        document.body.appendChild(script);
+        document.head.appendChild(script);
         scripts.push(script);
       } catch (err) {
         console.error("Error loading dependencies:", err);
@@ -181,28 +230,22 @@ export default function AppPage() {
     loadApp();
 
     return () => {
-      // Cleanup: unmount the app if it provides an unmount function
-      try {
-        // @ts-ignore
-        const appExports = window.__APPLICATOR_PLUGINS__?.[appId];
-        if (
-          appExports?.AppUnmount &&
-          typeof appExports.AppUnmount === "function"
-        ) {
-          appExports.AppUnmount();
-        }
-      } catch (err) {
-        console.error("Error unmounting app:", err);
+      mounted = false;
+
+      // Unmount React root
+      if (rootRef.current) {
+        rootRef.current.unmount();
+        rootRef.current = null;
       }
 
       // Remove all scripts
       scripts.forEach((script) => {
         if (script.parentNode) {
-          document.body.removeChild(script);
+          script.parentNode.removeChild(script);
         }
       });
     };
-  }, [appId, appVersion, path]);
+  }, [mainAppId, appVersion, subAppComponent, fullAppId, remainingPath]);
 
   return (
     <>

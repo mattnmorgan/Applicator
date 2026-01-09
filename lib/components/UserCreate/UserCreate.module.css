@@ -203,3 +203,62 @@
 .submitButton:disabled:hover {
   background: #475569;
 }
+
+.authorizationList {
+  max-height: 300px;
+  overflow-y: auto;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: #0f172a;
+  padding: 8px;
+}
+
+.authorizationItem {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 6px;
+  transition: background 0.2s;
+  margin-bottom: 4px;
+}
+
+.authorizationItem:hover {
+  background: #1e293b;
+}
+
+.checkbox {
+  width: 18px;
+  height: 18px;
+  cursor: pointer;
+  margin-top: 2px;
+}
+
+.authorizationLabel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.authorizationName {
+  color: #f1f5f9;
+  font-size: 14px;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.authorizationDescription {
+  color: #94a3b8;
+  font-size: 13px;
+}
+
+.emptyState {
+  padding: 20px;
+  text-align: center;
+  color: #64748b;
+  font-size: 14px;
+}

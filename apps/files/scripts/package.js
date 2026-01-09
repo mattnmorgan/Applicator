@@ -39,7 +39,9 @@ async function buildPackage() {
     .file("dist/app.png", { name: "app.png" })
     .file("dist/app.js", { name: "app.js" })
     .directory("dist/api/", "api")
-    .directory("dist/assets/", "assets");
+    .directory("dist/assets/", "assets")
+    .directory("dist/apps/", "apps")
+    .directory("dist/widgets/", "widgets");
   await archive.finalize();
 }
 

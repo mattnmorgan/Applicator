@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Badge from "../Badge/Badge";
 import styles from "./UserCreate.module.css";
 
 interface Authority {
@@ -18,9 +19,11 @@ interface Authorization {
   contextual?: boolean;
 }
 
-interface App {
-  id: string;
+interface SubApp {
+  id: string; // Full sub-app ID: "mainAppId:subAppId"
   label: string;
+  description: string;
+  mainAppLabel: string; // Main app label for display
 }
 
 interface UserCreateProps {
@@ -73,7 +76,9 @@ export default function UserCreate({
   const [availableAuthorizations, setAvailableAuthorizations] = useState<
     Authorization[]
   >([]);
-  const [availableApps, setAvailableApps] = useState<App[]>([]);
+  const [availableSubApps, setAvailableSubApps] = useState<SubApp[]>([]);
+  const [authorizationSearch, setAuthorizationSearch] = useState("");
+  const [appSearch, setAppSearch] = useState("");
 
   const isEditMode = !!editUser;
 
@@ -115,7 +120,22 @@ export default function UserCreate({
     try {
       const response = await fetch("/api/system/apps");
       const data = await response.json();
-      setAvailableApps(data.apps || []);
+
+      // Transform main apps into sub-apps list
+      const subAppsList: SubApp[] = [];
+      for (const mainApp of data.apps || []) {
+        if (mainApp.subApps) {
+          for (const subApp of mainApp.subApps) {
+            subAppsList.push({
+              id: `${mainApp.id}:${subApp.id}`,
+              label: subApp.label,
+              description: subApp.description,
+              mainAppLabel: mainApp.label,
+            });
+          }
+        }
+      }
+      setAvailableSubApps(subAppsList);
     } catch (error) {
       console.error("Failed to fetch apps:", error);
     }
@@ -217,7 +237,25 @@ export default function UserCreate({
     }
   };
 
-  const filteredApps = availableApps.filter((app) => app.id !== "system");
+  const filteredAuthorizations = availableAuthorizations
+    .filter((auth) => !auth.contextual)
+    .filter((auth) =>
+      authorizationSearch
+        ? auth.name.toLowerCase().includes(authorizationSearch.toLowerCase()) ||
+          auth.description.toLowerCase().includes(authorizationSearch.toLowerCase()) ||
+          auth.appLabel.toLowerCase().includes(authorizationSearch.toLowerCase())
+        : true
+    );
+
+  const filteredSubApps = availableSubApps
+    .filter((subApp) => !subApp.id.startsWith("system:"))
+    .filter((subApp) =>
+      appSearch
+        ? subApp.label.toLowerCase().includes(appSearch.toLowerCase()) ||
+          subApp.description.toLowerCase().includes(appSearch.toLowerCase()) ||
+          subApp.mainAppLabel.toLowerCase().includes(appSearch.toLowerCase())
+        : true
+    );
 
   return (
     <div className={styles.container}>
@@ -293,70 +331,37 @@ export default function UserCreate({
 
         <div className={styles.formGroup}>
           <label className={styles.label}>Custom Authorizations</label>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "8px",
-              maxHeight: "200px",
-              overflowY: "auto",
-              padding: "8px",
-              backgroundColor: "#1e293b",
-              borderRadius: "4px",
-              border: "1px solid #334155",
-            }}
-          >
-            {availableAuthorizations.length === 0 ? (
-              <div style={{ color: "#94a3b8", fontSize: "14px" }}>
-                No authorizations available
-              </div>
-            ) : (
-              availableAuthorizations.map((auth) => (
-                <label
-                  key={auth.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "flex-start",
-                    gap: "8px",
-                    cursor: "pointer",
-                    padding: "4px",
-                    borderRadius: "4px",
-                    backgroundColor: customAuthorizations.includes(auth.id)
-                      ? "#334155"
-                      : "transparent",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={customAuthorizations.includes(auth.id)}
-                    onChange={() => handleAuthorizationToggle(auth.id)}
-                    style={{ marginTop: "2px", cursor: "pointer" }}
-                  />
-                  <div style={{ flex: 1 }}>
-                    <div
-                      style={{
-                        color: "#f1f5f9",
-                        fontSize: "14px",
-                        fontWeight: 500,
-                      }}
-                    >
-                      {auth.name}
-                    </div>
-                    <div style={{ color: "#94a3b8", fontSize: "12px" }}>
-                      {auth.description}
-                    </div>
-                    <div
-                      style={{
-                        color: "#64748b",
-                        fontSize: "11px",
-                        marginTop: "2px",
-                      }}
-                    >
-                      App: {auth.appLabel}
-                    </div>
+          <input
+            type="text"
+            className={styles.input}
+            placeholder="Search authorizations..."
+            value={authorizationSearch}
+            onChange={(e) => setAuthorizationSearch(e.target.value)}
+            style={{ marginBottom: '12px' }}
+          />
+          <div className={styles.authorizationList}>
+            {filteredAuthorizations.map((auth) => (
+              <div key={auth.id} className={styles.authorizationItem}>
+                <input
+                  type="checkbox"
+                  id={`auth-${auth.id}`}
+                  className={styles.checkbox}
+                  checked={customAuthorizations.includes(auth.id)}
+                  onChange={() => handleAuthorizationToggle(auth.id)}
+                />
+                <label htmlFor={`auth-${auth.id}`} className={styles.authorizationLabel}>
+                  <div className={styles.authorizationName}>
+                    <Badge variant={auth.app === 'system' ? 'purple' : 'blue'}>
+                      {auth.appLabel}
+                    </Badge>
+                    {auth.name}
                   </div>
+                  <div className={styles.authorizationDescription}>{auth.description}</div>
                 </label>
-              ))
+              </div>
+            ))}
+            {filteredAuthorizations.length === 0 && (
+              <div className={styles.emptyState}>No authorizations found</div>
             )}
           </div>
           <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "4px" }}>
@@ -367,50 +372,37 @@ export default function UserCreate({
 
         <div className={styles.formGroup}>
           <label className={styles.label}>Custom App Access</label>
-          <div
-            style={{
-              display: "flex",
-              flexDirection: "column",
-              gap: "8px",
-              maxHeight: "200px",
-              overflowY: "auto",
-              padding: "8px",
-              backgroundColor: "#1e293b",
-              borderRadius: "4px",
-              border: "1px solid #334155",
-            }}
-          >
-            {filteredApps.length === 0 ? (
-              <div style={{ color: "#94a3b8", fontSize: "14px" }}>
-                No apps available
-              </div>
-            ) : (
-              filteredApps.map((app) => (
-                <label
-                  key={app.id}
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: "8px",
-                    cursor: "pointer",
-                    padding: "4px",
-                    borderRadius: "4px",
-                    backgroundColor: customApps.includes(app.id)
-                      ? "#334155"
-                      : "transparent",
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={customApps.includes(app.id)}
-                    onChange={() => handleAppToggle(app.id)}
-                    style={{ cursor: "pointer" }}
-                  />
-                  <div style={{ color: "#f1f5f9", fontSize: "14px" }}>
-                    {app.label}
+          <input
+            type="text"
+            className={styles.input}
+            placeholder="Search apps..."
+            value={appSearch}
+            onChange={(e) => setAppSearch(e.target.value)}
+            style={{ marginBottom: '12px' }}
+          />
+          <div className={styles.authorizationList}>
+            {filteredSubApps.map((subApp) => (
+              <div key={subApp.id} className={styles.authorizationItem}>
+                <input
+                  type="checkbox"
+                  id={`app-${subApp.id}`}
+                  className={styles.checkbox}
+                  checked={customApps.includes(subApp.id)}
+                  onChange={() => handleAppToggle(subApp.id)}
+                />
+                <label htmlFor={`app-${subApp.id}`} className={styles.authorizationLabel}>
+                  <div className={styles.authorizationName}>
+                    <Badge variant="blue">
+                      {subApp.mainAppLabel}
+                    </Badge>
+                    {subApp.label}
                   </div>
+                  <div className={styles.authorizationDescription}>{subApp.description}</div>
                 </label>
-              ))
+              </div>
+            ))}
+            {filteredSubApps.length === 0 && (
+              <div className={styles.emptyState}>No apps found</div>
             )}
           </div>
           <div style={{ fontSize: "12px", color: "#94a3b8", marginTop: "4px" }}>

@@ -1,18 +1,18 @@
 const path = require("path");
 const CopyWebpackPlugin = require("copy-webpack-plugin");
 
-const LIBRARY_NAME = "FilesApp";
-
 module.exports = {
   entry: "./src/index.tsx",
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "app.js",
     library: {
-      type: "umd",
-      name: LIBRARY_NAME,
+      type: "module",
     },
-    globalObject: "this",
+    module: true,
+  },
+  experiments: {
+    outputModule: true,
   },
   resolve: {
     extensions: [".tsx", ".ts", ".js", ".jsx"],
@@ -65,6 +65,14 @@ module.exports = {
         {
           from: "app.png",
           to: "app.png",
+        },
+        {
+          from: "src/apps",
+          to: "apps",
+        },
+        {
+          from: "src/widgets",
+          to: "widgets",
         },
       ],
     }),
