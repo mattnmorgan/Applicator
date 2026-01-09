@@ -67,6 +67,16 @@ export {
 
 export type { Notification, NotificationType } from "../notifications";
 
+export {
+  ContextualAuthorityManager,
+  createContextualAuthorityManager,
+  type CreateContextualAuthorityParams,
+  type DeleteContextualAuthorityParams,
+  type ContextualAuthorityManagerOptions,
+} from "./contextualAuthorities";
+
+export type { default as ContextualAuthority } from "@/lib/database/types/contextualAuthority";
+
 import { createRecordManager, RecordManager } from "./records";
 import { createSystemInterface, SystemInterface } from "./system";
 import { createFileManager, FileManager } from "./files";
@@ -76,6 +86,10 @@ import {
   createNotificationManager,
   NotificationManager,
 } from "./notifications";
+import {
+  createContextualAuthorityManager,
+  ContextualAuthorityManager,
+} from "./contextualAuthorities";
 
 export interface PluginContext {
   appId: string;
@@ -91,6 +105,7 @@ export interface Plugin<T = any> {
   widgets: WidgetManager;
   logger: Logger;
   notifications: NotificationManager;
+  contextualAuthorities: ContextualAuthorityManager;
 }
 
 /**
@@ -131,6 +146,13 @@ export interface Plugin<T = any> {
  * // Use notifications
  * await plugin.notifications.success('Task completed!');
  * await plugin.notifications.error('Something went wrong');
+ *
+ * // Use contextual authorities
+ * await plugin.contextualAuthorities.create({
+ *   id: 'resource-123',
+ *   permission: 'my-app:view',
+ *   user: 'user-456'
+ * });
  * ```
  */
 export function createPlugin<T = any>(
@@ -146,6 +168,7 @@ export function createPlugin<T = any>(
     widgets: createWidgetManager(appId),
     logger: createLogger(appId, userId),
     notifications: createNotificationManager(appId, userId),
+    contextualAuthorities: createContextualAuthorityManager(appId),
   };
 }
 

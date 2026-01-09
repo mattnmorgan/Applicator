@@ -10,6 +10,7 @@ import {
   deleteAuthority,
   updateAuthority,
   getAllApps,
+  deleteContextualAuthoritiesByApp,
 } from "@/lib/db";
 import { getSystemSetting, formatVersion } from "@/lib/db";
 import { logger } from "@/lib/logging";
@@ -146,6 +147,9 @@ export async function POST(request: NextRequest) {
     for (const auth of appAuthorizations) {
       await deleteAuthorization(auth.id);
     }
+
+    // Delete all contextual authorities for this app
+    await deleteContextualAuthoritiesByApp(appId);
 
     // Delete contextual authorities created by this app
     const authorities = await getAllAuthorities();
