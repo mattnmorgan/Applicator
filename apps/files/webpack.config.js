@@ -74,6 +74,11 @@ module.exports = {
           from: "src/widgets",
           to: "widgets",
         },
+        {
+          from: "tables",
+          to: "tables",
+          noErrorOnMissing: true,
+        },
       ],
     }),
   ],

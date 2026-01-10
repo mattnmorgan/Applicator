@@ -85,6 +85,8 @@ export async function POST(request: NextRequest) {
     let uiBundle: string;
     let iconData: Buffer | null = null;
     let apiHandlers: Map<string, Buffer> = new Map();
+    let assets: Map<string, Buffer> = new Map();
+    let tables: Map<string, Buffer> = new Map();
 
     try {
       zip = new AdmZip(fileBuffer);
@@ -143,6 +145,22 @@ export async function POST(request: NextRequest) {
       for (const entry of apiEntries) {
         const handlerName = path.basename(entry.entryName, ".js");
         apiHandlers.set(handlerName, entry.getData());
+      }
+
+      // Extract assets
+      const assetsEntries = zipEntries.filter(
+        (e) => e.entryName.startsWith("assets/") && !e.isDirectory
+      );
+      for (const entry of assetsEntries) {
+        assets.set(entry.entryName, entry.getData());
+      }
+
+      // Extract tables directory (formula and validator scripts)
+      const tablesEntries = zipEntries.filter(
+        (e) => e.entryName.startsWith("tables/") && !e.isDirectory
+      );
+      for (const entry of tablesEntries) {
+        tables.set(entry.entryName, entry.getData());
       }
     } catch (error) {
       console.error("Error extracting zip:", error);
@@ -548,9 +566,11 @@ export async function POST(request: NextRequest) {
     // Get app directory in system storage
     const appDir = path.join(storagePath, "apps", appAttributes.id);
 
-    // Backup old version (rename api directory)
+    // Backup old version (rename api and tables directories)
     const apiDir = path.join(appDir, "api");
+    const tablesDir = path.join(appDir, "tables");
     const backupApiDir = path.join(appDir, `api.backup.${Date.now()}`);
+    const backupTablesDir = path.join(appDir, `tables.backup.${Date.now()}`);
 
     try {
       await fs.rename(apiDir, backupApiDir);
@@ -559,8 +579,16 @@ export async function POST(request: NextRequest) {
       console.log("No existing api directory to backup");
     }
 
-    // Create new api directory
+    try {
+      await fs.rename(tablesDir, backupTablesDir);
+    } catch (error) {
+      // If tables directory doesn't exist, that's okay
+      console.log("No existing tables directory to backup");
+    }
+
+    // Create new api and tables directories
     await fs.mkdir(apiDir, { recursive: true });
+    await fs.mkdir(tablesDir, { recursive: true });
 
     try {
       // Save the UI bundle (in root of app directory)
@@ -571,6 +599,20 @@ export async function POST(request: NextRequest) {
       for (const [handlerName, handlerData] of apiHandlers) {
         const handlerPath = path.join(apiDir, `${handlerName}.js`);
         await fs.writeFile(handlerPath, handlerData);
+      }
+
+      // Save assets
+      for (const [assetName, asset] of assets) {
+        const assetPath = path.join(appDir, assetName);
+        await fs.mkdir(path.dirname(assetPath), { recursive: true });
+        await fs.writeFile(assetPath, asset);
+      }
+
+      // Save tables directory (formula and validator scripts)
+      for (const [tablePath, tableFile] of tables) {
+        const tableFilePath = path.join(appDir, tablePath);
+        await fs.mkdir(path.dirname(tableFilePath), { recursive: true });
+        await fs.writeFile(tableFilePath, tableFile);
       }
 
       // Save icon if provided
@@ -605,11 +647,17 @@ export async function POST(request: NextRequest) {
         tables: appAttributes.tables || undefined,
       });
 
-      // Delete backup after successful upgrade
+      // Delete backups after successful upgrade
       try {
         await fs.rm(backupApiDir, { recursive: true, force: true });
       } catch (error) {
-        console.log("No backup to clean up");
+        console.log("No API backup to clean up");
+      }
+
+      try {
+        await fs.rm(backupTablesDir, { recursive: true, force: true });
+      } catch (error) {
+        console.log("No tables backup to clean up");
       }
 
       // Call OnInstallation hook if it exists (with prior version for upgrade)
@@ -654,14 +702,17 @@ export async function POST(request: NextRequest) {
         const errorMsg = `App installation hook failed for ${appAttributes.name}: ${error.message}`;
         await logger.fromRequest(request).error("system", errorMsg);
 
-        // Rollback - restore the backup
+        // Rollback - restore the backups
         try {
           await fs.rm(apiDir, { recursive: true, force: true });
           await fs.rename(backupApiDir, apiDir);
+
+          await fs.rm(tablesDir, { recursive: true, force: true });
+          await fs.rename(backupTablesDir, tablesDir);
           // Also restore the old bundle and icon
           const oldBundlePath = path.join(appDir, `app.js.backup.${Date.now()}`);
           const bundlePath = path.join(appDir, `app.js`);
-          // Note: We don't have backups of bundle/icon yet, but the API rollback is critical
+          // Note: We don't have backups of bundle/icon yet, but the API and tables rollback is critical
         } catch (rollbackError) {
           console.error("Failed to rollback after installation hook failure:", rollbackError);
         }
@@ -690,13 +741,21 @@ export async function POST(request: NextRequest) {
         newVersion: formatVersion(appAttributes.version),
       });
     } catch (error) {
-      // Restore backup on error
+      // Restore backups on error
       try {
         await fs.rm(apiDir, { recursive: true, force: true });
         await fs.rename(backupApiDir, apiDir);
       } catch (restoreError) {
-        console.error("Failed to restore backup:", restoreError);
+        console.error("Failed to restore API backup:", restoreError);
       }
+
+      try {
+        await fs.rm(tablesDir, { recursive: true, force: true });
+        await fs.rename(backupTablesDir, tablesDir);
+      } catch (restoreError) {
+        console.error("Failed to restore tables backup:", restoreError);
+      }
+
       throw error;
     }
   } catch (error) {

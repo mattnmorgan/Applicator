@@ -66,6 +66,7 @@ export async function POST(request: NextRequest) {
     let iconData: Buffer | null = null;
     let apiHandlers: Map<string, Buffer> = new Map();
     let assets: Map<string, Buffer> = new Map();
+    let tables: Map<string, Buffer> = new Map();
 
     try {
       zip = new AdmZip(fileBuffer);
@@ -116,6 +117,14 @@ export async function POST(request: NextRequest) {
       );
       for (const entry of assetsEntries) {
         assets.set(entry.entryName, entry.getData());
+      }
+
+      // Extract tables directory (formula and validator scripts)
+      const tablesEntries = zipEntries.filter(
+        (e) => e.entryName.startsWith("tables/") && !e.isDirectory
+      );
+      for (const entry of tablesEntries) {
+        tables.set(entry.entryName, entry.getData());
       }
     } catch (error) {
       console.error("Error extracting zip:", error);
@@ -583,6 +592,13 @@ export async function POST(request: NextRequest) {
       const assetPath = path.join(appDir, assetName);
       await fs.mkdir(path.dirname(assetPath), { recursive: true });
       await fs.writeFile(assetPath, asset);
+    }
+
+    // Save tables directory (formula and validator scripts)
+    for (const [tablePath, tableFile] of tables) {
+      const tableFilePath = path.join(appDir, tablePath);
+      await fs.mkdir(path.dirname(tableFilePath), { recursive: true });
+      await fs.writeFile(tableFilePath, tableFile);
     }
 
     // Process widgets - ensure appId is set correctly (for legacy format)

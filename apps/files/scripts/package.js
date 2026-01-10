@@ -42,6 +42,13 @@ async function buildPackage() {
     .directory("dist/assets/", "assets")
     .directory("dist/apps/", "apps")
     .directory("dist/widgets/", "widgets");
+
+  // Add tables directory if it exists
+  const tablesDir = path.join(outputDir, "tables");
+  if (fs.existsSync(tablesDir)) {
+    archive.directory("dist/tables/", "tables");
+  }
+
   await archive.finalize();
 }
 

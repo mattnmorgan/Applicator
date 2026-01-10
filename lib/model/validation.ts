@@ -9,6 +9,7 @@ import {
   ValidationContext,
   FormulaContext,
 } from '@/lib/model/types/validation';
+import { getSystemSetting } from '@/lib/db';
 import path from 'path';
 import fs from 'fs';
 
@@ -29,15 +30,21 @@ export async function executeValidator(
   record: Record<string, any>
 ): Promise<FieldValidationResult> {
   try {
-    // Build the validator script path
+    // Get system storage path
+    const storagePath = await getSystemSetting('storage');
+    if (!storagePath) {
+      throw new Error('System storage not configured');
+    }
+
+    // Build the validator script path from system storage
     const validatorPath = path.join(
-      process.cwd(),
+      storagePath,
       'apps',
       appId,
       'tables',
       tableName,
       field.name,
-      'validator.ts'
+      'validator.js'
     );
 
     // Check if validator exists
@@ -95,15 +102,21 @@ export async function executeFormula(
   record: Record<string, any>
 ): Promise<any> {
   try {
-    // Build the formula script path
+    // Get system storage path
+    const storagePath = await getSystemSetting('storage');
+    if (!storagePath) {
+      throw new Error('System storage not configured');
+    }
+
+    // Build the formula script path from system storage
     const formulaPath = path.join(
-      process.cwd(),
+      storagePath,
       'apps',
       appId,
       'tables',
       tableName,
       field.name,
-      'formula.ts'
+      'formula.js'
     );
 
     // Check if formula exists
