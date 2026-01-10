@@ -141,7 +141,7 @@ export default function AppPage() {
           setSubAppComponent(subApp.component);
 
           // Set the module URL for the DynamicAppLoader
-          setModuleUrl(`/api/system/apps/${mainAppId}/assets/?v=${versionString}`);
+          setModuleUrl(`/api/system/apps/${mainAppId}/assets/source?v=${versionString}`);
           setLoading(false);
         }
       })

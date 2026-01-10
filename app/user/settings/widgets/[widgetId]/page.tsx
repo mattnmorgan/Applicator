@@ -59,7 +59,7 @@ export default function AppWidgetPage() {
 
           const appData = await appResponse.json();
           const versionString = `${appData.version.major}.${appData.version.minor}.${appData.version.dev}`;
-          const url = `/api/system/apps/${mainAppId}/assets/?v=${versionString}`;
+          const url = `/api/system/apps/${mainAppId}/assets/source?v=${versionString}`;
           setModuleUrl(url);
           setLoading(false);
           return;
@@ -109,7 +109,7 @@ export default function AppWidgetPage() {
 
           const appData = await appResponse.json();
           const versionString = `${appData.version.major}.${appData.version.minor}.${appData.version.dev}`;
-          setModuleUrl(`/api/system/apps/${mainAppId}/assets/?v=${versionString}`);
+          setModuleUrl(`/api/system/apps/${mainAppId}/assets/source?v=${versionString}`);
           setLoading(false);
           return;
         } else {

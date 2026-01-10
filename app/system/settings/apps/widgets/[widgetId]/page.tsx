@@ -50,7 +50,7 @@ export default function SystemSettingsWidgetPage() {
 
           const appData = await appResponse.json();
           const versionString = `${appData.version.major}.${appData.version.minor}.${appData.version.dev}`;
-          setModuleUrl(`/api/system/apps/${mainAppId}/assets/?v=${versionString}`);
+          setModuleUrl(`/api/system/apps/${mainAppId}/assets/source?v=${versionString}`);
           setLoading(false);
           return;
         } else if (parts.length === 1) {
@@ -89,7 +89,7 @@ export default function SystemSettingsWidgetPage() {
 
           const appData = await appResponse.json();
           const versionString = `${appData.version.major}.${appData.version.minor}.${appData.version.dev}`;
-          setModuleUrl(`/api/system/apps/${mainAppId}/assets/?v=${versionString}`);
+          setModuleUrl(`/api/system/apps/${mainAppId}/assets/source?v=${versionString}`);
           setLoading(false);
           return;
         } else {
