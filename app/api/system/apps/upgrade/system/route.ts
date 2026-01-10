@@ -1,6 +1,11 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/auth";
-import { initializeAuthorities, getApp, updateApp, userHasAuthorization } from "@/lib/db";
+import {
+  initializeAuthorities,
+  getApp,
+  updateApp,
+  userHasAuthorization,
+} from "@/lib/db";
 import { CURRENT_SYSTEM_VERSION } from "@/app/api/system/version/route";
 
 export async function POST() {
@@ -46,9 +51,13 @@ export async function POST() {
     // Run initialization logic (creates authorizations if they don't exist)
     await initializeAuthorities();
 
-    // Update system app version to the current version
+    // Import system metadata to get table definitions
+    const { SYSTEM_APP_METADATA } = await import("@/lib/db/systemMetadata");
+
+    // Update system app with current version and table metadata
     await updateApp("system", {
       version: CURRENT_SYSTEM_VERSION,
+      tables: SYSTEM_APP_METADATA.tables as any,
     });
 
     return NextResponse.json({

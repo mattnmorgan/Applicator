@@ -25,6 +25,9 @@ export type { default as Authorization } from "@/lib/database/types/authorizatio
 export type { default as ContextualAuthority } from "@/lib/database/types/contextualAuthority";
 export type { default as User } from "@/lib/database/types/user";
 export type { default as Session } from "@/lib/database/types/session";
+export type { FieldType, default as TableField } from "@/lib/database/types/field";
+export type { default as TableDefinition } from "@/lib/database/types/tableDefinition";
+export type { default as TableRecord } from "@/lib/database/types/tableRecord";
 
 // Export authorization functions
 export {

@@ -6,6 +6,7 @@ import {
   SubApp,
   default as App,
 } from "@/lib/database/types/app";
+import TableDefinition from "@/lib/database/types/tableDefinition";
 import { getAuthority } from "./authority";
 import { getUserById } from "./user";
 
@@ -22,7 +23,8 @@ export async function createApp(
   apiRoutes: ApiRoute[] = [],
   widgets: Widget[] = [],
   dependencies: Record<string, AppVersion> = {},
-  subApps?: SubApp[]
+  subApps?: SubApp[],
+  tables?: TableDefinition[]
 ): Promise<App> {
   const redis = getRedisClient();
 
@@ -37,6 +39,7 @@ export async function createApp(
     widgets,
     dependencies,
     subApps,
+    tables,
   };
   const existingApp = await redis.get(`app:${id}`);
 
@@ -132,9 +135,7 @@ export function parseSubAppId(fullId: string): {
  * @param fullSubAppId Full sub-app ID in format "mainAppId:subAppId"
  * @returns SubApp object or null if not found
  */
-export async function getSubApp(
-  fullSubAppId: string
-): Promise<SubApp | null> {
+export async function getSubApp(fullSubAppId: string): Promise<SubApp | null> {
   const { mainAppId, subAppId } = parseSubAppId(fullSubAppId);
   const mainApp = await getApp(mainAppId);
 

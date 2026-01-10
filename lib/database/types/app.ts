@@ -1,3 +1,5 @@
+import TableDefinition from "@/lib/database/types/tableDefinition";
+
 export interface AppVersion {
   major: number;
   minor: number;
@@ -42,4 +44,8 @@ export default interface App {
    * Map of app ids to minimum required versions for install to be permitted
    */
   dependencies?: Record<string, AppVersion>;
+  /**
+   * Table definitions for the app's data models
+   */
+  tables?: TableDefinition[]; // Using any[] to avoid circular dependency with TableDefinition
 }

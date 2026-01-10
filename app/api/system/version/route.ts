@@ -1,12 +1,9 @@
 import { NextResponse } from 'next/server';
 import { getApp } from '@/lib/db';
+import { SYSTEM_APP_METADATA } from '@/lib/db/systemMetadata';
 
-// Current system version - update this when making system changes
-const CURRENT_SYSTEM_VERSION = {
-  major: 1,
-  minor: 0,
-  dev: 2,
-};
+// Export current system version from metadata
+export const CURRENT_SYSTEM_VERSION = SYSTEM_APP_METADATA.version;
 
 export async function GET() {
   try {
@@ -42,5 +39,3 @@ export async function GET() {
     );
   }
 }
-
-export { CURRENT_SYSTEM_VERSION };

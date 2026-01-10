@@ -32,10 +32,6 @@ async function getSettingsMenuItems(
       path: "/system/settings",
     },
     {
-      label: "Apps",
-      path: "/system/settings/apps",
-    },
-    {
       label: "User Management",
       clickable: false,
       children: [
@@ -58,6 +54,18 @@ async function getSettingsMenuItems(
           ],
         },
       ],
+    },
+  ];
+
+  // Build App Management section
+  const appManagementChildren: TabsetItem[] = [
+    {
+      label: "Apps",
+      path: "/system/settings/apps",
+    },
+    {
+      label: "Tables",
+      path: "/system/settings/data-models",
     },
   ];
 
@@ -98,14 +106,21 @@ async function getSettingsMenuItems(
     }
 
     if (appSettingsChildren.length > 0) {
-      // Add App Settings section with children
-      unsortedSettingsMenuItems.push({
+      // Add App Settings as a child of App Management
+      appManagementChildren.push({
         label: "App Settings",
         clickable: false,
         children: appSettingsChildren,
       });
     }
   }
+
+  // Add App Management section
+  unsortedSettingsMenuItems.push({
+    label: "App Management",
+    clickable: false,
+    children: appManagementChildren,
+  });
 
   // Only add Debug menu if user has developer authorization
   if (hasDeveloperAuth) {

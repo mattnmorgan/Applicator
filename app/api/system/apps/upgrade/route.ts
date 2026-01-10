@@ -602,6 +602,7 @@ export async function POST(request: NextRequest) {
         widgets: processedWidgets,
         dependencies: appAttributes.dependencies || {},
         subApps: appAttributes.subApps || undefined,
+        tables: appAttributes.tables || undefined,
       });
 
       // Delete backup after successful upgrade

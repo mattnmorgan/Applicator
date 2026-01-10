@@ -55,17 +55,22 @@ export async function getAuthority(id: string): Promise<Authority | null> {
  * Initialize default system authorities
  */
 export async function initializeAuthorities(): Promise<void> {
-  // Create the system app
+  // Import the system app metadata
+  const { SYSTEM_APP_METADATA } = await import("./systemMetadata");
+
+  // Create the system app with full metadata including tables
   await createApp(
-    "system",
-    "System",
-    { major: 1, minor: 0, dev: 0 },
-    "Matthew Morgan",
-    "matthew@morgantech.info",
-    "Core system application",
-    [],
-    [],
-    {}
+    SYSTEM_APP_METADATA.id,
+    SYSTEM_APP_METADATA.name,
+    SYSTEM_APP_METADATA.version,
+    SYSTEM_APP_METADATA.author,
+    SYSTEM_APP_METADATA.contactEmail,
+    SYSTEM_APP_METADATA.description,
+    SYSTEM_APP_METADATA.apiRoutes || [],
+    [], // widgets
+    SYSTEM_APP_METADATA.dependencies || {},
+    SYSTEM_APP_METADATA.subApps || [],
+    SYSTEM_APP_METADATA.tables as any
   );
 
   // Create default authorizations

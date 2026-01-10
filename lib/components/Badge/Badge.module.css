@@ -1,37 +1,136 @@
 .badge {
   display: inline-block;
-  padding: 4px 12px;
-  border-radius: 12px;
   font-size: 12px;
   font-weight: 500;
 }
 
-.badgePurple {
+/* Shape variants */
+.badgeCircle {
+  padding: 4px 12px;
+  border-radius: 12px;
+}
+
+.badgeSquare {
+  padding: 3px 7px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.5px;
+}
+
+/* Uppercase modifier */
+.badgeUppercase {
+  text-transform: uppercase;
+}
+
+/* Color variants - Circle style (original colors with transparency) */
+.badgeCircle.badgePurple {
   background: #7c3aed33;
   color: #a78bfa;
 }
 
-.badgeBlue {
+.badgeCircle.badgeBlue {
   background: #3b82f633;
   color: #60a5fa;
 }
 
-.badgeYellow {
+.badgeCircle.badgeYellow {
   background: #fbbf2433;
   color: #fbbf24;
 }
 
-.badgeGreen {
+.badgeCircle.badgeGreen {
   background: #10b98133;
   color: #34d399;
 }
 
-.badgeRed {
+.badgeCircle.badgeRed {
   background: #ef444433;
   color: #f87171;
 }
 
-.badgeGray {
+.badgeCircle.badgeGray {
   background: #47556933;
   color: #94a3b8;
+}
+
+.badgeCircle.badgeCyan {
+  background: #06b6d433;
+  color: #22d3ee;
+}
+
+.badgeCircle.badgePink {
+  background: #ec489933;
+  color: #f472b6;
+}
+
+.badgeCircle.badgeOrange {
+  background: #f59e0b33;
+  color: #fb923c;
+}
+
+.badgeCircle.badgeEmerald {
+  background: #10b98133;
+  color: #34d399;
+}
+
+.badgeCircle.badgeAmber {
+  background: #fbbf2433;
+  color: #fbbf24;
+}
+
+/* Color variants - Square style (solid vibrant colors) */
+.badgeSquare.badgePurple {
+  background: #8b5cf6;
+  color: white;
+}
+
+.badgeSquare.badgeBlue {
+  background: #3b82f6;
+  color: white;
+}
+
+.badgeSquare.badgeYellow {
+  background: #eab308;
+  color: white;
+}
+
+.badgeSquare.badgeGreen {
+  background: #10b981;
+  color: white;
+}
+
+.badgeSquare.badgeRed {
+  background: #ef4444;
+  color: white;
+}
+
+.badgeSquare.badgeGray {
+  background: #334155;
+  color: #94a3b8;
+}
+
+.badgeSquare.badgeCyan {
+  background: #06b6d4;
+  color: white;
+}
+
+.badgeSquare.badgePink {
+  background: #ec4899;
+  color: white;
+}
+
+.badgeSquare.badgeOrange {
+  background: #f59e0b;
+  color: white;
+}
+
+.badgeSquare.badgeEmerald {
+  background: #10b981;
+  color: white;
+}
+
+.badgeSquare.badgeAmber {
+  background: #eab308;
+  color: white;
 }

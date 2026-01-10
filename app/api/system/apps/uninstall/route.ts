@@ -190,9 +190,12 @@ export async function POST(request: NextRequest) {
 
         // Only update if something changed
         if (updatedAuthorizations.length !== authority.authorizations.length) {
-          await updateAuthority(authority.id, {
-            authorizations: updatedAuthorizations,
-          });
+          await updateAuthority(
+            authority.userId ? `user-specific:${authority.id}` : authority.id,
+            {
+              authorizations: updatedAuthorizations,
+            }
+          );
         }
       }
     }

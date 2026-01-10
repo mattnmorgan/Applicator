@@ -608,7 +608,8 @@ export async function POST(request: NextRequest) {
       appAttributes.apiRoutes || [],
       processedWidgets,
       appAttributes.dependencies || {},
-      appAttributes.subApps || undefined
+      appAttributes.subApps || undefined,
+      appAttributes.tables || undefined
     );
 
     // Install authorizations
