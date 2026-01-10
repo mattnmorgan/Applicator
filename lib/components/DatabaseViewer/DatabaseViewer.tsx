@@ -219,8 +219,6 @@ export default function DatabaseViewer() {
   const handleDelete = async () => {
     if (!selectedKey) return;
 
-    if (!confirm(`Are you sure you want to delete "${selectedKey}"?`)) return;
-
     try {
       const response = await fetch(
         `/api/system/debug/redis/value?key=${encodeURIComponent(selectedKey)}`,

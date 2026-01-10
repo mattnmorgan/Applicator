@@ -10,7 +10,7 @@ export const SYSTEM_APP_METADATA = {
   version: {
     major: 1,
     minor: 2,
-    dev: 0,
+    dev: 1,
   },
   author: "Matthew Morgan",
   contactEmail: "matthew@morgantech.info",

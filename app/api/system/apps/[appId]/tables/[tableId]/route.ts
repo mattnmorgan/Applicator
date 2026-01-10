@@ -46,7 +46,7 @@ async function getSessionFromRequest(request: NextRequest) {
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: { appId: string; tableId: string } }
+  { params }: { params: Promise<{ appId: string; tableId: string }> }
 ) {
   try {
     const session = await getSessionFromRequest(request);
@@ -54,7 +54,7 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { appId, tableId } = params;
+    const { appId, tableId } = await params;
 
     // Load table definition
     const table = await loadTable(appId, tableId);
@@ -135,7 +135,7 @@ export async function POST(
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: { appId: string; tableId: string } }
+  { params }: { params: Promise<{ appId: string; tableId: string }> }
 ) {
   try {
     const session = await getSessionFromRequest(request);
@@ -143,7 +143,7 @@ export async function GET(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { appId, tableId } = params;
+    const { appId, tableId } = await params;
 
     // Load table definition
     const table = await loadTable(appId, tableId);
@@ -196,7 +196,7 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: { appId: string; tableId: string } }
+  { params }: { params: Promise<{ appId: string; tableId: string }> }
 ) {
   try {
     const session = await getSessionFromRequest(request);
@@ -204,7 +204,7 @@ export async function PATCH(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { appId, tableId } = params;
+    const { appId, tableId } = await params;
 
     // Load table definition
     const table = await loadTable(appId, tableId);
@@ -291,7 +291,7 @@ export async function PATCH(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: { appId: string; tableId: string } }
+  { params }: { params: Promise<{ appId: string; tableId: string }> }
 ) {
   try {
     const session = await getSessionFromRequest(request);
@@ -299,7 +299,7 @@ export async function DELETE(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    const { appId, tableId } = params;
+    const { appId, tableId } = await params;
 
     // Load table definition (mainly for logging/validation)
     const table = await loadTable(appId, tableId);

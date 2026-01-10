@@ -4,9 +4,10 @@
 
 import TableDefinition from '@/lib/database/types/tableDefinition';
 import { getAllApps, getApp } from '@/lib/db';
+import { readRecords } from '@/lib/model/records';
 
 /**
- * Load table definitions from an app record in the database
+ * Load table definitions from table records in the database
  */
 export async function loadAppTables(appId: string): Promise<TableDefinition[]> {
   const app = await getApp(appId);
@@ -15,11 +16,16 @@ export async function loadAppTables(appId: string): Promise<TableDefinition[]> {
     throw new Error(`App ${appId} not found`);
   }
 
-  if (!app.tables || !Array.isArray(app.tables)) {
-    return [];
-  }
+  // Load tables from table records instead of app record
+  const { records } = await readRecords('system', 'table', {
+    fields: { app: appId },
+  });
 
-  return app.tables as TableDefinition[];
+  return records.map((record) => ({
+    name: record.data.tableName,
+    description: record.data.description,
+    fields: record.data.fields,
+  }));
 }
 
 /**
@@ -44,19 +50,18 @@ export async function getAllTables(): Promise<
     { appId: string; table: TableDefinition }
   >();
 
-  // Get all installed apps from the database
-  const apps = await getAllApps();
+  // Load all table records from the database
+  const { records } = await readRecords('system', 'table', {});
 
-  // Load tables from all installed apps (including system)
-  for (const app of apps) {
-    if (!app.tables || !Array.isArray(app.tables)) {
-      continue;
-    }
-
-    for (const table of app.tables) {
-      const key = `${app.id}:${table.name}`;
-      tableMap.set(key, { appId: app.id, table });
-    }
+  for (const record of records) {
+    const appId = record.data.app;
+    const table: TableDefinition = {
+      name: record.data.tableName,
+      description: record.data.description,
+      fields: record.data.fields,
+    };
+    const key = `${appId}:${table.name}`;
+    tableMap.set(key, { appId, table });
   }
 
   return tableMap;

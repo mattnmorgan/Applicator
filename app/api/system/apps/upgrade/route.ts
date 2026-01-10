@@ -5,9 +5,6 @@ import {
   getApp,
   updateApp,
   getAllApps,
-  createRecord,
-  deleteRecord,
-  getRecordsByFilter,
   initializeAuthorities,
 } from "@/lib/db";
 import {
@@ -17,6 +14,8 @@ import {
   isVersionGreaterOrEqual,
   compareVersions,
 } from "@/lib/db";
+import { createRecord, deleteRecord, readRecords } from "@/lib/model/records";
+import { loadTable } from "@/lib/model/tables";
 import { logger } from "@/lib/logging";
 import { SYSTEM_APP_METADATA } from "@/lib/db/systemMetadata";
 import path from "path";
@@ -94,39 +93,44 @@ export async function POST(request: NextRequest) {
         widgets: [],
         dependencies: SYSTEM_APP_METADATA.dependencies,
         subApps: SYSTEM_APP_METADATA.subApps,
-        tables: SYSTEM_APP_METADATA.tables,
+        tables: undefined, // Don't store tables in app record
       });
 
       // Update table records
       if (SYSTEM_APP_METADATA.tables && Array.isArray(SYSTEM_APP_METADATA.tables)) {
-        const existingTables = await getRecordsByFilter(
+        const tableDefinition = await loadTable("system", "table");
+        if (!tableDefinition) {
+          throw new Error("System table definition not found");
+        }
+
+        const { records: existingTables } = await readRecords(
           "system",
           "table",
-          (record) => record.app === "system"
+          { fields: { app: "system" } }
         );
         const existingTableNames = new Set(
-          existingTables.map((t: any) => t.tableName)
+          existingTables.map((t: any) => t.data.tableName)
         );
 
         for (const table of SYSTEM_APP_METADATA.tables) {
-          const tableId = `table:system:${table.name}`;
+          const tableId = `system:${table.name}`;
 
           if (existingTableNames.has(table.name)) {
             await deleteRecord("system", "table", tableId);
           }
 
-          await createRecord("system", "table", tableId, {
+          await createRecord("system", "table", tableDefinition, {
             tableName: table.name,
             app: "system",
             description: table.description || "",
             fields: table.fields || [],
-          });
+          }, { id: tableId });
 
           existingTableNames.delete(table.name);
         }
 
         for (const tableName of existingTableNames) {
-          const tableId = `table:system:${tableName}`;
+          const tableId = `system:${tableName}`;
           await deleteRecord("system", "table", tableId);
         }
       }
@@ -178,7 +182,6 @@ export async function POST(request: NextRequest) {
     }
 
     const oldVersion = existingApp.version;
-    const isSystemApp = appId === "system";
 
     // Read file as buffer
     const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -748,24 +751,29 @@ export async function POST(request: NextRequest) {
         widgets: processedWidgets,
         dependencies: appAttributes.dependencies || {},
         subApps: appAttributes.subApps || undefined,
-        tables: appAttributes.tables || undefined,
+        tables: undefined, // Don't store tables in app record
       });
 
       // Update table records
       if (appAttributes.tables && Array.isArray(appAttributes.tables)) {
+        const tableDefinition = await loadTable("system", "table");
+        if (!tableDefinition) {
+          throw new Error("System table definition not found");
+        }
+
         // Get existing table records for this app
-        const existingTables = await getRecordsByFilter(
+        const { records: existingTables } = await readRecords(
           "system",
           "table",
-          (record) => record.app === appAttributes.id
+          { fields: { app: appAttributes.id } }
         );
         const existingTableNames = new Set(
-          existingTables.map((t: any) => t.tableName)
+          existingTables.map((t: any) => t.data.tableName)
         );
 
         // Create or update tables
         for (const table of appAttributes.tables) {
-          const tableId = `table:${appAttributes.id}:${table.name}`;
+          const tableId = `${appAttributes.id}:${table.name}`;
 
           if (existingTableNames.has(table.name)) {
             // Update existing table
@@ -773,19 +781,19 @@ export async function POST(request: NextRequest) {
           }
 
           // Create/recreate table record
-          await createRecord("system", "table", tableId, {
+          await createRecord("system", "table", tableDefinition, {
             tableName: table.name,
             app: appAttributes.id,
             description: table.description || "",
             fields: table.fields || [],
-          });
+          }, { id: tableId });
 
           existingTableNames.delete(table.name);
         }
 
         // Delete tables that no longer exist in the app definition
         for (const tableName of existingTableNames) {
-          const tableId = `table:${appAttributes.id}:${tableName}`;
+          const tableId = `${appAttributes.id}:${tableName}`;
           await deleteRecord("system", "table", tableId);
         }
       }

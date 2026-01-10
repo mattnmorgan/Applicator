@@ -8,7 +8,6 @@ import {
   getApp,
   getAllApps,
   deleteApp,
-  createRecord,
 } from "@/lib/db";
 import {
   getSystemSetting,
@@ -16,6 +15,8 @@ import {
   formatVersion,
   isVersionGreaterOrEqual,
 } from "@/lib/db";
+import { createRecord } from "@/lib/model/records";
+import { loadTable } from "@/lib/model/tables";
 import { logger } from "@/lib/logging";
 import path from "path";
 import fs from "fs/promises";
@@ -626,7 +627,7 @@ export async function POST(request: NextRequest) {
       processedWidgets,
       appAttributes.dependencies || {},
       appAttributes.subApps || undefined,
-      appAttributes.tables || undefined
+      undefined // Don't store tables in app record
     );
 
     // Install authorizations
@@ -673,14 +674,19 @@ export async function POST(request: NextRequest) {
 
     // Install tables
     if (appAttributes.tables && Array.isArray(appAttributes.tables)) {
+      const tableDefinition = await loadTable("system", "table");
+      if (!tableDefinition) {
+        throw new Error("System table definition not found");
+      }
+
       for (const table of appAttributes.tables) {
-        const tableId = `table:${appAttributes.id}:${table.name}`;
-        await createRecord("system", "table", tableId, {
+        const tableId = `${appAttributes.id}:${table.name}`;
+        await createRecord("system", "table", tableDefinition, {
           tableName: table.name,
           app: appAttributes.id,
           description: table.description || "",
           fields: table.fields || [],
-        });
+        }, { id: tableId });
       }
     }
 
