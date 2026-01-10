@@ -43,7 +43,7 @@ export default async function HomePage() {
   // Check if user is authenticated
   const user = await getCurrentUser();
   if (!user) {
-    redirect("/login");
+    redirect("/system/login");
   }
 
   const profilePictureUrl = user.profilePicture

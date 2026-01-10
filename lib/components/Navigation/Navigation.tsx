@@ -43,7 +43,7 @@ export default function Navigation({
           window.location.reload();
         } else {
           // Normal logout, redirect to login
-          router.push("/login");
+          router.push("/system/login");
         }
       }
     } catch (error) {

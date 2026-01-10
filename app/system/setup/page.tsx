@@ -37,7 +37,7 @@ export default function SetupPage() {
       }
 
       // Redirect to login page
-      router.push("/login");
+      router.push("/system/login");
     } catch (err) {
       setError("An error occurred. Please try again.");
       setLoading(false);

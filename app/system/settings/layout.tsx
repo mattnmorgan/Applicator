@@ -175,7 +175,7 @@ export default async function SettingsLayout({
   // Check if user is authenticated
   const user = await getCurrentUser();
   if (!user) {
-    redirect("/login");
+    redirect("/system/login");
   }
 
   // Check if user has admin authorization
