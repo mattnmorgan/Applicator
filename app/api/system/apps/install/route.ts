@@ -8,6 +8,7 @@ import {
   getApp,
   getAllApps,
   deleteApp,
+  createRecord,
 } from "@/lib/db";
 import {
   getSystemSetting,
@@ -667,6 +668,19 @@ export async function POST(request: NextRequest) {
           true, // Mark as contextual
           appAttributes.id // Track which app created this
         );
+      }
+    }
+
+    // Install tables
+    if (appAttributes.tables && Array.isArray(appAttributes.tables)) {
+      for (const table of appAttributes.tables) {
+        const tableId = `table:${appAttributes.id}:${table.name}`;
+        await createRecord("system", "table", tableId, {
+          tableName: table.name,
+          app: appAttributes.id,
+          description: table.description || "",
+          fields: table.fields || [],
+        });
       }
     }
 

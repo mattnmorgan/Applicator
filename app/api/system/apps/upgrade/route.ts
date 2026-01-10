@@ -5,6 +5,10 @@ import {
   getApp,
   updateApp,
   getAllApps,
+  createRecord,
+  deleteRecord,
+  getRecordsByFilter,
+  initializeAuthorities,
 } from "@/lib/db";
 import {
   getSystemSetting,
@@ -14,6 +18,7 @@ import {
   compareVersions,
 } from "@/lib/db";
 import { logger } from "@/lib/logging";
+import { SYSTEM_APP_METADATA } from "@/lib/db/systemMetadata";
 import path from "path";
 import fs from "fs/promises";
 import AdmZip from "adm-zip";
@@ -40,18 +45,116 @@ export async function POST(request: NextRequest) {
 
     // Parse form data
     const formData = await request.formData();
-    const file = formData.get("file") as File;
+    const file = formData.get("file") as File | null;
     const appId = formData.get("appId") as string;
-
-    if (!file) {
-      return NextResponse.json({ error: "No file provided" }, { status: 400 });
-    }
 
     if (!appId) {
       return NextResponse.json(
         { error: "No app ID provided" },
         { status: 400 }
       );
+    }
+
+    // Special handling for system app upgrade without file
+    const isSystemApp = appId === "system";
+    if (isSystemApp && !file) {
+      // Upgrade system app using metadata
+      const existingApp = await getApp("system");
+      if (!existingApp) {
+        return NextResponse.json(
+          { error: "System app not found" },
+          { status: 404 }
+        );
+      }
+
+      // Check if upgrade is needed
+      const needsUpgrade =
+        existingApp.version.major < SYSTEM_APP_METADATA.version.major ||
+        (existingApp.version.major === SYSTEM_APP_METADATA.version.major &&
+          existingApp.version.minor < SYSTEM_APP_METADATA.version.minor) ||
+        (existingApp.version.major === SYSTEM_APP_METADATA.version.major &&
+          existingApp.version.minor === SYSTEM_APP_METADATA.version.minor &&
+          existingApp.version.dev < SYSTEM_APP_METADATA.version.dev);
+
+      if (!needsUpgrade) {
+        return NextResponse.json(
+          { error: "System is already up to date" },
+          { status: 400 }
+        );
+      }
+
+      // Update system app with new metadata
+      await updateApp("system", {
+        label: SYSTEM_APP_METADATA.name,
+        version: SYSTEM_APP_METADATA.version,
+        author: SYSTEM_APP_METADATA.author,
+        contactEmail: SYSTEM_APP_METADATA.contactEmail,
+        description: SYSTEM_APP_METADATA.description,
+        apiRoutes: SYSTEM_APP_METADATA.apiRoutes,
+        widgets: [],
+        dependencies: SYSTEM_APP_METADATA.dependencies,
+        subApps: SYSTEM_APP_METADATA.subApps,
+        tables: SYSTEM_APP_METADATA.tables,
+      });
+
+      // Update table records
+      if (SYSTEM_APP_METADATA.tables && Array.isArray(SYSTEM_APP_METADATA.tables)) {
+        const existingTables = await getRecordsByFilter(
+          "system",
+          "table",
+          (record) => record.app === "system"
+        );
+        const existingTableNames = new Set(
+          existingTables.map((t: any) => t.tableName)
+        );
+
+        for (const table of SYSTEM_APP_METADATA.tables) {
+          const tableId = `table:system:${table.name}`;
+
+          if (existingTableNames.has(table.name)) {
+            await deleteRecord("system", "table", tableId);
+          }
+
+          await createRecord("system", "table", tableId, {
+            tableName: table.name,
+            app: "system",
+            description: table.description || "",
+            fields: table.fields || [],
+          });
+
+          existingTableNames.delete(table.name);
+        }
+
+        for (const tableName of existingTableNames) {
+          const tableId = `table:system:${tableName}`;
+          await deleteRecord("system", "table", tableId);
+        }
+      }
+
+      // Reinitialize authorities
+      await initializeAuthorities();
+
+      await logger
+        .fromRequest(request)
+        .info(
+          "system",
+          `System upgraded: ${formatVersion(existingApp.version)} → ${formatVersion(
+            SYSTEM_APP_METADATA.version
+          )}`
+        );
+
+      return NextResponse.json({
+        success: true,
+        appId: "system",
+        name: "System",
+        oldVersion: formatVersion(existingApp.version),
+        newVersion: formatVersion(SYSTEM_APP_METADATA.version),
+      });
+    }
+
+    // Normal app upgrade requires a file
+    if (!file) {
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
     // Check if file is a zip
@@ -75,6 +178,7 @@ export async function POST(request: NextRequest) {
     }
 
     const oldVersion = existingApp.version;
+    const isSystemApp = appId === "system";
 
     // Read file as buffer
     const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -646,6 +750,64 @@ export async function POST(request: NextRequest) {
         subApps: appAttributes.subApps || undefined,
         tables: appAttributes.tables || undefined,
       });
+
+      // Update table records
+      if (appAttributes.tables && Array.isArray(appAttributes.tables)) {
+        // Get existing table records for this app
+        const existingTables = await getRecordsByFilter(
+          "system",
+          "table",
+          (record) => record.app === appAttributes.id
+        );
+        const existingTableNames = new Set(
+          existingTables.map((t: any) => t.tableName)
+        );
+
+        // Create or update tables
+        for (const table of appAttributes.tables) {
+          const tableId = `table:${appAttributes.id}:${table.name}`;
+
+          if (existingTableNames.has(table.name)) {
+            // Update existing table
+            await deleteRecord("system", "table", tableId);
+          }
+
+          // Create/recreate table record
+          await createRecord("system", "table", tableId, {
+            tableName: table.name,
+            app: appAttributes.id,
+            description: table.description || "",
+            fields: table.fields || [],
+          });
+
+          existingTableNames.delete(table.name);
+        }
+
+        // Delete tables that no longer exist in the app definition
+        for (const tableName of existingTableNames) {
+          const tableId = `table:${appAttributes.id}:${tableName}`;
+          await deleteRecord("system", "table", tableId);
+        }
+      }
+
+      // Handle system app upgrade
+      if (isSystemApp) {
+        await logger
+          .fromRequest(request)
+          .info(
+            "system",
+            `Performing system app upgrade tasks (${formatVersion(
+              existingApp.version
+            )} → ${formatVersion(appAttributes.version)})`
+          );
+
+        // Reinitialize authorities from SYSTEM_APP_METADATA
+        await initializeAuthorities();
+
+        await logger
+          .fromRequest(request)
+          .info("system", "System authorities reinitialized");
+      }
 
       // Delete backups after successful upgrade
       try {

@@ -236,8 +236,13 @@ export default function AppList() {
   const handleSystemUpgrade = async () => {
     setUpgradingSystem(true);
     try {
-      const response = await fetch("/api/system/apps/upgrade/system", {
+      // Use the main upgrade endpoint with appId for system
+      const formData = new FormData();
+      formData.append("appId", "system");
+
+      const response = await fetch("/api/system/apps/upgrade", {
         method: "POST",
+        body: formData,
       });
 
       const data = await response.json();

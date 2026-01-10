@@ -9,8 +9,8 @@ export const SYSTEM_APP_METADATA = {
   name: "System",
   version: {
     major: 1,
-    minor: 1,
-    dev: 1,
+    minor: 2,
+    dev: 0,
   },
   author: "Matthew Morgan",
   contactEmail: "matthew@morgantech.info",
@@ -350,6 +350,36 @@ export const SYSTEM_APP_METADATA = {
           description: "App dependencies (app ID -> version)",
           type: "json",
           defaultValue: {},
+        },
+      ],
+    },
+    {
+      name: "table",
+      description: "Data model tables defined by applications",
+      fields: [
+        {
+          name: "tableName",
+          description: "Name of the table within its app",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "app",
+          description: "App ID that owns this table",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "description",
+          description: "Description of the table's purpose",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "fields",
+          description: "Field definitions for the table",
+          type: "json",
+          required: true,
         },
       ],
     },
