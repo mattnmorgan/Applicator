@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import TableDefinition from "@/lib/database/types/tableDefinition";
+import TableDefinition from "@/lib/database/types/table";
 import Badge from "@/lib/components/Badge/Badge";
 
 interface TableSearchResult {
@@ -42,14 +42,41 @@ export default function DataModelsPage() {
 
   const fetchTables = async () => {
     try {
-      const response = await fetch("/api/system/apps/tables/search");
+      // Fetch all table records from system:table using generic API
+      const response = await fetch("/api/system/apps/system/tables/table");
       const data = await response.json();
 
-      if (data.success) {
+      if (data.success && data.records) {
+        // Fetch all apps to get app names
+        const appsResponse = await fetch("/api/system/apps");
+        const appsData = await appsResponse.json();
+
+        // Create a map of app IDs to app names
+        const appNamesMap = new Map<string, string>();
+        if (appsData.apps) {
+          appsData.apps.forEach((app: any) => {
+            appNamesMap.set(app.id, app.label);
+          });
+        }
+
+        // Transform records into TableSearchResult format
+        const results: TableSearchResult[] = data.records.map(
+          (record: any) => ({
+            appId: record.data.app,
+            appName: appNamesMap.get(record.data.app) || record.data.app,
+            table: {
+              name: record.data.tableName,
+              description: record.data.description,
+              fields: record.data.fields,
+            },
+          })
+        );
+
         // Sort tables alphabetically by table name
-        const sortedResults = data.results.sort((a: TableSearchResult, b: TableSearchResult) =>
+        const sortedResults = results.sort((a, b) =>
           a.table.name.localeCompare(b.table.name)
         );
+
         setTables(sortedResults);
         setFilteredTables(sortedResults);
       }
@@ -304,100 +331,100 @@ export default function DataModelsPage() {
                       .slice()
                       .sort((a, b) => a.name.localeCompare(b.name))
                       .map((field, index) => (
-                      <div
-                        key={index}
-                        style={{
-                          padding: "12px",
-                          background: "#0f172a",
-                          border: "1px solid #334155",
-                          borderRadius: "6px",
-                        }}
-                      >
                         <div
+                          key={index}
                           style={{
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "space-between",
-                            marginBottom: "6px",
+                            padding: "12px",
+                            background: "#0f172a",
+                            border: "1px solid #334155",
+                            borderRadius: "6px",
                           }}
                         >
-                          <span
-                            style={{
-                              fontSize: "14px",
-                              fontWeight: 600,
-                              color: "#f1f5f9",
-                            }}
-                          >
-                            {field.name}
-                          </span>
                           <div
                             style={{
                               display: "flex",
                               alignItems: "center",
-                              gap: "6px",
+                              justifyContent: "space-between",
+                              marginBottom: "6px",
                             }}
                           >
-                            <Badge
-                              shape="square"
-                              variant={getFieldTypeVariant(field.type)}
-                              uppercase
+                            <span
+                              style={{
+                                fontSize: "14px",
+                                fontWeight: 600,
+                                color: "#f1f5f9",
+                              }}
                             >
-                              {field.type}
-                            </Badge>
-                            {field.required && (
-                              <Badge shape="square" variant="red" uppercase>
-                                REQUIRED
+                              {field.name}
+                            </span>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                gap: "6px",
+                              }}
+                            >
+                              <Badge
+                                shape="square"
+                                variant={getFieldTypeVariant(field.type)}
+                                uppercase
+                              >
+                                {field.type}
                               </Badge>
-                            )}
+                              {field.required && (
+                                <Badge shape="square" variant="red" uppercase>
+                                  REQUIRED
+                                </Badge>
+                              )}
+                            </div>
                           </div>
+                          <p
+                            style={{
+                              fontSize: "13px",
+                              color: "#94a3b8",
+                              margin: "0 0 8px 0",
+                            }}
+                          >
+                            {field.description}
+                          </p>
+                          {field.relatedTo && (
+                            <div
+                              style={{
+                                fontSize: "12px",
+                                color: "#64748b",
+                              }}
+                            >
+                              Related to:{" "}
+                              <span
+                                style={{
+                                  color: "#06b6d4",
+                                  fontFamily: "monospace",
+                                }}
+                              >
+                                {field.relatedTo}
+                              </span>
+                            </div>
+                          )}
+                          {field.defaultValue !== undefined && (
+                            <div
+                              style={{
+                                fontSize: "12px",
+                                color: "#64748b",
+                              }}
+                            >
+                              Default:{" "}
+                              <span
+                                style={{
+                                  color: "#94a3b8",
+                                  fontFamily: "monospace",
+                                }}
+                              >
+                                {JSON.stringify(field.defaultValue)}
+                              </span>
+                            </div>
+                          )}
                         </div>
-                        <p
-                          style={{
-                            fontSize: "13px",
-                            color: "#94a3b8",
-                            margin: "0 0 8px 0",
-                          }}
-                        >
-                          {field.description}
-                        </p>
-                        {field.relatedTo && (
-                          <div
-                            style={{
-                              fontSize: "12px",
-                              color: "#64748b",
-                            }}
-                          >
-                            Related to:{" "}
-                            <span
-                              style={{
-                                color: "#06b6d4",
-                                fontFamily: "monospace",
-                              }}
-                            >
-                              {field.relatedTo}
-                            </span>
-                          </div>
-                        )}
-                        {field.defaultValue !== undefined && (
-                          <div
-                            style={{
-                              fontSize: "12px",
-                              color: "#64748b",
-                            }}
-                          >
-                            Default:{" "}
-                            <span
-                              style={{
-                                color: "#94a3b8",
-                                fontFamily: "monospace",
-                              }}
-                            >
-                              {JSON.stringify(field.defaultValue)}
-                            </span>
-                          </div>
-                        )}
-                      </div>
-                    ))}
+                      ))}
                   </div>
                 </div>
               </div>

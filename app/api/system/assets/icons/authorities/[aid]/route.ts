@@ -1,7 +1,8 @@
-import { NextResponse } from 'next/server';
-import { getAuthority, getSystemSetting } from '@/lib/db';
-import fs from 'fs';
-import path from 'path';
+import { NextResponse } from "next/server";
+import fs from "fs";
+import path from "path";
+import { getSystemSettings } from "@/lib/database/managers/setting";
+import AuthorityManager from "@/lib/database/managers/authority";
 
 export async function GET(
   request: Request,
@@ -11,45 +12,45 @@ export async function GET(
     const { aid } = await params;
 
     // Get authority to find their icon path
-    const authority = await getAuthority(aid);
+    const authorityRecord = await new AuthorityManager().readRecord(aid);
 
-    if (!authority || !authority.icon) {
-      return new NextResponse('Not found', { status: 404 });
+    if (!authorityRecord || !authorityRecord.data.icon) {
+      return new NextResponse("Not found", { status: 404 });
     }
 
-    const systemStorage = await getSystemSetting('storage');
+    const systemStorage = (await getSystemSettings()).storage;
 
     if (!systemStorage) {
-      return new NextResponse('Storage not configured', { status: 500 });
+      return new NextResponse("Storage not configured", { status: 500 });
     }
 
-    const fullPath = path.join(systemStorage, authority.icon);
+    const fullPath = path.join(systemStorage, authorityRecord.data.icon);
 
     if (!fs.existsSync(fullPath)) {
-      return new NextResponse('Not found', { status: 404 });
+      return new NextResponse("Not found", { status: 404 });
     }
 
     const fileBuffer = fs.readFileSync(fullPath);
     const ext = path.extname(fullPath).toLowerCase();
 
     const contentTypeMap: { [key: string]: string } = {
-      '.jpg': 'image/jpeg',
-      '.jpeg': 'image/jpeg',
-      '.png': 'image/png',
-      '.gif': 'image/gif',
-      '.webp': 'image/webp',
+      ".jpg": "image/jpeg",
+      ".jpeg": "image/jpeg",
+      ".png": "image/png",
+      ".gif": "image/gif",
+      ".webp": "image/webp",
     };
 
-    const contentType = contentTypeMap[ext] || 'application/octet-stream';
+    const contentType = contentTypeMap[ext] || "application/octet-stream";
 
     return new NextResponse(fileBuffer, {
       headers: {
-        'Content-Type': contentType,
-        'Cache-Control': 'public, max-age=3600',
+        "Content-Type": contentType,
+        "Cache-Control": "public, max-age=3600",
       },
     });
   } catch (error) {
-    console.error('Failed to serve authority icon:', error);
-    return new NextResponse('Internal server error', { status: 500 });
+    console.error("Failed to serve authority icon:", error);
+    return new NextResponse("Internal server error", { status: 500 });
   }
 }

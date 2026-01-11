@@ -31,9 +31,21 @@ export default function AssumeIdentityModal({ onClose, onAssumeIdentity }: Assum
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/system/model/users');
+      const response = await fetch('/api/system/apps/system/tables/user');
       const data = await response.json();
-      setUsers(data.users || []);
+
+      // Transform user records to expected format
+      const usersList = (data.records || []).map((record: any) => ({
+        id: record.id,
+        username: record.data.username,
+        email: record.data.email,
+        displayName: record.data.displayName,
+        authority: record.data.authority,
+        isActive: record.data.isActive,
+        profilePicture: record.data.profilePicture,
+      }));
+
+      setUsers(usersList);
     } catch (error) {
       console.error('Failed to fetch users:', error);
     } finally {

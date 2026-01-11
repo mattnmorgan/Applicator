@@ -90,12 +90,17 @@ export default function UserCreate({
 
   const fetchAuthorities = async () => {
     try {
-      const response = await fetch("/api/system/model/authorities");
+      const response = await fetch("/api/system/apps/system/tables/authority");
       const data = await response.json();
-      // Filter out contextual authorities
-      const nonContextualAuthorities = (data.authorities || []).filter(
-        (auth: Authority) => !auth.contextual
-      );
+      // Filter out contextual authorities and user-specific authorities
+      const allAuthorities = data.records || [];
+      const nonContextualAuthorities = allAuthorities
+        .filter((record: any) => !record.data.contextual && !record.data.userId)
+        .map((record: any) => ({
+          id: record.id,
+          name: record.data.name,
+          contextual: record.data.contextual,
+        }));
       setAuthorities(nonContextualAuthorities);
     } catch (error) {
       console.error("Failed to fetch authorities:", error);
@@ -104,12 +109,20 @@ export default function UserCreate({
 
   const fetchAuthorizations = async () => {
     try {
-      const response = await fetch("/api/system/model/authorizations");
+      const response = await fetch("/api/system/apps/system/tables/authorization");
       const data = await response.json();
-      // Filter out contextual authorizations
-      const nonContextualAuthorizations = (data.authorizations || []).filter(
-        (auth: Authorization) => !auth.contextual
-      );
+
+      // Transform and filter out contextual authorizations
+      const nonContextualAuthorizations = (data.records || [])
+        .filter((record: any) => !record.data.contextual)
+        .map((record: any) => ({
+          id: record.id,
+          name: record.data.name,
+          description: record.data.description,
+          app: record.data.app,
+          contextual: record.data.contextual,
+        }));
+
       setAvailableAuthorizations(nonContextualAuthorizations);
     } catch (error) {
       console.error("Failed to fetch authorizations:", error);

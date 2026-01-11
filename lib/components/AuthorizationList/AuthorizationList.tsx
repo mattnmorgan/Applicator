@@ -20,9 +20,30 @@ export default function AuthorizationList() {
 
   const fetchAuthorizations = async () => {
     try {
-      const response = await fetch('/api/system/model/authorizations');
-      const data = await response.json();
-      setAuthorizations(data.authorizations || []);
+      const [authResponse, appsResponse] = await Promise.all([
+        fetch('/api/system/apps/system/tables/authorization'),
+        fetch('/api/system/apps'),
+      ]);
+      const authData = await authResponse.json();
+      const appsData = await appsResponse.json();
+
+      // Create app label lookup
+      const appLabels: Record<string, string> = {};
+      for (const app of appsData.apps || []) {
+        appLabels[app.id] = app.label;
+      }
+
+      // Transform authorization records to expected format
+      const authorizationsList = (authData.records || []).map((record: any) => ({
+        id: record.id,
+        name: record.data.name,
+        description: record.data.description,
+        app: record.data.app,
+        appLabel: appLabels[record.data.app] || record.data.app,
+        contextual: record.data.contextual,
+      }));
+
+      setAuthorizations(authorizationsList);
     } catch (error) {
       console.error('Failed to fetch authorizations:', error);
     }

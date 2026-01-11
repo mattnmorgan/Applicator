@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSystemSetting, getApp, formatVersion } from "@/lib/db";
 import path from "path";
 import fs from "fs/promises";
+import AppManager, { formatVersion } from "@/lib/database/managers/app";
+import { getSystemSettings } from "@/lib/database/managers/setting";
 
 export async function GET(
   request: NextRequest,
@@ -11,13 +12,13 @@ export async function GET(
     const { appId } = await params;
 
     // Get app info for version
-    const app = await getApp(appId);
+    const app = await new AppManager().readRecord(appId);
     if (!app) {
       return NextResponse.json({ error: "App not found" }, { status: 404 });
     }
 
     // Get system storage path
-    const storagePath = await getSystemSetting("storage");
+    const storagePath = (await getSystemSettings()).storage;
     if (!storagePath) {
       return NextResponse.json(
         { error: "System storage not configured" },
@@ -36,7 +37,7 @@ export async function GET(
         headers: {
           "Content-Type": "application/javascript",
           "Cache-Control": "public, max-age=31536000, immutable",
-          ETag: `"${appId}-${formatVersion(app.version)}"`,
+          ETag: `"${appId}-${formatVersion(app.data.version)}"`,
         },
       });
     } catch (error) {

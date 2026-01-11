@@ -49,15 +49,22 @@ export default function AppWidgetPage() {
           const widgetInfo = await response.json();
           setComponentName(widgetInfo.component);
 
-          // Fetch app metadata to get version
-          const appResponse = await fetch(`/api/system/apps/${mainAppId}`);
+          // Fetch app metadata to get version from system:app table using generic API
+          const appResponse = await fetch(`/api/system/apps/system/tables/app?fields=${encodeURIComponent(JSON.stringify({ id: mainAppId }))}`);
           if (!appResponse.ok) {
             setError("Failed to load app information");
             setLoading(false);
             return;
           }
 
-          const appData = await appResponse.json();
+          const appResponseData = await appResponse.json();
+          if (!appResponseData.success || !appResponseData.records || appResponseData.records.length === 0) {
+            setError("Failed to load app information");
+            setLoading(false);
+            return;
+          }
+
+          const appData = appResponseData.records[0].data;
           const versionString = `${appData.version.major}.${appData.version.minor}.${appData.version.dev}`;
           const url = `/api/system/apps/${mainAppId}/assets/source?v=${versionString}`;
           setModuleUrl(url);
@@ -99,15 +106,22 @@ export default function AppWidgetPage() {
           subAppId = fullAppId;
           setComponentName(widgetInfo.component);
 
-          // Get app version
-          const appResponse = await fetch(`/api/system/apps/${mainAppId}`);
+          // Get app version from system:app table using generic API
+          const appResponse = await fetch(`/api/system/apps/system/tables/app?fields=${encodeURIComponent(JSON.stringify({ id: mainAppId }))}`);
           if (!appResponse.ok) {
             setError("Failed to load app information");
             setLoading(false);
             return;
           }
 
-          const appData = await appResponse.json();
+          const appResponseData = await appResponse.json();
+          if (!appResponseData.success || !appResponseData.records || appResponseData.records.length === 0) {
+            setError("Failed to load app information");
+            setLoading(false);
+            return;
+          }
+
+          const appData = appResponseData.records[0].data;
           const versionString = `${appData.version.major}.${appData.version.minor}.${appData.version.dev}`;
           setModuleUrl(`/api/system/apps/${mainAppId}/assets/source?v=${versionString}`);
           setLoading(false);

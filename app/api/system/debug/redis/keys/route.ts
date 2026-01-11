@@ -1,16 +1,27 @@
-import { NextResponse } from 'next/server';
-import { getRedisClient } from '@/lib/redis';
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/database/managers/user";
+import { getRedisClient } from "@/lib/database/crud/redis";
 
 export async function GET() {
   try {
-    const redis = getRedisClient();
-    const keys = await redis.keys('*');
+    const user = await getCurrentUser();
 
-    return NextResponse.json({ keys });
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    if (!user.authorizations.some((a) => a === "admin")) {
+      return NextResponse.json(
+        { error: "Forbidden - Admin access required" },
+        { status: 403 }
+      );
+    }
+
+    return NextResponse.json({ keys: await getRedisClient().keys("*") });
   } catch (error) {
-    console.error('Failed to fetch Redis keys:', error);
+    console.error("Failed to fetch Redis keys:", error);
     return NextResponse.json(
-      { error: 'Failed to fetch Redis keys' },
+      { error: "Failed to fetch Redis keys" },
       { status: 500 }
     );
   }

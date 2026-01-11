@@ -30,9 +30,53 @@ export default function AuthorityList() {
 
   const fetchAuthorities = async () => {
     try {
-      const response = await fetch('/api/system/model/authorities');
+      const response = await fetch('/api/system/apps/system/tables/authority');
       const data = await response.json();
-      setAuthorities(data.authorities || []);
+
+      // Filter out user-specific authorities and enrich with icon URLs and app labels
+      const allAuthorities = data.records || [];
+
+      const nonUserAuthorities = allAuthorities.filter(
+        (record: any) => {
+          return record && record.data && !record.data.userId;
+        }
+      );
+
+      // Transform records to match expected format and add icon URLs
+      const authoritiesWithIcons = await Promise.all(
+        nonUserAuthorities.map(async (record: any) => {
+          const authority = record.data;
+          let appLabel = undefined;
+
+          if (authority.contextual && authority.app) {
+            try {
+              const appResponse = await fetch(`/api/system/apps/${authority.app}`);
+              const appData = await appResponse.json();
+              appLabel = appData.app?.label || 'Unknown';
+            } catch {
+              appLabel = 'Unknown';
+            }
+          }
+
+          return {
+            id: record.id,
+            name: authority.name,
+            icon: authority.icon
+              ? `/api/system/assets/icons/authorities/${record.id}?t=${Date.now()}`
+              : undefined,
+            authorizations: authority.authorizations,
+            apps: authority.apps,
+            contextual: authority.contextual,
+            app: authority.app,
+            appLabel,
+          };
+        })
+      );
+
+      // Sort authorities alphabetically by name
+      authoritiesWithIcons.sort((a, b) => a.name.localeCompare(b.name));
+
+      setAuthorities(authoritiesWithIcons);
     } catch (error) {
       console.error('Failed to fetch authorities:', error);
     }
@@ -57,32 +101,60 @@ export default function AuthorityList() {
 
     setLoading(true);
     try {
-      const response = await fetch('/api/system/model/authorities/delete', {
-        method: 'POST',
+      const authorityIdsArray = Array.from(selectedAuthorityIds);
+
+      // Check for system authorities
+      const systemAuthorities = ['admin', 'user', 'guest'];
+      const systemAuthorityAttempts = authorityIdsArray.filter(id => systemAuthorities.includes(id));
+
+      if (systemAuthorityAttempts.length > 0) {
+        setToast({ message: 'Cannot delete system authorities (Administrator, User, or Guest)', type: 'error' });
+        setLoading(false);
+        return;
+      }
+
+      // Check for authorities with assigned users
+      const violatedAuthorities: string[] = [];
+      for (const authorityId of authorityIdsArray) {
+        try {
+          const checkResponse = await fetch(`/api/system/apps/system/tables/user?limit=1&fields=${JSON.stringify({ authority: true })}`);
+          const checkData = await checkResponse.json();
+          const hasUsers = checkData.records?.some((r: any) => {
+            return r.data && r.data.authority === authorityId;
+          });
+          if (hasUsers) {
+            violatedAuthorities.push(authorityId);
+          }
+        } catch {
+          // Skip if check fails
+        }
+      }
+
+      if (violatedAuthorities.length > 0) {
+        const violatedNames = violatedAuthorities.map((id: string) => {
+          const auth = authorities.find(a => a.id === id);
+          return auth?.name || id;
+        }).join(', ');
+        setToast({ message: `Cannot delete authorities with assigned users: ${violatedNames}`, type: 'error' });
+        setLoading(false);
+        return;
+      }
+
+      // Delete using generic table route
+      const response = await fetch('/api/system/apps/system/tables/authority', {
+        method: 'DELETE',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          authorityIds: Array.from(selectedAuthorityIds),
-        }),
+        body: JSON.stringify({ ids: authorityIdsArray }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        if (data.systemAuthorities) {
-          setToast({ message: 'Cannot delete system authorities (Administrator, User, or Guest)', type: 'error' });
-        } else if (data.violatedAuthorities) {
-          const violatedNames = data.violatedAuthorities.map((id: string) => {
-            const auth = authorities.find(a => a.id === id);
-            return auth?.name || id;
-          }).join(', ');
-          setToast({ message: `Cannot delete authorities with assigned users: ${violatedNames}`, type: 'error' });
-        } else {
-          setToast({ message: data.error || 'Failed to delete authorities', type: 'error' });
-        }
+        setToast({ message: data.error || 'Failed to delete authorities', type: 'error' });
         return;
       }
 
-      setToast({ message: data.message, type: 'success' });
+      setToast({ message: `Successfully deleted ${authorityIdsArray.length} ${authorityIdsArray.length === 1 ? 'authority' : 'authorities'}`, type: 'success' });
       await fetchAuthorities();
       setSelectedAuthorityIds(new Set());
     } catch (error) {
@@ -112,10 +184,23 @@ export default function AuthorityList() {
       return;
     }
 
-    const response = await fetch(`/api/system/model/authorities/${authorityId}`);
-    const data = await response.json();
-    if (data.authority) {
-      setEditingAuthority(data.authority);
+    try {
+      const response = await fetch(`/api/system/apps/system/tables/authority?ids=${authorityId}`);
+      const data = await response.json();
+      if (data.records && data.records.length > 0) {
+        const record = data.records[0];
+        const authorityData = record.data;
+        setEditingAuthority({
+          id: record.id,
+          name: authorityData.name,
+          icon: authorityData.icon ? `/api/system/assets/icons/authorities/${record.id}?t=${Date.now()}` : undefined,
+          authorizations: authorityData.authorizations,
+          apps: authorityData.apps,
+        });
+      }
+    } catch (error) {
+      console.error('Failed to fetch authority:', error);
+      setToast({ message: 'Failed to load authority for editing', type: 'error' });
     }
   };
 

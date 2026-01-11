@@ -1,0 +1,67 @@
+import Table from "@/lib/database/types/table";
+import {
+  validateRequiredFields,
+  validateFields,
+} from "@/lib/database/crud/validation/validator";
+import { calculateFormulas } from "@/lib/database/crud/validation/formulae";
+
+/**
+ * Validate and process a record according to the execution order:
+ * 1. Check required fields
+ * 2. Calculate formula fields
+ * 3. Execute validator scripts
+ *
+ * @param appId The app ID
+ * @param tableName The table name
+ * @param table The table definition
+ * @param data The record data
+ * @param skipValidation Whether to skip validation
+ * @returns Processed record data
+ * @throws Error if validation fails
+ */
+export async function validateAndProcessRecord(
+  appId: string,
+  tableName: string,
+  table: Table,
+  data: Record<string, any>,
+  skipValidation: boolean = false
+): Promise<Record<string, any>> {
+  let processedData = { ...data };
+
+  if (!skipValidation) {
+    // Step 1: Validate required fields
+    const requiredResults = validateRequiredFields(table, processedData);
+    const requiredFailures = requiredResults.filter((r) => !r.valid);
+
+    if (requiredFailures.length > 0) {
+      const errors = requiredFailures.map((r) => r.error).join(", ");
+      throw new Error(`Required field validation failed: ${errors}`);
+    }
+  }
+
+  // Step 2: Calculate formula fields
+  processedData = await calculateFormulas(
+    appId,
+    tableName,
+    table,
+    processedData
+  );
+
+  if (!skipValidation) {
+    // Step 3: Execute validator scripts
+    const validationResults = await validateFields(
+      appId,
+      tableName,
+      table,
+      processedData
+    );
+    const validationFailures = validationResults.filter((r) => !r.valid);
+
+    if (validationFailures.length > 0) {
+      const errors = validationFailures.map((r) => r.error).join(", ");
+      throw new Error(`Field validation failed: ${errors}`);
+    }
+  }
+
+  return processedData;
+}

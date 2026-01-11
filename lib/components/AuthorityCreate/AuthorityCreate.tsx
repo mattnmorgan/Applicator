@@ -59,12 +59,22 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
     const fetchData = async () => {
       try {
         const [authResponse, appsResponse] = await Promise.all([
-          fetch('/api/system/model/authorizations'),
+          fetch('/api/system/apps/system/tables/authorization'),
           fetch('/api/system/apps'),
         ]);
         const authData = await authResponse.json();
         const appsData = await appsResponse.json();
-        setAuthorizations(authData.authorizations || []);
+
+        // Transform authorization records to expected format
+        const authorizationsList = (authData.records || []).map((record: any) => ({
+          id: record.id,
+          name: record.data.name,
+          description: record.data.description,
+          app: record.data.app,
+          appLabel: record.data.app, // Will be enriched below
+          contextual: record.data.contextual,
+        }));
+        setAuthorizations(authorizationsList);
 
         // Transform main apps into sub-apps list
         const subAppsList: SubApp[] = [];
@@ -152,35 +162,197 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
 
     setCreating(true);
     try {
-      const formData = new FormData();
-      if (!isSystemAuthority) {
-        formData.append('name', name.trim());
-      }
-      if (iconFile) {
-        formData.append('icon', iconFile);
-      }
-      if (clearIcon) {
-        formData.append('clearIcon', 'true');
-      }
-      // Add authorizations
-      formData.append('authorizations', JSON.stringify(Array.from(selectedAuthorizations)));
-      // Add sub-apps
-      formData.append('apps', JSON.stringify(Array.from(selectedSubApps)));
+      if (isEditMode) {
+        // Update authority using generic table route
+        const updateData: any = {};
 
-      const url = isEditMode ? `/api/system/model/authorities/${editAuthority.id}` : '/api/system/model/authorities/create';
-      const response = await fetch(url, {
-        method: isEditMode ? 'PATCH' : 'POST',
-        body: formData,
-      });
+        if (!isSystemAuthority) {
+          updateData.name = name.trim();
+        }
 
-      const data = await response.json();
+        // Add authorizations
+        updateData.authorizations = Array.from(selectedAuthorizations);
 
-      if (!response.ok) {
-        setError(data.error || `Failed to ${isEditMode ? 'update' : 'create'} authority`);
-        return;
+        // Add sub-apps
+        updateData.apps = Array.from(selectedSubApps);
+
+        const response = await fetch('/api/system/apps/system/tables/authority', {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            id: editAuthority.id,
+            data: updateData,
+          }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setError(data.error || 'Failed to update authority');
+          return;
+        }
+
+        // Handle icon upload/removal separately if needed
+        if (iconFile) {
+          // Get system storage path and construct the icon path
+          const storageResponse = await fetch('/api/system/settings/storage');
+          const storageData = await storageResponse.json();
+          const systemStorage = storageData.storage;
+
+          if (!systemStorage) {
+            setError('System storage not configured');
+            return;
+          }
+
+          const fileExtension = iconFile.name.split('.').pop() || 'jpg';
+          const fileName = `icon.${fileExtension}`;
+          const iconDirectory = `${systemStorage}\\system\\authorities\\icons\\${editAuthority.id}`;
+
+          const iconFormData = new FormData();
+          iconFormData.append('file', iconFile);
+          iconFormData.append('path', iconDirectory);
+          iconFormData.append('name', fileName);
+
+          const iconResponse = await fetch('/api/system/apps/fs', {
+            method: 'PUT',
+            body: iconFormData,
+          });
+
+          if (!iconResponse.ok) {
+            setError('Failed to upload icon');
+            return;
+          }
+
+          // Update the authority record with the icon path
+          const relativePath = `system\\authorities\\icons\\${editAuthority.id}\\${fileName}`;
+          const updateIconResponse = await fetch('/api/system/apps/system/tables/authority', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: editAuthority.id,
+              data: { icon: relativePath },
+            }),
+          });
+
+          if (!updateIconResponse.ok) {
+            setError('Failed to update authority with icon path');
+            return;
+          }
+        } else if (clearIcon) {
+          // Get the current icon path and delete the file
+          const authorityResponse = await fetch(`/api/system/apps/system/tables/authority?ids=${editAuthority.id}`);
+          const authorityData = await authorityResponse.json();
+
+          const record = authorityData.records?.[0];
+          const authority = record?.data;
+
+          if (authority?.icon) {
+            const storageResponse = await fetch('/api/system/settings/storage');
+            const storageData = await storageResponse.json();
+            const systemStorage = storageData.storage;
+            const iconPath = `${systemStorage}\\${authority.icon}`;
+
+            const deleteResponse = await fetch('/api/system/apps/fs', {
+              method: 'DELETE',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: iconPath }),
+            });
+
+            if (!deleteResponse.ok) {
+              console.warn('Failed to delete icon file');
+            }
+          }
+
+          // Clear the icon field in the database
+          const updateIconResponse = await fetch('/api/system/apps/system/tables/authority', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: editAuthority.id,
+              data: { icon: undefined },
+            }),
+          });
+
+          if (!updateIconResponse.ok) {
+            setError('Failed to remove icon');
+            return;
+          }
+        }
+
+        onAuthorityCreated();
+      } else {
+        // Create authority using generic table route
+        const createData: any = {
+          name: name.trim(),
+          authorizations: Array.from(selectedAuthorizations),
+          apps: Array.from(selectedSubApps),
+        };
+
+        const response = await fetch('/api/system/apps/system/tables/authority', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ data: createData }),
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          setError(data.error || 'Failed to create authority');
+          return;
+        }
+
+        const authorityId = data.record.id;
+
+        // Handle icon upload separately if provided
+        if (iconFile) {
+          // Get system storage path and construct the icon path
+          const storageResponse = await fetch('/api/system/settings/storage');
+          const storageData = await storageResponse.json();
+          const systemStorage = storageData.storage;
+
+          if (!systemStorage) {
+            setError('System storage not configured');
+            return;
+          }
+
+          const fileExtension = iconFile.name.split('.').pop() || 'jpg';
+          const fileName = `icon.${fileExtension}`;
+          const iconDirectory = `${systemStorage}\\system\\authorities\\icons\\${authorityId}`;
+
+          const iconFormData = new FormData();
+          iconFormData.append('file', iconFile);
+          iconFormData.append('path', iconDirectory);
+          iconFormData.append('name', fileName);
+
+          const iconResponse = await fetch('/api/system/apps/fs', {
+            method: 'PUT',
+            body: iconFormData,
+          });
+
+          if (!iconResponse.ok) {
+            setError('Failed to upload icon');
+            return;
+          }
+
+          // Update the authority record with the icon path
+          const relativePath = `system\\authorities\\icons\\${authorityId}\\${fileName}`;
+          const updateIconResponse = await fetch('/api/system/apps/system/tables/authority', {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              id: authorityId,
+              data: { icon: relativePath },
+            }),
+          });
+
+          if (!updateIconResponse.ok) {
+            setError('Failed to update authority with icon path');
+            return;
+          }
+        }
+
+        onAuthorityCreated();
       }
-
-      onAuthorityCreated();
     } catch (err) {
       setError(`Failed to ${isEditMode ? 'update' : 'create'} authority`);
     } finally {

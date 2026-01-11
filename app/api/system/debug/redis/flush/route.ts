@@ -1,42 +1,34 @@
-import { NextResponse } from 'next/server';
-import { getRedisClient } from '@/lib/redis';
-import { logger } from '@/lib/logging';
-import { getSession, userHasAuthorization } from '@/lib/db';
+import { NextResponse } from "next/server";
+import LogManager from "@/lib/database/managers/log";
+import { getCurrentUser } from "@/lib/database/managers/user";
+import { getRedisClient } from "@/lib/database/crud/redis";
 
 export async function POST(request: Request) {
   try {
-    // Check authentication - debug operations require admin authorization
-    const sessionId = request.headers.get('cookie')?.split(';').find(c => c.trim().startsWith('session='))?.split('=')[1];
-    if (!sessionId) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    const user = await getCurrentUser();
+
+    if (!user) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const session = await getSession(sessionId);
-    if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    if (!user.authorizations.some((a) => a === "admin")) {
+      return NextResponse.json(
+        { error: "Forbidden - Admin access required" },
+        { status: 403 }
+      );
     }
 
-    // Check if user has admin authorization
-    const hasAdmin = await userHasAuthorization(session.userId, 'admin');
-    if (!hasAdmin) {
-      return NextResponse.json({ error: 'Forbidden - Admin access required' }, { status: 403 });
-    }
-
-    const redis = getRedisClient();
-
-    // Log database flush before clearing (so the log message itself isn't lost)
-    await logger.fromRequest(request).info('system', 'Database flushed (all values cleared)');
-
-    await redis.flushdb();
+    await new LogManager().createLog("info", "Database was flushed", "system");
+    await getRedisClient().flushdb();
 
     return NextResponse.json({
       success: true,
-      message: 'Database flushed successfully'
+      message: "Database flushed successfully",
     });
   } catch (error) {
-    console.error('Failed to flush database:', error);
+    console.error("Failed to flush database:", error);
     return NextResponse.json(
-      { error: 'Failed to flush database' },
+      { error: "Failed to flush database" },
       { status: 500 }
     );
   }

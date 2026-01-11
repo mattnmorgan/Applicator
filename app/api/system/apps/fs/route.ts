@@ -53,6 +53,38 @@ export async function GET(request: Request) {
 
 export async function PUT(request: Request) {
   try {
+    const contentType = request.headers.get('content-type');
+
+    // Handle binary file uploads (multipart/form-data)
+    if (contentType?.includes('multipart/form-data')) {
+      const formData = await request.formData();
+      const file = formData.get('file') as File | null;
+      const parentPath = formData.get('path') as string | null;
+      const name = formData.get('name') as string | null;
+
+      if (!file || !parentPath || !name) {
+        return NextResponse.json(
+          { error: 'File, path, and name are required' },
+          { status: 400 }
+        );
+      }
+
+      const newPath = path.join(parentPath, name);
+
+      // Create parent directory if it doesn't exist
+      const directory = path.dirname(newPath);
+      if (!fs.existsSync(directory)) {
+        fs.mkdirSync(directory, { recursive: true });
+      }
+
+      // Write binary file
+      const buffer = Buffer.from(await file.arrayBuffer());
+      fs.writeFileSync(newPath, buffer);
+
+      return NextResponse.json({ success: true, path: newPath, type: 'file' });
+    }
+
+    // Handle JSON-based file/directory creation (text content only)
     const body = await request.json();
     const { path: parentPath, name, type = 'directory', content = '' } = body;
 

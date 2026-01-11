@@ -15,9 +15,9 @@ import {
   compareVersions,
 } from "@/lib/db";
 import { createRecord, deleteRecord, readRecords } from "@/lib/model/records";
-import { loadTable } from "@/lib/model/tables";
+import { loadTable } from "@/lib/db/tables";
 import { logger } from "@/lib/logging";
-import { SYSTEM_APP_METADATA } from "@/lib/db/systemMetadata";
+import { SYSTEM_APP_METADATA } from "@/lib/database/systemMetadata";
 import path from "path";
 import fs from "fs/promises";
 import AdmZip from "adm-zip";
@@ -97,7 +97,10 @@ export async function POST(request: NextRequest) {
       });
 
       // Update table records
-      if (SYSTEM_APP_METADATA.tables && Array.isArray(SYSTEM_APP_METADATA.tables)) {
+      if (
+        SYSTEM_APP_METADATA.tables &&
+        Array.isArray(SYSTEM_APP_METADATA.tables)
+      ) {
         const tableDefinition = await loadTable("system", "table");
         if (!tableDefinition) {
           throw new Error("System table definition not found");
@@ -119,12 +122,18 @@ export async function POST(request: NextRequest) {
             await deleteRecord("system", "table", tableId);
           }
 
-          await createRecord("system", "table", tableDefinition, {
-            tableName: table.name,
-            app: "system",
-            description: table.description || "",
-            fields: table.fields || [],
-          }, { id: tableId });
+          await createRecord(
+            "system",
+            "table",
+            tableDefinition,
+            {
+              tableName: table.name,
+              app: "system",
+              description: table.description || "",
+              fields: table.fields || [],
+            },
+            { id: tableId }
+          );
 
           existingTableNames.delete(table.name);
         }
@@ -142,9 +151,9 @@ export async function POST(request: NextRequest) {
         .fromRequest(request)
         .info(
           "system",
-          `System upgraded: ${formatVersion(existingApp.version)} → ${formatVersion(
-            SYSTEM_APP_METADATA.version
-          )}`
+          `System upgraded: ${formatVersion(
+            existingApp.version
+          )} → ${formatVersion(SYSTEM_APP_METADATA.version)}`
         );
 
       return NextResponse.json({
@@ -455,15 +464,23 @@ export async function POST(request: NextRequest) {
 
       if (appAttributes.subApps.length === 0) {
         return NextResponse.json(
-          { error: "subApps array cannot be empty. At least one sub-app is required." },
+          {
+            error:
+              "subApps array cannot be empty. At least one sub-app is required.",
+          },
           { status: 400 }
         );
       }
 
-      const hasAppsDir = zipEntries.some((e) => e.entryName.startsWith("apps/"));
+      const hasAppsDir = zipEntries.some((e) =>
+        e.entryName.startsWith("apps/")
+      );
       if (!hasAppsDir) {
         return NextResponse.json(
-          { error: "Package must contain 'apps/' directory for sub-app components" },
+          {
+            error:
+              "Package must contain 'apps/' directory for sub-app components",
+          },
           { status: 400 }
         );
       }
@@ -473,7 +490,12 @@ export async function POST(request: NextRequest) {
       for (let i = 0; i < appAttributes.subApps.length; i++) {
         const subApp = appAttributes.subApps[i];
 
-        if (!subApp.id || !subApp.label || !subApp.description || !subApp.component) {
+        if (
+          !subApp.id ||
+          !subApp.label ||
+          !subApp.description ||
+          !subApp.component
+        ) {
           return NextResponse.json(
             {
               error: `Sub-app at index ${i} is missing required fields (id, label, description, or component)`,
@@ -504,7 +526,11 @@ export async function POST(request: NextRequest) {
         if (!componentExists) {
           return NextResponse.json(
             {
-              error: `Sub-app '${subApp.id}' component not found. Expected one of: ${componentPaths.join(", ")}`,
+              error: `Sub-app '${
+                subApp.id
+              }' component not found. Expected one of: ${componentPaths.join(
+                ", "
+              )}`,
             },
             { status: 400 }
           );
@@ -520,7 +546,8 @@ export async function POST(request: NextRequest) {
             if (!hasWidgetsDir) {
               return NextResponse.json(
                 {
-                  error: "Package must contain 'widgets/' directory when widgets are defined",
+                  error:
+                    "Package must contain 'widgets/' directory when widgets are defined",
                 },
                 { status: 400 }
               );
@@ -548,7 +575,9 @@ export async function POST(request: NextRequest) {
             }
 
             if (
-              !["home", "user-settings", "system-settings"].includes(widget.target)
+              !["home", "user-settings", "system-settings"].includes(
+                widget.target
+              )
             ) {
               return NextResponse.json(
                 {
@@ -613,7 +642,11 @@ export async function POST(request: NextRequest) {
             if (!widgetExists) {
               return NextResponse.json(
                 {
-                  error: `Widget '${widget.id}' component not found. Expected one of: ${widgetPaths.join(", ")}`,
+                  error: `Widget '${
+                    widget.id
+                  }' component not found. Expected one of: ${widgetPaths.join(
+                    ", "
+                  )}`,
                 },
                 { status: 400 }
               );
@@ -627,7 +660,9 @@ export async function POST(request: NextRequest) {
           if (duplicates.length > 0) {
             return NextResponse.json(
               {
-                error: `Duplicate widget IDs in sub-app '${subApp.id}': ${duplicates.join(", ")}`,
+                error: `Duplicate widget IDs in sub-app '${
+                  subApp.id
+                }': ${duplicates.join(", ")}`,
               },
               { status: 400 }
             );
@@ -781,12 +816,18 @@ export async function POST(request: NextRequest) {
           }
 
           // Create/recreate table record
-          await createRecord("system", "table", tableDefinition, {
-            tableName: table.name,
-            app: appAttributes.id,
-            description: table.description || "",
-            fields: table.fields || [],
-          }, { id: tableId });
+          await createRecord(
+            "system",
+            "table",
+            tableDefinition,
+            {
+              tableName: table.name,
+              app: appAttributes.id,
+              description: table.description || "",
+              fields: table.fields || [],
+            },
+            { id: tableId }
+          );
 
           existingTableNames.delete(table.name);
         }
@@ -843,9 +884,11 @@ export async function POST(request: NextRequest) {
             .fromRequest(request)
             .info(
               "system",
-              `Running OnInstallation hook for ${appAttributes.name} (${formatVersion(
-                existingApp.version
-              )} → ${formatVersion(appAttributes.version)})`
+              `Running OnInstallation hook for ${
+                appAttributes.name
+              } (${formatVersion(existingApp.version)} → ${formatVersion(
+                appAttributes.version
+              )})`
             );
 
           const require = createRequire(import.meta.url || __filename);
@@ -880,11 +923,17 @@ export async function POST(request: NextRequest) {
           await fs.rm(tablesDir, { recursive: true, force: true });
           await fs.rename(backupTablesDir, tablesDir);
           // Also restore the old bundle and icon
-          const oldBundlePath = path.join(appDir, `app.js.backup.${Date.now()}`);
+          const oldBundlePath = path.join(
+            appDir,
+            `app.js.backup.${Date.now()}`
+          );
           const bundlePath = path.join(appDir, `app.js`);
           // Note: We don't have backups of bundle/icon yet, but the API and tables rollback is critical
         } catch (rollbackError) {
-          console.error("Failed to rollback after installation hook failure:", rollbackError);
+          console.error(
+            "Failed to rollback after installation hook failure:",
+            rollbackError
+          );
         }
 
         return NextResponse.json(

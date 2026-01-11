@@ -3,8 +3,8 @@
   "name": "Task Manager",
   "version": {
     "major": 1,
-    "minor": 0,
-    "dev": 5
+    "minor": 1,
+    "dev": 0
   },
   "author": "Vibe Applicator",
   "contactEmail": "support@vibeapplicator.com",
@@ -16,6 +16,74 @@
       "dev": 0
     }
   },
+  "tables": [
+    {
+      "name": "task",
+      "description": "Task records with assignments, priorities, and status tracking",
+      "fields": [
+        {
+          "name": "title",
+          "description": "Task title",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "description",
+          "description": "Detailed task description",
+          "type": "string",
+          "required": true
+        },
+        {
+          "name": "status",
+          "description": "Current status (pending, in-progress, completed)",
+          "type": "string",
+          "required": true,
+          "defaultValue": "pending"
+        },
+        {
+          "name": "assignedTo",
+          "description": "User ID of the assigned user",
+          "type": "relationship",
+          "relatedTo": "system:user"
+        },
+        {
+          "name": "dueDate",
+          "description": "Due date for the task",
+          "type": "date"
+        },
+        {
+          "name": "priority",
+          "description": "Task priority (low, medium, high)",
+          "type": "string",
+          "required": true,
+          "defaultValue": "medium"
+        },
+        {
+          "name": "createdBy",
+          "description": "User ID of the creator",
+          "type": "relationship",
+          "relatedTo": "system:user",
+          "required": true
+        },
+        {
+          "name": "tags",
+          "description": "Task tags for categorization",
+          "type": "json",
+          "defaultValue": []
+        },
+        {
+          "name": "attachmentFileName",
+          "description": "Name of the attached file",
+          "type": "string"
+        },
+        {
+          "name": "attachmentFilePath",
+          "description": "Path to the attached file",
+          "type": "string"
+        }
+      ]
+    }
+  ],
   "authorizations": [
     {
       "id": "manage",

@@ -1,51 +1,24 @@
-import TableDefinition from "@/lib/database/types/tableDefinition";
-
-export interface AppVersion {
-  major: number;
-  minor: number;
-  dev: number;
-}
-
-export interface ApiRoute {
-  path: string;
-  method: string;
-  handler: string;
-  description: string;
-}
-
-export interface Widget {
-  id: string;
-  name: string;
-  description: string;
-  target: "home" | "user-settings" | "system-settings";
-  component: string;
-  appId: string; // Format: "mainAppId:subAppId" for sub-app widgets
-}
+import TableDefinition from "@/lib/database/types/table";
+import AppVersion from "@/lib/database/types/appVersion";
+import ApiRoute from "@/lib/database/types/apiRoute";
+import Widget from "@/lib/database/types/widget";
 
 export interface SubApp {
-  id: string; // Unique within parent app (e.g., "manager")
+  id: string;
   label: string;
   description: string;
-  component: string; // Component name in apps/ directory
-  widgets?: Widget[]; // Widgets specific to this sub-app
+  component: string;
+  widgets?: Widget[];
 }
 
 export default interface App {
-  id: string;
   label: string;
   version: AppVersion;
   author: string;
   contactEmail: string;
   description: string;
   apiRoutes?: ApiRoute[];
-  subApps?: SubApp[]; // Sub-applications (if not provided, legacy format assumed)
-  widgets?: Widget[]; // Legacy: widgets at app level (deprecated, use subApps)
-  /**
-   * Map of app ids to minimum required versions for install to be permitted
-   */
+  subApps?: SubApp[];
   dependencies?: Record<string, AppVersion>;
-  /**
-   * Table definitions for the app's data models
-   */
-  tables?: TableDefinition[]; // Using any[] to avoid circular dependency with TableDefinition
+  tables?: TableDefinition[];
 }

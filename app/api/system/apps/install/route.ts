@@ -16,7 +16,7 @@ import {
   isVersionGreaterOrEqual,
 } from "@/lib/db";
 import { createRecord } from "@/lib/model/records";
-import { loadTable } from "@/lib/model/tables";
+import { loadTable } from "@/lib/db/tables";
 import { logger } from "@/lib/logging";
 import path from "path";
 import fs from "fs/promises";
@@ -328,16 +328,24 @@ export async function POST(request: NextRequest) {
 
       if (appAttributes.subApps.length === 0) {
         return NextResponse.json(
-          { error: "subApps array cannot be empty. At least one sub-app is required." },
+          {
+            error:
+              "subApps array cannot be empty. At least one sub-app is required.",
+          },
           { status: 400 }
         );
       }
 
       // Check for apps/ directory
-      const hasAppsDir = zipEntries.some((e) => e.entryName.startsWith("apps/"));
+      const hasAppsDir = zipEntries.some((e) =>
+        e.entryName.startsWith("apps/")
+      );
       if (!hasAppsDir) {
         return NextResponse.json(
-          { error: "Package must contain 'apps/' directory for sub-app components" },
+          {
+            error:
+              "Package must contain 'apps/' directory for sub-app components",
+          },
           { status: 400 }
         );
       }
@@ -348,7 +356,12 @@ export async function POST(request: NextRequest) {
         const subApp = appAttributes.subApps[i];
 
         // Validate required sub-app fields
-        if (!subApp.id || !subApp.label || !subApp.description || !subApp.component) {
+        if (
+          !subApp.id ||
+          !subApp.label ||
+          !subApp.description ||
+          !subApp.component
+        ) {
           return NextResponse.json(
             {
               error: `Sub-app at index ${i} is missing required fields (id, label, description, or component)`,
@@ -381,7 +394,11 @@ export async function POST(request: NextRequest) {
         if (!componentExists) {
           return NextResponse.json(
             {
-              error: `Sub-app '${subApp.id}' component not found. Expected one of: ${componentPaths.join(", ")}`,
+              error: `Sub-app '${
+                subApp.id
+              }' component not found. Expected one of: ${componentPaths.join(
+                ", "
+              )}`,
             },
             { status: 400 }
           );
@@ -399,7 +416,8 @@ export async function POST(request: NextRequest) {
             if (!hasWidgetsDir) {
               return NextResponse.json(
                 {
-                  error: "Package must contain 'widgets/' directory when widgets are defined",
+                  error:
+                    "Package must contain 'widgets/' directory when widgets are defined",
                 },
                 { status: 400 }
               );
@@ -429,7 +447,9 @@ export async function POST(request: NextRequest) {
 
             // Validate target
             if (
-              !["home", "user-settings", "system-settings"].includes(widget.target)
+              !["home", "user-settings", "system-settings"].includes(
+                widget.target
+              )
             ) {
               return NextResponse.json(
                 {
@@ -497,7 +517,11 @@ export async function POST(request: NextRequest) {
             if (!widgetExists) {
               return NextResponse.json(
                 {
-                  error: `Widget '${widget.id}' component not found. Expected one of: ${widgetPaths.join(", ")}`,
+                  error: `Widget '${
+                    widget.id
+                  }' component not found. Expected one of: ${widgetPaths.join(
+                    ", "
+                  )}`,
                 },
                 { status: 400 }
               );
@@ -512,7 +536,9 @@ export async function POST(request: NextRequest) {
           if (duplicates.length > 0) {
             return NextResponse.json(
               {
-                error: `Duplicate widget IDs in sub-app '${subApp.id}': ${duplicates.join(", ")}`,
+                error: `Duplicate widget IDs in sub-app '${
+                  subApp.id
+                }': ${duplicates.join(", ")}`,
               },
               { status: 400 }
             );
@@ -648,10 +674,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Install contextual authorities
-    if (
-      appAttributes.authorities &&
-      Array.isArray(appAttributes.authorities)
-    ) {
+    if (appAttributes.authorities && Array.isArray(appAttributes.authorities)) {
       for (const authority of appAttributes.authorities) {
         const authorityId = `${appAttributes.id}:${authority.id}`;
 
@@ -681,12 +704,18 @@ export async function POST(request: NextRequest) {
 
       for (const table of appAttributes.tables) {
         const tableId = `${appAttributes.id}:${table.name}`;
-        await createRecord("system", "table", tableDefinition, {
-          tableName: table.name,
-          app: appAttributes.id,
-          description: table.description || "",
-          fields: table.fields || [],
-        }, { id: tableId });
+        await createRecord(
+          "system",
+          "table",
+          tableDefinition,
+          {
+            tableName: table.name,
+            app: appAttributes.id,
+            description: table.description || "",
+            fields: table.fields || [],
+          },
+          { id: tableId }
+        );
       }
     }
 
@@ -709,9 +738,9 @@ export async function POST(request: NextRequest) {
           .fromRequest(request)
           .info(
             "system",
-            `Running OnInstallation hook for ${appAttributes.name} v${formatVersion(
-              appAttributes.version
-            )}`
+            `Running OnInstallation hook for ${
+              appAttributes.name
+            } v${formatVersion(appAttributes.version)}`
           );
 
         const require = createRequire(import.meta.url || __filename);
@@ -743,7 +772,10 @@ export async function POST(request: NextRequest) {
         await deleteApp(appAttributes.id);
         await fs.rm(appDir, { recursive: true, force: true });
       } catch (cleanupError) {
-        console.error("Failed to clean up after installation hook failure:", cleanupError);
+        console.error(
+          "Failed to clean up after installation hook failure:",
+          cleanupError
+        );
       }
 
       return NextResponse.json(

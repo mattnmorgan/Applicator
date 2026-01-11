@@ -1,44 +1,11 @@
-/**
- * Generic data model API endpoints
- * Handles CRUD operations for any table in any app
- *
- * Operations:
- * - POST: Create records (bulkified)
- * - GET: Read/filter records (bulkified)
- * - PATCH: Update records (bulkified)
- * - DELETE: Delete records (bulkified)
- */
-
-import { NextRequest, NextResponse } from 'next/server';
-import { getSession } from '@/lib/db';
-import { loadTable } from '@/lib/model/tables';
-import {
-  createRecord,
-  readRecords,
-  updateRecord,
-  deleteRecord,
-  bulkCreateRecords,
-  bulkUpdateRecords,
-  bulkDeleteRecords,
-} from '@/lib/model/records';
-import { logger } from '@/lib/logging';
-
-/**
- * Helper to get session from request
- */
-async function getSessionFromRequest(request: NextRequest) {
-  const sessionId = request.headers
-    .get('cookie')
-    ?.split(';')
-    .find((c) => c.trim().startsWith('session='))
-    ?.split('=')[1];
-
-  if (!sessionId) {
-    return null;
-  }
-
-  return await getSession(sessionId);
-}
+import { NextRequest, NextResponse } from "next/server";
+import { logger } from "@/lib/logging";
+import { createRecord, bulkCreateRecords } from "@/lib/database/crud/create";
+import { updateRecord, bulkUpdateRecords } from "@/lib/database/crud/update";
+import { bulkDeleteRecords } from "@/lib/database/crud/delete";
+import { readRecords } from "@/lib/database/crud/read";
+import { getSessionFromRequest } from "@/lib/database/managers/session";
+import TableManager from "@/lib/database/managers/table";
 
 /**
  * POST - Create one or more records
@@ -51,13 +18,13 @@ export async function POST(
   try {
     const session = await getSessionFromRequest(request);
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { appId, tableId } = await params;
 
     // Load table definition
-    const table = await loadTable(appId, tableId);
+    const table = await new TableManager().readRecord(`${appId}:${tableId}`);
     if (!table) {
       return NextResponse.json(
         { error: `Table ${tableId} not found in app ${appId}` },
@@ -71,14 +38,19 @@ export async function POST(
     if (body.records && Array.isArray(body.records)) {
       // Bulk create
       const dataArray = body.records.map((r: any) => r.data);
-      const result = await bulkCreateRecords(appId, tableId, table, dataArray);
+      const result = await bulkCreateRecords(
+        appId,
+        tableId,
+        table.data,
+        dataArray
+      );
 
       if (result.failures.length > 0) {
         // Some records failed
         await logger
           .fromRequest(request)
           .warn(
-            'system',
+            "system",
             `Bulk create failed for ${appId}:${tableId}: ${result.failures.length} failures`
           );
 
@@ -95,7 +67,7 @@ export async function POST(
       await logger
         .fromRequest(request)
         .info(
-          'system',
+          "system",
           `Bulk created ${result.success.length} records in ${appId}:${tableId}`
         );
 
@@ -106,11 +78,13 @@ export async function POST(
     } else {
       // Single create
       const { data, id } = body;
-      const record = await createRecord(appId, tableId, table, data, { id });
+      const record = await createRecord(appId, tableId, table.data, data, {
+        id,
+      });
 
       await logger
         .fromRequest(request)
-        .info('system', `Created record ${record.id} in ${appId}:${tableId}`);
+        .info("system", `Created record ${record.id} in ${appId}:${tableId}`);
 
       return NextResponse.json({
         success: true,
@@ -118,11 +92,11 @@ export async function POST(
       });
     }
   } catch (error) {
-    console.error('Failed to create record(s):', error);
+    console.error("Failed to create record(s):", error);
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : 'Failed to create record(s)',
+          error instanceof Error ? error.message : "Failed to create record(s)",
       },
       { status: 500 }
     );
@@ -140,13 +114,13 @@ export async function GET(
   try {
     const session = await getSessionFromRequest(request);
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { appId, tableId } = await params;
 
     // Load table definition
-    const table = await loadTable(appId, tableId);
+    const table = await new TableManager().readRecord(`${appId}:${tableId}`);
     if (!table) {
       return NextResponse.json(
         { error: `Table ${tableId} not found in app ${appId}` },
@@ -157,12 +131,12 @@ export async function GET(
     const { searchParams } = new URL(request.url);
 
     // Parse query parameters
-    const idsParam = searchParams.get('ids');
-    const fieldsParam = searchParams.get('fields');
-    const limitParam = searchParams.get('limit');
-    const offsetParam = searchParams.get('offset');
+    const idsParam = searchParams.get("ids");
+    const fieldsParam = searchParams.get("fields");
+    const limitParam = searchParams.get("limit");
+    const offsetParam = searchParams.get("offset");
 
-    const ids = idsParam ? idsParam.split(',') : undefined;
+    const ids = idsParam ? idsParam.split(",") : undefined;
     const fields = fieldsParam ? JSON.parse(fieldsParam) : undefined;
     const limit = limitParam ? parseInt(limitParam, 10) : 100;
     const offset = offsetParam ? parseInt(offsetParam, 10) : 0;
@@ -179,11 +153,11 @@ export async function GET(
       ...result,
     });
   } catch (error) {
-    console.error('Failed to read records:', error);
+    console.error("Failed to read records:", error);
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : 'Failed to read records',
+          error instanceof Error ? error.message : "Failed to read records",
       },
       { status: 500 }
     );
@@ -201,13 +175,13 @@ export async function PATCH(
   try {
     const session = await getSessionFromRequest(request);
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { appId, tableId } = await params;
 
     // Load table definition
-    const table = await loadTable(appId, tableId);
+    const table = await new TableManager().readRecord(`${appId}:${tableId}`);
     if (!table) {
       return NextResponse.json(
         { error: `Table ${tableId} not found in app ${appId}` },
@@ -220,14 +194,19 @@ export async function PATCH(
     // Support both single record and bulk update
     if (body.updates && Array.isArray(body.updates)) {
       // Bulk update
-      const result = await bulkUpdateRecords(appId, tableId, table, body.updates);
+      const result = await bulkUpdateRecords(
+        appId,
+        tableId,
+        table.data,
+        body.updates
+      );
 
       if (result.failures.length > 0) {
         // Some records failed
         await logger
           .fromRequest(request)
           .warn(
-            'system',
+            "system",
             `Bulk update failed for ${appId}:${tableId}: ${result.failures.length} failures`
           );
 
@@ -244,7 +223,7 @@ export async function PATCH(
       await logger
         .fromRequest(request)
         .info(
-          'system',
+          "system",
           `Bulk updated ${result.success.length} records in ${appId}:${tableId}`
         );
 
@@ -255,7 +234,7 @@ export async function PATCH(
     } else {
       // Single update
       const { id, data } = body;
-      const record = await updateRecord(appId, tableId, table, id, data);
+      const record = await updateRecord(appId, tableId, table.data, id, data);
 
       if (!record) {
         return NextResponse.json(
@@ -266,7 +245,7 @@ export async function PATCH(
 
       await logger
         .fromRequest(request)
-        .info('system', `Updated record ${id} in ${appId}:${tableId}`);
+        .info("system", `Updated record ${id} in ${appId}:${tableId}`);
 
       return NextResponse.json({
         success: true,
@@ -274,11 +253,11 @@ export async function PATCH(
       });
     }
   } catch (error) {
-    console.error('Failed to update record(s):', error);
+    console.error("Failed to update record(s):", error);
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : 'Failed to update record(s)',
+          error instanceof Error ? error.message : "Failed to update record(s)",
       },
       { status: 500 }
     );
@@ -296,13 +275,13 @@ export async function DELETE(
   try {
     const session = await getSessionFromRequest(request);
     if (!session) {
-      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
     const { appId, tableId } = await params;
 
     // Load table definition (mainly for logging/validation)
-    const table = await loadTable(appId, tableId);
+    const table = await new TableManager().readRecord(`${appId}:${tableId}`);
     if (!table) {
       return NextResponse.json(
         { error: `Table ${tableId} not found in app ${appId}` },
@@ -312,7 +291,7 @@ export async function DELETE(
 
     // Try to get IDs from query param first
     const { searchParams } = new URL(request.url);
-    const idParam = searchParams.get('id');
+    const idParam = searchParams.get("id");
 
     let ids: string[];
 
@@ -326,7 +305,7 @@ export async function DELETE(
 
       if (!ids || !Array.isArray(ids)) {
         return NextResponse.json(
-          { error: 'ids array is required in request body' },
+          { error: "ids array is required in request body" },
           { status: 400 }
         );
       }
@@ -336,18 +315,18 @@ export async function DELETE(
 
     await logger
       .fromRequest(request)
-      .info('system', `Deleted ${ids.length} records from ${appId}:${tableId}`);
+      .info("system", `Deleted ${ids.length} records from ${appId}:${tableId}`);
 
     return NextResponse.json({
       success: true,
       deleted: ids.length,
     });
   } catch (error) {
-    console.error('Failed to delete record(s):', error);
+    console.error("Failed to delete record(s):", error);
     return NextResponse.json(
       {
         error:
-          error instanceof Error ? error.message : 'Failed to delete record(s)',
+          error instanceof Error ? error.message : "Failed to delete record(s)",
       },
       { status: 500 }
     );

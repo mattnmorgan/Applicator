@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
-import { logger } from "@/lib/logging";
+import { getCurrentUser } from "@/lib/database/managers/user";
+import LogManager from "@/lib/database/managers/log";
 
 export async function POST(request: NextRequest) {
   try {
@@ -19,27 +19,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Log with the user ID as the app context
-    const appContext = `system`;
-
-    switch (level) {
-      case "info":
-        await logger.info(appContext, message, user.id);
-        break;
-      case "debug":
-        await logger.debug(appContext, message, user.id);
-        break;
-      case "error":
-        await logger.error(appContext, message, user.id);
-        break;
-      case "warning":
-        await logger.warn(appContext, message, user.id);
-        break;
-      default:
-        return NextResponse.json(
-          { error: "Invalid log level. Use: info, debug, error, warning" },
-          { status: 400 }
-        );
+    try {
+      await new LogManager().createLog(level, message, "system");
+    } catch (error) {
+      console.error("Log failed to create");
     }
 
     return NextResponse.json({
