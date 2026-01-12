@@ -1,9 +1,11 @@
 "use client";
 
-import Log from "@/lib/database/types/log";
 import TableRecord from "@/lib/database/crud/types/record";
 import React, { useState, useEffect } from "react";
 import styles from "./LoggingViewer.module.css";
+import Log from "@/lib/database/types/log";
+import LogManager from "@/lib/database/client/managers/log";
+import { getSystemSettings } from "@/lib/database/client/crud";
 
 export default function LoggingViewer() {
   const [logs, setLogs] = useState<TableRecord<Log>[]>([]);
@@ -16,11 +18,7 @@ export default function LoggingViewer() {
 
   const fetchLoggingStatus = async () => {
     try {
-      const response = await fetch("/api/system/settings");
-      if (response.ok) {
-        const data = await response.json();
-        setLoggingEnabled(data.settings.loggingEnabled);
-      }
+      setLoggingEnabled((await getSystemSettings()).loggingEnabled === "true");
     } catch (error) {
       console.error("Failed to fetch logging status:", error);
     }
@@ -33,23 +31,20 @@ export default function LoggingViewer() {
       await fetchLoggingStatus();
 
       const currentOffset = reset ? 0 : offset;
-      const response = await fetch(
-        `/api/system/apps/system/tables/log?limit=${limit}&offset=${currentOffset}`
-      );
-      if (response.ok) {
-        const data = await response.json();
-        if (reset) {
-          setLogs(data.records);
-          setOffset(data.records.length);
-        } else {
-          setLogs([...logs, ...data.records]);
-          setOffset(offset + data.records.length);
-        }
-        setTotalCount(data.total);
-        setHasMore(currentOffset + data.records.length < data.total);
+      const newLogs = await new LogManager().readRecords({
+        limit: limit,
+        offset: currentOffset,
+      });
+
+      if (reset) {
+        setLogs(newLogs.records);
+        setOffset(newLogs.records.length);
       } else {
-        console.error("Failed to fetch logs");
+        setLogs([...logs, ...newLogs.records]);
+        setOffset(offset + newLogs.records.length);
       }
+      setTotalCount(newLogs.total);
+      setHasMore(currentOffset + newLogs.records.length < newLogs.total);
     } catch (error) {
       console.error("Error fetching logs:", error);
     } finally {
@@ -59,21 +54,11 @@ export default function LoggingViewer() {
 
   const clearLogs = async () => {
     try {
-      const response = await fetch(
-        "/api/system/apps/system/tables/log?deleteAll=true",
-        {
-          method: "DELETE",
-        }
-      );
-
-      if (response.ok) {
-        setLogs([]);
-        setOffset(0);
-        setTotalCount(0);
-        setHasMore(false);
-      } else {
-        console.error("Failed to clear logs");
-      }
+      await new LogManager().deleteAll(false);
+      setLogs([]);
+      setOffset(0);
+      setTotalCount(0);
+      setHasMore(false);
     } catch (error) {
       console.error("Error clearing logs:", error);
     }
@@ -107,6 +92,8 @@ export default function LoggingViewer() {
         return "#94a3b8"; // slate-400
     }
   };
+
+  logs.sort((a, b) => b.createdAt - a.createdAt);
 
   return (
     <div className={styles.container}>

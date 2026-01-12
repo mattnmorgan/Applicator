@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import LogManager from "@/lib/database/client/managers/log";
+import { getCurrentUser } from "@/lib/database/client/managers/user";
 
 type LogLevel = "info" | "debug" | "error" | "warning";
 
@@ -13,25 +15,13 @@ export default function TestLogsPage() {
     setMessage("");
 
     try {
-      const response = await fetch(
-        "/api/system/debug/test/logging/create-log",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            level,
-            message: `Test ${level} log created from test page`,
-          }),
-        }
-      );
-
-      const data = await response.json();
-
-      if (response.ok) {
-        setMessage(data.message || "Log created successfully!");
-      } else {
-        setMessage(data.error || "Failed to create log.");
-      }
+      await new LogManager().createRecord({
+        timestamp: `${Date.now()}`,
+        sender: "system",
+        level: level,
+        message: `Test ${level} log created from test page`,
+        userId: (await getCurrentUser()).user.id,
+      });
     } catch (error) {
       console.error("Error creating log:", error);
       setMessage("Error creating log.");
