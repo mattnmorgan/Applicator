@@ -1,9 +1,3 @@
-/**
- * System app metadata
- * This file contains the system app definition including table schemas
- * It is loaded during first-time setup and system upgrades
- */
-
 export const SYSTEM_APP_METADATA = {
   id: "system",
   name: "System",

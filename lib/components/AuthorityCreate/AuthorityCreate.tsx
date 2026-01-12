@@ -65,13 +65,19 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
         const authData = await authResponse.json();
         const appsData = await appsResponse.json();
 
+        // Create app ID to label mapping
+        const appIdToLabel = new Map<string, string>();
+        for (const app of appsData.apps || []) {
+          appIdToLabel.set(app.id, app.label);
+        }
+
         // Transform authorization records to expected format
         const authorizationsList = (authData.records || []).map((record: any) => ({
           id: record.id,
           name: record.data.name,
           description: record.data.description,
           app: record.data.app,
-          appLabel: record.data.app, // Will be enriched below
+          appLabel: appIdToLabel.get(record.data.app) || record.data.app,
           contextual: record.data.contextual,
         }));
         setAuthorizations(authorizationsList);
@@ -269,7 +275,7 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               id: editAuthority.id,
-              data: { icon: undefined },
+              data: { icon: "" },
             }),
           });
 

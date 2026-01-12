@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/auth";
-import { getAllApps, getAuthority, getUserAuthority } from "@/lib/db";
+import { getCurrentUser, getAllApps, getAuthority, getUserAuthority } from "@/lib/database/helpers";
 
 export async function GET(
   request: NextRequest,
@@ -21,9 +20,9 @@ export async function GET(
     let foundAppId: string | null = null;
 
     for (const app of apps) {
-      if (!app.subApps) continue;
+      if (!app.data.subApps) continue;
 
-      for (const subApp of app.subApps) {
+      for (const subApp of app.data.subApps) {
         if (!subApp.widgets) continue;
 
         const widget = subApp.widgets.find((w) => w.id === widgetId);

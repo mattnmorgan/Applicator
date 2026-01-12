@@ -1,18 +1,12 @@
 "use client";
 
+import Log from "@/lib/database/types/log";
+import TableRecord from "@/lib/database/crud/types/record";
 import React, { useState, useEffect } from "react";
 import styles from "./LoggingViewer.module.css";
 
-interface LogEntry {
-  timestamp: string;
-  level: "debug" | "info" | "warning" | "error";
-  sender: string;
-  userId?: string;
-  message: string;
-}
-
 export default function LoggingViewer() {
-  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [logs, setLogs] = useState<TableRecord<Log>[]>([]);
   const [loading, setLoading] = useState(false);
   const [loggingEnabled, setLoggingEnabled] = useState(true);
   const [totalCount, setTotalCount] = useState(0);
@@ -22,10 +16,10 @@ export default function LoggingViewer() {
 
   const fetchLoggingStatus = async () => {
     try {
-      const response = await fetch("/api/system/settings/logging");
+      const response = await fetch("/api/system/settings");
       if (response.ok) {
         const data = await response.json();
-        setLoggingEnabled(data.enabled);
+        setLoggingEnabled(data.settings.loggingEnabled);
       }
     } catch (error) {
       console.error("Failed to fetch logging status:", error);
@@ -40,19 +34,19 @@ export default function LoggingViewer() {
 
       const currentOffset = reset ? 0 : offset;
       const response = await fetch(
-        `/api/system/model/logs?limit=${limit}&offset=${currentOffset}`
+        `/api/system/apps/system/tables/log?limit=${limit}&offset=${currentOffset}`
       );
       if (response.ok) {
         const data = await response.json();
         if (reset) {
-          setLogs(data.logs);
-          setOffset(data.logs.length);
+          setLogs(data.records);
+          setOffset(data.records.length);
         } else {
-          setLogs([...logs, ...data.logs]);
-          setOffset(offset + data.logs.length);
+          setLogs([...logs, ...data.records]);
+          setOffset(offset + data.records.length);
         }
-        setTotalCount(data.totalCount);
-        setHasMore(currentOffset + data.logs.length < data.totalCount);
+        setTotalCount(data.total);
+        setHasMore(currentOffset + data.records.length < data.total);
       } else {
         console.error("Failed to fetch logs");
       }
@@ -64,14 +58,13 @@ export default function LoggingViewer() {
   };
 
   const clearLogs = async () => {
-    if (!confirm("Are you sure you want to clear all log messages?")) {
-      return;
-    }
-
     try {
-      const response = await fetch("/api/system/model/logs", {
-        method: "DELETE",
-      });
+      const response = await fetch(
+        "/api/system/apps/system/tables/log?deleteAll=true",
+        {
+          method: "DELETE",
+        }
+      );
 
       if (response.ok) {
         setLogs([]);
@@ -176,18 +169,24 @@ export default function LoggingViewer() {
                   <div className={styles.logContent}>
                     <span
                       className={styles.logLevel}
-                      style={{ color: getLevelColor(log.level) }}
+                      style={{ color: getLevelColor(log.data.level) }}
                     >
-                      {log.level}
+                      {log.data.level}
                     </span>
-                    <span className={styles.logTimestamp}>{log.timestamp}</span>
-                    <span className={styles.logSender}>[{log.sender}]</span>
-                    {log.userId && (
+                    <span className={styles.logTimestamp}>
+                      {log.data.timestamp}
+                    </span>
+                    <span className={styles.logSender}>
+                      [{log.data.sender}]
+                    </span>
+                    {log.data.userId && (
                       <span className={styles.logUserId}>
-                        user:{log.userId.substring(0, 8)}
+                        user:{log.data.userId.substring(0, 8)}
                       </span>
                     )}
-                    <span className={styles.logMessage}>{log.message}</span>
+                    <span className={styles.logMessage}>
+                      {log.data.message}
+                    </span>
                   </div>
                 </div>
               ))}

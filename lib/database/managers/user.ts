@@ -37,14 +37,14 @@ export async function getCurrentUser(): Promise<{
     for (const authority of authorities) {
       if (authority) {
         authorityIds.push(authority.id);
-        authorizations.push(authority.data.authorizations);
+        authorizations.push(...authority.data.authorizations);
       }
     }
 
     return {
       user,
       authorities: authorityIds,
-      authorizations,
+      authorizations: Array.from(new Set(authorizations)),
       isAssumedIdentity: !!session.originalSessionId,
     };
   } catch (error) {

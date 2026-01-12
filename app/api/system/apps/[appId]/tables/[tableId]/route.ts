@@ -2,10 +2,10 @@ import { NextRequest, NextResponse } from "next/server";
 import { logger } from "@/lib/logging";
 import { createRecord, bulkCreateRecords } from "@/lib/database/crud/create";
 import { updateRecord, bulkUpdateRecords } from "@/lib/database/crud/update";
-import { bulkDeleteRecords } from "@/lib/database/crud/delete";
+import { bulkDeleteRecords, deleteAll } from "@/lib/database/crud/delete";
 import { readRecords } from "@/lib/database/crud/read";
 import { getSessionFromRequest } from "@/lib/database/managers/session";
-import TableManager from "@/lib/database/managers/table";
+import { loadTable } from "@/lib/db/tables";
 
 /**
  * POST - Create one or more records
@@ -24,7 +24,7 @@ export async function POST(
     const { appId, tableId } = await params;
 
     // Load table definition
-    const table = await new TableManager().readRecord(`${appId}:${tableId}`);
+    const table = await loadTable(appId, tableId);
     if (!table) {
       return NextResponse.json(
         { error: `Table ${tableId} not found in app ${appId}` },
@@ -38,21 +38,14 @@ export async function POST(
     if (body.records && Array.isArray(body.records)) {
       // Bulk create
       const dataArray = body.records.map((r: any) => r.data);
-      const result = await bulkCreateRecords(
-        appId,
-        tableId,
-        table.data,
-        dataArray
-      );
+      const result = await bulkCreateRecords(appId, tableId, table, dataArray);
 
       if (result.failures.length > 0) {
         // Some records failed
-        await logger
-          .fromRequest(request)
-          .warn(
-            "system",
-            `Bulk create failed for ${appId}:${tableId}: ${result.failures.length} failures`
-          );
+        await logger.warn(
+          "system",
+          `Bulk create failed for ${appId}:${tableId}: ${result.failures.length} failures`
+        );
 
         return NextResponse.json(
           {
@@ -64,12 +57,10 @@ export async function POST(
         );
       }
 
-      await logger
-        .fromRequest(request)
-        .info(
-          "system",
-          `Bulk created ${result.success.length} records in ${appId}:${tableId}`
-        );
+      await logger.info(
+        "system",
+        `Bulk created ${result.success.length} records in ${appId}:${tableId}`
+      );
 
       return NextResponse.json({
         success: true,
@@ -78,13 +69,14 @@ export async function POST(
     } else {
       // Single create
       const { data, id } = body;
-      const record = await createRecord(appId, tableId, table.data, data, {
+      const record = await createRecord(appId, tableId, table, data, {
         id,
       });
 
-      await logger
-        .fromRequest(request)
-        .info("system", `Created record ${record.id} in ${appId}:${tableId}`);
+      await logger.info(
+        "system",
+        `Created record ${record.id} in ${appId}:${tableId}`
+      );
 
       return NextResponse.json({
         success: true,
@@ -120,7 +112,7 @@ export async function GET(
     const { appId, tableId } = await params;
 
     // Load table definition
-    const table = await new TableManager().readRecord(`${appId}:${tableId}`);
+    const table = await loadTable(appId, tableId);
     if (!table) {
       return NextResponse.json(
         { error: `Table ${tableId} not found in app ${appId}` },
@@ -181,7 +173,7 @@ export async function PATCH(
     const { appId, tableId } = await params;
 
     // Load table definition
-    const table = await new TableManager().readRecord(`${appId}:${tableId}`);
+    const table = await loadTable(appId, tableId);
     if (!table) {
       return NextResponse.json(
         { error: `Table ${tableId} not found in app ${appId}` },
@@ -197,18 +189,16 @@ export async function PATCH(
       const result = await bulkUpdateRecords(
         appId,
         tableId,
-        table.data,
+        table,
         body.updates
       );
 
       if (result.failures.length > 0) {
         // Some records failed
-        await logger
-          .fromRequest(request)
-          .warn(
-            "system",
-            `Bulk update failed for ${appId}:${tableId}: ${result.failures.length} failures`
-          );
+        await logger.warn(
+          "system",
+          `Bulk update failed for ${appId}:${tableId}: ${result.failures.length} failures`
+        );
 
         return NextResponse.json(
           {
@@ -220,12 +210,10 @@ export async function PATCH(
         );
       }
 
-      await logger
-        .fromRequest(request)
-        .info(
-          "system",
-          `Bulk updated ${result.success.length} records in ${appId}:${tableId}`
-        );
+      await logger.info(
+        "system",
+        `Bulk updated ${result.success.length} records in ${appId}:${tableId}`
+      );
 
       return NextResponse.json({
         success: true,
@@ -234,7 +222,7 @@ export async function PATCH(
     } else {
       // Single update
       const { id, data } = body;
-      const record = await updateRecord(appId, tableId, table.data, id, data);
+      const record = await updateRecord(appId, tableId, table, id, data);
 
       if (!record) {
         return NextResponse.json(
@@ -243,9 +231,10 @@ export async function PATCH(
         );
       }
 
-      await logger
-        .fromRequest(request)
-        .info("system", `Updated record ${id} in ${appId}:${tableId}`);
+      await logger.info(
+        "system",
+        `Updated record ${id} in ${appId}:${tableId}`
+      );
 
       return NextResponse.json({
         success: true,
@@ -281,7 +270,7 @@ export async function DELETE(
     const { appId, tableId } = await params;
 
     // Load table definition (mainly for logging/validation)
-    const table = await new TableManager().readRecord(`${appId}:${tableId}`);
+    const table = await loadTable(appId, tableId);
     if (!table) {
       return NextResponse.json(
         { error: `Table ${tableId} not found in app ${appId}` },
@@ -292,13 +281,14 @@ export async function DELETE(
     // Try to get IDs from query param first
     const { searchParams } = new URL(request.url);
     const idParam = searchParams.get("id");
+    const doDeleteAll = searchParams.get("deleteAll") == "true";
 
     let ids: string[];
 
     if (idParam) {
       // Single delete via query param
       ids = [idParam];
-    } else {
+    } else if (!doDeleteAll) {
       // Bulk delete via body
       const body = await request.json();
       ids = body.ids;
@@ -311,15 +301,23 @@ export async function DELETE(
       }
     }
 
-    const result = await bulkDeleteRecords(appId, tableId, ids);
-
-    await logger
-      .fromRequest(request)
-      .info("system", `Deleted ${ids.length} records from ${appId}:${tableId}`);
+    if (doDeleteAll) {
+      await deleteAll(appId, tableId);
+      await logger.info(
+        "system",
+        `Deleted all records from ${appId}:${tableId}`
+      );
+    } else {
+      await bulkDeleteRecords(appId, tableId, ids);
+      await logger.info(
+        "system",
+        `Deleted ${ids.length} records from ${appId}:${tableId}`
+      );
+    }
 
     return NextResponse.json({
       success: true,
-      deleted: ids.length,
+      deleted: doDeleteAll ? -1 : ids.length,
     });
   } catch (error) {
     console.error("Failed to delete record(s):", error);

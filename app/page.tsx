@@ -1,7 +1,11 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/auth";
-import { isFirstTimeSetup, getUserSubApps, getSubApp } from "@/lib/db";
-import { getBrandSettings } from "@/lib/brand";
+import {
+  getCurrentUser,
+  isFirstTimeSetup,
+  getUserSubApps,
+  getSubApp,
+  getBrandSettings,
+} from "@/lib/database/helpers";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/Tabset";
 

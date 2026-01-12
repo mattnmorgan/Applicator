@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { getApp } from "@/lib/db";
+import { getApp } from "@/lib/database/helpers";
 import { SYSTEM_APP_METADATA } from "@/lib/database/systemMetadata";
 
 // Export current system version from metadata
@@ -18,7 +18,7 @@ export async function GET() {
     }
 
     // Compare versions
-    const dbVersion = systemApp.version;
+    const dbVersion = systemApp.data.version;
     const needsUpgrade =
       dbVersion.major < CURRENT_SYSTEM_VERSION.major ||
       (dbVersion.major === CURRENT_SYSTEM_VERSION.major &&

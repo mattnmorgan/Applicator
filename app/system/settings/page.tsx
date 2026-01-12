@@ -47,8 +47,8 @@ export default function SettingsPage() {
       }
 
       const loggingData = await loggingRes.json();
-      setLoggingEnabled(loggingData.enabled || false);
-      setOriginalLoggingEnabled(loggingData.enabled || false);
+      setLoggingEnabled(loggingData.loggingEnabled || false);
+      setOriginalLoggingEnabled(loggingData.loggingEnabled || false);
     } catch (error) {
       console.error("Failed to fetch settings:", error);
     }
@@ -104,7 +104,7 @@ export default function SettingsPage() {
       const loggingResponse = await fetch("/api/system/settings/logging", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ enabled: loggingEnabled }),
+        body: JSON.stringify({ loggingEnabled }),
       });
 
       if (storageResponse.ok && brandResponse.ok && loggingResponse.ok) {
@@ -115,10 +115,13 @@ export default function SettingsPage() {
         setClearBrandIcon(false);
         setToast({ message: "Settings saved successfully", type: "success" });
 
+        // Refetch settings to update UI
+        await fetchSettings();
+
         // Refresh to update navigation
         setTimeout(() => {
           router.refresh();
-        }, 1000);
+        }, 500);
       } else {
         setToast({ message: "Failed to save settings", type: "error" });
       }

@@ -1,15 +1,11 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
-import { getCurrentUser } from "@/lib/auth";
 import {
-  getAuthority,
-  getUserAuthorizations,
-  getAllApps,
-  getSession,
-  getUserAuthority,
+  getCurrentUser,
+  getUserSubApps,
   getSubApp,
   parseSubAppId,
-} from "@/lib/db";
+  getUserAuthorizations,
+} from "@/lib/database/helpers";
 
 export async function GET() {
   try {
@@ -19,26 +15,15 @@ export async function GET() {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    // Check if this is an assumed identity
-    const cookieStore = await cookies();
-    const sessionId = cookieStore.get("session")?.value;
-    const session = sessionId ? await getSession(sessionId) : null;
-    const isAssumedIdentity = !!session?.originalSessionId;
-
     const profilePictureUrl = user.profilePicture
       ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}`
       : undefined;
 
-    // Get user's authority to determine available apps
-    const authority = await getAuthority(user.authority);
-    const userAuthority = await getUserAuthority(user.id);
+    // Get user's authorizations
     const { authorizations } = await getUserAuthorizations(user.id);
 
-    // Get sub-app IDs from authority and user authority (format: "mainAppId:subAppId")
-    const subAppIds = [
-      ...(authority?.apps || []),
-      ...(userAuthority?.apps || []),
-    ];
+    // Get sub-app IDs from user's authorities
+    const subAppIds = await getUserSubApps(user.id);
 
     // Map sub-app IDs to their full details
     const userSubApps: Array<{
@@ -85,7 +70,7 @@ export async function GET() {
       authorizations,
       userSubApps, // New: array of sub-apps with full details
       userMainApps, // New: array of main app IDs (derived)
-      isAssumedIdentity,
+      isAssumedIdentity: user.isAssumedIdentity,
     });
   } catch (error) {
     console.error("Failed to get current user:", error);

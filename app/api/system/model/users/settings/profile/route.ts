@@ -1,6 +1,5 @@
 import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
-import { getUserById, updateUser, getSystemSetting } from '@/lib/db';
+import { getCurrentUser, getUserById, updateUser, getSystemSetting } from '@/lib/database/helpers';
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';

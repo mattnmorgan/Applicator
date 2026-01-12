@@ -3,12 +3,13 @@
 import { useState, useEffect } from "react";
 import Badge from "../Badge/Badge";
 import styles from "./UserCreate.module.css";
-
-interface Authority {
-  id: string;
-  name: string;
-  contextual?: boolean;
-}
+import UserManager from "@/lib/database/client/managers/user";
+import AuthorityManager from "@/lib/database/client/managers/authority";
+import AuthorizationManager from "@/lib/database/client/managers/authorization";
+import TableRecord from "@/lib/database/crud/types/record";
+import User from "@/lib/database/types/user";
+import Authority from "@/lib/database/types/authority";
+import { uploadFile, getSystemSettings } from "@/lib/database/client/crud";
 
 interface Authorization {
   id: string;
@@ -57,7 +58,7 @@ export default function UserCreate({
   const [email, setEmail] = useState(editUser?.email || "");
   const [password, setPassword] = useState("");
   const [authority, setAuthority] = useState(editUser?.authority || "user");
-  const [authorities, setAuthorities] = useState<Authority[]>([]);
+  const [authorities, setAuthorities] = useState<TableRecord<Authority>[]>([]);
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>(
     editUser?.profilePicture || ""
@@ -68,10 +69,10 @@ export default function UserCreate({
 
   // Custom authorizations and apps
   const [customAuthorizations, setCustomAuthorizations] = useState<string[]>(
-    editUser?.authorizations.userAuthorizations || []
+    editUser?.authorizations?.userAuthorizations || []
   );
   const [customApps, setCustomApps] = useState<string[]>(
-    editUser?.apps.userAccesses || []
+    editUser?.apps?.userAccesses || []
   );
   const [availableAuthorizations, setAvailableAuthorizations] = useState<
     Authorization[]
@@ -90,18 +91,13 @@ export default function UserCreate({
 
   const fetchAuthorities = async () => {
     try {
-      const response = await fetch("/api/system/apps/system/tables/authority");
-      const data = await response.json();
-      // Filter out contextual authorities and user-specific authorities
-      const allAuthorities = data.records || [];
-      const nonContextualAuthorities = allAuthorities
-        .filter((record: any) => !record.data.contextual && !record.data.userId)
-        .map((record: any) => ({
-          id: record.id,
-          name: record.data.name,
-          contextual: record.data.contextual,
-        }));
-      setAuthorities(nonContextualAuthorities);
+      setAuthorities(
+        (
+          await new AuthorityManager().readRecords({
+            fields: { contextual: false },
+          })
+        ).records.filter((r) => !r.data.userId)
+      );
     } catch (error) {
       console.error("Failed to fetch authorities:", error);
     }
@@ -109,17 +105,28 @@ export default function UserCreate({
 
   const fetchAuthorizations = async () => {
     try {
-      const response = await fetch("/api/system/apps/system/tables/authorization");
-      const data = await response.json();
+      const [authResponse, appsResponse] = await Promise.all([
+        fetch("/api/system/apps/system/tables/authorization"),
+        fetch("/api/system/apps"),
+      ]);
+      const authData = await authResponse.json();
+      const appsData = await appsResponse.json();
+
+      // Create app ID to label mapping
+      const appIdToLabel = new Map<string, string>();
+      for (const app of appsData.apps || []) {
+        appIdToLabel.set(app.id, app.label);
+      }
 
       // Transform and filter out contextual authorizations
-      const nonContextualAuthorizations = (data.records || [])
+      const nonContextualAuthorizations = (authData.records || [])
         .filter((record: any) => !record.data.contextual)
         .map((record: any) => ({
           id: record.id,
           name: record.data.name,
           description: record.data.description,
           app: record.data.app,
+          appLabel: appIdToLabel.get(record.data.app) || record.data.app,
           contextual: record.data.contextual,
         }));
 
@@ -205,45 +212,76 @@ export default function UserCreate({
 
     setCreating(true);
     try {
-      const formData = new FormData();
-      formData.append("displayName", displayName);
-      formData.append("username", username);
-      formData.append("email", email);
-      if (password) {
-        formData.append("password", password);
-      }
-      formData.append("authority", authority);
-      formData.append(
-        "customAuthorizations",
-        JSON.stringify(customAuthorizations)
-      );
-      formData.append("customApps", JSON.stringify(customApps));
-      if (profilePicture) {
-        formData.append("profilePicture", profilePicture);
-      }
-      if (clearProfilePicture) {
-        formData.append("clearProfilePicture", "true");
+      const manager = new UserManager();
+      const authorityManager = new AuthorityManager();
+      let record: Partial<TableRecord<User>> = {
+        id: editUser?.id,
+        data: {
+          username: username,
+          displayName: displayName,
+          email: email,
+          authority: authority,
+          isActive: true,
+          profilePicture: clearProfilePicture
+            ? null
+            : editUser?.profilePicture ?? undefined,
+          passwordHash: password == "" ? undefined : password,
+        },
+      };
+
+      if (isEditMode) {
+        record = await manager.updateRecord(record.id, record.data);
+      } else {
+        record = await manager.createRecord(record.data);
       }
 
-      const url = isEditMode
-        ? `/api/system/model/users/${editUser.id}`
-        : "/api/system/model/users/create";
-      const response = await fetch(url, {
-        method: isEditMode ? "PATCH" : "POST",
-        body: formData,
+      if (profilePicture && !clearProfilePicture) {
+        const systemSettings = await getSystemSettings();
+
+        if (!systemSettings.storage) {
+          setError("System storage not configured");
+          return;
+        }
+
+        const fname = `icon.${profilePicture.name.split(".").pop() || "jpg"}`;
+        await uploadFile(
+          profilePicture,
+          `${systemSettings.storage}\\system\\users\\icons\\${record.id}`,
+          fname
+        );
+        record = await manager.updateRecord(record.id, {
+          ...record?.data,
+          profilePicture: `system\\users\\icons\\${record.id}\\${fname}`,
+        });
+      }
+
+      // Does this work if authority doesn't exist
+      const userAuthorityId = `user-specific:${record.id}`;
+      let userAuthority = await authorityManager.readRecord({
+        id: userAuthorityId,
       });
 
-      const data = await response.json();
-
-      if (!response.ok) {
-        setError(
-          data.error || `Failed to ${isEditMode ? "update" : "create"} user`
+      if (!userAuthority) {
+        userAuthority = await authorityManager.createRecord(
+          {
+            authorizations: customAuthorizations,
+            apps: customApps,
+            name: `${record.data.displayName} (User-specific)`,
+            userId: record.id,
+          },
+          userAuthorityId
         );
-        return;
+      } else {
+        await authorityManager.updateRecord(`user-specific:${record.id}`, {
+          authorizations: customAuthorizations,
+          apps: customApps,
+          userId: record.id,
+        });
       }
 
       onUserCreated();
     } catch (err) {
+      console.log(err);
       setError(`Failed to ${isEditMode ? "update" : "create"} user`);
     } finally {
       setCreating(false);
@@ -255,8 +293,12 @@ export default function UserCreate({
     .filter((auth) =>
       authorizationSearch
         ? auth.name.toLowerCase().includes(authorizationSearch.toLowerCase()) ||
-          auth.description.toLowerCase().includes(authorizationSearch.toLowerCase()) ||
-          auth.appLabel.toLowerCase().includes(authorizationSearch.toLowerCase())
+          auth.description
+            .toLowerCase()
+            .includes(authorizationSearch.toLowerCase()) ||
+          auth.appLabel
+            .toLowerCase()
+            .includes(authorizationSearch.toLowerCase())
         : true
     );
 
@@ -336,7 +378,7 @@ export default function UserCreate({
           >
             {authorities.map((auth) => (
               <option key={auth.id} value={auth.id}>
-                {auth.name}
+                {auth.data.name}
               </option>
             ))}
           </select>
@@ -350,7 +392,7 @@ export default function UserCreate({
             placeholder="Search authorizations..."
             value={authorizationSearch}
             onChange={(e) => setAuthorizationSearch(e.target.value)}
-            style={{ marginBottom: '12px' }}
+            style={{ marginBottom: "12px" }}
           />
           <div className={styles.authorizationList}>
             {filteredAuthorizations.map((auth) => (
@@ -362,14 +404,19 @@ export default function UserCreate({
                   checked={customAuthorizations.includes(auth.id)}
                   onChange={() => handleAuthorizationToggle(auth.id)}
                 />
-                <label htmlFor={`auth-${auth.id}`} className={styles.authorizationLabel}>
+                <label
+                  htmlFor={`auth-${auth.id}`}
+                  className={styles.authorizationLabel}
+                >
                   <div className={styles.authorizationName}>
-                    <Badge variant={auth.app === 'system' ? 'purple' : 'blue'}>
+                    <Badge variant={auth.app === "system" ? "purple" : "blue"}>
                       {auth.appLabel}
                     </Badge>
                     {auth.name}
                   </div>
-                  <div className={styles.authorizationDescription}>{auth.description}</div>
+                  <div className={styles.authorizationDescription}>
+                    {auth.description}
+                  </div>
                 </label>
               </div>
             ))}
@@ -391,7 +438,7 @@ export default function UserCreate({
             placeholder="Search apps..."
             value={appSearch}
             onChange={(e) => setAppSearch(e.target.value)}
-            style={{ marginBottom: '12px' }}
+            style={{ marginBottom: "12px" }}
           />
           <div className={styles.authorizationList}>
             {filteredSubApps.map((subApp) => (
@@ -403,14 +450,17 @@ export default function UserCreate({
                   checked={customApps.includes(subApp.id)}
                   onChange={() => handleAppToggle(subApp.id)}
                 />
-                <label htmlFor={`app-${subApp.id}`} className={styles.authorizationLabel}>
+                <label
+                  htmlFor={`app-${subApp.id}`}
+                  className={styles.authorizationLabel}
+                >
                   <div className={styles.authorizationName}>
-                    <Badge variant="blue">
-                      {subApp.mainAppLabel}
-                    </Badge>
+                    <Badge variant="blue">{subApp.mainAppLabel}</Badge>
                     {subApp.label}
                   </div>
-                  <div className={styles.authorizationDescription}>{subApp.description}</div>
+                  <div className={styles.authorizationDescription}>
+                    {subApp.description}
+                  </div>
                 </label>
               </div>
             ))}

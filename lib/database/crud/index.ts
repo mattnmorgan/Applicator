@@ -55,11 +55,10 @@ export default abstract class CRUD<T = any> {
     return bulkUpdateRecordsWrapper<T>(this.appId, this.tableName);
   }
 
-  async getTable() {
+  async getTable(): Promise<Table | null> {
     if (!this.table) {
-      this.table = (
-        await readRecord<Table>("system", "table", this.tableName)
-      ).data;
+      const tableRecord = await readRecord<Table>("system", "table", this.tableName);
+      this.table = tableRecord?.data || null;
     }
     return this.table;
   }

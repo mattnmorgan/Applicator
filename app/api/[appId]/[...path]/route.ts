@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getApp, getSystemSetting } from '@/lib/db';
+import { getApp, getSystemSetting } from '@/lib/database/helpers';
 import { createPlugin, getSession } from '@/lib/sdk';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -56,7 +56,7 @@ async function handleRequest(
     }
 
     // Find matching route
-    const apiRoute = app.apiRoutes.find(
+    const apiRoute = app.data.apiRoutes?.find(
       (r) => r.path === route && r.method === method
     );
 

@@ -61,7 +61,7 @@ export default function AuthorityList() {
           return {
             id: record.id,
             name: authority.name,
-            icon: authority.icon
+            icon: authority.icon && authority.icon.trim() !== ""
               ? `/api/system/assets/icons/authorities/${record.id}?t=${Date.now()}`
               : undefined,
             authorizations: authority.authorizations,
@@ -193,7 +193,7 @@ export default function AuthorityList() {
         setEditingAuthority({
           id: record.id,
           name: authorityData.name,
-          icon: authorityData.icon ? `/api/system/assets/icons/authorities/${record.id}?t=${Date.now()}` : undefined,
+          icon: authorityData.icon && authorityData.icon.trim() !== "" ? `/api/system/assets/icons/authorities/${record.id}?t=${Date.now()}` : undefined,
           authorizations: authorityData.authorizations,
           apps: authorityData.apps,
         });

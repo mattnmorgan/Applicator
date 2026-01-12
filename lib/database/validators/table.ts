@@ -1,5 +1,5 @@
 import Table from "@/lib/database/types/table";
-import { TableManager } from "@/lib/database/managers/table";
+import TableManager from "@/lib/database/managers/table";
 import TableRecord from "@/lib/database/crud/types/record";
 
 export default async function validate(table: Table): Promise<string[]> {
@@ -8,8 +8,12 @@ export default async function validate(table: Table): Promise<string[]> {
     await new TableManager().readRecords()
   ).records;
 
-  if (!table.name) {
-    errors.push("Table must have a name");
+  if (!table.tableName) {
+    errors.push("Table must have a tableName");
+  }
+
+  if (!table.app) {
+    errors.push("Table must have an app");
   }
 
   if (!table.description) {

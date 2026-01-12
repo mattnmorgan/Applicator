@@ -12,7 +12,7 @@ export type Options = {
 };
 
 export function createRecordWrapper<T = any>(appId: string, tableName: string) {
-  return (table: Table, data: T, options: Options = {}) =>
+  return (table: Table | null, data: T, options: Options = {}) =>
     createRecord<T>(appId, tableName, table, data, options);
 }
 
@@ -20,14 +20,14 @@ export function bulkCreateRecordsWrapper<T = any>(
   appId: string,
   tableName: string
 ) {
-  return (table: Table, data: T[], options: Options = {}) =>
+  return (table: Table | null, data: T[], options: Options = {}) =>
     bulkCreateRecords<T>(appId, tableName, table, data, options);
 }
 
 export async function createRecord<T = any>(
   appId: string,
   tableName: string,
-  table: Table,
+  table: Table | null,
   data: T,
   options: Options = {}
 ): Promise<TableRecord<T>> {
@@ -35,13 +35,13 @@ export async function createRecord<T = any>(
   const id = options.id || uuidv4();
   const now = Date.now();
 
-  // Validate and process the record
+  // Validate and process the record (skip if table is null - bootstrap scenario)
   const processedData = await validateAndProcessRecord(
     appId,
     tableName,
     table,
     data as Record<string, any>,
-    options.skipValidation || false
+    options.skipValidation || !table
   );
 
   const record: TableRecord<T> = {
@@ -60,7 +60,7 @@ export async function createRecord<T = any>(
 export async function bulkCreateRecords<T = any>(
   appId: string,
   tableName: string,
-  table: Table,
+  table: Table | null,
   dataArray: T[],
   options: Options = {}
 ): Promise<BulkResult<T>> {
@@ -80,7 +80,7 @@ export async function bulkCreateRecords<T = any>(
         tableName,
         table,
         data as Record<string, any>,
-        options.skipValidation || false
+        options.skipValidation || !table
       );
 
       records.push({

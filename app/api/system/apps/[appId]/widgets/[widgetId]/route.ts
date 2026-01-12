@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/auth';
-import { getAllApps, getAuthority } from '@/lib/db';
+import { getCurrentUser, getAllApps, getAuthority } from '@/lib/database/helpers';
 
 export async function GET(
   request: NextRequest,
@@ -27,13 +26,18 @@ export async function GET(
     let foundApp = null;
 
     for (const app of allApps) {
-      if (app.widgets) {
-        const widget = app.widgets.find(w => w.id === widgetId);
-        if (widget) {
-          foundWidget = widget;
-          foundApp = app;
-          break;
+      if (app.data.subApps) {
+        for (const subApp of app.data.subApps) {
+          if (subApp.widgets) {
+            const widget = subApp.widgets.find(w => w.id === widgetId);
+            if (widget) {
+              foundWidget = widget;
+              foundApp = app;
+              break;
+            }
+          }
         }
+        if (foundWidget) break;
       }
     }
 

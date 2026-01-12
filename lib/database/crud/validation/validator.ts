@@ -2,7 +2,6 @@ import Table from "@/lib/database/types/table";
 import Field from "@/lib/database/types/field";
 import Result from "@/lib/database/crud/validation/types/validator-result";
 import Context from "@/lib/database/crud/validation/types/validator-context";
-import SettingManager from "@/lib/database/managers/setting";
 import path from "path";
 import fs from "fs";
 import vm from "vm";
@@ -24,7 +23,8 @@ export async function executeValidator(
   record: Record<string, any>
 ): Promise<Result> {
   try {
-    // Get system storage path
+    // Get system storage path (lazy import to avoid circular dependency)
+    const { default: SettingManager } = await import("@/lib/database/managers/setting");
     const storagePath = (await new SettingManager().readRecord("storage"))?.data
       .value;
     if (!storagePath) {

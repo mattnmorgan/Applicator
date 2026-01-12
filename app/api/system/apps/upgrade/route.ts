@@ -1,21 +1,19 @@
 import { NextRequest, NextResponse } from "next/server";
+import { getSession } from "@/lib/sdk";
 import {
-  getSession,
   userHasAuthorization,
   getApp,
-  updateApp,
   getAllApps,
   initializeAuthorities,
-} from "@/lib/db";
-import {
   getSystemSetting,
-  AppVersion,
   formatVersion,
   isVersionGreaterOrEqual,
+  updateApp,
   compareVersions,
-} from "@/lib/db";
-import { createRecord, deleteRecord, readRecords } from "@/lib/model/records";
-import { loadTable } from "@/lib/db/tables";
+  type AppVersion,
+} from "@/lib/database/helpers";
+import { loadTable, createTable, deleteTable } from "@/lib/db/tables";
+import TableManager from "@/lib/database/managers/table";
 import { logger } from "@/lib/logging";
 import { SYSTEM_APP_METADATA } from "@/lib/database/systemMetadata";
 import path from "path";
@@ -68,12 +66,12 @@ export async function POST(request: NextRequest) {
 
       // Check if upgrade is needed
       const needsUpgrade =
-        existingApp.version.major < SYSTEM_APP_METADATA.version.major ||
-        (existingApp.version.major === SYSTEM_APP_METADATA.version.major &&
-          existingApp.version.minor < SYSTEM_APP_METADATA.version.minor) ||
-        (existingApp.version.major === SYSTEM_APP_METADATA.version.major &&
-          existingApp.version.minor === SYSTEM_APP_METADATA.version.minor &&
-          existingApp.version.dev < SYSTEM_APP_METADATA.version.dev);
+        existingApp.data.version.major < SYSTEM_APP_METADATA.version.major ||
+        (existingApp.data.version.major === SYSTEM_APP_METADATA.version.major &&
+          existingApp.data.version.minor < SYSTEM_APP_METADATA.version.minor) ||
+        (existingApp.data.version.major === SYSTEM_APP_METADATA.version.major &&
+          existingApp.data.version.minor === SYSTEM_APP_METADATA.version.minor &&
+          existingApp.data.version.dev < SYSTEM_APP_METADATA.version.dev);
 
       if (!needsUpgrade) {
         return NextResponse.json(
@@ -90,10 +88,8 @@ export async function POST(request: NextRequest) {
         contactEmail: SYSTEM_APP_METADATA.contactEmail,
         description: SYSTEM_APP_METADATA.description,
         apiRoutes: SYSTEM_APP_METADATA.apiRoutes,
-        widgets: [],
         dependencies: SYSTEM_APP_METADATA.dependencies,
         subApps: SYSTEM_APP_METADATA.subApps,
-        tables: undefined, // Don't store tables in app record
       });
 
       // Update table records
@@ -106,41 +102,34 @@ export async function POST(request: NextRequest) {
           throw new Error("System table definition not found");
         }
 
-        const { records: existingTables } = await readRecords(
-          "system",
-          "table",
-          { fields: { app: "system" } }
-        );
+        const tableManager = new TableManager();
+        const allTables = await tableManager.listRecords();
+        const existingTables = allTables.filter((t: any) => t.id.startsWith("system:"));
         const existingTableNames = new Set(
           existingTables.map((t: any) => t.data.tableName)
         );
 
         for (const table of SYSTEM_APP_METADATA.tables) {
-          const tableId = `system:${table.name}`;
-
           if (existingTableNames.has(table.name)) {
-            await deleteRecord("system", "table", tableId);
+            await deleteTable("system", table.name);
           }
 
-          await createRecord(
+          await createTable(
             "system",
-            "table",
-            tableDefinition,
+            table.name,
             {
               tableName: table.name,
               app: "system",
               description: table.description || "",
-              fields: table.fields || [],
-            },
-            { id: tableId }
+              fields: (table.fields || []) as any,
+            }
           );
 
           existingTableNames.delete(table.name);
         }
 
         for (const tableName of existingTableNames) {
-          const tableId = `system:${tableName}`;
-          await deleteRecord("system", "table", tableId);
+          await deleteTable("system", tableName);
         }
       }
 
@@ -148,11 +137,10 @@ export async function POST(request: NextRequest) {
       await initializeAuthorities();
 
       await logger
-        .fromRequest(request)
         .info(
           "system",
           `System upgraded: ${formatVersion(
-            existingApp.version
+            existingApp.data.version
           )} → ${formatVersion(SYSTEM_APP_METADATA.version)}`
         );
 
@@ -160,7 +148,7 @@ export async function POST(request: NextRequest) {
         success: true,
         appId: "system",
         name: "System",
-        oldVersion: formatVersion(existingApp.version),
+        oldVersion: formatVersion(existingApp.data.version),
         newVersion: formatVersion(SYSTEM_APP_METADATA.version),
       });
     }
@@ -182,7 +170,6 @@ export async function POST(request: NextRequest) {
     const existingApp = await getApp(appId);
     if (!existingApp) {
       await logger
-        .fromRequest(request)
         .error("system", `App upgrade rejected: App '${appId}' does not exist`);
       return NextResponse.json(
         { error: "App does not exist" },
@@ -190,7 +177,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const oldVersion = existingApp.version;
+    const oldVersion = existingApp.data.version;
 
     // Read file as buffer
     const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -222,7 +209,6 @@ export async function POST(request: NextRequest) {
       // Verify app ID matches
       if (appAttributes.id !== appId) {
         await logger
-          .fromRequest(request)
           .error(
             "system",
             `App upgrade rejected: App ID mismatch (expected '${appId}', got '${appAttributes.id}')`
@@ -298,7 +284,7 @@ export async function POST(request: NextRequest) {
       }, author: ${appAttributes.author || "missing"}, description: ${
         appAttributes.description ? "present" : "missing"
       })`;
-      await logger.fromRequest(request).error("system", errorMsg);
+      await logger.error("system", errorMsg);
       return NextResponse.json(
         { error: "Missing required app attributes" },
         { status: 400 }
@@ -312,7 +298,7 @@ export async function POST(request: NextRequest) {
       (!appAttributes.version.dev && appAttributes.version.dev !== 0)
     ) {
       const errorMsg = `App upgrade rejected: Invalid version format for '${appAttributes.id}'. Version must have major, minor, and dev properties.`;
-      await logger.fromRequest(request).error("system", errorMsg);
+      await logger.error("system", errorMsg);
       return NextResponse.json(
         {
           error:
@@ -323,10 +309,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if upgrading to the same version
-    if (compareVersions(appAttributes.version, existingApp.version) === 0) {
+    if (compareVersions(appAttributes.version, existingApp.data.version) === 0) {
       const versionStr = formatVersion(appAttributes.version);
       const errorMsg = `App upgrade rejected: Cannot upgrade '${appAttributes.id}' to the same version ${versionStr}`;
-      await logger.fromRequest(request).error("system", errorMsg);
+      await logger.error("system", errorMsg);
       return NextResponse.json(
         { error: `Cannot upgrade to the same version ${versionStr}` },
         { status: 400 }
@@ -339,7 +325,7 @@ export async function POST(request: NextRequest) {
       appAttributes.dependencies[appAttributes.id]
     ) {
       const errorMsg = `App upgrade rejected: Plugin '${appAttributes.id}' cannot depend on itself`;
-      await logger.fromRequest(request).error("system", errorMsg);
+      await logger.error("system", errorMsg);
       return NextResponse.json(
         { error: "A plugin cannot require itself for installation" },
         { status: 400 }
@@ -361,7 +347,7 @@ export async function POST(request: NextRequest) {
 
         if (!installedApp) {
           const errorMsg = `App upgrade rejected: Required dependency '${depId}' is not installed`;
-          await logger.fromRequest(request).error("system", errorMsg);
+          await logger.error("system", errorMsg);
           return NextResponse.json(
             { error: `Required dependency '${depId}' is not installed` },
             { status: 400 }
@@ -370,16 +356,16 @@ export async function POST(request: NextRequest) {
 
         if (
           !isVersionGreaterOrEqual(
-            installedApp.version,
+            installedApp.data.version,
             requiredVersion as AppVersion
           )
         ) {
-          const installedVersionStr = formatVersion(installedApp.version);
+          const installedVersionStr = formatVersion(installedApp.data.version);
           const requiredVersionStr = formatVersion(
             requiredVersion as AppVersion
           );
           const errorMsg = `App upgrade rejected: Dependency '${depId}' version ${installedVersionStr} does not meet minimum requirement ${requiredVersionStr}`;
-          await logger.fromRequest(request).error("system", errorMsg);
+          await logger.error("system", errorMsg);
           return NextResponse.json(
             {
               error: `Dependency '${depId}' version ${installedVersionStr} does not meet minimum requirement ${requiredVersionStr}`,
@@ -783,10 +769,8 @@ export async function POST(request: NextRequest) {
         contactEmail: appAttributes.contactEmail || "",
         description: appAttributes.description,
         apiRoutes: appAttributes.apiRoutes || [],
-        widgets: processedWidgets,
         dependencies: appAttributes.dependencies || {},
-        subApps: appAttributes.subApps || undefined,
-        tables: undefined, // Don't store tables in app record
+        subApps: appAttributes.subApps || [],
       });
 
       // Update table records
@@ -797,36 +781,30 @@ export async function POST(request: NextRequest) {
         }
 
         // Get existing table records for this app
-        const { records: existingTables } = await readRecords(
-          "system",
-          "table",
-          { fields: { app: appAttributes.id } }
-        );
+        const tableManager = new TableManager();
+        const allTables = await tableManager.listRecords();
+        const existingTables = allTables.filter((t: any) => t.id.startsWith(`${appAttributes.id}:`));
         const existingTableNames = new Set(
           existingTables.map((t: any) => t.data.tableName)
         );
 
         // Create or update tables
         for (const table of appAttributes.tables) {
-          const tableId = `${appAttributes.id}:${table.name}`;
-
           if (existingTableNames.has(table.name)) {
             // Update existing table
-            await deleteRecord("system", "table", tableId);
+            await deleteTable(appAttributes.id, table.name);
           }
 
           // Create/recreate table record
-          await createRecord(
-            "system",
-            "table",
-            tableDefinition,
+          await createTable(
+            appAttributes.id,
+            table.name,
             {
               tableName: table.name,
               app: appAttributes.id,
               description: table.description || "",
               fields: table.fields || [],
-            },
-            { id: tableId }
+            }
           );
 
           existingTableNames.delete(table.name);
@@ -834,19 +812,17 @@ export async function POST(request: NextRequest) {
 
         // Delete tables that no longer exist in the app definition
         for (const tableName of existingTableNames) {
-          const tableId = `${appAttributes.id}:${tableName}`;
-          await deleteRecord("system", "table", tableId);
+          await deleteTable(appAttributes.id, tableName);
         }
       }
 
       // Handle system app upgrade
       if (isSystemApp) {
         await logger
-          .fromRequest(request)
           .info(
             "system",
             `Performing system app upgrade tasks (${formatVersion(
-              existingApp.version
+              existingApp.data.version
             )} → ${formatVersion(appAttributes.version)})`
           );
 
@@ -854,7 +830,6 @@ export async function POST(request: NextRequest) {
         await initializeAuthorities();
 
         await logger
-          .fromRequest(request)
           .info("system", "System authorities reinitialized");
       }
 
@@ -881,12 +856,11 @@ export async function POST(request: NextRequest) {
 
         if (installationHookExists) {
           await logger
-            .fromRequest(request)
             .info(
               "system",
               `Running OnInstallation hook for ${
                 appAttributes.name
-              } (${formatVersion(existingApp.version)} → ${formatVersion(
+              } (${formatVersion(existingApp.data.version)} → ${formatVersion(
                 appAttributes.version
               )})`
             );
@@ -903,7 +877,7 @@ export async function POST(request: NextRequest) {
             typeof installationHook.OnInstallation === "function"
           ) {
             const context = {
-              priorVersion: formatVersion(existingApp.version),
+              priorVersion: formatVersion(existingApp.data.version),
               currentVersion: formatVersion(appAttributes.version),
               appId: appAttributes.id,
             };
@@ -913,7 +887,7 @@ export async function POST(request: NextRequest) {
         }
       } catch (error: any) {
         const errorMsg = `App installation hook failed for ${appAttributes.name}: ${error.message}`;
-        await logger.fromRequest(request).error("system", errorMsg);
+        await logger.error("system", errorMsg);
 
         // Rollback - restore the backups
         try {
@@ -944,11 +918,10 @@ export async function POST(request: NextRequest) {
 
       // Log app upgrade
       await logger
-        .fromRequest(request)
         .info(
           "system",
           `Application upgraded: ${appAttributes.name} (${formatVersion(
-            existingApp.version
+            existingApp.data.version
           )} → ${formatVersion(appAttributes.version)})`
         );
 
@@ -956,7 +929,7 @@ export async function POST(request: NextRequest) {
         success: true,
         appId: appAttributes.id,
         name: appAttributes.name,
-        oldVersion: formatVersion(existingApp.version),
+        oldVersion: formatVersion(existingApp.data.version),
         newVersion: formatVersion(appAttributes.version),
       });
     } catch (error) {
@@ -983,7 +956,6 @@ export async function POST(request: NextRequest) {
     // Log upgrade failure
     try {
       await logger
-        .fromRequest(request)
         .error(
           "system",
           `App upgrade failed: ${

@@ -1,13 +1,18 @@
 import { NextResponse } from "next/server";
-import { getSystemSettings } from "@/lib/database/managers/setting";
+import SettingManager from "@/lib/database/managers/setting";
 import fs from "fs";
 import path from "path";
 
 export async function GET() {
   try {
-    const settings = await getSystemSettings();
-    const brandIcon = settings.brandIcon;
-    const systemStorage = settings.storage;
+    const settingManager = new SettingManager();
+
+    // Read raw setting values (not transformed)
+    const brandIconRecord = await settingManager.readRecord("brandIcon");
+    const storageRecord = await settingManager.readRecord("storage");
+
+    const brandIcon = brandIconRecord?.data.value;
+    const systemStorage = storageRecord?.data.value;
 
     if (!brandIcon) {
       return new NextResponse("Not found", { status: 404 });

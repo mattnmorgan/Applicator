@@ -13,7 +13,7 @@ import { calculateFormulas } from "@/lib/database/crud/validation/formulae";
  *
  * @param appId The app ID
  * @param tableName The table name
- * @param table The table definition
+ * @param table The table definition (null during bootstrap)
  * @param data The record data
  * @param skipValidation Whether to skip validation
  * @returns Processed record data
@@ -22,21 +22,24 @@ import { calculateFormulas } from "@/lib/database/crud/validation/formulae";
 export async function validateAndProcessRecord(
   appId: string,
   tableName: string,
-  table: Table,
+  table: Table | null,
   data: Record<string, any>,
   skipValidation: boolean = false
 ): Promise<Record<string, any>> {
   let processedData = { ...data };
 
-  if (!skipValidation) {
-    // Step 1: Validate required fields
-    const requiredResults = validateRequiredFields(table, processedData);
-    const requiredFailures = requiredResults.filter((r) => !r.valid);
+  // If table is null (bootstrap scenario), skip all validation and processing
+  if (!table || skipValidation) {
+    return processedData;
+  }
 
-    if (requiredFailures.length > 0) {
-      const errors = requiredFailures.map((r) => r.error).join(", ");
-      throw new Error(`Required field validation failed: ${errors}`);
-    }
+  // Step 1: Validate required fields
+  const requiredResults = validateRequiredFields(table, processedData);
+  const requiredFailures = requiredResults.filter((r) => !r.valid);
+
+  if (requiredFailures.length > 0) {
+    const errors = requiredFailures.map((r) => r.error).join(", ");
+    throw new Error(`Required field validation failed: ${errors}`);
   }
 
   // Step 2: Calculate formula fields
@@ -47,20 +50,18 @@ export async function validateAndProcessRecord(
     processedData
   );
 
-  if (!skipValidation) {
-    // Step 3: Execute validator scripts
-    const validationResults = await validateFields(
-      appId,
-      tableName,
-      table,
-      processedData
-    );
-    const validationFailures = validationResults.filter((r) => !r.valid);
+  // Step 3: Execute validator scripts
+  const validationResults = await validateFields(
+    appId,
+    tableName,
+    table,
+    processedData
+  );
+  const validationFailures = validationResults.filter((r) => !r.valid);
 
-    if (validationFailures.length > 0) {
-      const errors = validationFailures.map((r) => r.error).join(", ");
-      throw new Error(`Field validation failed: ${errors}`);
-    }
+  if (validationFailures.length > 0) {
+    const errors = validationFailures.map((r) => r.error).join(", ");
+    throw new Error(`Field validation failed: ${errors}`);
   }
 
   return processedData;

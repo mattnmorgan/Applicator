@@ -1,28 +1,23 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import styles from './AssumeIdentityModal.module.css';
-
-interface User {
-  id: string;
-  displayName: string;
-  username: string;
-  email: string;
-  profilePicture?: string;
-  authorityName: string;
-  isActive: boolean;
-}
+import { useState, useEffect } from "react";
+import styles from "./AssumeIdentityModal.module.css";
+import User from "@/lib/database/types/user";
+import TableRecord from "@/lib/database/crud/types/record";
 
 interface AssumeIdentityModalProps {
   onClose: () => void;
   onAssumeIdentity: (userId: string) => void;
 }
 
-export default function AssumeIdentityModal({ onClose, onAssumeIdentity }: AssumeIdentityModalProps) {
-  const [users, setUsers] = useState<User[]>([]);
+export default function AssumeIdentityModal({
+  onClose,
+  onAssumeIdentity,
+}: AssumeIdentityModalProps) {
+  const [users, setUsers] = useState<TableRecord<User>[]>([]);
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [assuming, setAssuming] = useState(false);
 
   useEffect(() => {
@@ -31,23 +26,19 @@ export default function AssumeIdentityModal({ onClose, onAssumeIdentity }: Assum
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch('/api/system/apps/system/tables/user');
+      const response = await fetch("/api/system/apps/system/tables/user");
       const data = await response.json();
 
-      // Transform user records to expected format
-      const usersList = (data.records || []).map((record: any) => ({
-        id: record.id,
-        username: record.data.username,
-        email: record.data.email,
-        displayName: record.data.displayName,
-        authority: record.data.authority,
-        isActive: record.data.isActive,
-        profilePicture: record.data.profilePicture,
-      }));
+      for (const user of data.records) {
+        if (user.data.profilePicture) {
+          user.data.profilePicture =
+            "/api/system/assets/icons/users/" + user.id;
+        }
+      }
 
-      setUsers(usersList);
+      setUsers(data.records);
     } catch (error) {
-      console.error('Failed to fetch users:', error);
+      console.error("Failed to fetch users:", error);
     } finally {
       setLoading(false);
     }
@@ -60,19 +51,31 @@ export default function AssumeIdentityModal({ onClose, onAssumeIdentity }: Assum
     onAssumeIdentity(selectedUserId);
   };
 
-  const filteredUsers = users.filter(user =>
-    user.displayName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    user.email?.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredUsers = users.filter(
+    (user) =>
+      user.data.displayName
+        ?.toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      user.data.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      user.data.email?.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
   return (
     <div className={styles.overlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.header}>
-          <h2 style={{ margin: 0, fontSize: '18px', color: '#f1f5f9' }}>Assume User Identity</h2>
+          <h2 style={{ margin: 0, fontSize: "18px", color: "#f1f5f9" }}>
+            Assume User Identity
+          </h2>
           <button onClick={onClose} className={styles.closeButton}>
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
               <line x1="18" y1="6" x2="6" y2="18" />
               <line x1="6" y1="6" x2="18" y2="18" />
             </svg>
@@ -90,35 +93,85 @@ export default function AssumeIdentityModal({ onClose, onAssumeIdentity }: Assum
 
           <div className={styles.userList}>
             {loading ? (
-              <div style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "32px",
+                  color: "#94a3b8",
+                }}
+              >
                 Loading users...
               </div>
             ) : filteredUsers.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '32px', color: '#94a3b8' }}>
+              <div
+                style={{
+                  textAlign: "center",
+                  padding: "32px",
+                  color: "#94a3b8",
+                }}
+              >
                 No users found
               </div>
             ) : (
-              filteredUsers.map(user => (
+              filteredUsers.map((user) => (
                 <div
                   key={user.id}
-                  className={`${styles.userItem} ${selectedUserId === user.id ? styles.selected : ''} ${!user.isActive ? styles.inactive : ''}`}
-                  onClick={() => user.isActive && setSelectedUserId(user.id)}
+                  className={`${styles.userItem} ${
+                    selectedUserId === user.id ? styles.selected : ""
+                  } ${!user.data.isActive ? styles.inactive : ""}`}
+                  onClick={() =>
+                    user.data.isActive && setSelectedUserId(user.id)
+                  }
                 >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', flex: 1 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "12px",
+                      flex: 1,
+                    }}
+                  >
                     <div className={styles.avatar}>
-                      {user.profilePicture ? (
-                        <img src={user.profilePicture} alt={user.displayName} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                      {user.data.profilePicture ? (
+                        <img
+                          src={user.data.profilePicture}
+                          alt={user.data.displayName}
+                          style={{
+                            width: "100%",
+                            height: "100%",
+                            objectFit: "cover",
+                            borderRadius: "50%",
+                          }}
+                        />
                       ) : (
-                        <span>{user.displayName.charAt(0).toUpperCase()}</span>
+                        <span>
+                          {user.data.displayName.charAt(0).toUpperCase()}
+                        </span>
                       )}
                     </div>
                     <div style={{ flex: 1 }}>
-                      <div style={{ fontSize: '14px', color: '#f1f5f9', fontWeight: '500' }}>
-                        {user.displayName}
-                        {!user.isActive && <span style={{ color: '#94a3b8', marginLeft: '8px', fontSize: '12px' }}>(Inactive)</span>}
+                      <div
+                        style={{
+                          fontSize: "14px",
+                          color: "#f1f5f9",
+                          fontWeight: "500",
+                        }}
+                      >
+                        {user.data.displayName}
+                        {!user.data.isActive && (
+                          <span
+                            style={{
+                              color: "#94a3b8",
+                              marginLeft: "8px",
+                              fontSize: "12px",
+                            }}
+                          >
+                            (Inactive)
+                          </span>
+                        )}
                       </div>
-                      <div style={{ fontSize: '12px', color: '#94a3b8' }}>
-                        @{user.username} • {user.authorityName}
+                      <div style={{ fontSize: "12px", color: "#94a3b8" }}>
+                        @{user.data.username} • {user.data.authority}
                       </div>
                     </div>
                   </div>
@@ -137,7 +190,7 @@ export default function AssumeIdentityModal({ onClose, onAssumeIdentity }: Assum
             disabled={!selectedUserId || assuming}
             className={styles.confirmButton}
           >
-            {assuming ? 'Assuming Identity...' : 'Assume Identity'}
+            {assuming ? "Assuming Identity..." : "Assume Identity"}
           </button>
         </div>
       </div>

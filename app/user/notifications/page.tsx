@@ -2,14 +2,15 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import type { Notification } from "@/lib/notifications";
+import Notification from "@/lib/database/types/notification";
+import TableRecord from "@/lib/database/crud/types/record";
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<
-    Array<Notification & { key: string }>
+    TableRecord<Notification>[]
   >([]);
   const [filteredNotifications, setFilteredNotifications] = useState<
-    Array<Notification & { key: string }>
+    TableRecord<Notification>[]
   >([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "unread" | "archived">(
@@ -22,11 +23,16 @@ export default function NotificationsPage() {
     try {
       setIsLoading(true);
       const response = await fetch(
-        "/api/system/model/notifications?includeArchived=true"
+        "/api/system/apps/system/tables/notification"
       );
       if (response.ok) {
         const data = await response.json();
-        setNotifications(data.notifications);
+        setNotifications(
+          data.records.sort(
+            (a: TableRecord<Notification>, b: TableRecord<Notification>) =>
+              b.createdAt - a.createdAt
+          )
+        );
       }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
@@ -43,33 +49,45 @@ export default function NotificationsPage() {
     let filtered = notifications;
 
     if (filterType === "unread") {
-      filtered = filtered.filter((n) => !n.read && !n.archived);
+      filtered = filtered.filter((n) => !n.data.read && !n.data.archived);
     } else if (filterType === "archived") {
-      filtered = filtered.filter((n) => n.archived);
+      filtered = filtered.filter((n) => n.data.archived);
     } else {
-      filtered = filtered.filter((n) => !n.archived);
+      filtered = filtered.filter((n) => !n.data.archived);
     }
 
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase();
       filtered = filtered.filter(
         (n) =>
-          n.title?.toLowerCase().includes(query) ||
-          n.message.toLowerCase().includes(query) ||
-          n.app.toLowerCase().includes(query) ||
-          new Date(n.timestamp).toLocaleString().toLowerCase().includes(query)
+          n.data.title?.toLowerCase().includes(query) ||
+          n.data.message.toLowerCase().includes(query) ||
+          n.data.app.toLowerCase().includes(query) ||
+          new Date(n.data.timestamp)
+            .toLocaleString()
+            .toLowerCase()
+            .includes(query)
       );
     }
 
     setFilteredNotifications(filtered);
   }, [notifications, searchQuery, filterType]);
 
-  const handleMarkRead = async (timestamp: number, read: boolean) => {
+  const handleMarkRead = async (id: string, read: boolean) => {
     try {
-      await fetch("/api/system/model/notifications/mark-read", {
-        method: "POST",
+      await fetch("/api/system/apps/system/tables/notification", {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ timestamp, read }),
+        body: JSON.stringify({
+          updates: [
+            {
+              id: id,
+              data: {
+                read: read,
+              },
+            },
+          ],
+        }),
       });
       await fetchNotifications();
     } catch (error) {
@@ -77,13 +95,28 @@ export default function NotificationsPage() {
     }
   };
 
-  const handleArchive = async (timestamp: number) => {
+  const handleArchive = async (id: string, archived: boolean) => {
     try {
-      await fetch("/api/system/model/notifications/archive", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ timestamp }),
-      });
+      if (!archived) {
+        await fetch("/api/system/apps/system/tables/notification", {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            updates: [
+              {
+                id: id,
+                data: {
+                  archived: true,
+                },
+              },
+            ],
+          }),
+        });
+      } else {
+        await fetch("/api/system/apps/system/tables/notification?id=" + id, {
+          method: "DELETE",
+        });
+      }
       await fetchNotifications();
     } catch (error) {
       console.error("Failed to archive notification:", error);
@@ -315,10 +348,10 @@ export default function NotificationsPage() {
           >
             {filteredNotifications.map((notification) => (
               <div
-                key={notification.key}
+                key={notification.id}
                 onClick={() => {
-                  if (notification.url) {
-                    router.push(notification.url);
+                  if (notification.data.url) {
+                    router.push(notification.data.url);
                   }
                 }}
                 style={{
@@ -326,7 +359,7 @@ export default function NotificationsPage() {
                   border: "1px solid #334155",
                   borderRadius: "8px",
                   padding: "20px",
-                  cursor: notification.url ? "pointer" : "default",
+                  cursor: notification.data.url ? "pointer" : "default",
                   transition: "all 0.2s",
                   position: "relative",
                   display: "flex",
@@ -339,7 +372,7 @@ export default function NotificationsPage() {
                   e.currentTarget.style.background = "#1e293b";
                 }}
               >
-                {!notification.read && !notification.archived && (
+                {!notification.data.read && !notification.data.archived && (
                   <div
                     style={{
                       position: "absolute",
@@ -347,7 +380,7 @@ export default function NotificationsPage() {
                       top: 0,
                       bottom: 0,
                       width: "4px",
-                      background: getTypeColor(notification.type),
+                      background: getTypeColor(notification.data.type),
                       borderTopLeftRadius: "8px",
                       borderBottomLeftRadius: "8px",
                     }}
@@ -358,17 +391,19 @@ export default function NotificationsPage() {
                   style={{
                     flexShrink: 0,
                     marginLeft:
-                      notification.read || notification.archived ? "0" : "8px",
+                      notification.data.read || notification.data.archived
+                        ? "0"
+                        : "8px",
                   }}
                 >
-                  {notification.icon ? (
+                  {notification.data.icon ? (
                     <img
-                      src={notification.icon}
+                      src={notification.data.icon}
                       alt=""
                       style={{ width: "24px", height: "24px" }}
                     />
                   ) : (
-                    getTypeIcon(notification)
+                    getTypeIcon(notification.data)
                   )}
                 </div>
 
@@ -382,7 +417,7 @@ export default function NotificationsPage() {
                     }}
                   >
                     <div style={{ flex: 1, minWidth: 0 }}>
-                      {notification.title && (
+                      {notification.data.title && (
                         <div
                           style={{
                             color: "#f1f5f9",
@@ -391,7 +426,7 @@ export default function NotificationsPage() {
                             marginBottom: "8px",
                           }}
                         >
-                          {notification.title}
+                          {notification.data.title}
                         </div>
                       )}
                       <div
@@ -402,7 +437,7 @@ export default function NotificationsPage() {
                           wordBreak: "break-word",
                         }}
                       >
-                        {notification.message}
+                        {notification.data.message}
                       </div>
                       <div
                         style={{
@@ -412,21 +447,23 @@ export default function NotificationsPage() {
                           color: "#64748b",
                         }}
                       >
-                        <span>{notification.app}</span>
+                        <span>{notification.data.app}</span>
                         <span>
-                          {new Date(notification.timestamp).toLocaleString()}
+                          {new Date(
+                            notification.data.timestamp
+                          ).toLocaleString()}
                         </span>
                       </div>
                     </div>
 
                     <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
-                      {!notification.archived && (
+                      {!notification.data.archived && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
                             handleMarkRead(
-                              notification.timestamp,
-                              !notification.read
+                              notification.id,
+                              !notification.data.read
                             );
                           }}
                           style={{
@@ -441,12 +478,12 @@ export default function NotificationsPage() {
                             color: "#94a3b8",
                           }}
                           title={
-                            notification.read
+                            notification.data.read
                               ? "Mark as unread"
                               : "Mark as read"
                           }
                         >
-                          {notification.read ? (
+                          {notification.data.read ? (
                             <svg
                               width="16"
                               height="16"
@@ -476,7 +513,10 @@ export default function NotificationsPage() {
                       <button
                         onClick={(e) => {
                           e.stopPropagation();
-                          handleArchive(notification.timestamp);
+                          handleArchive(
+                            notification.id,
+                            notification.data.archived
+                          );
                         }}
                         style={{
                           background: "#334155",
@@ -490,8 +530,8 @@ export default function NotificationsPage() {
                           color: "#94a3b8",
                         }}
                         title={
-                          notification.archived
-                            ? "Already archived"
+                          notification.data.archived
+                            ? "Delete notification"
                             : "Archive notification"
                         }
                       >

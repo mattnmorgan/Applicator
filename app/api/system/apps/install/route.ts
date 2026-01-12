@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/db";
+import { getSession } from "@/lib/sdk";
 import {
   userHasAuthorization,
   createApp,
@@ -8,15 +8,12 @@ import {
   getApp,
   getAllApps,
   deleteApp,
-} from "@/lib/db";
-import {
   getSystemSetting,
-  AppVersion,
   formatVersion,
   isVersionGreaterOrEqual,
-} from "@/lib/db";
-import { createRecord } from "@/lib/model/records";
-import { loadTable } from "@/lib/db/tables";
+  type AppVersion,
+} from "@/lib/database/helpers";
+import { loadTable, createTable } from "@/lib/db/tables";
 import { logger } from "@/lib/logging";
 import path from "path";
 import fs from "fs/promises";
@@ -148,7 +145,7 @@ export async function POST(request: NextRequest) {
       }, author: ${appAttributes.author || "missing"}, description: ${
         appAttributes.description ? "present" : "missing"
       })`;
-      await logger.fromRequest(request).error("system", errorMsg);
+      await logger.error("system", errorMsg);
       return NextResponse.json(
         { error: "Missing required app attributes" },
         { status: 400 }
@@ -162,7 +159,7 @@ export async function POST(request: NextRequest) {
       (!appAttributes.version.dev && appAttributes.version.dev !== 0)
     ) {
       const errorMsg = `App installation rejected: Invalid version format for '${appAttributes.id}'. Version must have major, minor, and dev properties.`;
-      await logger.fromRequest(request).error("system", errorMsg);
+      await logger.error("system", errorMsg);
       return NextResponse.json(
         {
           error:
@@ -175,7 +172,7 @@ export async function POST(request: NextRequest) {
     // Safety check: prevent 'system' from being used as an app ID
     if (appAttributes.id === "system") {
       const errorMsg = `App installation rejected: attempted to use reserved app ID 'system'`;
-      await logger.fromRequest(request).error("system", errorMsg);
+      await logger.error("system", errorMsg);
       return NextResponse.json(
         {
           error:
@@ -191,7 +188,7 @@ export async function POST(request: NextRequest) {
       appAttributes.dependencies[appAttributes.id]
     ) {
       const errorMsg = `App installation rejected: Plugin '${appAttributes.id}' cannot depend on itself`;
-      await logger.fromRequest(request).error("system", errorMsg);
+      await logger.error("system", errorMsg);
       return NextResponse.json(
         { error: "A plugin cannot require itself for installation" },
         { status: 400 }
@@ -213,7 +210,7 @@ export async function POST(request: NextRequest) {
 
         if (!installedApp) {
           const errorMsg = `App installation rejected: Required dependency '${depId}' is not installed`;
-          await logger.fromRequest(request).error("system", errorMsg);
+          await logger.error("system", errorMsg);
           return NextResponse.json(
             { error: `Required dependency '${depId}' is not installed` },
             { status: 400 }
@@ -222,16 +219,16 @@ export async function POST(request: NextRequest) {
 
         if (
           !isVersionGreaterOrEqual(
-            installedApp.version,
+            installedApp.data.version,
             requiredVersion as AppVersion
           )
         ) {
-          const installedVersionStr = formatVersion(installedApp.version);
+          const installedVersionStr = formatVersion(installedApp.data.version);
           const requiredVersionStr = formatVersion(
             requiredVersion as AppVersion
           );
           const errorMsg = `App installation rejected: Dependency '${depId}' version ${installedVersionStr} does not meet minimum requirement ${requiredVersionStr}`;
-          await logger.fromRequest(request).error("system", errorMsg);
+          await logger.error("system", errorMsg);
           return NextResponse.json(
             {
               error: `Dependency '${depId}' version ${installedVersionStr} does not meet minimum requirement ${requiredVersionStr}`,
@@ -642,19 +639,16 @@ export async function POST(request: NextRequest) {
     );
 
     // Create app in database
-    await createApp(
-      appAttributes.id,
-      appAttributes.name,
-      appAttributes.version,
-      appAttributes.author,
-      appAttributes.contactEmail || "",
-      appAttributes.description,
-      appAttributes.apiRoutes || [],
-      processedWidgets,
-      appAttributes.dependencies || {},
-      appAttributes.subApps || undefined,
-      undefined // Don't store tables in app record
-    );
+    await createApp(appAttributes.id, {
+      label: appAttributes.name,
+      version: appAttributes.version,
+      author: appAttributes.author,
+      contactEmail: appAttributes.contactEmail || "",
+      description: appAttributes.description,
+      apiRoutes: appAttributes.apiRoutes || [],
+      dependencies: appAttributes.dependencies || {},
+      subApps: appAttributes.subApps || [],
+    });
 
     // Install authorizations
     if (
@@ -663,13 +657,12 @@ export async function POST(request: NextRequest) {
     ) {
       for (const auth of appAttributes.authorizations) {
         const authId = `${appAttributes.id}:${auth.id}`;
-        await createAuthorization(
-          authId,
-          auth.name,
-          auth.description || "",
-          appAttributes.id,
-          auth.contextual || false
-        );
+        await createAuthorization(authId, {
+          name: auth.name,
+          description: auth.description || "",
+          app: appAttributes.id,
+          contextual: auth.contextual || false,
+        });
       }
     }
 
@@ -683,15 +676,14 @@ export async function POST(request: NextRequest) {
           (authId: string) => `${appAttributes.id}:${authId}`
         );
 
-        await createAuthority(
-          authorityId,
-          authority.name,
-          authority.icon,
+        await createAuthority(authorityId, {
+          name: authority.name,
+          icon: authority.icon,
           authorizations,
-          [], // No apps for contextual authorities
-          true, // Mark as contextual
-          appAttributes.id // Track which app created this
-        );
+          apps: [],
+          contextual: true,
+          app: appAttributes.id,
+        });
       }
     }
 
@@ -703,18 +695,15 @@ export async function POST(request: NextRequest) {
       }
 
       for (const table of appAttributes.tables) {
-        const tableId = `${appAttributes.id}:${table.name}`;
-        await createRecord(
-          "system",
-          "table",
-          tableDefinition,
+        await createTable(
+          appAttributes.id,
+          table.name,
           {
             tableName: table.name,
             app: appAttributes.id,
             description: table.description || "",
             fields: table.fields || [],
-          },
-          { id: tableId }
+          }
         );
       }
     }
@@ -735,7 +724,6 @@ export async function POST(request: NextRequest) {
 
       if (installationHookExists) {
         await logger
-          .fromRequest(request)
           .info(
             "system",
             `Running OnInstallation hook for ${
@@ -765,7 +753,7 @@ export async function POST(request: NextRequest) {
       }
     } catch (error: any) {
       const errorMsg = `App installation hook failed for ${appAttributes.name}: ${error.message}`;
-      await logger.fromRequest(request).error("system", errorMsg);
+      await logger.error("system", errorMsg);
 
       // Clean up - remove app from database and delete files
       try {
@@ -786,7 +774,6 @@ export async function POST(request: NextRequest) {
 
     // Log app installation
     await logger
-      .fromRequest(request)
       .info(
         "system",
         `Application installed: ${appAttributes.name} v${formatVersion(
@@ -805,7 +792,6 @@ export async function POST(request: NextRequest) {
     // Log installation failure
     try {
       await logger
-        .fromRequest(request)
         .error(
           "system",
           `App installation failed: ${

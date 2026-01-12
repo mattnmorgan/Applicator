@@ -11,7 +11,7 @@ export interface Options {
 }
 
 export function updateRecordWrapper<T = any>(appId: string, tableName: string) {
-  return (table: Table, id: string, data: Partial<T>, options: Options = {}) =>
+  return (table: Table | null, id: string, data: Partial<T>, options: Options = {}) =>
     updateRecord(appId, tableName, table, id, data, options);
 }
 
@@ -20,7 +20,7 @@ export function bulkUpdateRecordsWrapper<T = any>(
   tableName: string
 ) {
   return (
-    table: Table,
+    table: Table | null,
     updates: { id: string; data: Partial<T> }[],
     options: Options = {}
   ) => bulkUpdateRecords(appId, tableName, table, updates, options);
@@ -29,7 +29,7 @@ export function bulkUpdateRecordsWrapper<T = any>(
 export async function updateRecord<T = any>(
   appId: string,
   tableName: string,
-  table: Table,
+  table: Table | null,
   recordId: string,
   data: Partial<T>,
   options: Options = {}
@@ -51,7 +51,7 @@ export async function updateRecord<T = any>(
     tableName,
     table,
     updatedData as Record<string, any>,
-    options.skipValidation || false
+    options.skipValidation || !table
   );
 
   const updatedRecord: TableRecord<T> = {
@@ -69,7 +69,7 @@ export async function updateRecord<T = any>(
 export async function bulkUpdateRecords<T = any>(
   appId: string,
   tableName: string,
-  table: Table,
+  table: Table | null,
   updates: Array<{ id: string; data: Partial<T> }>,
   options: Options = {}
 ): Promise<BulkResult<T>> {
@@ -113,7 +113,7 @@ export async function bulkUpdateRecords<T = any>(
         tableName,
         table,
         updatedData as Record<string, any>,
-        options.skipValidation || false
+        options.skipValidation || !table
       );
 
       updatedRecords.push({

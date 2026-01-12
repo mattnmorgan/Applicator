@@ -31,11 +31,11 @@ export default function DataModelsPage() {
       const filtered = tables
         .filter(
           (t) =>
-            t.table.name.toLowerCase().includes(query) ||
+            t.table.tableName.toLowerCase().includes(query) ||
             t.table.description.toLowerCase().includes(query) ||
             t.appName.toLowerCase().includes(query)
         )
-        .sort((a, b) => a.table.name.localeCompare(b.table.name));
+        .sort((a, b) => a.table.tableName.localeCompare(b.table.tableName));
       setFilteredTables(filtered);
     }
   }, [searchQuery, tables]);
@@ -64,17 +64,13 @@ export default function DataModelsPage() {
           (record: any) => ({
             appId: record.data.app,
             appName: appNamesMap.get(record.data.app) || record.data.app,
-            table: {
-              name: record.data.tableName,
-              description: record.data.description,
-              fields: record.data.fields,
-            },
+            table: record.data,
           })
         );
 
         // Sort tables alphabetically by table name
         const sortedResults = results.sort((a, b) =>
-          a.table.name.localeCompare(b.table.name)
+          a.table.tableName.localeCompare(b.table.tableName)
         );
 
         setTables(sortedResults);
@@ -191,14 +187,14 @@ export default function DataModelsPage() {
               ) : (
                 filteredTables.map((result, index) => (
                   <div
-                    key={`${result.appId}:${result.table.name}`}
+                    key={`${result.appId}:${result.table.tableName}`}
                     onClick={() => setSelectedTable(result)}
                     style={{
                       padding: "16px",
                       background: "#1e293b",
                       border: `2px solid ${
                         selectedTable?.appId === result.appId &&
-                        selectedTable?.table.name === result.table.name
+                        selectedTable?.table.tableName === result.table.tableName
                           ? "#3b82f6"
                           : "#334155"
                       }`,
@@ -209,7 +205,7 @@ export default function DataModelsPage() {
                     onMouseOver={(e) => {
                       if (
                         selectedTable?.appId !== result.appId ||
-                        selectedTable?.table.name !== result.table.name
+                        selectedTable?.table.tableName !== result.table.tableName
                       ) {
                         e.currentTarget.style.borderColor = "#475569";
                       }
@@ -217,7 +213,7 @@ export default function DataModelsPage() {
                     onMouseOut={(e) => {
                       if (
                         selectedTable?.appId !== result.appId ||
-                        selectedTable?.table.name !== result.table.name
+                        selectedTable?.table.tableName !== result.table.tableName
                       ) {
                         e.currentTarget.style.borderColor = "#334155";
                       }
@@ -239,7 +235,7 @@ export default function DataModelsPage() {
                           margin: 0,
                         }}
                       >
-                        {result.table.name}
+                        {result.table.tableName}
                       </h3>
                       <Badge variant="gray">{result.appName}</Badge>
                     </div>
@@ -294,7 +290,7 @@ export default function DataModelsPage() {
                         margin: 0,
                       }}
                     >
-                      {selectedTable.table.name}
+                      {selectedTable.table.tableName}
                     </h2>
                     <Badge variant="gray">{selectedTable.appName}</Badge>
                   </div>

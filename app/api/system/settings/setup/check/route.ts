@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { isFirstTimeSetup } from '@/lib/db';
+import { isFirstTimeSetup } from '@/lib/database/helpers';
 
 export async function GET() {
   try {

@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
-import { createUser, setSystemSetting, isFirstTimeSetup, initializeAuthorities } from '@/lib/db';
+import { createUser, setSystemSetting, isFirstTimeSetup, initializeAuthorities, createApp } from '@/lib/database/helpers';
+import { createTable } from '@/lib/db/tables';
+import { SYSTEM_APP_METADATA } from '@/lib/database/systemMetadata';
 
 export async function POST(request: Request) {
   try {
@@ -23,13 +25,35 @@ export async function POST(request: Request) {
       );
     }
 
-    // Initialize authorities first
+    // Step 1: Create the system app
+    await createApp('system', {
+      label: SYSTEM_APP_METADATA.name,
+      version: SYSTEM_APP_METADATA.version,
+      author: SYSTEM_APP_METADATA.author,
+      contactEmail: SYSTEM_APP_METADATA.contactEmail,
+      description: SYSTEM_APP_METADATA.description,
+      apiRoutes: SYSTEM_APP_METADATA.apiRoutes,
+      dependencies: SYSTEM_APP_METADATA.dependencies,
+      subApps: SYSTEM_APP_METADATA.subApps,
+    });
+
+    // Step 2: Create all table definitions
+    for (const table of SYSTEM_APP_METADATA.tables) {
+      await createTable('system', table.name, {
+        tableName: table.name,
+        app: 'system',
+        description: table.description,
+        fields: table.fields as any,
+      });
+    }
+
+    // Step 3: Initialize authorities
     await initializeAuthorities();
 
-    // Create the administrative user with 'admin' authority
+    // Step 4: Create the administrative user with 'admin' authority
     const user = await createUser(username, email, displayName, password, 'admin');
 
-    // Mark setup as complete
+    // Step 5: Mark setup as complete
     await setSystemSetting('administratorUserId', user.id);
 
     return NextResponse.json({

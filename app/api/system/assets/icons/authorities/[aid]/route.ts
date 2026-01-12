@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
-import { getSystemSettings } from "@/lib/database/managers/setting";
+import SettingManager from "@/lib/database/managers/setting";
 import AuthorityManager from "@/lib/database/managers/authority";
 
 export async function GET(
@@ -18,7 +18,10 @@ export async function GET(
       return new NextResponse("Not found", { status: 404 });
     }
 
-    const systemStorage = (await getSystemSettings()).storage;
+    // Read raw storage setting value
+    const settingManager = new SettingManager();
+    const storageRecord = await settingManager.readRecord("storage");
+    const systemStorage = storageRecord?.data.value;
 
     if (!systemStorage) {
       return new NextResponse("Storage not configured", { status: 500 });

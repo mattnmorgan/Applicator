@@ -18,7 +18,7 @@ export default class SessionManager extends CRUD<Session> {
     });
     await this.getRedisClient().expire(
       `${this.tableName}:${record.id}`,
-      Math.floor(expiresAt.getTime() - Date.now()) / 1000
+      Math.floor((expiresAt.getTime() - Date.now()) / 1000)
     );
 
     return record;

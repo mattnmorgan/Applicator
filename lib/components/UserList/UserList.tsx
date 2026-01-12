@@ -39,18 +39,33 @@ export default function UserList() {
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch("/api/system/apps/system/tables/user");
-      const data = await response.json();
+      const [usersResponse, authoritiesResponse] = await Promise.all([
+        fetch("/api/system/apps/system/tables/user"),
+        fetch("/api/system/apps/system/tables/authority"),
+      ]);
+      const usersData = await usersResponse.json();
+      const authoritiesData = await authoritiesResponse.json();
+
+      // Create authority ID to name mapping
+      const authorityIdToName = new Map<string, string>();
+      for (const record of authoritiesData.records || []) {
+        authorityIdToName.set(record.id, record.data.name);
+      }
 
       // Transform user records to expected format
-      const usersList = (data.records || []).map((record: any) => ({
+      const usersList = (usersData.records || []).map((record: any) => ({
         id: record.id,
         username: record.data.username,
         email: record.data.email,
         displayName: record.data.displayName,
         authority: record.data.authority,
+        authorityName:
+          authorityIdToName.get(record.data.authority) || "Unknown",
         isActive: record.data.isActive,
-        profilePicture: record.data.profilePicture,
+        profilePicture:
+          record.data.profilePicture && record.data.profilePicture.trim() !== ""
+            ? `/api/system/assets/icons/users/${record.id}?t=${Date.now()}`
+            : undefined,
       }));
 
       setUsers(usersList);
@@ -86,12 +101,14 @@ export default function UserList() {
 
     setLoading(true);
     try {
-      const response = await fetch("/api/system/model/users/status", {
-        method: "POST",
+      const response = await fetch("/api/system/apps/system/tables/user", {
+        method: "PATCH",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          userIds: Array.from(selectedUserIds),
-          isActive,
+          updates: Array.from(selectedUserIds).map((id) => ({
+            id: id,
+            data: { isActive: isActive },
+          })),
         }),
       });
 
@@ -124,19 +141,58 @@ export default function UserList() {
   };
 
   const handleEditUser = async (userId: string) => {
-    const response = await fetch(`/api/system/apps/system/tables/user?ids=${userId}`);
-    const data = await response.json();
-    if (data.records && data.records.length > 0) {
-      const record = data.records[0];
+    try {
+      // Fetch user data
+      const userResponse = await fetch(
+        `/api/system/apps/system/tables/user?ids=${userId}`
+      );
+      const userData = await userResponse.json();
+
+      if (!userData.records || userData.records.length === 0) {
+        console.error("User not found");
+        return;
+      }
+
+      const userRecord = userData.records[0];
+
+      // Fetch main authority data
+      const mainAuthorityResponse = await fetch(
+        `/api/system/apps/system/tables/authority?ids=${userRecord.data.authority}`
+      );
+      const mainAuthorityData = await mainAuthorityResponse.json();
+      const mainAuthority = mainAuthorityData.records?.[0];
+
+      // Fetch user-specific authority data
+      const userAuthorityResponse = await fetch(
+        `/api/system/apps/system/tables/authority?ids=user-specific:${userId}`
+      );
+      const userAuthorityData = await userAuthorityResponse.json();
+      const userAuthority = userAuthorityData.records?.[0];
+
       setEditingUser({
-        id: record.id,
-        username: record.data.username,
-        email: record.data.email,
-        displayName: record.data.displayName,
-        authority: record.data.authority,
-        isActive: record.data.isActive,
-        profilePicture: record.data.profilePicture,
+        id: userRecord.id,
+        username: userRecord.data.username,
+        email: userRecord.data.email,
+        displayName: userRecord.data.displayName,
+        authority: userRecord.data.authority,
+        isActive: userRecord.data.isActive,
+        profilePicture:
+          userRecord.data.profilePicture &&
+          userRecord.data.profilePicture.trim() !== ""
+            ? `/api/system/assets/icons/users/${userId}?t=${Date.now()}`
+            : undefined,
+        authorityName: mainAuthority?.data.name || "Unknown",
+        allAuthorizations: {
+          authorizations: mainAuthority?.data.authorizations || [],
+          userAuthorizations: userAuthority?.data.authorizations || [],
+        },
+        allAppAccess: {
+          accesses: mainAuthority?.data.apps || [],
+          userAccesses: userAuthority?.data.apps || [],
+        },
       });
+    } catch (error) {
+      console.error("Failed to fetch user details:", error);
     }
   };
 
@@ -254,9 +310,7 @@ export default function UserList() {
               />
             </div>
             <div className={styles.statusColumn}>
-              <Badge variant="gray">
-                {user.authorityName}
-              </Badge>
+              <Badge variant="gray">{user.authorityName}</Badge>
               <Badge variant={user.isActive ? "green" : "red"}>
                 {user.isActive ? "Active" : "Inactive"}
               </Badge>
