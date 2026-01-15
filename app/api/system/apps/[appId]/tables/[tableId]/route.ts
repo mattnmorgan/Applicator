@@ -1,11 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
-import { logger } from "@/lib/logging";
+import LogManager from "@/lib/database/managers/log";
 import { createRecord, bulkCreateRecords } from "@/lib/database/crud/create";
 import { updateRecord, bulkUpdateRecords } from "@/lib/database/crud/update";
 import { bulkDeleteRecords, deleteAll } from "@/lib/database/crud/delete";
 import { readRecords } from "@/lib/database/crud/read";
 import { getSessionFromRequest } from "@/lib/database/managers/session";
-import { loadTable } from "@/lib/db/tables";
+import TableManager from "@/lib/database/managers/table";
 import Table from "@/lib/database/types/table";
 
 /**
@@ -53,7 +53,8 @@ export async function POST(
     const { appId, tableId } = await params;
 
     // Load table definition
-    const table = await loadTable(appId, tableId);
+    const tableManager = new TableManager();
+    const table = await tableManager.loadTable(appId, tableId);
     if (!table) {
       return NextResponse.json(
         { error: `Table ${tableId} not found in app ${appId}` },
@@ -74,7 +75,7 @@ export async function POST(
 
       if (result.failures.length > 0) {
         // Some records failed
-        await logger.warn(
+        await new LogManager().warn(
           "system",
           `Bulk create failed for ${appId}:${tableId}: ${result.failures.length} failures`
         );
@@ -89,7 +90,7 @@ export async function POST(
         );
       }
 
-      await logger.info(
+      await new LogManager().info(
         "system",
         `Bulk created ${result.success.length} records in ${appId}:${tableId}`
       );
@@ -109,7 +110,7 @@ export async function POST(
         id,
       });
 
-      await logger.info(
+      await new LogManager().info(
         "system",
         `Created record ${record.id} in ${appId}:${tableId}`
       );
@@ -148,7 +149,8 @@ export async function GET(
     const { appId, tableId } = await params;
 
     // Load table definition
-    const table = await loadTable(appId, tableId);
+    const tableManager = new TableManager();
+    const table = await tableManager.loadTable(appId, tableId);
     if (!table) {
       return NextResponse.json(
         { error: `Table ${tableId} not found in app ${appId}` },
@@ -209,7 +211,8 @@ export async function PATCH(
     const { appId, tableId } = await params;
 
     // Load table definition
-    const table = await loadTable(appId, tableId);
+    const tableManager = new TableManager();
+    const table = await tableManager.loadTable(appId, tableId);
     if (!table) {
       return NextResponse.json(
         { error: `Table ${tableId} not found in app ${appId}` },
@@ -238,7 +241,7 @@ export async function PATCH(
 
       if (result.failures.length > 0) {
         // Some records failed
-        await logger.warn(
+        await new LogManager().warn(
           "system",
           `Bulk update failed for ${appId}:${tableId}: ${result.failures.length} failures`
         );
@@ -253,7 +256,7 @@ export async function PATCH(
         );
       }
 
-      await logger.info(
+      await new LogManager().info(
         "system",
         `Bulk updated ${result.success.length} records in ${appId}:${tableId}`
       );
@@ -278,7 +281,7 @@ export async function PATCH(
         );
       }
 
-      await logger.info(
+      await new LogManager().info(
         "system",
         `Updated record ${id} in ${appId}:${tableId}`
       );
@@ -350,13 +353,13 @@ export async function DELETE(
 
     if (doDeleteAll) {
       await deleteAll(appId, tableId);
-      await logger.info(
+      await new LogManager().info(
         "system",
         `Deleted all records from ${appId}:${tableId}`
       );
     } else {
       await bulkDeleteRecords(appId, tableId, ids);
-      await logger.info(
+      await new LogManager().info(
         "system",
         `Deleted ${ids.length} records from ${appId}:${tableId}`
       );

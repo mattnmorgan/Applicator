@@ -13,8 +13,8 @@ import {
   isVersionGreaterOrEqual,
   type AppVersion,
 } from "@/lib/database/helpers";
-import { loadTable, createTable } from "@/lib/db/tables";
-import { logger } from "@/lib/logging";
+import TableManager from "@/lib/database/managers/table";
+import LogManager from "@/lib/database/managers/log";
 import path from "path";
 import fs from "fs/promises";
 import AdmZip from "adm-zip";
@@ -145,7 +145,7 @@ export async function POST(request: NextRequest) {
       }, author: ${appAttributes.author || "missing"}, description: ${
         appAttributes.description ? "present" : "missing"
       })`;
-      await logger.error("system", errorMsg);
+      await new LogManager().error("system", errorMsg);
       return NextResponse.json(
         { error: "Missing required app attributes" },
         { status: 400 }
@@ -159,7 +159,7 @@ export async function POST(request: NextRequest) {
       (!appAttributes.version.dev && appAttributes.version.dev !== 0)
     ) {
       const errorMsg = `App installation rejected: Invalid version format for '${appAttributes.id}'. Version must have major, minor, and dev properties.`;
-      await logger.error("system", errorMsg);
+      await new LogManager().error("system", errorMsg);
       return NextResponse.json(
         {
           error:
@@ -172,7 +172,7 @@ export async function POST(request: NextRequest) {
     // Safety check: prevent 'system' from being used as an app ID
     if (appAttributes.id === "system") {
       const errorMsg = `App installation rejected: attempted to use reserved app ID 'system'`;
-      await logger.error("system", errorMsg);
+      await new LogManager().error("system", errorMsg);
       return NextResponse.json(
         {
           error:
@@ -188,7 +188,7 @@ export async function POST(request: NextRequest) {
       appAttributes.dependencies[appAttributes.id]
     ) {
       const errorMsg = `App installation rejected: Plugin '${appAttributes.id}' cannot depend on itself`;
-      await logger.error("system", errorMsg);
+      await new LogManager().error("system", errorMsg);
       return NextResponse.json(
         { error: "A plugin cannot require itself for installation" },
         { status: 400 }
@@ -210,7 +210,7 @@ export async function POST(request: NextRequest) {
 
         if (!installedApp) {
           const errorMsg = `App installation rejected: Required dependency '${depId}' is not installed`;
-          await logger.error("system", errorMsg);
+          await new LogManager().error("system", errorMsg);
           return NextResponse.json(
             { error: `Required dependency '${depId}' is not installed` },
             { status: 400 }
@@ -228,7 +228,7 @@ export async function POST(request: NextRequest) {
             requiredVersion as AppVersion
           );
           const errorMsg = `App installation rejected: Dependency '${depId}' version ${installedVersionStr} does not meet minimum requirement ${requiredVersionStr}`;
-          await logger.error("system", errorMsg);
+          await new LogManager().error("system", errorMsg);
           return NextResponse.json(
             {
               error: `Dependency '${depId}' version ${installedVersionStr} does not meet minimum requirement ${requiredVersionStr}`,
@@ -689,13 +689,14 @@ export async function POST(request: NextRequest) {
 
     // Install tables
     if (appAttributes.tables && Array.isArray(appAttributes.tables)) {
-      const tableDefinition = await loadTable("system", "table");
+      const tableManager = new TableManager();
+      const tableDefinition = await tableManager.loadTable("system", "table");
       if (!tableDefinition) {
         throw new Error("System table definition not found");
       }
 
       for (const table of appAttributes.tables) {
-        await createTable(
+        await tableManager.createTable(
           appAttributes.id,
           table.name,
           {
@@ -723,13 +724,12 @@ export async function POST(request: NextRequest) {
         .catch(() => false);
 
       if (installationHookExists) {
-        await logger
-          .info(
-            "system",
-            `Running OnInstallation hook for ${
-              appAttributes.name
-            } v${formatVersion(appAttributes.version)}`
-          );
+        await new LogManager().info(
+          "system",
+          `Running OnInstallation hook for ${
+            appAttributes.name
+          } v${formatVersion(appAttributes.version)}`
+        );
 
         const require = createRequire(import.meta.url || __filename);
         const absolutePath = path.resolve(installationHookPath);
@@ -753,7 +753,7 @@ export async function POST(request: NextRequest) {
       }
     } catch (error: any) {
       const errorMsg = `App installation hook failed for ${appAttributes.name}: ${error.message}`;
-      await logger.error("system", errorMsg);
+      await new LogManager().error("system", errorMsg);
 
       // Clean up - remove app from database and delete files
       try {
@@ -773,13 +773,12 @@ export async function POST(request: NextRequest) {
     }
 
     // Log app installation
-    await logger
-      .info(
-        "system",
-        `Application installed: ${appAttributes.name} v${formatVersion(
-          appAttributes.version
-        )} (${appAttributes.id})`
-      );
+    await new LogManager().info(
+      "system",
+      `Application installed: ${appAttributes.name} v${formatVersion(
+        appAttributes.version
+      )} (${appAttributes.id})`
+    );
 
     return NextResponse.json({
       success: true,
@@ -791,13 +790,12 @@ export async function POST(request: NextRequest) {
 
     // Log installation failure
     try {
-      await logger
-        .error(
-          "system",
-          `App installation failed: ${
-            error instanceof Error ? error.message : String(error)
-          }`
-        );
+      await new LogManager().error(
+        "system",
+        `App installation failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     } catch (logError) {
       console.error("Failed to log installation error:", logError);
     }

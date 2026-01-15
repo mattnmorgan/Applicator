@@ -14,7 +14,7 @@ import {
   getSystemSetting,
   formatVersion,
 } from "@/lib/database/helpers";
-import { logger } from "@/lib/logging";
+import LogManager from "@/lib/database/managers/log";
 import path from "path";
 import fs from "fs/promises";
 import { createRequire } from "module";
@@ -58,7 +58,7 @@ export async function POST(request: NextRequest) {
     // Prevent uninstalling system app
     if (appId === "system") {
       const errorMsg = `App uninstallation rejected: Cannot uninstall system app`;
-      await logger.error("system", errorMsg);
+      await new LogManager().error("system", errorMsg);
       return NextResponse.json(
         { error: "Cannot uninstall system app" },
         { status: 400 }
@@ -77,7 +77,7 @@ export async function POST(request: NextRequest) {
     if (dependentApps.length > 0) {
       const dependentAppNames = dependentApps.map((a) => a.data.label).join(", ");
       const errorMsg = `App uninstallation rejected: Cannot uninstall '${app.data.label}' because it is required by: ${dependentAppNames}`;
-      await logger.error("system", errorMsg);
+      await new LogManager().error("system", errorMsg);
       return NextResponse.json(
         {
           error: `Cannot uninstall this app because it is required by: ${dependentAppNames}`,
@@ -102,13 +102,12 @@ export async function POST(request: NextRequest) {
           .catch(() => false);
 
         if (uninstallationHookExists) {
-          await logger
-            .info(
-              "system",
-              `Running OnUninstallation hook for ${app.data.label} v${formatVersion(
-                app.data.version
-              )}`
-            );
+          await new LogManager().info(
+            "system",
+            `Running OnUninstallation hook for ${app.data.label} v${formatVersion(
+              app.data.version
+            )}`
+          );
 
           const require = createRequire(import.meta.url || __filename);
           const absolutePath = path.resolve(uninstallationHookPath);
@@ -132,7 +131,7 @@ export async function POST(request: NextRequest) {
       }
     } catch (error: any) {
       const errorMsg = `App uninstallation hook failed for ${app.data.label}: ${error.message}`;
-      await logger.error("system", errorMsg);
+      await new LogManager().error("system", errorMsg);
       return NextResponse.json(
         { error: `Uninstallation hook failed: ${error.message}` },
         { status: 500 }
@@ -213,8 +212,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Log app uninstallation
-    await logger
-      .info("system", `Application uninstalled: ${app.data.label} (${appId})`);
+    await new LogManager().info(
+      "system",
+      `Application uninstalled: ${app.data.label} (${appId})`
+    );
 
     return NextResponse.json({
       success: true,
@@ -227,14 +228,13 @@ export async function POST(request: NextRequest) {
     try {
       const body = await request.json().catch(() => ({}));
       const appId = body.appId || "unknown";
-      await logger
-        .error(
-          "system",
-          `App uninstallation failed for '${appId}': ${
-            error instanceof Error ? error.message : String(error)
-          }`
-        );
-      await logger.debug("system", error.stack || "");
+      await new LogManager().error(
+        "system",
+        `App uninstallation failed for '${appId}': ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
+      await new LogManager().debug("system", error.stack || "");
     } catch (logError) {
       console.error("Failed to log uninstallation error:", logError);
     }

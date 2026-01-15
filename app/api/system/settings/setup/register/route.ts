@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { createUser, setSystemSetting, isFirstTimeSetup, initializeAuthorities, createApp } from '@/lib/database/helpers';
-import { createTable } from '@/lib/db/tables';
+import TableManager from '@/lib/database/managers/table';
 import { SYSTEM_APP_METADATA } from '@/lib/database/systemMetadata';
 
 export async function POST(request: Request) {
@@ -38,8 +38,9 @@ export async function POST(request: Request) {
     });
 
     // Step 2: Create all table definitions
+    const tableManager = new TableManager();
     for (const table of SYSTEM_APP_METADATA.tables) {
-      await createTable('system', table.name, {
+      await tableManager.createTable('system', table.name, {
         tableName: table.name,
         app: 'system',
         description: table.description,
