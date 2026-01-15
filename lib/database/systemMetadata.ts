@@ -68,7 +68,7 @@ export const SYSTEM_APP_METADATA = {
           defaultValue: true,
         },
         {
-          name: "profilePicture",
+          name: "icon",
           description: "Path to user's profile picture",
           type: "string",
         },

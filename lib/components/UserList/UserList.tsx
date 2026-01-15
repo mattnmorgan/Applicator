@@ -14,7 +14,8 @@ interface User {
   email: string;
   displayName: string;
   isActive: boolean;
-  profilePicture?: string;
+  icon?: string; // File path stored in database
+  profilePicture?: string; // API URL for display
   authority: string;
   authorityName: string;
   allAuthorizations: {
@@ -62,8 +63,8 @@ export default function UserList() {
         authorityName:
           authorityIdToName.get(record.data.authority) || "Unknown",
         isActive: record.data.isActive,
-        profilePicture:
-          record.data.profilePicture && record.data.profilePicture.trim() !== ""
+        icon:
+          record.data.icon && record.data.icon.trim() !== ""
             ? `/api/system/assets/icons/users/${record.id}?t=${Date.now()}`
             : undefined,
       }));
@@ -176,11 +177,7 @@ export default function UserList() {
         displayName: userRecord.data.displayName,
         authority: userRecord.data.authority,
         isActive: userRecord.data.isActive,
-        profilePicture:
-          userRecord.data.profilePicture &&
-          userRecord.data.profilePicture.trim() !== ""
-            ? `/api/system/assets/icons/users/${userId}?t=${Date.now()}`
-            : undefined,
+        icon: userRecord.data.icon, // Preserve the actual file path
         authorityName: mainAuthority?.data.name || "Unknown",
         allAuthorizations: {
           authorizations: mainAuthority?.data.authorizations || [],
@@ -212,7 +209,7 @@ export default function UserList() {
                 username: editingUser.username,
                 email: editingUser.email,
                 authority: editingUser.authority,
-                profilePicture: editingUser.profilePicture,
+                icon: editingUser.icon,
                 authorizations: editingUser.allAuthorizations,
                 apps: editingUser.allAppAccess,
               }
@@ -306,7 +303,7 @@ export default function UserList() {
             >
               <ProfileIndicator
                 displayName={user.displayName}
-                profilePicture={user.profilePicture}
+                profilePicture={user.icon}
               />
             </div>
             <div className={styles.statusColumn}>

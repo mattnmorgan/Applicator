@@ -36,7 +36,7 @@ interface UserCreateProps {
     username: string;
     email: string;
     authority: string;
-    profilePicture?: string;
+    icon?: string; // Path to user's profile picture
     authorizations: {
       authorizations: string[];
       userAuthorizations: string[];
@@ -61,7 +61,9 @@ export default function UserCreate({
   const [authorities, setAuthorities] = useState<TableRecord<Authority>[]>([]);
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>(
-    editUser?.profilePicture || ""
+    editUser?.icon
+      ? `/api/system/assets/icons/users/${editUser.id}?t=${Date.now()}`
+      : ""
   );
   const [clearProfilePicture, setClearProfilePicture] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -222,12 +224,19 @@ export default function UserCreate({
           email: email,
           authority: authority,
           isActive: true,
-          profilePicture: clearProfilePicture
-            ? null
-            : editUser?.profilePicture ?? undefined,
           passwordHash: password == "" ? undefined : password,
         },
       };
+
+      // Handle icon in the initial update
+      if (clearProfilePicture) {
+        // User explicitly wants to clear the picture
+        record.data.icon = null;
+      } else if (editUser?.icon) {
+        // Preserve existing icon (will be overwritten later if new file is uploaded)
+        record.data.icon = editUser.icon;
+      }
+      // Note: If new icon file is selected, it will be uploaded and updated after this
 
       if (isEditMode) {
         record = await manager.updateRecord(record.id, record.data);
@@ -251,7 +260,7 @@ export default function UserCreate({
         );
         record = await manager.updateRecord(record.id, {
           ...record?.data,
-          profilePicture: `system\\users\\icons\\${record.id}\\${fname}`,
+          icon: `system\\users\\icons\\${record.id}\\${fname}`,
         });
       }
 

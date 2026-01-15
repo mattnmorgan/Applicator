@@ -5,5 +5,5 @@ export default interface User {
   passwordHash: string;
   authority: string;
   isActive: boolean;
-  profilePicture?: string;
+  icon?: string; // Path to user's profile picture
 }

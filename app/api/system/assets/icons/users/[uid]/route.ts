@@ -14,7 +14,7 @@ export async function GET(
     // Get user to find their profile picture path
     const user = await new UserManager().readRecord(uid);
 
-    if (!user || !user.data.profilePicture) {
+    if (!user || !user.data.icon) {
       return new NextResponse("Not found", { status: 404 });
     }
 
@@ -28,7 +28,7 @@ export async function GET(
     }
 
     // Build full path to profile picture
-    const fullPath = path.join(systemStorage, user.data.profilePicture);
+    const fullPath = path.join(systemStorage, user.data.icon);
 
     // Check if file exists
     if (!fs.existsSync(fullPath)) {

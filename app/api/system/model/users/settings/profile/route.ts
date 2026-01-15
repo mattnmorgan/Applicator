@@ -71,7 +71,7 @@ export async function PATCH(request: Request) {
 
     // Handle clearing profile picture
     if (clearProfilePicture) {
-      updates.profilePicture = undefined;
+      updates.icon = undefined;
     }
 
     // Handle profile picture upload if provided
@@ -99,14 +99,14 @@ export async function PATCH(request: Request) {
 
       // Get file extension and save
       const fileExtension = profilePictureFile.name.split('.').pop() || 'jpg';
-      const fileName = `profile.${fileExtension}`;
+      const fileName = `icon.${fileExtension}`;
       const filePath = path.join(userIconPath, fileName);
 
       const buffer = Buffer.from(await profilePictureFile.arrayBuffer());
       fs.writeFileSync(filePath, buffer);
 
       const relativePath = path.join('system', 'users', 'icons', currentUser.id, fileName);
-      updates.profilePicture = relativePath;
+      updates.icon = relativePath;
     }
 
     await updateUser(currentUser.id, updates);
