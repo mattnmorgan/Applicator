@@ -6,7 +6,8 @@ export type FieldType =
   | "datetime"
   | "json"
   | "relationship"
-  | "formula";
+  | "formula"
+  | "password";
 
 export default interface TableField {
   name: string;

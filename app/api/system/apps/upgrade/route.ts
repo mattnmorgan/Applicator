@@ -70,7 +70,8 @@ export async function POST(request: NextRequest) {
         (existingApp.data.version.major === SYSTEM_APP_METADATA.version.major &&
           existingApp.data.version.minor < SYSTEM_APP_METADATA.version.minor) ||
         (existingApp.data.version.major === SYSTEM_APP_METADATA.version.major &&
-          existingApp.data.version.minor === SYSTEM_APP_METADATA.version.minor &&
+          existingApp.data.version.minor ===
+            SYSTEM_APP_METADATA.version.minor &&
           existingApp.data.version.dev < SYSTEM_APP_METADATA.version.dev);
 
       if (!needsUpgrade) {
@@ -104,7 +105,7 @@ export async function POST(request: NextRequest) {
 
         const tableManager = new TableManager();
         const allTables = await tableManager.listRecords();
-        const existingTables = allTables.filter((t: any) => t.id.startsWith("system:"));
+        const existingTables = allTables.filter((t) => t.startsWith("system:"));
         const existingTableNames = new Set(
           existingTables.map((t: any) => t.data.tableName)
         );
@@ -114,16 +115,12 @@ export async function POST(request: NextRequest) {
             await deleteTable("system", table.name);
           }
 
-          await createTable(
-            "system",
-            table.name,
-            {
-              tableName: table.name,
-              app: "system",
-              description: table.description || "",
-              fields: (table.fields || []) as any,
-            }
-          );
+          await createTable("system", table.name, {
+            tableName: table.name,
+            app: "system",
+            description: table.description || "",
+            fields: (table.fields || []) as any,
+          });
 
           existingTableNames.delete(table.name);
         }
@@ -136,13 +133,12 @@ export async function POST(request: NextRequest) {
       // Reinitialize authorities
       await initializeAuthorities();
 
-      await logger
-        .info(
-          "system",
-          `System upgraded: ${formatVersion(
-            existingApp.data.version
-          )} → ${formatVersion(SYSTEM_APP_METADATA.version)}`
-        );
+      await logger.info(
+        "system",
+        `System upgraded: ${formatVersion(
+          existingApp.data.version
+        )} → ${formatVersion(SYSTEM_APP_METADATA.version)}`
+      );
 
       return NextResponse.json({
         success: true,
@@ -169,8 +165,10 @@ export async function POST(request: NextRequest) {
     // Check if app exists
     const existingApp = await getApp(appId);
     if (!existingApp) {
-      await logger
-        .error("system", `App upgrade rejected: App '${appId}' does not exist`);
+      await logger.error(
+        "system",
+        `App upgrade rejected: App '${appId}' does not exist`
+      );
       return NextResponse.json(
         { error: "App does not exist" },
         { status: 404 }
@@ -208,11 +206,10 @@ export async function POST(request: NextRequest) {
 
       // Verify app ID matches
       if (appAttributes.id !== appId) {
-        await logger
-          .error(
-            "system",
-            `App upgrade rejected: App ID mismatch (expected '${appId}', got '${appAttributes.id}')`
-          );
+        await logger.error(
+          "system",
+          `App upgrade rejected: App ID mismatch (expected '${appId}', got '${appAttributes.id}')`
+        );
         return NextResponse.json(
           {
             error: `App ID mismatch. Expected '${appId}', got '${appAttributes.id}'`,
@@ -309,7 +306,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if upgrading to the same version
-    if (compareVersions(appAttributes.version, existingApp.data.version) === 0) {
+    if (
+      compareVersions(appAttributes.version, existingApp.data.version) === 0
+    ) {
       const versionStr = formatVersion(appAttributes.version);
       const errorMsg = `App upgrade rejected: Cannot upgrade '${appAttributes.id}' to the same version ${versionStr}`;
       await logger.error("system", errorMsg);
@@ -783,7 +782,9 @@ export async function POST(request: NextRequest) {
         // Get existing table records for this app
         const tableManager = new TableManager();
         const allTables = await tableManager.listRecords();
-        const existingTables = allTables.filter((t: any) => t.id.startsWith(`${appAttributes.id}:`));
+        const existingTables = allTables.filter((t: any) =>
+          t.id.startsWith(`${appAttributes.id}:`)
+        );
         const existingTableNames = new Set(
           existingTables.map((t: any) => t.data.tableName)
         );
@@ -796,16 +797,12 @@ export async function POST(request: NextRequest) {
           }
 
           // Create/recreate table record
-          await createTable(
-            appAttributes.id,
-            table.name,
-            {
-              tableName: table.name,
-              app: appAttributes.id,
-              description: table.description || "",
-              fields: table.fields || [],
-            }
-          );
+          await createTable(appAttributes.id, table.name, {
+            tableName: table.name,
+            app: appAttributes.id,
+            description: table.description || "",
+            fields: table.fields || [],
+          });
 
           existingTableNames.delete(table.name);
         }
@@ -818,19 +815,17 @@ export async function POST(request: NextRequest) {
 
       // Handle system app upgrade
       if (isSystemApp) {
-        await logger
-          .info(
-            "system",
-            `Performing system app upgrade tasks (${formatVersion(
-              existingApp.data.version
-            )} → ${formatVersion(appAttributes.version)})`
-          );
+        await logger.info(
+          "system",
+          `Performing system app upgrade tasks (${formatVersion(
+            existingApp.data.version
+          )} → ${formatVersion(appAttributes.version)})`
+        );
 
         // Reinitialize authorities from SYSTEM_APP_METADATA
         await initializeAuthorities();
 
-        await logger
-          .info("system", "System authorities reinitialized");
+        await logger.info("system", "System authorities reinitialized");
       }
 
       // Delete backups after successful upgrade
@@ -855,15 +850,14 @@ export async function POST(request: NextRequest) {
           .catch(() => false);
 
         if (installationHookExists) {
-          await logger
-            .info(
-              "system",
-              `Running OnInstallation hook for ${
-                appAttributes.name
-              } (${formatVersion(existingApp.data.version)} → ${formatVersion(
-                appAttributes.version
-              )})`
-            );
+          await logger.info(
+            "system",
+            `Running OnInstallation hook for ${
+              appAttributes.name
+            } (${formatVersion(existingApp.data.version)} → ${formatVersion(
+              appAttributes.version
+            )})`
+          );
 
           const require = createRequire(import.meta.url || __filename);
           const absolutePath = path.resolve(installationHookPath);
@@ -917,13 +911,12 @@ export async function POST(request: NextRequest) {
       }
 
       // Log app upgrade
-      await logger
-        .info(
-          "system",
-          `Application upgraded: ${appAttributes.name} (${formatVersion(
-            existingApp.data.version
-          )} → ${formatVersion(appAttributes.version)})`
-        );
+      await logger.info(
+        "system",
+        `Application upgraded: ${appAttributes.name} (${formatVersion(
+          existingApp.data.version
+        )} → ${formatVersion(appAttributes.version)})`
+      );
 
       return NextResponse.json({
         success: true,
@@ -955,13 +948,12 @@ export async function POST(request: NextRequest) {
 
     // Log upgrade failure
     try {
-      await logger
-        .error(
-          "system",
-          `App upgrade failed: ${
-            error instanceof Error ? error.message : String(error)
-          }`
-        );
+      await logger.error(
+        "system",
+        `App upgrade failed: ${
+          error instanceof Error ? error.message : String(error)
+        }`
+      );
     } catch (logError) {
       console.error("Failed to log upgrade error:", logError);
     }

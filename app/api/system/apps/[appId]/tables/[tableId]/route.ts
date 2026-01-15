@@ -6,6 +6,35 @@ import { bulkDeleteRecords, deleteAll } from "@/lib/database/crud/delete";
 import { readRecords } from "@/lib/database/crud/read";
 import { getSessionFromRequest } from "@/lib/database/managers/session";
 import { loadTable } from "@/lib/db/tables";
+import Table from "@/lib/database/types/table";
+
+/**
+ * Process password fields in data by hashing them
+ * @param table The table definition
+ * @param data The data to process
+ * @returns Processed data with hashed passwords
+ */
+async function hashPasswordFields(table: Table | null, data: any): Promise<any> {
+  if (!table) return data;
+
+  const passwordFields = table.fields.filter((field) => field.type === "password");
+  if (passwordFields.length === 0) return data;
+
+  const bcrypt = await import("bcryptjs");
+  const processedData = { ...data };
+
+  for (const field of passwordFields) {
+    const value = processedData[field.name];
+    if (value && typeof value === "string") {
+      // Only hash if it's not already a bcrypt hash (bcrypt hashes start with $2)
+      if (!value.startsWith("$2")) {
+        processedData[field.name] = await bcrypt.hash(value, 10);
+      }
+    }
+  }
+
+  return processedData;
+}
 
 /**
  * POST - Create one or more records
@@ -37,7 +66,10 @@ export async function POST(
     // Support both single record and bulk creation
     if (body.records && Array.isArray(body.records)) {
       // Bulk create
-      const dataArray = body.records.map((r: any) => r.data);
+      const dataArray = await Promise.all(
+        body.records.map((r: any) => hashPasswordFields(table, r.data))
+      );
+
       const result = await bulkCreateRecords(appId, tableId, table, dataArray);
 
       if (result.failures.length > 0) {
@@ -69,7 +101,11 @@ export async function POST(
     } else {
       // Single create
       const { data, id } = body;
-      const record = await createRecord(appId, tableId, table, data, {
+
+      // Hash password fields if present
+      const processedData = await hashPasswordFields(table, data);
+
+      const record = await createRecord(appId, tableId, table, processedData, {
         id,
       });
 
@@ -185,12 +221,19 @@ export async function PATCH(
 
     // Support both single record and bulk update
     if (body.updates && Array.isArray(body.updates)) {
-      // Bulk update
+      // Bulk update - hash password fields if present
+      const updates = await Promise.all(
+        body.updates.map(async (update: any) => ({
+          ...update,
+          data: await hashPasswordFields(table, update.data),
+        }))
+      );
+
       const result = await bulkUpdateRecords(
         appId,
         tableId,
         table,
-        body.updates
+        updates
       );
 
       if (result.failures.length > 0) {
@@ -222,7 +265,11 @@ export async function PATCH(
     } else {
       // Single update
       const { id, data } = body;
-      const record = await updateRecord(appId, tableId, table, id, data);
+
+      // Hash password fields if present
+      const processedData = await hashPasswordFields(table, data);
+
+      const record = await updateRecord(appId, tableId, table, id, processedData);
 
       if (!record) {
         return NextResponse.json(

@@ -3,8 +3,8 @@ export const SYSTEM_APP_METADATA = {
   name: "System",
   version: {
     major: 1,
-    minor: 3,
-    dev: 3,
+    minor: 4,
+    dev: 1,
   },
   author: "Matthew Morgan",
   contactEmail: "matthew@morgantech.info",
@@ -50,7 +50,7 @@ export const SYSTEM_APP_METADATA = {
         {
           name: "passwordHash",
           description: "Hashed password for authentication",
-          type: "string",
+          type: "password",
           required: true,
         },
         {
