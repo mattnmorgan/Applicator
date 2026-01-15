@@ -15,7 +15,7 @@ export async function GET() {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const profilePictureUrl = user.profilePicture
+    const profilePictureUrl = user.icon
       ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}`
       : undefined;
 

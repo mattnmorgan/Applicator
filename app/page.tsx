@@ -50,7 +50,7 @@ export default async function HomePage() {
     redirect("/system/login");
   }
 
-  const profilePictureUrl = user.profilePicture
+  const profilePictureUrl = user.icon
     ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}`
     : undefined;
   const brandSettings = await getBrandSettings();

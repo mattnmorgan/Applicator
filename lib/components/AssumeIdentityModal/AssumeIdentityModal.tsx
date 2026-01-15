@@ -30,9 +30,8 @@ export default function AssumeIdentityModal({
       const data = await response.json();
 
       for (const user of data.records) {
-        if (user.data.profilePicture) {
-          user.data.profilePicture =
-            "/api/system/assets/icons/users/" + user.id;
+        if (user.data.icon) {
+          user.data.icon = "/api/system/assets/icons/users/" + user.id;
         }
       }
 
@@ -132,9 +131,9 @@ export default function AssumeIdentityModal({
                     }}
                   >
                     <div className={styles.avatar}>
-                      {user.data.profilePicture ? (
+                      {user.data.icon ? (
                         <img
-                          src={user.data.profilePicture}
+                          src={user.data.icon}
                           alt={user.data.displayName}
                           style={{
                             width: "100%",

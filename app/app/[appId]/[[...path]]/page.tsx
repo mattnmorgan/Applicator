@@ -115,7 +115,11 @@ export default function AppPage() {
     }
 
     // Fetch main app metadata from system:app table using generic API
-    fetch(`/api/system/apps/system/tables/app?fields=${encodeURIComponent(JSON.stringify({ id: mainAppId }))}`)
+    fetch(
+      `/api/system/apps/system/tables/app?fields=${encodeURIComponent(
+        JSON.stringify({ id: mainAppId })
+      )}`
+    )
       .then((res) => {
         if (!res.ok) {
           setError(`App "${mainAppId}" does not exist`);
@@ -133,7 +137,9 @@ export default function AppPage() {
           setAppVersion(versionString);
 
           // Find the sub-app to get component name
-          const subApp = appRecord.subApps?.find((sa: any) => sa.id === subAppId);
+          const subApp = appRecord.subApps?.find(
+            (sa: any) => sa.id === subAppId
+          );
           if (!subApp) {
             setError(`Sub-app "${subAppId}" not found in app "${mainAppId}"`);
             setLoading(false);
@@ -143,7 +149,9 @@ export default function AppPage() {
           setSubAppComponent(subApp.component);
 
           // Set the module URL for the DynamicAppLoader
-          setModuleUrl(`/api/system/apps/${mainAppId}/assets/source?v=${versionString}`);
+          setModuleUrl(
+            `/api/system/apps/${mainAppId}/assets/source?v=${versionString}`
+          );
           setLoading(false);
         } else if (data) {
           setError(`App "${mainAppId}" does not exist`);

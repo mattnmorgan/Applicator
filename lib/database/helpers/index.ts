@@ -25,7 +25,7 @@ export async function getCurrentUser() {
     displayName: result.user.data.displayName,
     username: result.user.data.username,
     email: result.user.data.email,
-    icon: result.user.data.icon, // Map icon to profilePicture for compatibility
+    icon: result.user.data.icon,
     authority: result.user.data.authority,
     authorizations: result.authorizations.flat(),
     authorities: result.authorities,

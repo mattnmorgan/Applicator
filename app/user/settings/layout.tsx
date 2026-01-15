@@ -111,7 +111,7 @@ export default async function UserSettingsLayout({
     redirect("/system/login");
   }
 
-  const profilePictureUrl = user.profilePicture
+  const profilePictureUrl = user.icon
     ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}`
     : undefined;
   const hasAdminAuth = user.authorizations.includes("admin");

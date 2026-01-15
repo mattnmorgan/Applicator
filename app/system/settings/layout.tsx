@@ -181,7 +181,7 @@ export default async function SettingsLayout({
   const hasAdminAuth = user.authorizations.includes("admin");
   const hasDeveloperAuth = user.authorizations.includes("developer");
 
-  const profilePictureUrl = user.profilePicture
+  const profilePictureUrl = user.icon
     ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}`
     : undefined;
   const brandSettings = await getBrandSettings();
@@ -203,7 +203,10 @@ export default async function SettingsLayout({
     );
   }
 
-  const settingsMenuItems = await getSettingsMenuItems(hasDeveloperAuth, user.id);
+  const settingsMenuItems = await getSettingsMenuItems(
+    hasDeveloperAuth,
+    user.id
+  );
 
   return (
     <>
