@@ -87,11 +87,14 @@ export default function AppPage() {
 
   // Fetch brand settings
   useEffect(() => {
-    fetch("/api/system/settings/brand")
+    fetch("/api/system/settings")
       .then((res) => res.json())
       .then((data) => {
-        setBrandName(data.brandName || "Applicator");
-        setBrandIcon(data.brandIcon);
+        const settings = data.settings;
+        setBrandName(settings.brandName || "Applicator");
+        if (settings.brandIcon) {
+          setBrandIcon(`/api/system/assets/brand?t=${Date.now()}`);
+        }
       })
       .catch((err) => {
         console.error("Error fetching brand settings:", err);

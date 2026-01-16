@@ -201,9 +201,9 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
         // Handle icon upload/removal separately if needed
         if (iconFile) {
           // Get system storage path and construct the icon path
-          const storageResponse = await fetch('/api/system/settings/storage');
+          const storageResponse = await fetch('/api/system/settings');
           const storageData = await storageResponse.json();
-          const systemStorage = storageData.storage;
+          const systemStorage = storageData.settings.storage;
 
           if (!systemStorage) {
             setError('System storage not configured');
@@ -253,9 +253,9 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
           const authority = record?.data;
 
           if (authority?.icon) {
-            const storageResponse = await fetch('/api/system/settings/storage');
+            const storageResponse = await fetch('/api/system/settings');
             const storageData = await storageResponse.json();
-            const systemStorage = storageData.storage;
+            const systemStorage = storageData.settings.storage;
             const iconPath = `${systemStorage}\\${authority.icon}`;
 
             const deleteResponse = await fetch('/api/system/apps/fs', {
@@ -312,9 +312,9 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
         // Handle icon upload separately if provided
         if (iconFile) {
           // Get system storage path and construct the icon path
-          const storageResponse = await fetch('/api/system/settings/storage');
+          const storageResponse = await fetch('/api/system/settings');
           const storageData = await storageResponse.json();
-          const systemStorage = storageData.storage;
+          const systemStorage = storageData.settings.storage;
 
           if (!systemStorage) {
             setError('System storage not configured');

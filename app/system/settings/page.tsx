@@ -29,26 +29,21 @@ export default function SettingsPage() {
 
   const fetchSettings = async () => {
     try {
-      const [storageRes, brandRes, loggingRes] = await Promise.all([
-        fetch("/api/system/settings/storage"),
-        fetch("/api/system/settings/brand"),
-        fetch("/api/system/settings/logging"),
-      ]);
+      const response = await fetch("/api/system/settings");
+      const data = await response.json();
+      const settings = data.settings;
 
-      const storageData = await storageRes.json();
-      setStorage(storageData.storage || "");
-      setOriginalStorage(storageData.storage || "");
+      setStorage(settings.storage || "");
+      setOriginalStorage(settings.storage || "");
 
-      const brandData = await brandRes.json();
-      setBrandName(brandData.brandName || "Applicator");
-      setOriginalBrandName(brandData.brandName || "Applicator");
-      if (brandData.brandIcon) {
-        setBrandIconPreview(brandData.brandIcon);
+      setBrandName(settings.brandName || "Applicator");
+      setOriginalBrandName(settings.brandName || "Applicator");
+      if (settings.brandIcon) {
+        setBrandIconPreview(`/api/system/assets/brand?t=${Date.now()}`);
       }
 
-      const loggingData = await loggingRes.json();
-      setLoggingEnabled(loggingData.loggingEnabled || false);
-      setOriginalLoggingEnabled(loggingData.loggingEnabled || false);
+      setLoggingEnabled(settings.loggingEnabled === "true");
+      setOriginalLoggingEnabled(settings.loggingEnabled === "true");
     } catch (error) {
       console.error("Failed to fetch settings:", error);
     }
@@ -76,38 +71,42 @@ export default function SettingsPage() {
   const handleSave = async () => {
     setSaving(true);
     try {
-      // Save storage setting
-      const storageResponse = await fetch("/api/system/settings/storage", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ storage }),
-      });
+      // If there's a brand icon to upload or clear, use FormData
+      if (brandIcon || clearBrandIcon) {
+        const brandFormData = new FormData();
+        brandFormData.append("brandName", brandName);
 
-      // Save brand settings
-      const brandFormData = new FormData();
-      brandFormData.append("brandName", brandName);
+        if (brandIcon) {
+          brandFormData.append("brandIcon", brandIcon);
+        }
 
-      if (brandIcon) {
-        brandFormData.append("brandIcon", brandIcon);
+        if (clearBrandIcon) {
+          brandFormData.append("clearBrandIcon", "true");
+        }
+
+        const brandResponse = await fetch("/api/system/settings", {
+          method: "POST",
+          body: brandFormData,
+        });
+
+        if (!brandResponse.ok) {
+          setToast({ message: "Failed to save brand settings", type: "error" });
+          return;
+        }
       }
 
-      if (clearBrandIcon) {
-        brandFormData.append("clearBrandIcon", "true");
-      }
-
-      const brandResponse = await fetch("/api/system/settings/brand", {
-        method: "POST",
-        body: brandFormData,
-      });
-
-      // Save logging enabled setting
-      const loggingResponse = await fetch("/api/system/settings/logging", {
+      // Save other settings via JSON
+      const settingsResponse = await fetch("/api/system/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ loggingEnabled }),
+        body: JSON.stringify({
+          storage,
+          loggingEnabled,
+          ...((!brandIcon && !clearBrandIcon) && { brandName })
+        }),
       });
 
-      if (storageResponse.ok && brandResponse.ok && loggingResponse.ok) {
+      if (settingsResponse.ok) {
         setOriginalStorage(storage);
         setOriginalBrandName(brandName);
         setOriginalLoggingEnabled(loggingEnabled);
