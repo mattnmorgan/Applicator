@@ -10,6 +10,7 @@ import AuthorityManager from "@/lib/database/managers/authority";
 import AuthorizationManager from "@/lib/database/managers/authorization";
 import SettingManager from "@/lib/database/managers/setting";
 import TableManager from "@/lib/database/managers/table";
+import ApiRouteManager from "@/lib/database/managers/apiRoute";
 import LogManager from "@/lib/database/managers/log";
 import type AppVersion from "@/lib/database/types/appVersion";
 import { SYSTEM_APP_METADATA } from "@/lib/database/systemMetadata";
@@ -89,10 +90,39 @@ export async function POST(request: NextRequest) {
         author: SYSTEM_APP_METADATA.author,
         contactEmail: SYSTEM_APP_METADATA.contactEmail,
         description: SYSTEM_APP_METADATA.description,
-        apiRoutes: SYSTEM_APP_METADATA.apiRoutes,
         dependencies: SYSTEM_APP_METADATA.dependencies,
         subApps: SYSTEM_APP_METADATA.subApps,
       });
+
+      // Update API routes for system app
+      const apiRouteManager = new ApiRouteManager();
+      const allApiRoutes = await apiRouteManager.readRecords();
+      const existingSystemApiRoutes = allApiRoutes.records.filter(
+        (route) => route.data.app === "system"
+      );
+
+      // Delete existing system API routes
+      for (const route of existingSystemApiRoutes) {
+        await apiRouteManager.deleteRecord(route.id);
+      }
+
+      // Create new API routes from metadata
+      if (SYSTEM_APP_METADATA.apiRoutes && Array.isArray(SYSTEM_APP_METADATA.apiRoutes)) {
+        const apiRouteTable = await apiRouteManager.getTable();
+        for (const apiRoute of SYSTEM_APP_METADATA.apiRoutes) {
+          await apiRouteManager.createRecord(
+            apiRouteTable,
+            {
+              app: "system",
+              path: apiRoute.path,
+              method: apiRoute.method,
+              handler: apiRoute.handler,
+              description: apiRoute.description || "",
+            },
+            { id: `system:${apiRoute.path}:${apiRoute.method}` }
+          );
+        }
+      }
 
       // Update table records
       if (
@@ -811,11 +841,59 @@ export async function POST(request: NextRequest) {
           author: appAttributes.author,
           contactEmail: appAttributes.contactEmail || "",
           description: appAttributes.description,
-          apiRoutes: appAttributes.apiRoutes || [],
           dependencies: appAttributes.dependencies || {},
           subApps: appAttributes.subApps || [],
         }
       );
+
+      // Update API routes
+      const apiRouteManager = new ApiRouteManager();
+      const allApiRoutes = await apiRouteManager.readRecords();
+      const existingApiRoutes = allApiRoutes.records.filter(
+        (route) => route.data.app === appAttributes.id
+      );
+      const existingApiRouteKeys = new Set(
+        existingApiRoutes.map((r) => `${r.data.path}:${r.data.method}`)
+      );
+
+      // Create or update API routes
+      if (appAttributes.apiRoutes && Array.isArray(appAttributes.apiRoutes)) {
+        const apiRouteTable = await apiRouteManager.getTable();
+
+        for (const apiRoute of appAttributes.apiRoutes) {
+          const routeKey = `${apiRoute.path}:${apiRoute.method}`;
+
+          if (existingApiRouteKeys.has(routeKey)) {
+            // Delete existing route (we'll recreate it)
+            await apiRouteManager.deleteRecord(
+              `${appAttributes.id}:${apiRoute.path}:${apiRoute.method}`
+            );
+          }
+
+          // Create/recreate API route
+          await apiRouteManager.createRecord(
+            apiRouteTable,
+            {
+              app: appAttributes.id,
+              path: apiRoute.path,
+              method: apiRoute.method,
+              handler: apiRoute.handler,
+              description: apiRoute.description || "",
+            },
+            { id: `${appAttributes.id}:${apiRoute.path}:${apiRoute.method}` }
+          );
+
+          existingApiRouteKeys.delete(routeKey);
+        }
+      }
+
+      // Delete API routes that no longer exist in the app definition
+      for (const route of existingApiRoutes) {
+        const routeKey = `${route.data.path}:${route.data.method}`;
+        if (existingApiRouteKeys.has(routeKey)) {
+          await apiRouteManager.deleteRecord(route.id);
+        }
+      }
 
       // Update table records
       if (appAttributes.tables && Array.isArray(appAttributes.tables)) {

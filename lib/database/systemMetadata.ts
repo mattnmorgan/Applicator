@@ -4,7 +4,7 @@ export const SYSTEM_APP_METADATA = {
   version: {
     major: 1,
     minor: 4,
-    dev: 1,
+    dev: 2,
   },
   author: "Matthew Morgan",
   contactEmail: "matthew@morgantech.info",
@@ -341,12 +341,6 @@ export const SYSTEM_APP_METADATA = {
           required: true,
         },
         {
-          name: "apiRoutes",
-          description: "API routes provided by the app",
-          type: "json",
-          defaultValue: [],
-        },
-        {
           name: "subApps",
           description: "Sub-applications within the app",
           type: "json",
@@ -392,6 +386,42 @@ export const SYSTEM_APP_METADATA = {
           name: "fields",
           description: "Field definitions for the table",
           type: "json",
+          required: true,
+        },
+      ],
+    },
+    {
+      name: "api-route",
+      description: "API routes defined by applications",
+      fields: [
+        {
+          name: "app",
+          description: "App ID that owns this API route",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "path",
+          description: "URL path for the route (relative to /api/{appId}/)",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "method",
+          description: "HTTP method (GET, POST, PUT, PATCH, DELETE)",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "handler",
+          description: "Handler file name (without .js extension)",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "description",
+          description: "Description of what this route does",
+          type: "string",
           required: true,
         },
       ],

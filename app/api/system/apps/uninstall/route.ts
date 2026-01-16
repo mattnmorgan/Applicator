@@ -8,6 +8,7 @@ import AuthorityManager from "@/lib/database/managers/authority";
 import SettingManager from "@/lib/database/managers/setting";
 import LogManager from "@/lib/database/managers/log";
 import TableManager from "@/lib/database/managers/table";
+import ApiRouteManager from "@/lib/database/managers/apiRoute";
 import { deleteAll } from "@/lib/database/crud/delete";
 import path from "path";
 import fs from "fs/promises";
@@ -148,6 +149,17 @@ export async function POST(request: NextRequest) {
 
       // Delete the table definition
       await tableManager.deleteTable(appId, table.data.tableName);
+    }
+
+    // Delete all API routes for this app
+    const apiRouteManager = new ApiRouteManager();
+    const allApiRoutesResult = await apiRouteManager.readRecords();
+    const appApiRoutes = allApiRoutesResult.records.filter(
+      (route) => route.data.app === appId
+    );
+
+    for (const route of appApiRoutes) {
+      await apiRouteManager.deleteRecord(route.id);
     }
 
     // Delete all authorizations for this app

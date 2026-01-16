@@ -335,7 +335,7 @@ export default function AppView({ appId, onBack }: AppViewProps) {
 
       {app.apiRoutes && app.apiRoutes.length > 0 && (
         <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>API Routes</h2>
+          <h2 className={styles.sectionTitle}>API</h2>
           <div className={styles.routeList}>
             {app.apiRoutes.map((route, index) => (
               <div key={index} className={styles.routeRow}>

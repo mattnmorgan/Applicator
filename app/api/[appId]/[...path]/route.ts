@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import AppManager from '@/lib/database/managers/app';
+import ApiRouteManager from '@/lib/database/managers/apiRoute';
 import SettingManager from '@/lib/database/managers/setting';
 import { createPlugin, getSession } from '@/lib/sdk';
 import * as path from 'path';
@@ -50,24 +50,19 @@ async function handleRequest(
     const { appId, path: routePath } = await params;
     const route = routePath.join('/');
 
-    // Get app from database
-    const appManager = new AppManager();
-    const app = await appManager.readRecord(appId);
-    if (!app) {
-      return NextResponse.json({ error: 'App not found' }, { status: 404 });
-    }
+    // Find matching API route from database
+    const apiRouteManager = new ApiRouteManager();
+    const apiRouteId = `${appId}:${route}:${method}`;
+    const apiRouteRecord = await apiRouteManager.readRecord(apiRouteId);
 
-    // Find matching route
-    const apiRoute = app.data.apiRoutes?.find(
-      (r) => r.path === route && r.method === method
-    );
-
-    if (!apiRoute) {
+    if (!apiRouteRecord) {
       return NextResponse.json(
         { error: 'API route not found' },
         { status: 404 }
       );
     }
+
+    const apiRoute = apiRouteRecord.data;
 
     // Get system storage path
     const settingManager = new SettingManager();

@@ -133,15 +133,20 @@ async function getUserSettingsMenuItems(): Promise<TabsetItem[]> {
   const appSettingsChildren: TabsetItem[] = [];
 
   // For each sub-app, get its widgets that target user-settings
-  for (const fullSubAppId of subAppIds) {
+  for (const appOrSubAppId of subAppIds) {
     try {
-      const subApp = await getSubApp(fullSubAppId);
+      // Skip if this is a main app ID (no colon), not a sub-app
+      if (!appOrSubAppId.includes(":")) {
+        continue;
+      }
+
+      const subApp = await getSubApp(appOrSubAppId);
       if (!subApp || !subApp.widgets) {
         continue;
       }
 
       // Parse the full sub-app ID to get mainAppId and subAppId
-      const { mainAppId, subAppId } = parseSubAppId(fullSubAppId);
+      const { mainAppId, subAppId } = parseSubAppId(appOrSubAppId);
 
       // Filter widgets that target user-settings
       const settingsWidgets = subApp.widgets.filter(
@@ -158,7 +163,7 @@ async function getUserSettingsMenuItems(): Promise<TabsetItem[]> {
       }
     } catch (error) {
       // Skip invalid sub-app IDs
-      console.error(`Error loading sub-app ${fullSubAppId}:`, error);
+      console.error(`Error loading sub-app ${appOrSubAppId}:`, error);
     }
   }
 

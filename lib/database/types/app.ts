@@ -1,6 +1,5 @@
 import TableDefinition from "@/lib/database/types/table";
 import AppVersion from "@/lib/database/types/appVersion";
-import ApiRoute from "@/lib/database/types/apiRoute";
 import Widget from "@/lib/database/types/widget";
 
 export interface SubApp {
@@ -17,7 +16,6 @@ export default interface App {
   author: string;
   contactEmail: string;
   description: string;
-  apiRoutes?: ApiRoute[];
   subApps?: SubApp[];
   dependencies?: Record<string, AppVersion>;
   tables?: TableDefinition[];

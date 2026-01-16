@@ -153,9 +153,14 @@ async function getSettingsMenuItems(
   if (subAppIds.length > 0) {
     const appSettingsChildren: TabsetItem[] = [];
 
-    for (const fullSubAppId of subAppIds) {
+    for (const appOrSubAppId of subAppIds) {
       try {
-        const subApp = await getSubApp(fullSubAppId);
+        // Skip if this is a main app ID (no colon), not a sub-app
+        if (!appOrSubAppId.includes(":")) {
+          continue;
+        }
+
+        const subApp = await getSubApp(appOrSubAppId);
         if (!subApp || !subApp.widgets) {
           continue;
         }
@@ -173,7 +178,7 @@ async function getSettingsMenuItems(
         }
       } catch (error) {
         // Skip invalid sub-app IDs
-        console.error(`Error loading sub-app ${fullSubAppId}:`, error);
+        console.error(`Error loading sub-app ${appOrSubAppId}:`, error);
       }
     }
 

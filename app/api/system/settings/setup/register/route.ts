@@ -5,6 +5,7 @@ import AppManager from '@/lib/database/managers/app';
 import SettingManager from '@/lib/database/managers/setting';
 import AuthorityManager from '@/lib/database/managers/authority';
 import AuthorizationManager from '@/lib/database/managers/authorization';
+import ApiRouteManager from '@/lib/database/managers/apiRoute';
 import { SYSTEM_APP_METADATA } from '@/lib/database/systemMetadata';
 import bcrypt from 'bcryptjs';
 
@@ -41,10 +42,29 @@ export async function POST(request: Request) {
       author: SYSTEM_APP_METADATA.author,
       contactEmail: SYSTEM_APP_METADATA.contactEmail,
       description: SYSTEM_APP_METADATA.description,
-      apiRoutes: SYSTEM_APP_METADATA.apiRoutes,
       dependencies: SYSTEM_APP_METADATA.dependencies,
       subApps: SYSTEM_APP_METADATA.subApps,
     }, { id: 'system' });
+
+    // Step 1.5: Create API routes for system app
+    if (SYSTEM_APP_METADATA.apiRoutes && Array.isArray(SYSTEM_APP_METADATA.apiRoutes)) {
+      const apiRouteManager = new ApiRouteManager();
+      const apiRouteTable = await apiRouteManager.getTable();
+
+      for (const apiRoute of SYSTEM_APP_METADATA.apiRoutes) {
+        await apiRouteManager.createRecord(
+          apiRouteTable,
+          {
+            app: 'system',
+            path: apiRoute.path,
+            method: apiRoute.method,
+            handler: apiRoute.handler,
+            description: apiRoute.description || '',
+          },
+          { id: `system:${apiRoute.path}:${apiRoute.method}` }
+        );
+      }
+    }
 
     // Step 2: Create all table definitions
     const tableManager = new TableManager();

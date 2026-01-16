@@ -10,6 +10,7 @@ import AuthorizationManager from "@/lib/database/managers/authorization";
 import AuthorityManager from "@/lib/database/managers/authority";
 import SettingManager from "@/lib/database/managers/setting";
 import TableManager from "@/lib/database/managers/table";
+import ApiRouteManager from "@/lib/database/managers/apiRoute";
 import LogManager from "@/lib/database/managers/log";
 import type AppVersion from "@/lib/database/types/appVersion";
 import path from "path";
@@ -634,12 +635,31 @@ export async function POST(request: NextRequest) {
       author: appAttributes.author,
       contactEmail: appAttributes.contactEmail || "",
       description: appAttributes.description,
-      apiRoutes: appAttributes.apiRoutes || [],
       dependencies: appAttributes.dependencies || {},
       subApps: appAttributes.subApps || [],
     }, {
       id: appAttributes.id,
     });
+
+    // Install API routes
+    if (appAttributes.apiRoutes && Array.isArray(appAttributes.apiRoutes)) {
+      const apiRouteManager = new ApiRouteManager();
+      const apiRouteTable = await apiRouteManager.getTable();
+
+      for (const apiRoute of appAttributes.apiRoutes) {
+        await apiRouteManager.createRecord(
+          apiRouteTable,
+          {
+            app: appAttributes.id,
+            path: apiRoute.path,
+            method: apiRoute.method,
+            handler: apiRoute.handler,
+            description: apiRoute.description || "",
+          },
+          { id: `${appAttributes.id}:${apiRoute.path}:${apiRoute.method}` }
+        );
+      }
+    }
 
     // Install authorizations
     if (
