@@ -1,15 +1,54 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getSystemSettings } from "@/lib/database/managers/setting";
 import { getSession } from "@/lib/sdk";
-import { userHasAuthorization, setSystemSetting, getSystemSetting } from "@/lib/database/helpers";
+import { userHasAuthorization, setSystemSetting, getSystemSetting, getApp } from "@/lib/database/helpers";
+import { SYSTEM_APP_METADATA } from "@/lib/database/systemMetadata";
 import path from "path";
 import fs from "fs/promises";
 
 export async function GET(request: NextRequest) {
-  return NextResponse.json(
-    { settings: await getSystemSettings() },
-    { status: 200 }
-  );
+  try {
+    const settings = await getSystemSettings();
+
+    // Get version information
+    const systemApp = await getApp("system");
+    let versionInfo = null;
+
+    if (systemApp) {
+      const installedVersion = systemApp.data.version;
+      const currentVersion = SYSTEM_APP_METADATA.version;
+
+      const isUpgradeable =
+        installedVersion.major < currentVersion.major ||
+        (installedVersion.major === currentVersion.major &&
+          installedVersion.minor < currentVersion.minor) ||
+        (installedVersion.major === currentVersion.major &&
+          installedVersion.minor === currentVersion.minor &&
+          installedVersion.dev < currentVersion.dev);
+
+      versionInfo = {
+        currentVersion,
+        currentVersionString: `${currentVersion.major}.${currentVersion.minor}.${currentVersion.dev}`,
+        installedVersion,
+        installedVersionString: `${installedVersion.major}.${installedVersion.minor}.${installedVersion.dev}`,
+        isUpgradeable,
+      };
+    }
+
+    return NextResponse.json(
+      {
+        settings,
+        version: versionInfo
+      },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Error fetching system settings:", error);
+    return NextResponse.json(
+      { error: "Failed to fetch system settings" },
+      { status: 500 }
+    );
+  }
 }
 
 export async function POST(request: NextRequest) {

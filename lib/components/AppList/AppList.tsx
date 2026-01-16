@@ -88,9 +88,9 @@ export default function AppList() {
 
   const checkSystemVersion = async () => {
     try {
-      const response = await fetch("/api/system/version");
+      const response = await fetch("/api/system/settings");
       const data = await response.json();
-      setSystemNeedsUpgrade(data.needsUpgrade || false);
+      setSystemNeedsUpgrade(data.version?.isUpgradeable || false);
     } catch (error) {
       console.error("Failed to check system version:", error);
     }
