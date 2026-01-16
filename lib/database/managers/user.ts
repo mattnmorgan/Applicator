@@ -18,7 +18,16 @@ export async function getCurrentUser(): Promise<{
   isAssumedIdentity: boolean;
 } | null> {
   try {
-    const session = await getSession((await cookies()).get("session")?.value);
+    const sessionId = (await cookies()).get("session")?.value;
+    if (!sessionId) {
+      return null;
+    }
+
+    const session = await getSession(sessionId);
+    if (!session) {
+      return null;
+    }
+
     const user = await new UserManager().readRecord(session.userId);
 
     if (!user) {

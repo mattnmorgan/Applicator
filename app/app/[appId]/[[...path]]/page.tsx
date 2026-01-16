@@ -118,11 +118,7 @@ export default function AppPage() {
     }
 
     // Fetch main app metadata from system:app table using generic API
-    fetch(
-      `/api/system/apps/system/tables/app?fields=${encodeURIComponent(
-        JSON.stringify({ id: mainAppId })
-      )}`
-    )
+    fetch(`/api/system/apps/system/tables/app?ids=${encodeURIComponent(mainAppId)}`)
       .then((res) => {
         if (!res.ok) {
           setError(`App "${mainAppId}" does not exist`);

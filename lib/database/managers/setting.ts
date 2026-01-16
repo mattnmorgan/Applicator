@@ -26,9 +26,11 @@ export async function getSystemSettings(): Promise<SystemSettings> {
     "brandIcon",
     "loggingEnabled",
     "storage",
-  ]) {
+  ] as const) {
     const record = await manager.readRecord(setting);
-    result[setting] = record ? record.data.value : undefined;
+    if (record) {
+      result[setting] = record.data.value;
+    }
   }
 
   if (result.brandIcon) {

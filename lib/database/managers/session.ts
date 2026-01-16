@@ -14,7 +14,7 @@ export default class SessionManager extends CRUD<Session> {
     const record = await super.createRecord(await this.getTable(), {
       userId: uid,
       expiresAt: expiresAt.toISOString(),
-      originalSessionId,
+      originalSessionId: originalSessionId ?? undefined,
     });
     await this.getRedisClient().expire(
       `${this.tableName}:${record.id}`,

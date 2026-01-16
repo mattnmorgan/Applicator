@@ -27,9 +27,9 @@ import { listRecords } from "@/lib/database/crud/list";
 import Table from "@/lib/database/types/table";
 
 export default abstract class CRUD<T = any> {
-  tableName: string;
-  appId: string;
-  table: Table | null;
+  tableName!: string;
+  appId!: string;
+  table!: Table | null;
 
   get createRecord() {
     return createRecordWrapper<T>(this.appId, this.tableName);

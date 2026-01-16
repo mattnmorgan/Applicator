@@ -50,7 +50,7 @@ export default function AppWidgetPage() {
           setComponentName(widgetInfo.component);
 
           // Fetch app metadata to get version from system:app table using generic API
-          const appResponse = await fetch(`/api/system/apps/system/tables/app?fields=${encodeURIComponent(JSON.stringify({ id: mainAppId }))}`);
+          const appResponse = await fetch(`/api/system/apps/system/tables/app?ids=${encodeURIComponent(mainAppId)}`);
           if (!appResponse.ok) {
             setError("Failed to load app information");
             setLoading(false);
@@ -107,7 +107,7 @@ export default function AppWidgetPage() {
           setComponentName(widgetInfo.component);
 
           // Get app version from system:app table using generic API
-          const appResponse = await fetch(`/api/system/apps/system/tables/app?fields=${encodeURIComponent(JSON.stringify({ id: mainAppId }))}`);
+          const appResponse = await fetch(`/api/system/apps/system/tables/app?ids=${encodeURIComponent(mainAppId)}`);
           if (!appResponse.ok) {
             setError("Failed to load app information");
             setLoading(false);

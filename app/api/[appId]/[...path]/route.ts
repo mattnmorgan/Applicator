@@ -127,7 +127,7 @@ async function handleRequest(
     }
 
     // Create plugin context
-    const plugin = createPlugin(appId, userId);
+    const plugin = await createPlugin(appId, userId);
     const context = { plugin };
 
     // Execute the handler with context

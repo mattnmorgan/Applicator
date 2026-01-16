@@ -19,8 +19,15 @@ export interface PluginContext {
     deleteFile: (filePath: string) => Promise<void>;
     exists: (filePath: string) => Promise<boolean>;
     mkdir: (dirPath: string) => Promise<void>;
+    createDirectory: (dirPath: string) => Promise<void>;
     readdir: (dirPath: string) => Promise<string[]>;
     stat: (filePath: string) => Promise<any>;
+    listFiles: (dirPath: string) => Promise<string[]>;
+    getMetadata: (filePath: string) => Promise<{
+      size: number;
+      modifiedAt: Date;
+      isDirectory: boolean;
+    }>;
   };
   getUser: () => Promise<any>;
   hasAuthorization: (authorization: string) => Promise<boolean>;
@@ -75,6 +82,10 @@ export async function createPlugin(appId: string, userId?: string): Promise<Plug
         const fullPath = path.join(appStoragePath, dirPath);
         await fs.mkdir(fullPath, { recursive: true });
       },
+      createDirectory: async (dirPath: string) => {
+        const fullPath = path.join(appStoragePath, dirPath);
+        await fs.mkdir(fullPath, { recursive: true });
+      },
       readdir: async (dirPath: string) => {
         const fullPath = path.join(appStoragePath, dirPath);
         return await fs.readdir(fullPath);
@@ -82,6 +93,19 @@ export async function createPlugin(appId: string, userId?: string): Promise<Plug
       stat: async (filePath: string) => {
         const fullPath = path.join(appStoragePath, filePath);
         return await fs.stat(fullPath);
+      },
+      listFiles: async (dirPath: string) => {
+        const fullPath = path.join(appStoragePath, dirPath);
+        return await fs.readdir(fullPath);
+      },
+      getMetadata: async (filePath: string) => {
+        const fullPath = path.join(appStoragePath, filePath);
+        const stats = await fs.stat(fullPath);
+        return {
+          size: stats.size,
+          modifiedAt: stats.mtime,
+          isDirectory: stats.isDirectory(),
+        };
       },
     },
     getUser: async () => {
