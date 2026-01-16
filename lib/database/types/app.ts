@@ -1,4 +1,3 @@
-import TableDefinition from "@/lib/database/types/table";
 import AppVersion from "@/lib/database/types/appVersion";
 import Widget from "@/lib/database/types/widget";
 
@@ -18,5 +17,4 @@ export default interface App {
   description: string;
   subApps?: SubApp[];
   dependencies?: Record<string, AppVersion>;
-  tables?: TableDefinition[];
 }
