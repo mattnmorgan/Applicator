@@ -1,9 +1,12 @@
 import { NextResponse } from 'next/server';
-import { isFirstTimeSetup } from '@/lib/database/helpers';
+import UserManager from '@/lib/database/managers/user';
 
 export async function GET() {
   try {
-    const needsSetup = await isFirstTimeSetup();
+    const userManager = new UserManager();
+    const users = await userManager.listRecords();
+    const needsSetup = users.length === 0;
+
     return NextResponse.json({ needsSetup });
   } catch (error) {
     console.error('Setup check error:', error);

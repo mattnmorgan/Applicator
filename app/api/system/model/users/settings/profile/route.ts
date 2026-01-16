@@ -1,20 +1,23 @@
 import { NextResponse } from 'next/server';
-import { getCurrentUser, getUserById, updateUser, getSystemSetting } from '@/lib/database/helpers';
+import { getCurrentUser } from '@/lib/database/managers/user';
+import UserManager from '@/lib/database/managers/user';
+import SettingManager from '@/lib/database/managers/setting';
 import bcrypt from 'bcryptjs';
 import fs from 'fs';
 import path from 'path';
 
 export async function PATCH(request: Request) {
   try {
-    const currentUser = await getCurrentUser();
+    const currentUserResult = await getCurrentUser();
 
-    if (!currentUser) {
+    if (!currentUserResult) {
       return NextResponse.json(
         { error: 'Not authenticated' },
         { status: 401 }
       );
     }
 
+    const currentUser = currentUserResult.user;
     const formData = await request.formData();
 
     const displayName = formData.get('displayName') as string;
@@ -40,15 +43,7 @@ export async function PATCH(request: Request) {
         );
       }
 
-      const user = await getUserById(currentUser.id);
-      if (!user) {
-        return NextResponse.json(
-          { error: 'User not found' },
-          { status: 404 }
-        );
-      }
-
-      const passwordMatch = await bcrypt.compare(currentPassword, user.passwordHash);
+      const passwordMatch = await bcrypt.compare(currentPassword, currentUser.data.passwordHash);
       if (!passwordMatch) {
         return NextResponse.json(
           { error: 'Current password is incorrect' },
@@ -76,7 +71,9 @@ export async function PATCH(request: Request) {
 
     // Handle profile picture upload if provided
     if (profilePictureFile) {
-      const systemStorage = await getSystemSetting('storage');
+      const settingManager = new SettingManager();
+      const storageSetting = await settingManager.readRecord('storage');
+      const systemStorage = storageSetting?.data.value;
 
       if (!systemStorage) {
         return NextResponse.json(
@@ -109,7 +106,12 @@ export async function PATCH(request: Request) {
       updates.icon = relativePath;
     }
 
-    await updateUser(currentUser.id, updates);
+    // Update user
+    const userManager = new UserManager();
+    await userManager.updateRecord(await userManager.getTable(), currentUser.id, {
+      ...currentUser.data,
+      ...updates,
+    });
 
     return NextResponse.json({
       success: true,

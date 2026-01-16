@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/sdk";
+import { userHasAuthorization } from "@/lib/database/managers/user";
 import {
-  userHasAuthorization,
   getApp,
   getAllApps,
   initializeAuthorities,

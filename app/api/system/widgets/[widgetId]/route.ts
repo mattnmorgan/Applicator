@@ -1,26 +1,34 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getCurrentUser, getAllApps, getAuthority, getUserAuthority } from "@/lib/database/helpers";
+import { getCurrentUser } from "@/lib/database/managers/user";
+import AppManager from "@/lib/database/managers/app";
+import AuthorityManager from "@/lib/database/managers/authority";
 
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ widgetId: string }> }
 ) {
   try {
-    const user = await getCurrentUser();
-    if (!user) {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const user = currentUser.user;
     const { widgetId } = await params;
 
     // Get all apps and search for the widget
-    const apps = await getAllApps();
+    const appManager = new AppManager();
+    const appKeys = await appManager.listRecords();
 
     let foundWidget: any = null;
     let foundAppId: string | null = null;
 
-    for (const app of apps) {
-      if (!app.data.subApps) continue;
+    for (const key of appKeys) {
+      const appId = key.split(":").pop();
+      if (!appId) continue;
+
+      const app = await appManager.readRecord(appId);
+      if (!app || !app.data.subApps) continue;
 
       for (const subApp of app.data.subApps) {
         if (!subApp.widgets) continue;
@@ -44,12 +52,13 @@ export async function GET(
     }
 
     // Check if user has access to the widget's sub-app
-    const authority = await getAuthority(user.authority);
-    const userAuthority = await getUserAuthority(user.id);
+    const authorityManager = new AuthorityManager();
+    const authority = await authorityManager.readRecord(user.data.authority);
+    const userAuthority = await authorityManager.readUserAuthority(user.id);
 
     const userSubApps = [
-      ...(authority?.apps || []),
-      ...(userAuthority?.apps || []),
+      ...(authority?.data.apps || []),
+      ...(userAuthority?.data.apps || []),
     ];
 
     if (!userSubApps.includes(foundAppId)) {

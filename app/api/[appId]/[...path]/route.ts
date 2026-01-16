@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getApp, getSystemSetting } from '@/lib/database/helpers';
+import AppManager from '@/lib/database/managers/app';
+import SettingManager from '@/lib/database/managers/setting';
 import { createPlugin, getSession } from '@/lib/sdk';
 import * as path from 'path';
 import * as fs from 'fs';
@@ -50,7 +51,8 @@ async function handleRequest(
     const route = routePath.join('/');
 
     // Get app from database
-    const app = await getApp(appId);
+    const appManager = new AppManager();
+    const app = await appManager.readRecord(appId);
     if (!app) {
       return NextResponse.json({ error: 'App not found' }, { status: 404 });
     }
@@ -68,7 +70,9 @@ async function handleRequest(
     }
 
     // Get system storage path
-    const storagePath = await getSystemSetting('storage');
+    const settingManager = new SettingManager();
+    const storageSetting = await settingManager.readRecord('storage');
+    const storagePath = storageSetting?.data.value;
     if (!storagePath) {
       return NextResponse.json(
         { error: 'System storage not configured' },

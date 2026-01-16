@@ -59,3 +59,48 @@ export async function verifyPassword(
 ): Promise<boolean> {
   return bcrypt.compare(password, passwordHash);
 }
+
+/**
+ * Get all authorizations for a user
+ */
+export async function getUserAuthorizations(userId: string): Promise<string[]> {
+  const userManager = new UserManager();
+  const authorityManager = new AuthorityManager();
+
+  const userRecord = await userManager.readRecord(userId);
+  if (!userRecord) return [];
+
+  const mainAuthority = await authorityManager.readRecord(userRecord.data.authority);
+  const userAuthority = await authorityManager.readUserAuthority(userId);
+
+  const authorizations = new Set<string>();
+  if (mainAuthority) {
+    mainAuthority.data.authorizations.forEach(auth => authorizations.add(auth));
+  }
+  if (userAuthority) {
+    userAuthority.data.authorizations.forEach(auth => authorizations.add(auth));
+  }
+
+  return Array.from(authorizations);
+}
+
+/**
+ * Check if a user has specific authorization(s)
+ * @param userId - The user ID to check
+ * @param authorizations - Single authorization string or array of authorizations
+ * @param requireAll - If true, user must have ALL authorizations. If false (default), user must have ANY
+ */
+export async function userHasAuthorization(
+  userId: string,
+  authorizations: string | string[],
+  requireAll: boolean = false
+): Promise<boolean> {
+  const userAuths = await getUserAuthorizations(userId);
+  const requiredAuths = Array.isArray(authorizations) ? authorizations : [authorizations];
+
+  if (requireAll) {
+    return requiredAuths.every(auth => userAuths.includes(auth));
+  } else {
+    return requiredAuths.some(auth => userAuths.includes(auth));
+  }
+}

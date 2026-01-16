@@ -1,29 +1,40 @@
 import { NextResponse } from "next/server";
-import {
-  getCurrentUser,
-  getUserSubApps,
-  getSubApp,
-  parseSubAppId,
-  getUserAuthorizations,
-} from "@/lib/database/helpers";
+import { getCurrentUser } from "@/lib/database/managers/user";
+import AuthorityManager from "@/lib/database/managers/authority";
+import AppManager from "@/lib/database/managers/app";
 
 export async function GET() {
   try {
-    const user = await getCurrentUser();
+    const currentUser = await getCurrentUser();
 
-    if (!user) {
+    if (!currentUser) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const profilePictureUrl = user.icon
+    const user = currentUser.user;
+    const profilePictureUrl = user.data.icon
       ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}`
       : undefined;
 
     // Get user's authorizations
-    const { authorizations } = await getUserAuthorizations(user.id);
+    const authorityManager = new AuthorityManager();
+    const mainAuthority = await authorityManager.readRecord(user.data.authority);
+    const userAuthority = await authorityManager.readUserAuthority(user.id);
+
+    const authorizations = new Set<string>();
+    if (mainAuthority) {
+      mainAuthority.data.authorizations.forEach(auth => authorizations.add(auth));
+    }
+    if (userAuthority) {
+      userAuthority.data.authorizations.forEach(auth => authorizations.add(auth));
+    }
 
     // Get sub-app IDs from user's authorities
-    const subAppIds = await getUserSubApps(user.id);
+    const subAppIds = [
+      ...(mainAuthority?.data.apps || []),
+      ...(userAuthority?.data.apps || []),
+    ];
+    const uniqueSubAppIds = [...new Set(subAppIds)];
 
     // Map sub-app IDs to their full details
     const userSubApps: Array<{
@@ -33,20 +44,30 @@ export async function GET() {
       subAppId: string;
     }> = [];
     const mainAppIds = new Set<string>();
+    const appManager = new AppManager();
 
-    for (const fullSubAppId of subAppIds) {
+    for (const fullSubAppId of uniqueSubAppIds) {
       try {
-        const { mainAppId, subAppId } = parseSubAppId(fullSubAppId);
-        const subApp = await getSubApp(fullSubAppId);
+        const parts = fullSubAppId.split(":");
+        if (parts.length !== 2) {
+          console.error(`Invalid sub-app ID format: ${fullSubAppId}`);
+          continue;
+        }
 
-        if (subApp) {
-          userSubApps.push({
-            id: fullSubAppId,
-            label: subApp.label,
-            mainAppId,
-            subAppId,
-          });
-          mainAppIds.add(mainAppId);
+        const [mainAppId, subAppId] = parts;
+        const app = await appManager.readRecord(mainAppId);
+
+        if (app && app.data.subApps) {
+          const subApp = app.data.subApps.find((sa) => sa.id === subAppId);
+          if (subApp) {
+            userSubApps.push({
+              id: fullSubAppId,
+              label: subApp.label,
+              mainAppId,
+              subAppId,
+            });
+            mainAppIds.add(mainAppId);
+          }
         }
       } catch (error) {
         // Skip invalid sub-app IDs
@@ -60,17 +81,17 @@ export async function GET() {
     return NextResponse.json({
       user: {
         id: user.id,
-        displayName: user.displayName,
-        username: user.username,
-        email: user.email,
-        authority: user.authority,
-        isAdmin: authorizations.includes("admin"),
+        displayName: user.data.displayName,
+        username: user.data.username,
+        email: user.data.email,
+        authority: user.data.authority,
+        isAdmin: authorizations.has("admin"),
         profilePicture: profilePictureUrl,
       },
-      authorizations,
+      authorizations: Array.from(authorizations),
       userSubApps, // New: array of sub-apps with full details
       userMainApps, // New: array of main app IDs (derived)
-      isAssumedIdentity: user.isAssumedIdentity,
+      isAssumedIdentity: currentUser.isAssumedIdentity,
     });
   } catch (error) {
     console.error("Failed to get current user:", error);

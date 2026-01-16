@@ -1,11 +1,9 @@
 import { redirect } from "next/navigation";
-import {
-  getCurrentUser,
-  isFirstTimeSetup,
-  getUserSubApps,
-  getSubApp,
-  getBrandSettings,
-} from "@/lib/database/helpers";
+import { getCurrentUser } from "@/lib/database/managers/user";
+import { getSystemSettings } from "@/lib/database/managers/setting";
+import UserManager from "@/lib/database/managers/user";
+import AuthorityManager from "@/lib/database/managers/authority";
+import AppManager from "@/lib/database/managers/app";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/Tabset";
 
@@ -18,16 +16,38 @@ async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
   ];
 
   // Get user's accessible sub-apps
-  const subAppIds = await getUserSubApps(userId);
+  const authorityManager = new AuthorityManager();
+  const userManager = new UserManager();
+  const appManager = new AppManager();
 
-  for (const fullSubAppId of subAppIds) {
+  const userRecord = await userManager.readRecord(userId);
+  if (!userRecord) return homeMenuItems;
+
+  const mainAuthority = await authorityManager.readRecord(userRecord.data.authority);
+  const userAuthority = await authorityManager.readUserAuthority(userId);
+
+  const subAppIds = [
+    ...(mainAuthority?.data.apps || []),
+    ...(userAuthority?.data.apps || []),
+  ];
+  const uniqueSubAppIds = [...new Set(subAppIds)];
+
+  for (const fullSubAppId of uniqueSubAppIds) {
     try {
-      const subApp = await getSubApp(fullSubAppId);
-      if (subApp) {
-        homeMenuItems.push({
-          label: subApp.label,
-          path: `/app/${fullSubAppId}`,
-        });
+      const parts = fullSubAppId.split(":");
+      if (parts.length !== 2) continue;
+
+      const [mainAppId, subAppId] = parts;
+      const app = await appManager.readRecord(mainAppId);
+
+      if (app && app.data.subApps) {
+        const subApp = app.data.subApps.find((sa) => sa.id === subAppId);
+        if (subApp) {
+          homeMenuItems.push({
+            label: subApp.label,
+            path: `/app/${fullSubAppId}`,
+          });
+        }
       }
     } catch (error) {
       console.error(`Error loading sub-app ${fullSubAppId}:`, error);
@@ -39,35 +59,45 @@ async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
 
 export default async function HomePage() {
   // Check if first-time setup is needed
-  const needsSetup = await isFirstTimeSetup();
+  const userManager = new UserManager();
+  const users = await userManager.listRecords();
+  const needsSetup = users.length === 0;
+
   if (needsSetup) {
     redirect("/system/setup");
   }
 
   // Check if user is authenticated
-  const user = await getCurrentUser();
-  if (!user) {
+  const currentUserResult = await getCurrentUser();
+  if (!currentUserResult) {
     redirect("/system/login");
   }
 
-  const profilePictureUrl = user.icon
+  const user = currentUserResult.user;
+  const profilePictureUrl = user.data.icon
     ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}`
     : undefined;
-  const brandSettings = await getBrandSettings();
-  const hasAdminAuth = user.authorizations.includes("admin");
+
+  const settings = await getSystemSettings();
+  const brandSettings = {
+    brandName: settings.brandName || "Applicator",
+    brandIcon: settings.brandIcon ? `/api/system/assets/brand?t=${Date.now()}` : undefined,
+  };
+
+  const hasAdminAuth = currentUserResult.authorizations.flat().includes("admin");
 
   const homeMenuItems = await getHomeMenuItems(user.id);
 
   return (
     <>
       <Navigation
-        displayName={user.displayName}
+        displayName={user.data.displayName}
         profilePicture={profilePictureUrl}
         isAdmin={hasAdminAuth}
         brandName={brandSettings.brandName}
         brandIcon={brandSettings.brandIcon}
-        authorizations={user.authorizations}
-        isAssumedIdentity={user.isAssumedIdentity}
+        authorizations={currentUserResult.authorizations.flat()}
+        isAssumedIdentity={currentUserResult.isAssumedIdentity}
       />
       <div
         style={{
@@ -117,7 +147,7 @@ export default async function HomePage() {
                   color: "#f1f5f9",
                 }}
               >
-                Hello, {user.displayName}
+                Hello, {user.data.displayName}
               </h1>
               <p
                 style={{

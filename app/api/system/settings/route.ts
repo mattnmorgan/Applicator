@@ -1,17 +1,20 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getSystemSettings } from "@/lib/database/managers/setting";
 import { getSession } from "@/lib/sdk";
-import { userHasAuthorization, setSystemSetting, getSystemSetting, getApp } from "@/lib/database/helpers";
 import { SYSTEM_APP_METADATA } from "@/lib/database/systemMetadata";
+import SettingManager from "@/lib/database/managers/setting";
+import AppManager from "@/lib/database/managers/app";
+import { userHasAuthorization } from "@/lib/database/managers/user";
 import path from "path";
 import fs from "fs/promises";
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     const settings = await getSystemSettings();
 
     // Get version information
-    const systemApp = await getApp("system");
+    const appManager = new AppManager();
+    const systemApp = await appManager.readRecord("system");
     let versionInfo = null;
 
     if (systemApp) {
@@ -63,10 +66,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    // Check if user has admin authorization
     const hasAdmin = await userHasAuthorization(session.userId, "admin");
     if (!hasAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
+
+    const settingManager = new SettingManager();
+    const table = await settingManager.getTable();
+
+    // Helper function to upsert a setting
+    const setSetting = async (key: string, value: string) => {
+      await settingManager.upsertRecord(table, key, { value });
+    };
+
+    // Helper function to get a setting
+    const getSetting = async (key: string): Promise<string | undefined> => {
+      const record = await settingManager.readRecord(key);
+      return record?.data.value;
+    };
 
     // Check if this is a FormData request (for brand icon upload)
     const contentType = request.headers.get("content-type");
@@ -80,12 +98,12 @@ export async function POST(request: NextRequest) {
       const clearBrandIcon = formData.get("clearBrandIcon") as string | null;
 
       if (brandName) {
-        await setSystemSetting("brandName", brandName);
+        await setSetting("brandName", brandName);
       }
 
       // Handle brand icon clear
       if (clearBrandIcon === "true") {
-        const storagePath = await getSystemSetting("storage");
+        const storagePath = await getSetting("storage");
         if (storagePath) {
           const logoPath = path.join(storagePath, "brand", "logo.png");
           try {
@@ -94,12 +112,12 @@ export async function POST(request: NextRequest) {
             // File doesn't exist, that's ok
           }
         }
-        await setSystemSetting("brandIcon", "");
+        await setSetting("brandIcon", "");
       }
 
       // Handle logo upload if provided
       if (brandIcon && brandIcon.size > 0) {
-        const storagePath = await getSystemSetting("storage");
+        const storagePath = await getSetting("storage");
         if (storagePath) {
           const logoDir = path.join(storagePath, "brand");
           await fs.mkdir(logoDir, { recursive: true });
@@ -109,13 +127,13 @@ export async function POST(request: NextRequest) {
           await fs.writeFile(logoPath, logoBuffer);
 
           // Set brandIcon setting to relative path
-          await setSystemSetting("brandIcon", "brand/logo.png");
+          await setSetting("brandIcon", "brand/logo.png");
         }
       }
 
       return NextResponse.json({
         success: true,
-        brandName: brandName || await getSystemSetting("brandName")
+        brandName: brandName || await getSetting("brandName")
       });
     } else {
       // Handle JSON settings (storage, logging, etc.)
@@ -124,11 +142,11 @@ export async function POST(request: NextRequest) {
       // Update each setting provided in the request
       for (const [key, value] of Object.entries(body)) {
         if (key === "storage" && typeof value === "string") {
-          await setSystemSetting("storage", value);
+          await setSetting("storage", value);
         } else if (key === "loggingEnabled" && typeof value === "boolean") {
-          await setSystemSetting("loggingEnabled", String(value));
+          await setSetting("loggingEnabled", String(value));
         } else if (key === "brandName" && typeof value === "string") {
-          await setSystemSetting("brandName", value);
+          await setSetting("brandName", value);
         }
       }
 

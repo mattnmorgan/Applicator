@@ -16,6 +16,7 @@ import {
   createRecordWrapper,
   bulkCreateRecordsWrapper,
 } from "@/lib/database/crud/create";
+import { upsertRecordWrapper } from "@/lib/database/crud/upsert";
 import {
   getRedisClient,
   getKeyPrefix,
@@ -53,6 +54,9 @@ export default abstract class CRUD<T = any> {
   }
   get bulkUpdateRecords() {
     return bulkUpdateRecordsWrapper<T>(this.appId, this.tableName);
+  }
+  get upsertRecord() {
+    return upsertRecordWrapper<T>(this.appId, this.tableName);
   }
 
   async getTable(): Promise<Table | null> {

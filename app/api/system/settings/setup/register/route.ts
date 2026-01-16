@@ -1,12 +1,20 @@
 import { NextResponse } from 'next/server';
-import { createUser, setSystemSetting, isFirstTimeSetup, initializeAuthorities, createApp } from '@/lib/database/helpers';
 import TableManager from '@/lib/database/managers/table';
+import UserManager from '@/lib/database/managers/user';
+import AppManager from '@/lib/database/managers/app';
+import SettingManager from '@/lib/database/managers/setting';
+import AuthorityManager from '@/lib/database/managers/authority';
+import AuthorizationManager from '@/lib/database/managers/authorization';
 import { SYSTEM_APP_METADATA } from '@/lib/database/systemMetadata';
+import bcrypt from 'bcryptjs';
 
 export async function POST(request: Request) {
   try {
     // Check if setup is still needed
-    const needsSetup = await isFirstTimeSetup();
+    const userManager = new UserManager();
+    const users = await userManager.listRecords();
+    const needsSetup = users.length === 0;
+
     if (!needsSetup) {
       return NextResponse.json(
         { error: 'Setup already completed' },
@@ -26,7 +34,8 @@ export async function POST(request: Request) {
     }
 
     // Step 1: Create the system app
-    await createApp('system', {
+    const appManager = new AppManager();
+    await appManager.createRecord(await appManager.getTable(), {
       label: SYSTEM_APP_METADATA.name,
       version: SYSTEM_APP_METADATA.version,
       author: SYSTEM_APP_METADATA.author,
@@ -35,7 +44,7 @@ export async function POST(request: Request) {
       apiRoutes: SYSTEM_APP_METADATA.apiRoutes,
       dependencies: SYSTEM_APP_METADATA.dependencies,
       subApps: SYSTEM_APP_METADATA.subApps,
-    });
+    }, { id: 'system' });
 
     // Step 2: Create all table definitions
     const tableManager = new TableManager();
@@ -49,13 +58,55 @@ export async function POST(request: Request) {
     }
 
     // Step 3: Initialize authorities
-    await initializeAuthorities();
+    const authorityManager = new AuthorityManager();
+    const authorizationManager = new AuthorizationManager();
+
+    // Create authorizations from system metadata
+    for (const authorization of SYSTEM_APP_METADATA.authorizations) {
+      await authorizationManager.createRecord(
+        await authorizationManager.getTable(),
+        {
+          name: authorization.name,
+          description: authorization.description,
+          app: authorization.app,
+          contextual: authorization.contextual,
+        },
+        { id: authorization.id }
+      );
+    }
+
+    // Create authorities from system metadata
+    for (const authority of SYSTEM_APP_METADATA.authorities) {
+      await authorityManager.createRecord(
+        await authorityManager.getTable(),
+        {
+          name: authority.name,
+          authorizations: authority.authorizations,
+          apps: authority.apps,
+          contextual: authority.contextual,
+        },
+        { id: authority.id }
+      );
+    }
 
     // Step 4: Create the administrative user with 'admin' authority
-    const user = await createUser(username, email, displayName, password, 'admin');
+    const passwordHash = await bcrypt.hash(password, 10);
+    const user = await userManager.createRecord(await userManager.getTable(), {
+      username,
+      email,
+      displayName,
+      passwordHash,
+      authority: 'admin',
+      isActive: true,
+    });
 
     // Step 5: Mark setup as complete
-    await setSystemSetting('administratorUserId', user.id);
+    const settingManager = new SettingManager();
+    await settingManager.createRecord(
+      await settingManager.getTable(),
+      { value: user.id },
+      { id: 'administratorUserId' }
+    );
 
     return NextResponse.json({
       success: true,

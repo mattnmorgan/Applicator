@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { getCurrentUser, getAllApps, getAuthority } from '@/lib/database/helpers';
+import { getCurrentUser } from '@/lib/database/managers/user';
+import AppManager from '@/lib/database/managers/app';
+import AuthorityManager from '@/lib/database/managers/authority';
 
 export async function GET(
   request: NextRequest,
@@ -9,30 +11,38 @@ export async function GET(
     const { widgetId } = await params;
 
     // Get current user
-    const user = await getCurrentUser();
-    if (!user) {
+    const currentUser = await getCurrentUser();
+    if (!currentUser) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
+    const user = currentUser.user;
+
     // Get user's authority
-    const authority = await getAuthority(user.authority);
+    const authorityManager = new AuthorityManager();
+    const authority = await authorityManager.readRecord(user.data.authority);
     if (!authority) {
       return NextResponse.json({ error: 'Authority not found' }, { status: 404 });
     }
 
     // Find the widget across all apps
-    const allApps = await getAllApps();
+    const appManager = new AppManager();
+    const appKeys = await appManager.listRecords();
     let foundWidget = null;
-    let foundApp = null;
+    let foundAppId = null;
 
-    for (const app of allApps) {
-      if (app.data.subApps) {
+    for (const key of appKeys) {
+      const appId = key.split(":").pop();
+      if (!appId) continue;
+
+      const app = await appManager.readRecord(appId);
+      if (app && app.data.subApps) {
         for (const subApp of app.data.subApps) {
           if (subApp.widgets) {
             const widget = subApp.widgets.find(w => w.id === widgetId);
             if (widget) {
               foundWidget = widget;
-              foundApp = app;
+              foundAppId = app.id;
               break;
             }
           }
@@ -41,12 +51,12 @@ export async function GET(
       }
     }
 
-    if (!foundWidget || !foundApp) {
+    if (!foundWidget || !foundAppId) {
       return NextResponse.json({ error: 'Widget not found' }, { status: 404 });
     }
 
     // Check if user has access to the app
-    if (!authority.apps.includes(foundApp.id)) {
+    if (!authority.data.apps.includes(foundAppId)) {
       return NextResponse.json(
         { error: 'You do not have access to this widget' },
         { status: 403 }
