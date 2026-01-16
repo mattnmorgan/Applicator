@@ -18,12 +18,13 @@ export default class LogManager extends CRUD<Log> {
 
     if (loggingEnabled) {
       const now = Date.now();
+      const currentUser = await getCurrentUser();
       const record = await this.createRecord(
         await this.getTable(),
         {
           level: variant,
           message: message,
-          userId: (await getCurrentUser()).user.id,
+          userId: currentUser?.user.id || "system",
           timestamp: `${now}`,
           sender,
         },

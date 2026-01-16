@@ -7,6 +7,8 @@ import AuthorizationManager from "@/lib/database/managers/authorization";
 import AuthorityManager from "@/lib/database/managers/authority";
 import SettingManager from "@/lib/database/managers/setting";
 import LogManager from "@/lib/database/managers/log";
+import TableManager from "@/lib/database/managers/table";
+import { deleteAll } from "@/lib/database/crud/delete";
 import path from "path";
 import fs from "fs/promises";
 import { createRequire } from "module";
@@ -133,7 +135,20 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Delete all app records - handled by table deletion below
+    // Delete all app tables and their records
+    const tableManager = new TableManager();
+    const allTablesResult = await tableManager.readRecords();
+    const appTables = allTablesResult.records.filter(
+      (table) => table.data.app === appId
+    );
+
+    for (const table of appTables) {
+      // Delete all records in this table
+      await deleteAll(appId, table.data.tableName);
+
+      // Delete the table definition
+      await tableManager.deleteTable(appId, table.data.tableName);
+    }
 
     // Delete all authorizations for this app
     const authorizationManager = new AuthorizationManager();

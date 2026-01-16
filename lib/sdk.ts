@@ -7,6 +7,12 @@ import { getSession } from "@/lib/database/managers/session";
 import SettingManager from "@/lib/database/managers/setting";
 import AuthorityManager from "@/lib/database/managers/authority";
 import UserManager from "@/lib/database/managers/user";
+import LogManager from "@/lib/database/managers/log";
+import TableManager from "@/lib/database/managers/table";
+import { createRecord, bulkCreateRecords } from "@/lib/database/crud/create";
+import { readRecord, readRecords } from "@/lib/database/crud/read";
+import { updateRecord } from "@/lib/database/crud/update";
+import { deleteRecord } from "@/lib/database/crud/delete";
 import path from "path";
 import fs from "fs/promises";
 
@@ -29,6 +35,23 @@ export interface PluginContext {
       isDirectory: boolean;
     }>;
   };
+  records: {
+    create: (data: any) => Promise<any>;
+    list: (options?: { limit?: number; offset?: number }) => Promise<any>;
+    get: (id: string) => Promise<any>;
+    update: (id: string, data: any) => Promise<any>;
+    delete: (id: string) => Promise<void>;
+  };
+  system: {
+    checkMyAuthorization: (authorization: string) => Promise<boolean>;
+    getUser: (userId: string) => Promise<any>;
+    getUsers: (includeInactive?: boolean) => Promise<any[]>;
+  };
+  logger: {
+    info: (message: string) => Promise<void>;
+    warn: (message: string) => Promise<void>;
+    error: (message: string) => Promise<void>;
+  };
   getUser: () => Promise<any>;
   hasAuthorization: (authorization: string) => Promise<boolean>;
 }
@@ -50,6 +73,12 @@ export async function createPlugin(appId: string, userId?: string): Promise<Plug
   } catch (error) {
     // Directory might already exist
   }
+
+  // Determine the main table for this app
+  // For now, apps use a table with the same name as the appId (e.g., "task" app uses "task" table)
+  const tableManager = new TableManager();
+  const tableName = appId; // Convention: table name matches app ID
+  const table = await tableManager.loadTable(appId, tableName);
 
   const plugin: PluginContext = {
     appId,
@@ -108,6 +137,113 @@ export async function createPlugin(appId: string, userId?: string): Promise<Plug
         };
       },
     },
+    records: {
+      create: async (data: any) => {
+        const record = await createRecord(appId, tableName, table, data);
+        return record;
+      },
+      list: async (options?: { limit?: number; offset?: number }) => {
+        const result = await readRecords(appId, tableName, {
+          limit: options?.limit || 100,
+          offset: options?.offset || 0,
+        });
+        return result;
+      },
+      get: async (id: string) => {
+        const record = await readRecord(appId, tableName, id);
+        return record;
+      },
+      update: async (id: string, data: any) => {
+        const record = await updateRecord(appId, tableName, table, id, data);
+        return record;
+      },
+      delete: async (id: string) => {
+        await deleteRecord(appId, tableName, id);
+      },
+    },
+    system: {
+      checkMyAuthorization: async (authorization: string) => {
+        if (!userId) return false;
+
+        const userManager = new UserManager();
+        const authorityManager = new AuthorityManager();
+
+        const user = await userManager.readRecord(userId);
+        if (!user) return false;
+
+        const authorities = [
+          await authorityManager.readRecord(user.data.authority),
+          await authorityManager.readUserAuthority(userId),
+        ];
+
+        for (const authority of authorities) {
+          if (authority && authority.data.authorizations.includes(authorization)) {
+            return true;
+          }
+        }
+
+        return false;
+      },
+      getUser: async (userId: string) => {
+        const userManager = new UserManager();
+        const user = await userManager.readRecord(userId);
+        if (!user) return null;
+
+        const authorityManager = new AuthorityManager();
+        const authority = await authorityManager.readRecord(user.data.authority);
+
+        return {
+          id: user.id,
+          username: user.data.username,
+          displayName: user.data.displayName,
+          email: user.data.email,
+          authorityName: authority?.data.name || "Unknown",
+        };
+      },
+      getUsers: async (includeInactive: boolean = false) => {
+        const userManager = new UserManager();
+        const authorityManager = new AuthorityManager();
+        const allUsers = await userManager.listRecords();
+
+        const users = [];
+        for (const userKey of allUsers) {
+          const userId = userKey.split(":").pop();
+          if (!userId) continue;
+
+          const user = await userManager.readRecord(userId);
+          if (!user) continue;
+
+          if (!includeInactive && !user.data.isActive) continue;
+
+          const authority = await authorityManager.readRecord(user.data.authority);
+
+          users.push({
+            id: user.id,
+            username: user.data.username,
+            displayName: user.data.displayName,
+            email: user.data.email,
+            isActive: user.data.isActive,
+            authorityName: authority?.data.name || "Unknown",
+          });
+        }
+
+        return users;
+      },
+    },
+    logger: {
+      info: async (message: string) => {
+        const logManager = new LogManager();
+        await logManager.info(appId, message);
+      },
+      warn: async (message: string) => {
+        const logManager = new LogManager();
+        await logManager.warn(appId, message);
+      },
+      error: async (message: string) => {
+        const logManager = new LogManager();
+        await logManager.error(appId, message);
+      },
+    },
     getUser: async () => {
       if (!userId) return null;
       const userManager = new UserManager();
@@ -145,15 +281,24 @@ export { getSession };
 
 /**
  * Require authorization middleware for plugin API handlers
- * Usage: const authorized = await requireAuthorization(context, "admin");
+ * Usage:
+ *   await requireAuthorization(context, "admin");
+ *   await requireAuthorization(plugin, "task:manage");
  */
 export async function requireAuthorization(
-  context: { plugin: PluginContext },
+  contextOrPlugin: { plugin: PluginContext } | PluginContext,
   authorization: string
 ): Promise<boolean> {
-  if (!context.plugin.userId) {
-    return false;
+  const plugin = 'plugin' in contextOrPlugin ? contextOrPlugin.plugin : contextOrPlugin;
+
+  if (!plugin.userId) {
+    throw new Error('User must be authenticated to check authorization');
   }
 
-  return await context.plugin.hasAuthorization(authorization);
+  const hasAuth = await plugin.hasAuthorization(authorization);
+  if (!hasAuth) {
+    throw new Error(`Missing required authorization: ${authorization}`);
+  }
+
+  return true;
 }
