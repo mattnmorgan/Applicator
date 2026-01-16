@@ -1,15 +1,95 @@
 import { redirect } from "next/navigation";
-import {
-  getCurrentUser,
-  isFirstTimeSetup,
-  getAuthority,
-  getSubApp,
-  parseSubAppId,
-  getUserAuthority,
-  getBrandSettings,
-} from "@/lib/database/helpers";
+import { getCurrentUser as getUser } from "@/lib/database/managers/user";
+import { getSystemSettings } from "@/lib/database/managers/setting";
+import AppManager from "@/lib/database/managers/app";
+import AuthorityManager from "@/lib/database/managers/authority";
+import { SubApp } from "@/lib/database/types/app";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/Tabset";
+
+// Inlined helper functions
+async function getCurrentUser() {
+  const result = await getUser();
+  if (!result) return null;
+
+  return {
+    id: result.user.id,
+    displayName: result.user.data.displayName,
+    username: result.user.data.username,
+    email: result.user.data.email,
+    icon: result.user.data.icon,
+    authority: result.user.data.authority,
+    authorizations: result.authorizations.flat(),
+    authorities: result.authorities,
+    isAssumedIdentity: result.isAssumedIdentity,
+  };
+}
+
+async function getBrandSettings() {
+  const settings = await getSystemSettings();
+  return {
+    brandName: settings.brandName || "Applicator",
+    brandIcon: settings.brandIcon,
+  };
+}
+
+async function isFirstTimeSetup(): Promise<boolean> {
+  const userManager = new (
+    await import("@/lib/database/managers/user")
+  ).default();
+  const users = await userManager.listRecords();
+  return users.length === 0;
+}
+
+function parseSubAppId(fullSubAppId: string): {
+  mainAppId: string;
+  subAppId: string;
+} {
+  const parts = fullSubAppId.split(":");
+  if (parts.length !== 2) {
+    throw new Error(`Invalid sub-app ID format: ${fullSubAppId}`);
+  }
+  return {
+    mainAppId: parts[0],
+    subAppId: parts[1],
+  };
+}
+
+async function getSubApp(
+  fullSubAppId: string
+): Promise<(SubApp & { mainAppId: string; fullId: string }) | null> {
+  try {
+    const { mainAppId, subAppId } = parseSubAppId(fullSubAppId);
+    const appManager = new AppManager();
+    const app = await appManager.readRecord(mainAppId);
+
+    if (!app || !app.data.subApps) return null;
+
+    const subApp = app.data.subApps.find((sa) => sa.id === subAppId);
+    if (!subApp) return null;
+
+    return {
+      ...subApp,
+      mainAppId,
+      fullId: fullSubAppId,
+    };
+  } catch (error) {
+    console.error(`Error getting sub-app ${fullSubAppId}:`, error);
+    return null;
+  }
+}
+
+async function getAuthority(authorityId: string) {
+  const authorityManager = new AuthorityManager();
+  const authority = await authorityManager.readRecord(authorityId);
+  return authority?.data || null;
+}
+
+async function getUserAuthority(userId: string) {
+  const authorityManager = new AuthorityManager();
+  const authority = await authorityManager.readUserAuthority(userId);
+  return authority?.data || null;
+}
 
 // Helper function to recursively sort menu items alphabetically
 function sortMenuItems(items: TabsetItem[]): TabsetItem[] {

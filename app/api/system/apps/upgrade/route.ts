@@ -2,18 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/sdk";
 import { userHasAuthorization } from "@/lib/database/managers/user";
 import {
-  getApp,
-  getAllApps,
-  initializeAuthorities,
-  getSystemSetting,
   formatVersion,
   isVersionGreaterOrEqual,
-  updateApp,
-  compareVersions,
-  type AppVersion,
-} from "@/lib/database/helpers";
+} from "@/lib/database/managers/app";
+import AppManager from "@/lib/database/managers/app";
+import AuthorityManager from "@/lib/database/managers/authority";
+import AuthorizationManager from "@/lib/database/managers/authorization";
+import SettingManager from "@/lib/database/managers/setting";
 import TableManager from "@/lib/database/managers/table";
 import LogManager from "@/lib/database/managers/log";
+import type AppVersion from "@/lib/database/types/appVersion";
 import { SYSTEM_APP_METADATA } from "@/lib/database/systemMetadata";
 import path from "path";
 import fs from "fs/promises";
@@ -53,9 +51,13 @@ export async function POST(request: NextRequest) {
 
     // Special handling for system app upgrade without file
     const isSystemApp = appId === "system";
+    const appManager = new AppManager();
+    const authorizationManager = new AuthorizationManager();
+    const authorityManager = new AuthorityManager();
+
     if (isSystemApp && !file) {
       // Upgrade system app using metadata
-      const existingApp = await getApp("system");
+      const existingApp = await appManager.readRecord("system");
       if (!existingApp) {
         return NextResponse.json(
           { error: "System app not found" },
@@ -81,7 +83,7 @@ export async function POST(request: NextRequest) {
       }
 
       // Update system app with new metadata
-      await updateApp("system", {
+      await appManager.updateRecord(await appManager.getTable(), "system", {
         label: SYSTEM_APP_METADATA.name,
         version: SYSTEM_APP_METADATA.version,
         author: SYSTEM_APP_METADATA.author,
@@ -97,12 +99,12 @@ export async function POST(request: NextRequest) {
         SYSTEM_APP_METADATA.tables &&
         Array.isArray(SYSTEM_APP_METADATA.tables)
       ) {
-        const tableDefinition = await new TableManager().loadTable("system", "table");
+        const tableManager = new TableManager();
+        const tableDefinition = await tableManager.loadTable("system", "table");
         if (!tableDefinition) {
           throw new Error("System table definition not found");
         }
 
-        const tableManager = new TableManager();
         const allTables = await tableManager.listRecords();
         const existingTables = allTables.filter((t) => t.startsWith("system:"));
         const existingTableNames = new Set(
@@ -111,10 +113,10 @@ export async function POST(request: NextRequest) {
 
         for (const table of SYSTEM_APP_METADATA.tables) {
           if (existingTableNames.has(table.name)) {
-            await new TableManager().deleteTable("system", table.name);
+            await tableManager.deleteTable("system", table.name);
           }
 
-          await new TableManager().createTable("system", table.name, {
+          await tableManager.createTable("system", table.name, {
             tableName: table.name,
             app: "system",
             description: table.description || "",
@@ -125,12 +127,57 @@ export async function POST(request: NextRequest) {
         }
 
         for (const tableName of existingTableNames) {
-          await new TableManager().deleteTable("system", tableName);
+          await tableManager.deleteTable("system", tableName);
         }
       }
 
       // Reinitialize authorities
-      await initializeAuthorities();
+      // Delete all existing system authorizations
+      const authorizationsResult = await authorizationManager.readRecords();
+      for (const auth of authorizationsResult.records) {
+        if (auth.data.app === "system") {
+          await authorizationManager.deleteRecord(auth.id);
+        }
+      }
+
+      // Delete all existing system authorities
+      const authoritiesResult = await authorityManager.readRecords();
+      for (const authority of authoritiesResult.records) {
+        if (
+          (authority.data.apps && authority.data.apps.includes("system")) ||
+          authority.data.app === "system"
+        ) {
+          await authorityManager.deleteRecord(authority.id);
+        }
+      }
+
+      // Create system authorizations
+      for (const auth of SYSTEM_APP_METADATA.authorizations) {
+        await authorizationManager.createRecord(
+          await authorizationManager.getTable(),
+          {
+            app: "system",
+            name: auth.name,
+            description: auth.description,
+          },
+          { id: `system:${auth.id}` }
+        );
+      }
+
+      // Create system authorities
+      for (const auth of SYSTEM_APP_METADATA.authorities) {
+        await authorityManager.createRecord(
+          await authorityManager.getTable(),
+          {
+            name: auth.name,
+            authorizations: auth.authorizations.map((a) => `system:${a}`),
+            apps: ["system"],
+            contextual: auth.contextual || false,
+            app: auth.contextual ? "system" : undefined,
+          },
+          { id: auth.id }
+        );
+      }
 
       await new LogManager().info(
         "system",
@@ -162,7 +209,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if app exists
-    const existingApp = await getApp(appId);
+    const existingApp = await appManager.readRecord(appId);
     if (!existingApp) {
       await new LogManager().error(
         "system",
@@ -173,8 +220,6 @@ export async function POST(request: NextRequest) {
         { status: 404 }
       );
     }
-
-    const oldVersion = existingApp.data.version;
 
     // Read file as buffer
     const fileBuffer = Buffer.from(await file.arrayBuffer());
@@ -305,9 +350,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if upgrading to the same version
-    if (
-      compareVersions(appAttributes.version, existingApp.data.version) === 0
-    ) {
+    const newV = appAttributes.version;
+    const oldV = existingApp.data.version;
+    const versionComparison =
+      newV.major - oldV.major ||
+      newV.minor - oldV.minor ||
+      newV.dev - oldV.dev;
+
+    if (versionComparison === 0) {
       const versionStr = formatVersion(appAttributes.version);
       const errorMsg = `App upgrade rejected: Cannot upgrade '${appAttributes.id}' to the same version ${versionStr}`;
       await new LogManager().error("system", errorMsg);
@@ -335,8 +385,10 @@ export async function POST(request: NextRequest) {
       appAttributes.dependencies &&
       Object.keys(appAttributes.dependencies).length > 0
     ) {
-      const allApps = await getAllApps();
-      const installedApps = new Map(allApps.map((app) => [app.id, app]));
+      const allAppsResult = await appManager.readRecords();
+      const installedApps = new Map(
+        allAppsResult.records.map((app) => [app.id, app])
+      );
 
       for (const [depId, requiredVersion] of Object.entries(
         appAttributes.dependencies
@@ -681,7 +733,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Get system storage path
-    const storagePath = await getSystemSetting("storage");
+    const settingManager = new SettingManager();
+    const storageRecord = await settingManager.readRecord("storage");
+    const storagePath = storageRecord?.data.value;
     if (!storagePath) {
       return NextResponse.json(
         { error: "System storage not configured" },
@@ -747,29 +801,21 @@ export async function POST(request: NextRequest) {
         await fs.writeFile(iconPath, iconData);
       }
 
-      // Process widgets - ensure appId is set correctly
-      const processedWidgets = (appAttributes.widgets || []).map(
-        (widget: any) => ({
-          id: widget.id,
-          name: widget.name,
-          description: widget.description,
-          target: widget.target,
-          component: widget.component,
-          appId: appAttributes.id,
-        })
-      );
-
       // Update app in database
-      await updateApp(appAttributes.id, {
-        label: appAttributes.name,
-        version: appAttributes.version,
-        author: appAttributes.author,
-        contactEmail: appAttributes.contactEmail || "",
-        description: appAttributes.description,
-        apiRoutes: appAttributes.apiRoutes || [],
-        dependencies: appAttributes.dependencies || {},
-        subApps: appAttributes.subApps || [],
-      });
+      await appManager.updateRecord(
+        await appManager.getTable(),
+        appAttributes.id,
+        {
+          label: appAttributes.name,
+          version: appAttributes.version,
+          author: appAttributes.author,
+          contactEmail: appAttributes.contactEmail || "",
+          description: appAttributes.description,
+          apiRoutes: appAttributes.apiRoutes || [],
+          dependencies: appAttributes.dependencies || {},
+          subApps: appAttributes.subApps || [],
+        }
+      );
 
       // Update table records
       if (appAttributes.tables && Array.isArray(appAttributes.tables)) {
@@ -822,7 +868,52 @@ export async function POST(request: NextRequest) {
         );
 
         // Reinitialize authorities from SYSTEM_APP_METADATA
-        await initializeAuthorities();
+        // Delete all existing system authorizations
+        const authorizationsResult2 = await authorizationManager.readRecords();
+        for (const auth of authorizationsResult2.records) {
+          if (auth.data.app === "system") {
+            await authorizationManager.deleteRecord(auth.id);
+          }
+        }
+
+        // Delete all existing system authorities
+        const authoritiesResult2 = await authorityManager.readRecords();
+        for (const authority of authoritiesResult2.records) {
+          if (
+            (authority.data.apps && authority.data.apps.includes("system")) ||
+            authority.data.app === "system"
+          ) {
+            await authorityManager.deleteRecord(authority.id);
+          }
+        }
+
+        // Create system authorizations
+        for (const auth of SYSTEM_APP_METADATA.authorizations) {
+          await authorizationManager.createRecord(
+            await authorizationManager.getTable(),
+            {
+              app: "system",
+              name: auth.name,
+              description: auth.description,
+            },
+            { id: `system:${auth.id}` }
+          );
+        }
+
+        // Create system authorities
+        for (const auth of SYSTEM_APP_METADATA.authorities) {
+          await authorityManager.createRecord(
+            await authorityManager.getTable(),
+            {
+              name: auth.name,
+              authorizations: auth.authorizations.map((a) => `system:${a}`),
+              apps: ["system"],
+              contextual: auth.contextual || false,
+              app: auth.contextual ? "system" : undefined,
+            },
+            { id: auth.id }
+          );
+        }
 
         await new LogManager().info("system", "System authorities reinitialized");
       }
@@ -889,12 +980,6 @@ export async function POST(request: NextRequest) {
 
           await fs.rm(tablesDir, { recursive: true, force: true });
           await fs.rename(backupTablesDir, tablesDir);
-          // Also restore the old bundle and icon
-          const oldBundlePath = path.join(
-            appDir,
-            `app.js.backup.${Date.now()}`
-          );
-          const bundlePath = path.join(appDir, `app.js`);
           // Note: We don't have backups of bundle/icon yet, but the API and tables rollback is critical
         } catch (rollbackError) {
           console.error(

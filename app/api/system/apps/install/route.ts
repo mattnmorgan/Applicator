@@ -2,19 +2,16 @@ import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/sdk";
 import { userHasAuthorization } from "@/lib/database/managers/user";
 import {
-  createApp,
-  createAuthorization,
-  createAuthority,
-  getApp,
-  getAllApps,
-  deleteApp,
-  getSystemSetting,
   formatVersion,
   isVersionGreaterOrEqual,
-  type AppVersion,
-} from "@/lib/database/helpers";
+} from "@/lib/database/managers/app";
+import AppManager from "@/lib/database/managers/app";
+import AuthorizationManager from "@/lib/database/managers/authorization";
+import AuthorityManager from "@/lib/database/managers/authority";
+import SettingManager from "@/lib/database/managers/setting";
 import TableManager from "@/lib/database/managers/table";
 import LogManager from "@/lib/database/managers/log";
+import type AppVersion from "@/lib/database/types/appVersion";
 import path from "path";
 import fs from "fs/promises";
 import AdmZip from "adm-zip";
@@ -200,8 +197,9 @@ export async function POST(request: NextRequest) {
       appAttributes.dependencies &&
       Object.keys(appAttributes.dependencies).length > 0
     ) {
-      const allApps = await getAllApps();
-      const installedApps = new Map(allApps.map((app) => [app.id, app]));
+      const appManager = new AppManager();
+      const allAppsResult = await appManager.readRecords();
+      const installedApps = new Map(allAppsResult.records.map((app) => [app.id, app]));
 
       for (const [depId, requiredVersion] of Object.entries(
         appAttributes.dependencies
@@ -571,7 +569,8 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if app already exists
-    const existingApp = await getApp(appAttributes.id);
+    const appManager = new AppManager();
+    const existingApp = await appManager.readRecord(appAttributes.id);
     if (existingApp) {
       return NextResponse.json(
         { error: "App with this ID already exists" },
@@ -580,7 +579,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Get system storage path
-    const storagePath = await getSystemSetting("storage");
+    const settingManager = new SettingManager();
+    const storageRecord = await settingManager.readRecord("storage");
+    const storagePath = storageRecord?.data.value;
     if (!storagePath) {
       return NextResponse.json(
         { error: "System storage not configured" },
@@ -626,20 +627,8 @@ export async function POST(request: NextRequest) {
       await fs.writeFile(tableFilePath, tableFile);
     }
 
-    // Process widgets - ensure appId is set correctly (for legacy format)
-    const processedWidgets = (appAttributes.widgets || []).map(
-      (widget: any) => ({
-        id: widget.id,
-        name: widget.name,
-        description: widget.description,
-        target: widget.target,
-        component: widget.component,
-        appId: widget.appId || appAttributes.id, // Use widget.appId if set (new format), else app ID (legacy)
-      })
-    );
-
     // Create app in database
-    await createApp(appAttributes.id, {
+    await appManager.createRecord(await appManager.getTable(), {
       label: appAttributes.name,
       version: appAttributes.version,
       author: appAttributes.author,
@@ -648,42 +637,55 @@ export async function POST(request: NextRequest) {
       apiRoutes: appAttributes.apiRoutes || [],
       dependencies: appAttributes.dependencies || {},
       subApps: appAttributes.subApps || [],
+    }, {
+      id: appAttributes.id,
     });
 
     // Install authorizations
     if (
       appAttributes.authorizations &&
-      Array.isArray(appAttributes.authorizations)
+      Array.isArray(appAttributes.authorizations) &&
+      appAttributes.authorizations.length > 0
     ) {
+      const authorizationManager = new AuthorizationManager();
+      const authTable = await authorizationManager.getTable();
+
       for (const auth of appAttributes.authorizations) {
-        const authId = `${appAttributes.id}:${auth.id}`;
-        await createAuthorization(authId, {
-          name: auth.name,
-          description: auth.description || "",
-          app: appAttributes.id,
-          contextual: auth.contextual || false,
-        });
+        await authorizationManager.createRecord(
+          authTable,
+          {
+            name: auth.name,
+            description: auth.description || "",
+            app: appAttributes.id,
+            contextual: auth.contextual || false,
+          },
+          { id: `${appAttributes.id}:${auth.id}` }
+        );
       }
     }
 
     // Install contextual authorities
-    if (appAttributes.authorities && Array.isArray(appAttributes.authorities)) {
-      for (const authority of appAttributes.authorities) {
-        const authorityId = `${appAttributes.id}:${authority.id}`;
+    if (appAttributes.authorities && Array.isArray(appAttributes.authorities) && appAttributes.authorities.length > 0) {
+      const authorityManager = new AuthorityManager();
+      const authorityTable = await authorityManager.getTable();
 
-        // Map authorization IDs to full contextual authorization IDs
+      for (const authority of appAttributes.authorities) {
         const authorizations = (authority.authorizations || []).map(
           (authId: string) => `${appAttributes.id}:${authId}`
         );
 
-        await createAuthority(authorityId, {
-          name: authority.name,
-          icon: authority.icon,
-          authorizations,
-          apps: [],
-          contextual: true,
-          app: appAttributes.id,
-        });
+        await authorityManager.createRecord(
+          authorityTable,
+          {
+            name: authority.name,
+            icon: authority.icon,
+            authorizations,
+            apps: [],
+            contextual: true,
+            app: appAttributes.id,
+          },
+          { id: `${appAttributes.id}:${authority.id}` }
+        );
       }
     }
 
@@ -757,7 +759,7 @@ export async function POST(request: NextRequest) {
 
       // Clean up - remove app from database and delete files
       try {
-        await deleteApp(appAttributes.id);
+        await appManager.deleteRecord(appAttributes.id);
         await fs.rm(appDir, { recursive: true, force: true });
       } catch (cleanupError) {
         console.error(
