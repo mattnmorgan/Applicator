@@ -14,10 +14,15 @@ import Table from "@/lib/database/types/table";
  * @param data The data to process
  * @returns Processed data with hashed passwords
  */
-async function hashPasswordFields(table: Table | null, data: any): Promise<any> {
+async function hashPasswordFields(
+  table: Table | null,
+  data: any
+): Promise<any> {
   if (!table) return data;
 
-  const passwordFields = table.fields.filter((field) => field.type === "password");
+  const passwordFields = table.fields.filter(
+    (field) => field.type === "password"
+  );
   if (passwordFields.length === 0) return data;
 
   const bcrypt = await import("bcryptjs");
@@ -232,12 +237,7 @@ export async function PATCH(
         }))
       );
 
-      const result = await bulkUpdateRecords(
-        appId,
-        tableId,
-        table,
-        updates
-      );
+      const result = await bulkUpdateRecords(appId, tableId, table, updates);
 
       if (result.failures.length > 0) {
         // Some records failed
@@ -272,7 +272,13 @@ export async function PATCH(
       // Hash password fields if present
       const processedData = await hashPasswordFields(table, data);
 
-      const record = await updateRecord(appId, tableId, table, id, processedData);
+      const record = await updateRecord(
+        appId,
+        tableId,
+        table,
+        id,
+        processedData
+      );
 
       if (!record) {
         return NextResponse.json(
@@ -320,7 +326,7 @@ export async function DELETE(
     const { appId, tableId } = await params;
 
     // Load table definition (mainly for logging/validation)
-    const table = await loadTable(appId, tableId);
+    const table = await new TableManager().loadTable(appId, tableId);
     if (!table) {
       return NextResponse.json(
         { error: `Table ${tableId} not found in app ${appId}` },
