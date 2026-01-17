@@ -3,7 +3,7 @@ import { getCurrentUser } from "@/lib/database/managers/user";
 import { getSystemSettings } from "@/lib/database/managers/setting";
 import UserManager from "@/lib/database/managers/user";
 import AuthorityManager from "@/lib/database/managers/authority";
-import AppManager from "@/lib/database/managers/app";
+import AppletManager from "@/lib/database/managers/applet";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/Tabset";
 
@@ -15,10 +15,10 @@ async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
     },
   ];
 
-  // Get user's accessible sub-apps
+  // Get user's accessible applets
   const authorityManager = new AuthorityManager();
   const userManager = new UserManager();
-  const appManager = new AppManager();
+  const appletManager = new AppletManager();
 
   const userRecord = await userManager.readRecord(userId);
   if (!userRecord) return homeMenuItems;
@@ -26,32 +26,25 @@ async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
   const mainAuthority = await authorityManager.readRecord(userRecord.data.authority);
   const userAuthority = await authorityManager.readUserAuthority(userId);
 
-  const subAppIds = [
+  const appletIds = [
     ...(mainAuthority?.data.apps || []),
     ...(userAuthority?.data.apps || []),
   ];
-  const uniqueSubAppIds = [...new Set(subAppIds)];
+  const uniqueAppletIds = [...new Set(appletIds)];
 
-  for (const fullSubAppId of uniqueSubAppIds) {
-    try {
-      const parts = fullSubAppId.split(":");
-      if (parts.length !== 2) continue;
+  // Get all applets
+  const allAppletsResult = await appletManager.readRecords();
+  const appTypeApplets = allAppletsResult.records.filter(
+    (applet) =>
+      applet.data.target === "app" &&
+      uniqueAppletIds.includes(applet.id)
+  );
 
-      const [mainAppId, subAppId] = parts;
-      const app = await appManager.readRecord(mainAppId);
-
-      if (app && app.data.subApps) {
-        const subApp = app.data.subApps.find((sa) => sa.id === subAppId);
-        if (subApp) {
-          homeMenuItems.push({
-            label: subApp.label,
-            path: `/app/${fullSubAppId}`,
-          });
-        }
-      }
-    } catch (error) {
-      console.error(`Error loading sub-app ${fullSubAppId}:`, error);
-    }
+  for (const applet of appTypeApplets) {
+    homeMenuItems.push({
+      label: applet.data.label,
+      path: `/app/${applet.id}`,
+    });
   }
 
   return homeMenuItems;

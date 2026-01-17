@@ -23,23 +23,23 @@ export default function AppPage() {
     profilePicture?: string;
     isAdmin: boolean;
   } | null>(null);
-  const [userSubApps, setUserSubApps] = useState<
-    Array<{ id: string; label: string }>
+  const [userApplets, setUserApplets] = useState<
+    Array<{ id: string; label: string; target: string }>
   >([]);
   const [authorizations, setAuthorizations] = useState<string[]>([]);
   const [isAssumedIdentity, setIsAssumedIdentity] = useState(false);
   const [brandName, setBrandName] = useState("Applicator");
   const [brandIcon, setBrandIcon] = useState<string | undefined>(undefined);
   const [appVersion, setAppVersion] = useState<string | null>(null);
-  const [subAppComponent, setSubAppComponent] = useState<string | null>(null);
+  const [appletComponent, setAppletComponent] = useState<string | null>(null);
   const [homeMenuItems, setHomeMenuItems] = useState<TabsetItem[]>([]);
   const [moduleUrl, setModuleUrl] = useState<string | null>(null);
 
-  // Parse main app ID and sub-app ID from URL
-  const mainAppId = fullAppId.includes(":")
+  // Parse app ID and applet ID from URL (format: appId:appletId)
+  const appId = fullAppId.includes(":")
     ? fullAppId.split(":")[0]
     : fullAppId;
-  const subAppId = fullAppId.includes(":")
+  const appletId = fullAppId.includes(":")
     ? fullAppId.split(":")[1]
     : path[0] || "main";
   const remainingPath = fullAppId.includes(":") ? path : path.slice(1);
@@ -55,7 +55,7 @@ export default function AppPage() {
             profilePicture: data.user.profilePicture,
             isAdmin: data.user.isAdmin || false,
           });
-          setUserSubApps(data.userSubApps || []);
+          setUserApplets(data.userApplets || []);
           setAuthorizations(data.authorizations || []);
           setIsAssumedIdentity(data.isAssumedIdentity || false);
 
@@ -67,13 +67,15 @@ export default function AppPage() {
             },
           ];
 
-          // Add user's accessible sub-apps as tabs
-          if (data.userSubApps) {
-            for (const subApp of data.userSubApps) {
-              menuItems.push({
-                label: subApp.label,
-                path: `/app/${subApp.id}`,
-              });
+          // Add user's accessible applets with target="app" as tabs
+          if (data.userApplets) {
+            for (const applet of data.userApplets) {
+              if (applet.target === "app") {
+                menuItems.push({
+                  label: applet.label,
+                  path: `/app/${applet.id}`,
+                });
+              }
             }
           }
 
@@ -101,15 +103,15 @@ export default function AppPage() {
       });
   }, []);
 
-  // Fetch app metadata and check authorization
+  // Fetch applet metadata and check authorization
   useEffect(() => {
-    if (!fullAppId || !user || userSubApps.length === 0) {
-      // Wait until we have the user's sub-apps loaded
+    if (!fullAppId || !user || userApplets.length === 0) {
+      // Wait until we have the user's applets loaded
       return;
     }
 
-    // Check if user has access to this sub-app
-    const hasAccess = userSubApps.some((app) => app.id === fullAppId);
+    // Check if user has access to this applet
+    const hasAccess = userApplets.some((applet) => applet.id === fullAppId);
 
     if (!hasAccess) {
       setError(`Access denied: You do not have permission to access this app`);
@@ -117,11 +119,34 @@ export default function AppPage() {
       return;
     }
 
-    // Fetch main app metadata from system:app table using generic API
-    fetch(`/api/system/apps/system/tables/app?ids=${encodeURIComponent(mainAppId)}`)
+    // Fetch applet metadata from system:applet table
+    fetch(`/api/system/apps/system/tables/applet?ids=${encodeURIComponent(fullAppId)}`)
       .then((res) => {
         if (!res.ok) {
-          setError(`App "${mainAppId}" does not exist`);
+          setError(`Applet "${fullAppId}" does not exist`);
+          setLoading(false);
+          return null;
+        }
+        return res.json();
+      })
+      .then((data) => {
+        if (data && data.success && data.records && data.records.length > 0) {
+          const appletRecord = data.records[0].data;
+
+          setAppletComponent(appletRecord.component);
+
+          // Fetch the main app to get the version
+          return fetch(`/api/system/apps/system/tables/app?ids=${encodeURIComponent(appId)}`);
+        } else if (data) {
+          setError(`Applet "${fullAppId}" does not exist`);
+          setLoading(false);
+        }
+        return null;
+      })
+      .then((res) => {
+        if (!res) return null;
+        if (!res.ok) {
+          setError(`App "${appId}" does not exist`);
           setLoading(false);
           return null;
         }
@@ -135,34 +160,22 @@ export default function AppPage() {
           const versionString = `${appRecord.version.major}.${appRecord.version.minor}.${appRecord.version.dev}`;
           setAppVersion(versionString);
 
-          // Find the sub-app to get component name
-          const subApp = appRecord.subApps?.find(
-            (sa: any) => sa.id === subAppId
-          );
-          if (!subApp) {
-            setError(`Sub-app "${subAppId}" not found in app "${mainAppId}"`);
-            setLoading(false);
-            return;
-          }
-
-          setSubAppComponent(subApp.component);
-
           // Set the module URL for the DynamicAppLoader
           setModuleUrl(
-            `/api/system/apps/${mainAppId}/assets/source?v=${versionString}`
+            `/api/system/apps/${appId}/assets/source?v=${versionString}`
           );
           setLoading(false);
         } else if (data) {
-          setError(`App "${mainAppId}" does not exist`);
+          setError(`App "${appId}" does not exist`);
           setLoading(false);
         }
       })
       .catch((err) => {
-        console.error("Error fetching app metadata:", err);
+        console.error("Error fetching applet metadata:", err);
         setError("Failed to load app");
         setLoading(false);
       });
-  }, [fullAppId, mainAppId, subAppId, user, userSubApps]);
+  }, [fullAppId, appId, appletId, user, userApplets]);
 
   return (
     <>
@@ -235,10 +248,10 @@ export default function AppPage() {
             </div>
           )}
 
-          {moduleUrl && subAppComponent && !error && (
+          {moduleUrl && appletComponent && !error && (
             <DynamicAppLoader
               moduleUrl={moduleUrl}
-              componentName={subAppComponent}
+              componentName={appletComponent}
               componentProps={{
                 path: remainingPath,
                 appId: fullAppId,

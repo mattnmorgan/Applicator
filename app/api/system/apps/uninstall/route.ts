@@ -9,6 +9,7 @@ import SettingManager from "@/lib/database/managers/setting";
 import LogManager from "@/lib/database/managers/log";
 import TableManager from "@/lib/database/managers/table";
 import ApiRouteManager from "@/lib/database/managers/apiRoute";
+import AppletManager from "@/lib/database/managers/applet";
 import { deleteAll } from "@/lib/database/crud/delete";
 import path from "path";
 import fs from "fs/promises";
@@ -160,6 +161,17 @@ export async function POST(request: NextRequest) {
 
     for (const route of appApiRoutes) {
       await apiRouteManager.deleteRecord(route.id);
+    }
+
+    // Delete all applets for this app
+    const appletManager = new AppletManager();
+    const allAppletsResult = await appletManager.readRecords();
+    const appApplets = allAppletsResult.records.filter(
+      (applet) => applet.data.app === appId
+    );
+
+    for (const applet of appApplets) {
+      await appletManager.deleteRecord(applet.id);
     }
 
     // Delete all authorizations for this app

@@ -26,11 +26,12 @@ interface Authorization {
   contextual?: boolean;
 }
 
-interface SubApp {
-  id: string; // Full sub-app ID: "mainAppId:subAppId"
+interface Applet {
+  id: string; // Applet ID: "appId:appletId"
   label: string;
   description: string;
-  mainAppLabel: string; // Main app label for display
+  appLabel: string; // App label for display
+  target: string;
 }
 
 export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuthority }: AuthorityCreateProps) {
@@ -45,11 +46,11 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
     new Set(editAuthority?.authorizations || [])
   );
   const [authorizationSearch, setAuthorizationSearch] = useState('');
-  const [subApps, setSubApps] = useState<SubApp[]>([]);
-  const [selectedSubApps, setSelectedSubApps] = useState<Set<string>>(
+  const [applets, setApplets] = useState<Applet[]>([]);
+  const [selectedApplets, setSelectedApplets] = useState<Set<string>>(
     new Set(editAuthority?.apps || [])
   );
-  const [subAppSearch, setSubAppSearch] = useState('');
+  const [appletSearch, setAppletSearch] = useState('');
   const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
 
   const isEditMode = !!editAuthority;
@@ -58,12 +59,14 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [authResponse, appsResponse] = await Promise.all([
+        const [authResponse, appsResponse, appletsResponse] = await Promise.all([
           fetch('/api/system/apps/system/tables/authorization'),
           fetch('/api/system/apps'),
+          fetch('/api/system/apps/system/tables/applet'),
         ]);
         const authData = await authResponse.json();
         const appsData = await appsResponse.json();
+        const appletsData = await appletsResponse.json();
 
         // Create app ID to label mapping
         const appIdToLabel = new Map<string, string>();
@@ -82,21 +85,15 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
         }));
         setAuthorizations(authorizationsList);
 
-        // Transform main apps into sub-apps list
-        const subAppsList: SubApp[] = [];
-        for (const mainApp of appsData.apps || []) {
-          if (mainApp.subApps) {
-            for (const subApp of mainApp.subApps) {
-              subAppsList.push({
-                id: `${mainApp.id}:${subApp.id}`,
-                label: subApp.label,
-                description: subApp.description,
-                mainAppLabel: mainApp.label,
-              });
-            }
-          }
-        }
-        setSubApps(subAppsList);
+        // Transform applet records into expected format
+        const appletsList: Applet[] = (appletsData.records || []).map((record: any) => ({
+          id: record.id,
+          label: record.data.label,
+          description: record.data.description,
+          appLabel: appIdToLabel.get(record.data.app) || record.data.app,
+          target: record.data.target,
+        }));
+        setApplets(appletsList);
       } catch (error) {
         console.error('Failed to fetch data:', error);
       }
@@ -104,11 +101,11 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
     fetchData();
   }, []);
 
-  // Update selected sub-apps and authorizations when editAuthority changes
+  // Update selected applets and authorizations when editAuthority changes
   useEffect(() => {
     if (editAuthority) {
       setSelectedAuthorizations(new Set(editAuthority.authorizations || []));
-      setSelectedSubApps(new Set(editAuthority.apps || []));
+      setSelectedApplets(new Set(editAuthority.apps || []));
     }
   }, [editAuthority]);
 
@@ -147,14 +144,14 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
     setSelectedAuthorizations(newSelection);
   };
 
-  const handleToggleSubApp = (subAppId: string) => {
-    const newSelection = new Set(selectedSubApps);
-    if (newSelection.has(subAppId)) {
-      newSelection.delete(subAppId);
+  const handleToggleApplet = (appletId: string) => {
+    const newSelection = new Set(selectedApplets);
+    if (newSelection.has(appletId)) {
+      newSelection.delete(appletId);
     } else {
-      newSelection.add(subAppId);
+      newSelection.add(appletId);
     }
-    setSelectedSubApps(newSelection);
+    setSelectedApplets(newSelection);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -179,8 +176,8 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
         // Add authorizations
         updateData.authorizations = Array.from(selectedAuthorizations);
 
-        // Add sub-apps
-        updateData.apps = Array.from(selectedSubApps);
+        // Add applets
+        updateData.apps = Array.from(selectedApplets);
 
         const response = await fetch('/api/system/apps/system/tables/authority', {
           method: 'PATCH',
@@ -291,7 +288,7 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
         const createData: any = {
           name: name.trim(),
           authorizations: Array.from(selectedAuthorizations),
-          apps: Array.from(selectedSubApps),
+          apps: Array.from(selectedApplets),
         };
 
         const response = await fetch('/api/system/apps/system/tables/authority', {
@@ -373,12 +370,12 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
       auth.description.toLowerCase().includes(authorizationSearch.toLowerCase())
     );
 
-  const filteredSubApps = subApps
-    .filter(subApp => !subApp.id.startsWith('system:')) // Exclude system sub-apps
-    .filter(subApp =>
-      subApp.label.toLowerCase().includes(subAppSearch.toLowerCase()) ||
-      subApp.description.toLowerCase().includes(subAppSearch.toLowerCase()) ||
-      subApp.mainAppLabel.toLowerCase().includes(subAppSearch.toLowerCase())
+  const filteredApplets = applets
+    .filter(applet => !applet.id.startsWith('system:')) // Exclude system applets
+    .filter(applet =>
+      applet.label.toLowerCase().includes(appletSearch.toLowerCase()) ||
+      applet.description.toLowerCase().includes(appletSearch.toLowerCase()) ||
+      applet.appLabel.toLowerCase().includes(appletSearch.toLowerCase())
     );
 
   return (
@@ -490,32 +487,32 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
             type="text"
             className={styles.input}
             placeholder="Search apps..."
-            value={subAppSearch}
-            onChange={(e) => setSubAppSearch(e.target.value)}
+            value={appletSearch}
+            onChange={(e) => setAppletSearch(e.target.value)}
             style={{ marginBottom: '12px' }}
           />
           <div className={styles.authorizationList}>
-            {filteredSubApps.map(subApp => (
-              <div key={subApp.id} className={styles.authorizationItem}>
+            {filteredApplets.map(applet => (
+              <div key={applet.id} className={styles.authorizationItem}>
                 <input
                   type="checkbox"
-                  id={`subapp-${subApp.id}`}
+                  id={`applet-${applet.id}`}
                   className={styles.checkbox}
-                  checked={selectedSubApps.has(subApp.id)}
-                  onChange={() => handleToggleSubApp(subApp.id)}
+                  checked={selectedApplets.has(applet.id)}
+                  onChange={() => handleToggleApplet(applet.id)}
                 />
-                <label htmlFor={`subapp-${subApp.id}`} className={styles.authorizationLabel}>
+                <label htmlFor={`applet-${applet.id}`} className={styles.authorizationLabel}>
                   <div className={styles.authorizationName}>
                     <Badge variant="blue">
-                      {subApp.mainAppLabel}
+                      {applet.appLabel}
                     </Badge>
-                    {subApp.label}
+                    {applet.label}
                   </div>
-                  <div className={styles.authorizationDescription}>{subApp.description}</div>
+                  <div className={styles.authorizationDescription}>{applet.description}</div>
                 </label>
               </div>
             ))}
-            {filteredSubApps.length === 0 && (
+            {filteredApplets.length === 0 && (
               <div className={styles.emptyState}>No apps found</div>
             )}
           </div>

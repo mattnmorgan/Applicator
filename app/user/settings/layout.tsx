@@ -1,9 +1,8 @@
 import { redirect } from "next/navigation";
 import { getCurrentUser as getUser } from "@/lib/database/managers/user";
 import { getSystemSettings } from "@/lib/database/managers/setting";
-import AppManager from "@/lib/database/managers/app";
+import AppletManager from "@/lib/database/managers/applet";
 import AuthorityManager from "@/lib/database/managers/authority";
-import { SubApp } from "@/lib/database/types/app";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/Tabset";
 
@@ -39,44 +38,6 @@ async function isFirstTimeSetup(): Promise<boolean> {
   ).default();
   const users = await userManager.listRecords();
   return users.length === 0;
-}
-
-function parseSubAppId(fullSubAppId: string): {
-  mainAppId: string;
-  subAppId: string;
-} {
-  const parts = fullSubAppId.split(":");
-  if (parts.length !== 2) {
-    throw new Error(`Invalid sub-app ID format: ${fullSubAppId}`);
-  }
-  return {
-    mainAppId: parts[0],
-    subAppId: parts[1],
-  };
-}
-
-async function getSubApp(
-  fullSubAppId: string
-): Promise<(SubApp & { mainAppId: string; fullId: string }) | null> {
-  try {
-    const { mainAppId, subAppId } = parseSubAppId(fullSubAppId);
-    const appManager = new AppManager();
-    const app = await appManager.readRecord(mainAppId);
-
-    if (!app || !app.data.subApps) return null;
-
-    const subApp = app.data.subApps.find((sa) => sa.id === subAppId);
-    if (!subApp) return null;
-
-    return {
-      ...subApp,
-      mainAppId,
-      fullId: fullSubAppId,
-    };
-  } catch (error) {
-    console.error(`Error getting sub-app ${fullSubAppId}:`, error);
-    return null;
-  }
 }
 
 async function getAuthority(authorityId: string) {
@@ -115,56 +76,38 @@ async function getUserSettingsMenuItems(): Promise<TabsetItem[]> {
     return items;
   }
 
-  // Get user's authority and user authority to check which sub-apps they can access
+  // Get user's authority and user authority to check which applets they can access
   const authority = await getAuthority(user.authority);
   const userAuthority = await getUserAuthority(user.id);
 
-  // Combine sub-app IDs from both authority and user authority
-  const subAppIds = [
+  // Combine applet IDs from both authority and user authority
+  const appletIds = [
     ...(authority?.apps || []),
     ...(userAuthority?.apps || []),
   ];
+  const uniqueAppletIds = [...new Set(appletIds)];
 
-  if (subAppIds.length === 0) {
+  if (uniqueAppletIds.length === 0) {
     return items;
   }
+
+  // Get all applets with user-settings target
+  const appletManager = new AppletManager();
+  const allAppletsResult = await appletManager.readRecords();
+  const userSettingsApplets = allAppletsResult.records.filter(
+    (applet) =>
+      applet.data.target === "user-settings" &&
+      uniqueAppletIds.includes(applet.id)
+  );
 
   // Build children array for app settings
   const appSettingsChildren: TabsetItem[] = [];
 
-  // For each sub-app, get its widgets that target user-settings
-  for (const appOrSubAppId of subAppIds) {
-    try {
-      // Skip if this is a main app ID (no colon), not a sub-app
-      if (!appOrSubAppId.includes(":")) {
-        continue;
-      }
-
-      const subApp = await getSubApp(appOrSubAppId);
-      if (!subApp || !subApp.widgets) {
-        continue;
-      }
-
-      // Parse the full sub-app ID to get mainAppId and subAppId
-      const { mainAppId, subAppId } = parseSubAppId(appOrSubAppId);
-
-      // Filter widgets that target user-settings
-      const settingsWidgets = subApp.widgets.filter(
-        (w) => w.target === "user-settings"
-      );
-
-      for (const widget of settingsWidgets) {
-        // Create composite widget ID: mainAppId:subAppId:widgetId
-        const compositeWidgetId = `${mainAppId}:${subAppId}:${widget.id}`;
-        appSettingsChildren.push({
-          label: widget.name,
-          path: `/user/settings/widgets/${compositeWidgetId}`,
-        });
-      }
-    } catch (error) {
-      // Skip invalid sub-app IDs
-      console.error(`Error loading sub-app ${appOrSubAppId}:`, error);
-    }
+  for (const applet of userSettingsApplets) {
+    appSettingsChildren.push({
+      label: applet.data.label,
+      path: `/user/settings/widgets/${applet.id}`,
+    });
   }
 
   if (appSettingsChildren.length > 0) {

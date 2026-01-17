@@ -36,7 +36,6 @@ export async function GET() {
             contactEmail: record.data.contactEmail,
             description: record.data.description,
             dependencies: record.data.dependencies,
-            subApps: record.data.subApps,
           });
         }
       }

@@ -6,6 +6,7 @@ import SettingManager from '@/lib/database/managers/setting';
 import AuthorityManager from '@/lib/database/managers/authority';
 import AuthorizationManager from '@/lib/database/managers/authorization';
 import ApiRouteManager from '@/lib/database/managers/apiRoute';
+import AppletManager from '@/lib/database/managers/applet';
 import { SYSTEM_APP_METADATA } from '@/lib/database/systemMetadata';
 import bcrypt from 'bcryptjs';
 
@@ -43,7 +44,6 @@ export async function POST(request: Request) {
       contactEmail: SYSTEM_APP_METADATA.contactEmail,
       description: SYSTEM_APP_METADATA.description,
       dependencies: SYSTEM_APP_METADATA.dependencies,
-      subApps: SYSTEM_APP_METADATA.subApps,
     }, { id: 'system' });
 
     // Step 1.5: Create API routes for system app
@@ -62,6 +62,26 @@ export async function POST(request: Request) {
             description: apiRoute.description || '',
           },
           { id: `system:${apiRoute.path}:${apiRoute.method}` }
+        );
+      }
+    }
+
+    // Step 1.6: Create applets for system app
+    if (SYSTEM_APP_METADATA.applets && Array.isArray(SYSTEM_APP_METADATA.applets)) {
+      const appletManager = new AppletManager();
+      const appletTable = await appletManager.getTable();
+
+      for (const applet of SYSTEM_APP_METADATA.applets) {
+        await appletManager.createRecord(
+          appletTable,
+          {
+            label: applet.label,
+            description: applet.description || '',
+            component: applet.component,
+            app: 'system',
+            target: applet.target,
+          },
+          { id: `system:${applet.id}` }
         );
       }
     }

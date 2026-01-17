@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getCurrentUser } from "@/lib/database/managers/user";
 import AuthorityManager from "@/lib/database/managers/authority";
-import AppManager from "@/lib/database/managers/app";
+import AppletManager from "@/lib/database/managers/applet";
 
 export async function GET() {
   try {
@@ -29,54 +29,25 @@ export async function GET() {
       userAuthority.data.authorizations.forEach(auth => authorizations.add(auth));
     }
 
-    // Get sub-app IDs from user's authorities
-    const subAppIds = [
+    // Get applet IDs from user's authorities
+    const appletIds = [
       ...(mainAuthority?.data.apps || []),
       ...(userAuthority?.data.apps || []),
     ];
-    const uniqueSubAppIds = [...new Set(subAppIds)];
+    const uniqueAppletIds = [...new Set(appletIds)];
 
-    // Map sub-app IDs to their full details
-    const userSubApps: Array<{
-      id: string;
-      label: string;
-      mainAppId: string;
-      subAppId: string;
-    }> = [];
-    const mainAppIds = new Set<string>();
-    const appManager = new AppManager();
-
-    for (const fullSubAppId of uniqueSubAppIds) {
-      try {
-        const parts = fullSubAppId.split(":");
-        if (parts.length !== 2) {
-          console.error(`Invalid sub-app ID format: ${fullSubAppId}`);
-          continue;
-        }
-
-        const [mainAppId, subAppId] = parts;
-        const app = await appManager.readRecord(mainAppId);
-
-        if (app && app.data.subApps) {
-          const subApp = app.data.subApps.find((sa) => sa.id === subAppId);
-          if (subApp) {
-            userSubApps.push({
-              id: fullSubAppId,
-              label: subApp.label,
-              mainAppId,
-              subAppId,
-            });
-            mainAppIds.add(mainAppId);
-          }
-        }
-      } catch (error) {
-        // Skip invalid sub-app IDs
-        console.error(`Invalid sub-app ID: ${fullSubAppId}`, error);
-      }
-    }
-
-    // Get unique main app IDs for backward compatibility
-    const userMainApps = Array.from(mainAppIds);
+    // Get applet details
+    const appletManager = new AppletManager();
+    const allAppletsResult = await appletManager.readRecords();
+    const userApplets = allAppletsResult.records
+      .filter((applet) => uniqueAppletIds.includes(applet.id))
+      .map((applet) => ({
+        id: applet.id,
+        label: applet.data.label,
+        description: applet.data.description,
+        target: applet.data.target,
+        app: applet.data.app,
+      }));
 
     return NextResponse.json({
       user: {
@@ -89,8 +60,7 @@ export async function GET() {
         profilePicture: profilePictureUrl,
       },
       authorizations: Array.from(authorizations),
-      userSubApps, // New: array of sub-apps with full details
-      userMainApps, // New: array of main app IDs (derived)
+      userApplets, // Array of applets with full details
       isAssumedIdentity: currentUser.isAssumedIdentity,
     });
   } catch (error) {

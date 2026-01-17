@@ -3,14 +3,5 @@ import HomeWidget from './widgets/HomeWidget';
 import SettingsWidget from './widgets/SettingsWidget';
 import SystemSettingsWidget from './widgets/SystemSettingsWidget';
 
-// Export apps for sub-app loading
-export const apps = {
-  Manager, // Main sub-app component
-};
-
-// Export widgets for widget loading
-export const widgets = {
-  HomeWidget,
-  SettingsWidget,
-  SystemSettingsWidget,
-};
+// Export all applet components at top level for the applet system
+export { Manager, HomeWidget, SettingsWidget, SystemSettingsWidget };

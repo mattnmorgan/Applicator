@@ -11,6 +11,7 @@ import AuthorityManager from "@/lib/database/managers/authority";
 import SettingManager from "@/lib/database/managers/setting";
 import TableManager from "@/lib/database/managers/table";
 import ApiRouteManager from "@/lib/database/managers/apiRoute";
+import AppletManager from "@/lib/database/managers/applet";
 import LogManager from "@/lib/database/managers/log";
 import type AppVersion from "@/lib/database/types/appVersion";
 import path from "path";
@@ -318,69 +319,63 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    // Validate sub-apps if present (new format)
-    if (appAttributes.subApps && Array.isArray(appAttributes.subApps)) {
+    // Validate applets if present
+    if (appAttributes.applets && Array.isArray(appAttributes.applets)) {
       const zipEntries = zip.getEntries();
+      const appletIds = new Set<string>();
 
-      if (appAttributes.subApps.length === 0) {
-        return NextResponse.json(
-          {
-            error:
-              "subApps array cannot be empty. At least one sub-app is required.",
-          },
-          { status: 400 }
-        );
-      }
+      for (let i = 0; i < appAttributes.applets.length; i++) {
+        const applet = appAttributes.applets[i];
 
-      // Check for apps/ directory
-      const hasAppsDir = zipEntries.some((e) =>
-        e.entryName.startsWith("apps/")
-      );
-      if (!hasAppsDir) {
-        return NextResponse.json(
-          {
-            error:
-              "Package must contain 'apps/' directory for sub-app components",
-          },
-          { status: 400 }
-        );
-      }
-
-      const subAppIds = new Set<string>();
-
-      for (let i = 0; i < appAttributes.subApps.length; i++) {
-        const subApp = appAttributes.subApps[i];
-
-        // Validate required sub-app fields
+        // Validate required applet fields
         if (
-          !subApp.id ||
-          !subApp.label ||
-          !subApp.description ||
-          !subApp.component
+          !applet.id ||
+          !applet.label ||
+          !applet.description ||
+          !applet.component ||
+          !applet.target
         ) {
           return NextResponse.json(
             {
-              error: `Sub-app at index ${i} is missing required fields (id, label, description, or component)`,
+              error: `Applet at index ${i} is missing required fields (id, label, description, component, or target)`,
             },
             { status: 400 }
           );
         }
 
-        // Check for duplicate sub-app IDs
-        if (subAppIds.has(subApp.id)) {
+        // Check for duplicate applet IDs
+        if (appletIds.has(applet.id)) {
           return NextResponse.json(
-            { error: `Duplicate sub-app ID found: ${subApp.id}` },
+            { error: `Duplicate applet ID found: ${applet.id}` },
             { status: 400 }
           );
         }
-        subAppIds.add(subApp.id);
+        appletIds.add(applet.id);
 
-        // Validate component file exists
+        // Validate target
+        if (
+          !["app", "home", "user-settings", "system-settings"].includes(
+            applet.target
+          )
+        ) {
+          return NextResponse.json(
+            {
+              error: `Applet '${applet.id}' has invalid target. Must be 'app', 'home', 'user-settings', or 'system-settings'`,
+            },
+            { status: 400 }
+          );
+        }
+
+        // Validate component file exists (check in both apps/ and widgets/ directories for compatibility)
         const componentPaths = [
-          `apps/${subApp.component}.tsx`,
-          `apps/${subApp.component}.ts`,
-          `apps/${subApp.component}.jsx`,
-          `apps/${subApp.component}.js`,
+          `apps/${applet.component}.tsx`,
+          `apps/${applet.component}.ts`,
+          `apps/${applet.component}.jsx`,
+          `apps/${applet.component}.js`,
+          `widgets/${applet.component}.tsx`,
+          `widgets/${applet.component}.ts`,
+          `widgets/${applet.component}.jsx`,
+          `widgets/${applet.component}.js`,
         ];
 
         const componentExists = componentPaths.some((p) =>
@@ -390,8 +385,8 @@ export async function POST(request: NextRequest) {
         if (!componentExists) {
           return NextResponse.json(
             {
-              error: `Sub-app '${
-                subApp.id
+              error: `Applet '${
+                applet.id
               }' component not found. Expected one of: ${componentPaths.join(
                 ", "
               )}`,
@@ -399,174 +394,7 @@ export async function POST(request: NextRequest) {
             { status: 400 }
           );
         }
-
-        // Validate widgets for this sub-app
-        if (subApp.widgets && Array.isArray(subApp.widgets)) {
-          const hasWidgets = subApp.widgets.length > 0;
-
-          // Check for widgets/ directory if widgets are defined
-          if (hasWidgets) {
-            const hasWidgetsDir = zipEntries.some((e) =>
-              e.entryName.startsWith("widgets/")
-            );
-            if (!hasWidgetsDir) {
-              return NextResponse.json(
-                {
-                  error:
-                    "Package must contain 'widgets/' directory when widgets are defined",
-                },
-                { status: 400 }
-              );
-            }
-          }
-
-          let hasSystemWidget = false;
-
-          for (let j = 0; j < subApp.widgets.length; j++) {
-            const widget = subApp.widgets[j];
-
-            // Check widget has required fields
-            if (
-              !widget.id ||
-              !widget.name ||
-              !widget.description ||
-              !widget.target ||
-              !widget.component
-            ) {
-              return NextResponse.json(
-                {
-                  error: `Widget at index ${j} in sub-app '${subApp.id}' is missing required fields`,
-                },
-                { status: 400 }
-              );
-            }
-
-            // Validate target
-            if (
-              !["home", "user-settings", "system-settings"].includes(
-                widget.target
-              )
-            ) {
-              return NextResponse.json(
-                {
-                  error: `Widget '${widget.id}' has invalid target. Must be 'home', 'user-settings', or 'system-settings'`,
-                },
-                { status: 400 }
-              );
-            }
-
-            // Validate singular system settings widget per sub-app
-            if (widget.target === "system-settings") {
-              if (!hasSystemWidget) {
-                hasSystemWidget = true;
-              } else {
-                return NextResponse.json(
-                  {
-                    error: `Sub-app '${subApp.id}' cannot have more than one system widget`,
-                  },
-                  { status: 400 }
-                );
-              }
-            }
-
-            // Validate widget.appId format
-            if (!widget.appId) {
-              return NextResponse.json(
-                {
-                  error: `Widget '${widget.id}' is missing appId field`,
-                },
-                { status: 400 }
-              );
-            }
-
-            if (!widget.appId.includes(":")) {
-              return NextResponse.json(
-                {
-                  error: `Widget '${widget.id}' appId must be in format "mainAppId:subAppId"`,
-                },
-                { status: 400 }
-              );
-            }
-
-            const [mainId, subId] = widget.appId.split(":");
-            if (mainId !== appAttributes.id || subId !== subApp.id) {
-              return NextResponse.json(
-                {
-                  error: `Widget '${widget.id}' has incorrect appId. Expected '${appAttributes.id}:${subApp.id}', got '${widget.appId}'`,
-                },
-                { status: 400 }
-              );
-            }
-
-            // Validate widget component exists
-            const widgetPaths = [
-              `widgets/${widget.component}.tsx`,
-              `widgets/${widget.component}.ts`,
-              `widgets/${widget.component}.jsx`,
-              `widgets/${widget.component}.js`,
-            ];
-
-            const widgetExists = widgetPaths.some((p) =>
-              zipEntries.some((e) => e.entryName === p)
-            );
-
-            if (!widgetExists) {
-              return NextResponse.json(
-                {
-                  error: `Widget '${
-                    widget.id
-                  }' component not found. Expected one of: ${widgetPaths.join(
-                    ", "
-                  )}`,
-                },
-                { status: 400 }
-              );
-            }
-          }
-
-          // Check for duplicate widget IDs within sub-app
-          const widgetIds = subApp.widgets.map((w: any) => w.id);
-          const duplicates = widgetIds.filter(
-            (id: string, index: number) => widgetIds.indexOf(id) !== index
-          );
-          if (duplicates.length > 0) {
-            return NextResponse.json(
-              {
-                error: `Duplicate widget IDs in sub-app '${
-                  subApp.id
-                }': ${duplicates.join(", ")}`,
-              },
-              { status: 400 }
-            );
-          }
-        }
       }
-    } else if (!appAttributes.widgets) {
-      // Legacy format auto-conversion
-      // If no subApps and no widgets, create a default sub-app
-      appAttributes.subApps = [
-        {
-          id: "main",
-          label: appAttributes.name,
-          description: appAttributes.description,
-          component: "App",
-          widgets: [],
-        },
-      ];
-    } else {
-      // Legacy format with widgets - convert to subApps
-      appAttributes.subApps = [
-        {
-          id: "main",
-          label: appAttributes.name,
-          description: appAttributes.description,
-          component: "App",
-          widgets: appAttributes.widgets.map((w: any) => ({
-            ...w,
-            appId: `${appAttributes.id}:main`,
-          })),
-        },
-      ];
     }
 
     // Check if app already exists
@@ -636,10 +464,29 @@ export async function POST(request: NextRequest) {
       contactEmail: appAttributes.contactEmail || "",
       description: appAttributes.description,
       dependencies: appAttributes.dependencies || {},
-      subApps: appAttributes.subApps || [],
     }, {
       id: appAttributes.id,
     });
+
+    // Install applets
+    if (appAttributes.applets && Array.isArray(appAttributes.applets)) {
+      const appletManager = new AppletManager();
+      const appletTable = await appletManager.getTable();
+
+      for (const applet of appAttributes.applets) {
+        await appletManager.createRecord(
+          appletTable,
+          {
+            label: applet.label,
+            description: applet.description || "",
+            component: applet.component,
+            app: appAttributes.id,
+            target: applet.target,
+          },
+          { id: `${appAttributes.id}:${applet.id}` }
+        );
+      }
+    }
 
     // Install API routes
     if (appAttributes.apiRoutes && Array.isArray(appAttributes.apiRoutes)) {

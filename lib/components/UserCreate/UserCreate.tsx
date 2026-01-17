@@ -20,11 +20,12 @@ interface Authorization {
   contextual?: boolean;
 }
 
-interface SubApp {
-  id: string; // Full sub-app ID: "mainAppId:subAppId"
+interface Applet {
+  id: string; // Applet ID: "appId:appletId"
   label: string;
   description: string;
-  mainAppLabel: string; // Main app label for display
+  appLabel: string; // App label for display
+  target: string;
 }
 
 interface UserCreateProps {
@@ -79,7 +80,7 @@ export default function UserCreate({
   const [availableAuthorizations, setAvailableAuthorizations] = useState<
     Authorization[]
   >([]);
-  const [availableSubApps, setAvailableSubApps] = useState<SubApp[]>([]);
+  const [availableApplets, setAvailableApplets] = useState<Applet[]>([]);
   const [authorizationSearch, setAuthorizationSearch] = useState("");
   const [appSearch, setAppSearch] = useState("");
 
@@ -140,24 +141,30 @@ export default function UserCreate({
 
   const fetchApps = async () => {
     try {
-      const response = await fetch("/api/system/apps");
-      const data = await response.json();
+      const [appsResponse, appletsResponse] = await Promise.all([
+        fetch("/api/system/apps"),
+        fetch("/api/system/apps/system/tables/applet"),
+      ]);
+      const appsData = await appsResponse.json();
+      const appletsData = await appletsResponse.json();
 
-      // Transform main apps into sub-apps list
-      const subAppsList: SubApp[] = [];
-      for (const mainApp of data.apps || []) {
-        if (mainApp.subApps) {
-          for (const subApp of mainApp.subApps) {
-            subAppsList.push({
-              id: `${mainApp.id}:${subApp.id}`,
-              label: subApp.label,
-              description: subApp.description,
-              mainAppLabel: mainApp.label,
-            });
-          }
-        }
+      // Create app ID to label mapping
+      const appIdToLabel = new Map<string, string>();
+      for (const app of appsData.apps || []) {
+        appIdToLabel.set(app.id, app.label);
       }
-      setAvailableSubApps(subAppsList);
+
+      // Transform applet records into expected format
+      const appletsList: Applet[] = (appletsData.records || []).map(
+        (record: any) => ({
+          id: record.id,
+          label: record.data.label,
+          description: record.data.description,
+          appLabel: appIdToLabel.get(record.data.app) || record.data.app,
+          target: record.data.target,
+        })
+      );
+      setAvailableApplets(appletsList);
     } catch (error) {
       console.error("Failed to fetch apps:", error);
     }
@@ -311,13 +318,13 @@ export default function UserCreate({
         : true
     );
 
-  const filteredSubApps = availableSubApps
-    .filter((subApp) => !subApp.id.startsWith("system:"))
-    .filter((subApp) =>
+  const filteredApplets = availableApplets
+    .filter((applet) => !applet.id.startsWith("system:"))
+    .filter((applet) =>
       appSearch
-        ? subApp.label.toLowerCase().includes(appSearch.toLowerCase()) ||
-          subApp.description.toLowerCase().includes(appSearch.toLowerCase()) ||
-          subApp.mainAppLabel.toLowerCase().includes(appSearch.toLowerCase())
+        ? applet.label.toLowerCase().includes(appSearch.toLowerCase()) ||
+          applet.description.toLowerCase().includes(appSearch.toLowerCase()) ||
+          applet.appLabel.toLowerCase().includes(appSearch.toLowerCase())
         : true
     );
 
@@ -450,30 +457,30 @@ export default function UserCreate({
             style={{ marginBottom: "12px" }}
           />
           <div className={styles.authorizationList}>
-            {filteredSubApps.map((subApp) => (
-              <div key={subApp.id} className={styles.authorizationItem}>
+            {filteredApplets.map((applet) => (
+              <div key={applet.id} className={styles.authorizationItem}>
                 <input
                   type="checkbox"
-                  id={`app-${subApp.id}`}
+                  id={`app-${applet.id}`}
                   className={styles.checkbox}
-                  checked={customApps.includes(subApp.id)}
-                  onChange={() => handleAppToggle(subApp.id)}
+                  checked={customApps.includes(applet.id)}
+                  onChange={() => handleAppToggle(applet.id)}
                 />
                 <label
-                  htmlFor={`app-${subApp.id}`}
+                  htmlFor={`app-${applet.id}`}
                   className={styles.authorizationLabel}
                 >
                   <div className={styles.authorizationName}>
-                    <Badge variant="blue">{subApp.mainAppLabel}</Badge>
-                    {subApp.label}
+                    <Badge variant="blue">{applet.appLabel}</Badge>
+                    {applet.label}
                   </div>
                   <div className={styles.authorizationDescription}>
-                    {subApp.description}
+                    {applet.description}
                   </div>
                 </label>
               </div>
             ))}
-            {filteredSubApps.length === 0 && (
+            {filteredApplets.length === 0 && (
               <div className={styles.emptyState}>No apps found</div>
             )}
           </div>

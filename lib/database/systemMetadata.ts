@@ -4,13 +4,13 @@ export const SYSTEM_APP_METADATA = {
   version: {
     major: 1,
     minor: 4,
-    dev: 2,
+    dev: 3,
   },
   author: "Matthew Morgan",
   contactEmail: "matthew@morgantech.info",
   description: "Core system functionality and data models",
   dependencies: {},
-  subApps: [],
+  applets: [],
   apiRoutes: [],
   tables: [
     {
@@ -421,6 +421,44 @@ export const SYSTEM_APP_METADATA = {
         {
           name: "description",
           description: "Description of what this route does",
+          type: "string",
+          required: true,
+        },
+      ],
+    },
+    {
+      name: "applet",
+      description:
+        "Applets (apps, widgets, and UI components) defined by applications",
+      fields: [
+        {
+          name: "label",
+          description: "Display name for the applet",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "description",
+          description: "Description of the applet's purpose",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "component",
+          description: "Component file name for the applet",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "app",
+          description: "App ID that owns this applet",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "target",
+          description:
+            "Where the applet should be displayed (app, home, user-settings, system-settings)",
           type: "string",
           required: true,
         },

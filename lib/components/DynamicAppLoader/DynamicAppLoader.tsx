@@ -7,8 +7,6 @@ interface DynamicAppLoaderProps {
   moduleUrl: string;
   /** Name of the component to render from the app's exports */
   componentName: string;
-  /** Type of component to load - 'app' or 'widget' */
-  componentType?: "app" | "widget";
   /** Props to pass to the loaded component */
   componentProps?: Record<string, any>;
   /** URL to React library (defaults to /assets/react.production.min.js) */
@@ -24,7 +22,6 @@ interface DynamicAppLoaderProps {
 export default function DynamicAppLoader({
   moduleUrl,
   componentName,
-  componentType = "app",
   componentProps = {},
   reactUrl = "/assets/react.production.min.js",
   reactDomUrl = "/assets/react-dom.production.min.js",
@@ -148,26 +145,19 @@ export default function DynamicAppLoader({
               // @ts-ignore
               const appModule = window[moduleVarName];
 
-              // Get the component based on type
-              let AppComponent;
-              if (componentType === "widget") {
-                if (!appModule || !appModule.widgets) {
-                  console.error("App module structure:", appModule);
-                  handleError("App does not export widgets registry");
-                  return;
-                }
-                AppComponent = appModule.widgets[componentName];
-              } else {
-                if (!appModule || !appModule.apps) {
-                  console.error("App module structure:", appModule);
-                  handleError("App does not export apps registry");
-                  return;
-                }
-                AppComponent = appModule.apps[componentName];
+              // Get the component as a direct named export
+              if (!appModule) {
+                console.error("App module is null or undefined");
+                handleError("Failed to load app module");
+                return;
               }
 
+              const AppComponent = appModule[componentName];
+
               if (!AppComponent) {
-                handleError(`Component "${componentName}" not found in ${componentType} module`);
+                console.error("App module structure:", appModule);
+                console.error("Looking for component:", componentName);
+                handleError(`Component "${componentName}" not found in app module`);
                 return;
               }
 
