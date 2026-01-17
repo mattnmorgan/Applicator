@@ -259,15 +259,15 @@ export default function UserCreate({
           return;
         }
 
-        const fname = `icon.${profilePicture.name.split(".").pop() || "jpg"}`;
+        const fname = `${record.id}.png`;
         await uploadFile(
           profilePicture,
-          `${systemSettings.storage}\\system\\users\\icons\\${record.id}`,
+          `${systemSettings.storage}/apps/system/icons/users`,
           fname
         );
         record = await manager.updateRecord(record.id, {
           ...record?.data,
-          icon: `system\\users\\icons\\${record.id}\\${fname}`,
+          icon: 'true',
         });
       }
 

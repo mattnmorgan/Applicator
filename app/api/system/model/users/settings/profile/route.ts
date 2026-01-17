@@ -83,27 +83,21 @@ export async function PATCH(request: Request) {
       }
 
       // Create directory structure
-      const userIconsDir = path.join(systemStorage, 'system', 'users', 'icons');
-      const userIconPath = path.join(userIconsDir, currentUser.id);
+      const userIconsDir = path.join(systemStorage, 'apps', 'system', 'icons', 'users');
 
       if (!fs.existsSync(userIconsDir)) {
         fs.mkdirSync(userIconsDir, { recursive: true });
       }
 
-      if (!fs.existsSync(userIconPath)) {
-        fs.mkdirSync(userIconPath, { recursive: true });
-      }
-
-      // Get file extension and save
-      const fileExtension = profilePictureFile.name.split('.').pop() || 'jpg';
-      const fileName = `icon.${fileExtension}`;
-      const filePath = path.join(userIconPath, fileName);
+      // Save as {uid}.png
+      const fileName = `${currentUser.id}.png`;
+      const filePath = path.join(userIconsDir, fileName);
 
       const buffer = Buffer.from(await profilePictureFile.arrayBuffer());
       fs.writeFileSync(filePath, buffer);
 
-      const relativePath = path.join('system', 'users', 'icons', currentUser.id, fileName);
-      updates.icon = relativePath;
+      // Set icon flag
+      updates.icon = 'true';
     }
 
     // Update user

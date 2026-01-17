@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
       if (clearBrandIcon === "true") {
         const storagePath = await getSetting("storage");
         if (storagePath) {
-          const logoPath = path.join(storagePath, "brand", "logo.png");
+          const logoPath = path.join(storagePath, "apps", "system", "brand.png");
           try {
             await fs.unlink(logoPath);
           } catch (error) {
@@ -119,15 +119,15 @@ export async function POST(request: NextRequest) {
       if (brandIcon && brandIcon.size > 0) {
         const storagePath = await getSetting("storage");
         if (storagePath) {
-          const logoDir = path.join(storagePath, "brand");
+          const logoDir = path.join(storagePath, "apps", "system");
           await fs.mkdir(logoDir, { recursive: true });
 
-          const logoPath = path.join(logoDir, "logo.png");
+          const logoPath = path.join(logoDir, "brand.png");
           const logoBuffer = Buffer.from(await brandIcon.arrayBuffer());
           await fs.writeFile(logoPath, logoBuffer);
 
-          // Set brandIcon setting to relative path
-          await setSetting("brandIcon", "brand/logo.png");
+          // Set brandIcon setting to indicate brand exists
+          await setSetting("brandIcon", "true");
         }
       }
 

@@ -207,9 +207,8 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
             return;
           }
 
-          const fileExtension = iconFile.name.split('.').pop() || 'jpg';
-          const fileName = `icon.${fileExtension}`;
-          const iconDirectory = `${systemStorage}\\system\\authorities\\icons\\${editAuthority.id}`;
+          const iconDirectory = `${systemStorage}/apps/system/icons/authorities`;
+          const fileName = `${editAuthority.id}.png`;
 
           const iconFormData = new FormData();
           iconFormData.append('file', iconFile);
@@ -226,14 +225,13 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
             return;
           }
 
-          // Update the authority record with the icon path
-          const relativePath = `system\\authorities\\icons\\${editAuthority.id}\\${fileName}`;
+          // Update the authority record with icon flag
           const updateIconResponse = await fetch('/api/system/apps/system/tables/authority', {
             method: 'PATCH',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               id: editAuthority.id,
-              data: { icon: relativePath },
+              data: { icon: 'true' },
             }),
           });
 
@@ -243,27 +241,19 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
           }
         } else if (clearIcon) {
           // Get the current icon path and delete the file
-          const authorityResponse = await fetch(`/api/system/apps/system/tables/authority?ids=${editAuthority.id}`);
-          const authorityData = await authorityResponse.json();
+          const storageResponse = await fetch('/api/system/settings');
+          const storageData = await storageResponse.json();
+          const systemStorage = storageData.settings.storage;
+          const iconPath = `${systemStorage}/apps/system/icons/authorities/${editAuthority.id}.png`;
 
-          const record = authorityData.records?.[0];
-          const authority = record?.data;
+          const deleteResponse = await fetch('/api/system/apps/fs', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ path: iconPath }),
+          });
 
-          if (authority?.icon) {
-            const storageResponse = await fetch('/api/system/settings');
-            const storageData = await storageResponse.json();
-            const systemStorage = storageData.settings.storage;
-            const iconPath = `${systemStorage}\\${authority.icon}`;
-
-            const deleteResponse = await fetch('/api/system/apps/fs', {
-              method: 'DELETE',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ path: iconPath }),
-            });
-
-            if (!deleteResponse.ok) {
-              console.warn('Failed to delete icon file');
-            }
+          if (!deleteResponse.ok) {
+            console.warn('Failed to delete icon file');
           }
 
           // Clear the icon field in the database
