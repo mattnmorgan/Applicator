@@ -135,7 +135,7 @@ async function getSettingsMenuItems(
     for (const applet of systemSettingsApplets) {
       appSettingsChildren.push({
         label: applet.data.label,
-        path: `/system/settings/apps/widgets/${applet.id}`,
+        path: `/system/settings/applet/${applet.id}`,
       });
     }
 

@@ -6,7 +6,7 @@ import DynamicAppLoader from "@/lib/components/DynamicAppLoader";
 
 export default function UserSettingsAppletPage() {
   const params = useParams();
-  const fullAppletId = decodeURIComponent(params.widgetId as string);
+  const fullAppletId = decodeURIComponent(params.appletId as string);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [moduleUrl, setModuleUrl] = useState<string | null>(null);

@@ -422,7 +422,7 @@ export default function AppList() {
                                 (w) => w.target === "system-settings"
                               );
                               if (systemWidget) {
-                                window.location.href = `/system/settings/apps/widgets/${systemWidget.id}`;
+                                window.location.href = `/system/settings/applet/${systemWidget.id}`;
                               }
                             }}
                             className={styles.settingsButton}

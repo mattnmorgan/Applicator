@@ -106,7 +106,7 @@ async function getUserSettingsMenuItems(): Promise<TabsetItem[]> {
   for (const applet of userSettingsApplets) {
     appSettingsChildren.push({
       label: applet.data.label,
-      path: `/user/settings/widgets/${applet.id}`,
+      path: `/user/settings/applet/${applet.id}`,
     });
   }
 
