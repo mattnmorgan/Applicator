@@ -5,4 +5,5 @@ export default interface Result<T = any> {
   total: number;
   limit: number;
   offset: number;
+  related?: Record<string, Record<string, TableRecord[]>>; // Map of record ID -> relationship field -> related records
 }

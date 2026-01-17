@@ -6,6 +6,7 @@ import {
   validateMultipicklistFields,
 } from "@/lib/database/crud/validation/validator";
 import { calculateFormulas } from "@/lib/database/crud/validation/formulae";
+import { hashPasswordFields } from "@/lib/database/crud/validation/password";
 
 /**
  * Validate and process a record according to the execution order
@@ -31,6 +32,9 @@ export async function validateAndProcessRecord(
   if (!table || skipValidation) {
     return processedData;
   }
+
+  // Hash password fields (before validation)
+  processedData = await hashPasswordFields(table, processedData);
 
   // Validate required fields
   const requiredResults = validateRequiredFields(table, processedData);

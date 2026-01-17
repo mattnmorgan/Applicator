@@ -78,9 +78,49 @@ export default function AppList() {
 
   const fetchApps = async () => {
     try {
-      const response = await fetch("/api/system/apps");
-      const data = await response.json();
-      setApps(data.apps || []);
+      // Fetch apps and apiRoutes in parallel
+      const [appsResponse, apiRoutesResponse] = await Promise.all([
+        fetch("/api/system/apps/system/tables/app"),
+        fetch("/api/system/apps/system/tables/api-route"),
+      ]);
+
+      const appsData = await appsResponse.json();
+      const apiRoutesData = await apiRoutesResponse.json();
+
+      if (appsData.success && appsData.records) {
+        // Group API routes by app
+        const apiRoutesByApp: Record<string, any[]> = {};
+        if (apiRoutesData.success && apiRoutesData.records) {
+          for (const route of apiRoutesData.records) {
+            const appId = route.data.app;
+            if (!apiRoutesByApp[appId]) {
+              apiRoutesByApp[appId] = [];
+            }
+            apiRoutesByApp[appId].push({
+              path: route.data.path,
+              method: route.data.method,
+              handler: route.data.handler,
+              description: route.data.description,
+            });
+          }
+        }
+
+        // Transform apps with their API routes
+        const transformedApps = appsData.records
+          .map((record: any) => ({
+            id: record.id,
+            label: record.data.label,
+            version: record.data.version,
+            author: record.data.author,
+            contactEmail: record.data.contactEmail,
+            description: record.data.description,
+            dependencies: record.data.dependencies,
+            apiRoutes: apiRoutesByApp[record.id] || [],
+          }))
+          .sort((a: App, b: App) => a.label.localeCompare(b.label));
+
+        setApps(transformedApps);
+      }
     } catch (error) {
       console.error("Failed to fetch apps:", error);
     }

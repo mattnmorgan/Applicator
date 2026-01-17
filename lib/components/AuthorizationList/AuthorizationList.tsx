@@ -22,15 +22,15 @@ export default function AuthorizationList() {
     try {
       const [authResponse, appsResponse] = await Promise.all([
         fetch('/api/system/apps/system/tables/authorization'),
-        fetch('/api/system/apps'),
+        fetch('/api/system/apps/system/tables/app'),
       ]);
       const authData = await authResponse.json();
       const appsData = await appsResponse.json();
 
       // Create app label lookup
       const appLabels: Record<string, string> = {};
-      for (const app of appsData.apps || []) {
-        appLabels[app.id] = app.label;
+      for (const app of appsData.records || []) {
+        appLabels[app.id] = app.data.label;
       }
 
       // Transform authorization records to expected format

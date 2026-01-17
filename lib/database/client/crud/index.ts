@@ -15,6 +15,7 @@ import {
   readRecordWrapper,
   readRecordsWrapper,
 } from "@/lib/database/client/crud/read";
+import { upsertRecordWrapper } from "@/lib/database/client/crud/upsert";
 import { SystemSettings } from "@/lib/database/managers/setting";
 
 export default abstract class CRUD<T = any> {
@@ -47,6 +48,9 @@ export default abstract class CRUD<T = any> {
   }
   get readRecords() {
     return readRecordsWrapper<T>(this.appId, this.tableId);
+  }
+  get upsertRecord() {
+    return upsertRecordWrapper<T>(this.appId, this.tableId);
   }
 }
 

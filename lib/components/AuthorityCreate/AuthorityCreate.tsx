@@ -73,7 +73,7 @@ export default function AuthorityCreate({
         const [authResponse, appsResponse, appletsResponse] = await Promise.all(
           [
             fetch("/api/system/apps/system/tables/authorization"),
-            fetch("/api/system/apps"),
+            fetch("/api/system/apps/system/tables/app"),
             fetch("/api/system/apps/system/tables/applet"),
           ]
         );
@@ -83,8 +83,8 @@ export default function AuthorityCreate({
 
         // Create app ID to label mapping
         const appIdToLabel = new Map<string, string>();
-        for (const app of appsData.apps || []) {
-          appIdToLabel.set(app.id, app.label);
+        for (const app of appsData.records || []) {
+          appIdToLabel.set(app.id, app.data.label);
         }
 
         // Transform authorization records to expected format

@@ -103,20 +103,56 @@ export default function AppView({ appId, onBack }: AppViewProps) {
   async function loadApp() {
     try {
       setLoading(true);
-      const response = await fetch(`/api/system/apps`);
-      if (response.ok) {
-        const data = await response.json();
-        setAllApps(data.apps || []);
-        const appData = data.apps?.find((a: App) => a.id === appId);
-        if (appData) {
-          setApp(appData);
-          // Try to load icon
-          const iconResponse = await fetch(
-            `/api/system/apps/${appId}/assets/icon`
-          );
-          if (iconResponse.ok) {
-            const blob = await iconResponse.blob();
-            setIconUrl(URL.createObjectURL(blob));
+      // Fetch apps and apiRoutes in parallel
+      const [appsResponse, apiRoutesResponse] = await Promise.all([
+        fetch("/api/system/apps/system/tables/app"),
+        fetch("/api/system/apps/system/tables/api-route"),
+      ]);
+
+      if (appsResponse.ok && apiRoutesResponse.ok) {
+        const appsData = await appsResponse.json();
+        const apiRoutesData = await apiRoutesResponse.json();
+
+        if (appsData.success && appsData.records) {
+          // Group API routes by app
+          const apiRoutesByApp: Record<string, any[]> = {};
+          if (apiRoutesData.success && apiRoutesData.records) {
+            for (const route of apiRoutesData.records) {
+              const appIdKey = route.data.app;
+              if (!apiRoutesByApp[appIdKey]) {
+                apiRoutesByApp[appIdKey] = [];
+              }
+              apiRoutesByApp[appIdKey].push({
+                path: route.data.path,
+                method: route.data.method,
+                handler: route.data.handler,
+                description: route.data.description,
+              });
+            }
+          }
+
+          // Transform apps with their API routes
+          const transformedApps = appsData.records.map((record: any) => ({
+            id: record.id,
+            label: record.data.label,
+            version: record.data.version,
+            author: record.data.author,
+            contactEmail: record.data.contactEmail,
+            description: record.data.description,
+            dependencies: record.data.dependencies,
+            apiRoutes: apiRoutesByApp[record.id] || [],
+          }));
+
+          setAllApps(transformedApps);
+          const appData = transformedApps.find((a: App) => a.id === appId);
+          if (appData) {
+            setApp(appData);
+            // Try to load icon
+            const iconResponse = await fetch(`/api/${appId}/assets/icon`);
+            if (iconResponse.ok) {
+              const blob = await iconResponse.blob();
+              setIconUrl(URL.createObjectURL(blob));
+            }
           }
         }
       }

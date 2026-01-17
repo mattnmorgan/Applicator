@@ -110,15 +110,15 @@ export default function UserCreate({
     try {
       const [authResponse, appsResponse] = await Promise.all([
         fetch("/api/system/apps/system/tables/authorization"),
-        fetch("/api/system/apps"),
+        fetch("/api/system/apps/system/tables/app"),
       ]);
       const authData = await authResponse.json();
       const appsData = await appsResponse.json();
 
       // Create app ID to label mapping
       const appIdToLabel = new Map<string, string>();
-      for (const app of appsData.apps || []) {
-        appIdToLabel.set(app.id, app.label);
+      for (const app of appsData.records || []) {
+        appIdToLabel.set(app.id, app.data.label);
       }
 
       // Transform and filter out contextual authorizations
@@ -142,7 +142,7 @@ export default function UserCreate({
   const fetchApps = async () => {
     try {
       const [appsResponse, appletsResponse] = await Promise.all([
-        fetch("/api/system/apps"),
+        fetch("/api/system/apps/system/tables/app"),
         fetch("/api/system/apps/system/tables/applet"),
       ]);
       const appsData = await appsResponse.json();
@@ -150,8 +150,8 @@ export default function UserCreate({
 
       // Create app ID to label mapping
       const appIdToLabel = new Map<string, string>();
-      for (const app of appsData.apps || []) {
-        appIdToLabel.set(app.id, app.label);
+      for (const app of appsData.records || []) {
+        appIdToLabel.set(app.id, app.data.label);
       }
 
       // Transform applet records into expected format

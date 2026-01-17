@@ -3,4 +3,5 @@ export default interface RecordFilter {
   fields?: Record<string, any>;
   limit?: number;
   offset?: number;
+  includeRelated?: string[]; // Array of relationship field names to include in the response
 }

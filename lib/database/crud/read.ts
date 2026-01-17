@@ -30,10 +30,11 @@ export async function readRecord<T = any>(
 export async function readRecords<T = any>(
   appId: string,
   tableName: string,
-  filter: RecordFilter = {}
+  filter: RecordFilter = {},
+  table: any = null
 ): Promise<ReadResult<T>> {
   const redis = getRedisClient();
-  const { ids, fields, limit, offset = 0 } = filter;
+  const { ids, fields, limit, offset = 0, includeRelated } = filter;
 
   let records: TableRecord<T>[] = [];
 
@@ -83,10 +84,69 @@ export async function readRecords<T = any>(
     ? records.slice(offset, offset + limit)
     : records;
 
+  // Fetch related records if requested
+  let related: Record<string, Record<string, TableRecord[]>> | undefined;
+  if (includeRelated && includeRelated.length > 0 && table) {
+    related = {};
+
+    for (const record of paginatedRecords) {
+      const recordRelated: Record<string, TableRecord[]> = {};
+
+      for (const relationshipFieldName of includeRelated) {
+        // Find the relationship field definition in the table
+        const relationshipField = table.fields?.find(
+          (f: any) => f.name === relationshipFieldName && f.type === "relationship"
+        );
+
+        if (relationshipField && relationshipField.relatedTo) {
+          // Parse the relatedTo to get the target table
+          // Format can be "tableName" or "appId:tableName"
+          const relatedTo = relationshipField.relatedTo;
+          let targetAppId = appId;
+          let targetTableName = relatedTo;
+
+          if (relatedTo.includes(":")) {
+            [targetAppId, targetTableName] = relatedTo.split(":");
+          }
+
+          // Get the relationship field value from the record
+          const relationshipValue = (record.data as any)[relationshipFieldName];
+
+          if (relationshipValue) {
+            // Relationship value can be a single ID or an array of IDs
+            const relatedIds = Array.isArray(relationshipValue)
+              ? relationshipValue
+              : [relationshipValue];
+
+            // Fetch all related records
+            const relatedRecords: TableRecord[] = [];
+            for (const relatedId of relatedIds) {
+              const relatedRecord = await readRecord(
+                targetAppId,
+                targetTableName,
+                relatedId
+              );
+              if (relatedRecord) {
+                relatedRecords.push(relatedRecord);
+              }
+            }
+
+            recordRelated[relationshipFieldName] = relatedRecords;
+          } else {
+            recordRelated[relationshipFieldName] = [];
+          }
+        }
+      }
+
+      related[record.id] = recordRelated;
+    }
+  }
+
   return {
     records: paginatedRecords,
     total,
     limit: limit != undefined ? limit : total,
     offset,
+    ...(related && { related }),
   };
 }

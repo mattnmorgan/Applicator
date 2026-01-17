@@ -48,14 +48,14 @@ export default function DataModelsPage() {
 
       if (data.success && data.records) {
         // Fetch all apps to get app names
-        const appsResponse = await fetch("/api/system/apps");
+        const appsResponse = await fetch("/api/system/apps/system/tables/app");
         const appsData = await appsResponse.json();
 
         // Create a map of app IDs to app names
         const appNamesMap = new Map<string, string>();
-        if (appsData.apps) {
-          appsData.apps.forEach((app: any) => {
-            appNamesMap.set(app.id, app.label);
+        if (appsData.success && appsData.records) {
+          appsData.records.forEach((app: any) => {
+            appNamesMap.set(app.id, app.data.label);
           });
         }
 
@@ -426,6 +426,42 @@ export default function DataModelsPage() {
                               </span>
                             </div>
                           )}
+                          {(field.type === "picklist" ||
+                            field.type === "multipicklist") &&
+                            field.options && (
+                              <div
+                                style={{
+                                  fontSize: "12px",
+                                  color: "#64748b",
+                                  marginTop: "8px",
+                                }}
+                              >
+                                <div style={{ marginBottom: "4px" }}>
+                                  Valid options:
+                                </div>
+                                <div
+                                  style={{
+                                    display: "flex",
+                                    flexWrap: "wrap",
+                                    gap: "4px",
+                                  }}
+                                >
+                                  {Object.entries(field.options).map(
+                                    ([key, value]) => (
+                                      <Badge
+                                        key={key}
+                                        variant={getFieldTypeVariant(
+                                          field.type
+                                        )}
+                                        shape="square"
+                                      >
+                                        {value}
+                                      </Badge>
+                                    )
+                                  )}
+                                </div>
+                              </div>
+                            )}
                         </div>
                       ))}
                   </div>
