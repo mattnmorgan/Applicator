@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import Notification from "@/lib/database/types/notification";
 import NotificationItem from "./NotificationItem";
 import TableRecord from "@/lib/database/crud/types/record";
+import NotificationManager from "@/lib/database/client/managers/notification";
 
 export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
@@ -15,21 +16,18 @@ export default function NotificationBell() {
   const popoverRef = useRef<HTMLDivElement>(null);
   const buttonRef = useRef<HTMLButtonElement>(null);
   const router = useRouter();
+  const notificationManager = new NotificationManager();
 
   const fetchNotifications = async () => {
     try {
-      const response = await fetch(
-        "/api/system/apps/system/tables/notification?fields=" +
-          JSON.stringify({ archived: false })
+      const result = await notificationManager.readRecords({
+        fields: { archived: false },
+      });
+      setNotifications(result.records);
+      setUnreadCount(
+        result.records.filter((r: TableRecord<Notification>) => !r.data.read)
+          .length
       );
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications(data.records);
-        setUnreadCount(
-          data.records.filter((r: TableRecord<Notification>) => !r.data.read)
-            .length
-        );
-      }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     }
@@ -70,16 +68,12 @@ export default function NotificationBell() {
     }
 
     try {
-      await fetch("/api/system/apps/system/tables/notification", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          updates: unreadNotifications.map((n) => ({
-            id: n.id,
-            data: { read: true },
-          })),
-        }),
-      });
+      const updates = unreadNotifications.reduce((acc, n) => {
+        acc[n.id] = { read: true };
+        return acc;
+      }, {} as Record<string, Partial<Notification>>);
+
+      await notificationManager.updateRecords(updates);
       await fetchNotifications();
     } catch (error) {
       console.error("Failed to mark all as read:", error);
@@ -92,16 +86,12 @@ export default function NotificationBell() {
     }
 
     try {
-      await fetch("/api/system/apps/system/tables/notification", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          updates: notifications.map((n) => ({
-            id: n.id,
-            data: { read: true, archived: true },
-          })),
-        }),
-      });
+      const updates = notifications.reduce((acc, n) => {
+        acc[n.id] = { read: true, archived: true };
+        return acc;
+      }, {} as Record<string, Partial<Notification>>);
+
+      await notificationManager.updateRecords(updates);
       await fetchNotifications();
     } catch (error) {
       console.error("Failed to clear all:", error);
@@ -110,20 +100,7 @@ export default function NotificationBell() {
 
   const handleMarkRead = async (id: string, read: boolean) => {
     try {
-      await fetch("/api/system/apps/system/tables/notification", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          updates: [
-            {
-              id: id,
-              data: {
-                read: read,
-              },
-            },
-          ],
-        }),
-      });
+      await notificationManager.updateRecord(id, { read });
       await fetchNotifications();
     } catch (error) {
       console.error("Failed to mark notification:", error);
@@ -132,20 +109,7 @@ export default function NotificationBell() {
 
   const handleArchive = async (id: string) => {
     try {
-      await fetch("/api/system/apps/system/tables/notification", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          updates: [
-            {
-              id: id,
-              data: {
-                archived: true,
-              },
-            },
-          ],
-        }),
-      });
+      await notificationManager.updateRecord(id, { archived: true });
       await fetchNotifications();
     } catch (error) {
       console.error("Failed to archive notification:", error);

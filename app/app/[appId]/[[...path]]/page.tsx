@@ -5,6 +5,8 @@ import { useEffect, useState } from "react";
 import Navigation from "@/lib/components/Navigation/Navigation";
 import Tabset from "@/lib/components/Tabset/Tabset";
 import DynamicAppLoader from "@/lib/components/DynamicAppLoader";
+import AppletManager from "@/lib/database/client/managers/applet";
+import AppManager from "@/lib/database/client/managers/app";
 
 interface TabsetItem {
   label: string;
@@ -34,6 +36,9 @@ export default function AppPage() {
   const [appletComponent, setAppletComponent] = useState<string | null>(null);
   const [homeMenuItems, setHomeMenuItems] = useState<TabsetItem[]>([]);
   const [moduleUrl, setModuleUrl] = useState<string | null>(null);
+
+  const appletManager = new AppletManager();
+  const appManager = new AppManager();
 
   // Parse app ID and applet ID from URL (format: appId:appletId)
   const appId = fullAppId.includes(":")
@@ -119,62 +124,48 @@ export default function AppPage() {
       return;
     }
 
-    // Fetch applet metadata from system:applet table
-    fetch(`/api/system/apps/system/tables/applet?ids=${encodeURIComponent(fullAppId)}`)
-      .then((res) => {
-        if (!res.ok) {
+    // Fetch applet and app metadata using managers
+    (async () => {
+      try {
+        const appletData = await appletManager.readRecords({
+          ids: [fullAppId],
+        });
+
+        if (!appletData.records || appletData.records.length === 0) {
           setError(`Applet "${fullAppId}" does not exist`);
           setLoading(false);
-          return null;
+          return;
         }
-        return res.json();
-      })
-      .then((data) => {
-        if (data && data.success && data.records && data.records.length > 0) {
-          const appletRecord = data.records[0].data;
 
-          setAppletComponent(appletRecord.component);
+        const appletRecord = appletData.records[0].data;
+        setAppletComponent(appletRecord.component);
 
-          // Fetch the main app to get the version
-          return fetch(`/api/system/apps/system/tables/app?ids=${encodeURIComponent(appId)}`);
-        } else if (data) {
-          setError(`Applet "${fullAppId}" does not exist`);
-          setLoading(false);
-        }
-        return null;
-      })
-      .then((res) => {
-        if (!res) return null;
-        if (!res.ok) {
+        // Fetch the main app to get the version
+        const appData = await appManager.readRecords({ ids: [appId] });
+
+        if (!appData.records || appData.records.length === 0) {
           setError(`App "${appId}" does not exist`);
           setLoading(false);
-          return null;
+          return;
         }
-        return res.json();
-      })
-      .then((data) => {
-        if (data && data.success && data.records && data.records.length > 0) {
-          const appRecord = data.records[0].data;
 
-          // Format version object to string (e.g., "1.0.0")
-          const versionString = `${appRecord.version.major}.${appRecord.version.minor}.${appRecord.version.dev}`;
-          setAppVersion(versionString);
+        const appRecord = appData.records[0].data;
 
-          // Set the module URL for the DynamicAppLoader
-          setModuleUrl(
-            `/api/system/apps/${appId}/assets/source?v=${versionString}`
-          );
-          setLoading(false);
-        } else if (data) {
-          setError(`App "${appId}" does not exist`);
-          setLoading(false);
-        }
-      })
-      .catch((err) => {
+        // Format version object to string (e.g., "1.0.0")
+        const versionString = `${appRecord.version.major}.${appRecord.version.minor}.${appRecord.version.dev}`;
+        setAppVersion(versionString);
+
+        // Set the module URL for the DynamicAppLoader
+        setModuleUrl(
+          `/api/system/apps/${appId}/assets/source?v=${versionString}`
+        );
+        setLoading(false);
+      } catch (err) {
         console.error("Error fetching applet metadata:", err);
         setError("Failed to load app");
         setLoading(false);
-      });
+      }
+    })();
   }, [fullAppId, appId, appletId, user, userApplets]);
 
   return (

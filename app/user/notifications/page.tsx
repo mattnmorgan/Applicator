@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Notification from "@/lib/database/types/notification";
 import TableRecord from "@/lib/database/crud/types/record";
+import NotificationManager from "@/lib/database/client/managers/notification";
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<
@@ -18,22 +19,18 @@ export default function NotificationsPage() {
   );
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
+  const notificationManager = new NotificationManager();
 
   const fetchNotifications = async () => {
     try {
       setIsLoading(true);
-      const response = await fetch(
-        "/api/system/apps/system/tables/notification"
+      const result = await notificationManager.readRecords({});
+      setNotifications(
+        result.records.sort(
+          (a: TableRecord<Notification>, b: TableRecord<Notification>) =>
+            b.createdAt - a.createdAt
+        )
       );
-      if (response.ok) {
-        const data = await response.json();
-        setNotifications(
-          data.records.sort(
-            (a: TableRecord<Notification>, b: TableRecord<Notification>) =>
-              b.createdAt - a.createdAt
-          )
-        );
-      }
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
     } finally {
@@ -75,20 +72,7 @@ export default function NotificationsPage() {
 
   const handleMarkRead = async (id: string, read: boolean) => {
     try {
-      await fetch("/api/system/apps/system/tables/notification", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          updates: [
-            {
-              id: id,
-              data: {
-                read: read,
-              },
-            },
-          ],
-        }),
-      });
+      await notificationManager.updateRecord(id, { read });
       await fetchNotifications();
     } catch (error) {
       console.error("Failed to mark notification:", error);
@@ -98,24 +82,9 @@ export default function NotificationsPage() {
   const handleArchive = async (id: string, archived: boolean) => {
     try {
       if (!archived) {
-        await fetch("/api/system/apps/system/tables/notification", {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            updates: [
-              {
-                id: id,
-                data: {
-                  archived: true,
-                },
-              },
-            ],
-          }),
-        });
+        await notificationManager.updateRecord(id, { archived: true });
       } else {
-        await fetch("/api/system/apps/system/tables/notification?id=" + id, {
-          method: "DELETE",
-        });
+        await notificationManager.deleteRecord(id);
       }
       await fetchNotifications();
     } catch (error) {

@@ -6,6 +6,8 @@ import styles from "./UserCreate.module.css";
 import UserManager from "@/lib/database/client/managers/user";
 import AuthorityManager from "@/lib/database/client/managers/authority";
 import AuthorizationManager from "@/lib/database/client/managers/authorization";
+import AppManager from "@/lib/database/client/managers/app";
+import AppletManager from "@/lib/database/client/managers/applet";
 import TableRecord from "@/lib/database/crud/types/record";
 import User from "@/lib/database/types/user";
 import Authority from "@/lib/database/types/authority";
@@ -108,23 +110,24 @@ export default function UserCreate({
 
   const fetchAuthorizations = async () => {
     try {
-      const [authResponse, appsResponse] = await Promise.all([
-        fetch("/api/system/apps/system/tables/authorization"),
-        fetch("/api/system/apps/system/tables/app"),
+      const authorizationManager = new AuthorizationManager();
+      const appManager = new AppManager();
+
+      const [authData, appsData] = await Promise.all([
+        authorizationManager.readRecords({}),
+        appManager.readRecords({}),
       ]);
-      const authData = await authResponse.json();
-      const appsData = await appsResponse.json();
 
       // Create app ID to label mapping
       const appIdToLabel = new Map<string, string>();
-      for (const app of appsData.records || []) {
+      for (const app of appsData.records) {
         appIdToLabel.set(app.id, app.data.label);
       }
 
       // Transform and filter out contextual authorizations
-      const nonContextualAuthorizations = (authData.records || [])
-        .filter((record: any) => !record.data.contextual)
-        .map((record: any) => ({
+      const nonContextualAuthorizations = authData.records
+        .filter((record) => !record.data.contextual)
+        .map((record) => ({
           id: record.id,
           name: record.data.name,
           description: record.data.description,
@@ -141,29 +144,28 @@ export default function UserCreate({
 
   const fetchApps = async () => {
     try {
-      const [appsResponse, appletsResponse] = await Promise.all([
-        fetch("/api/system/apps/system/tables/app"),
-        fetch("/api/system/apps/system/tables/applet"),
+      const appManager = new AppManager();
+      const appletManager = new AppletManager();
+
+      const [appsData, appletsData] = await Promise.all([
+        appManager.readRecords({}),
+        appletManager.readRecords({}),
       ]);
-      const appsData = await appsResponse.json();
-      const appletsData = await appletsResponse.json();
 
       // Create app ID to label mapping
       const appIdToLabel = new Map<string, string>();
-      for (const app of appsData.records || []) {
+      for (const app of appsData.records) {
         appIdToLabel.set(app.id, app.data.label);
       }
 
       // Transform applet records into expected format
-      const appletsList: Applet[] = (appletsData.records || []).map(
-        (record: any) => ({
-          id: record.id,
-          label: record.data.label,
-          description: record.data.description,
-          appLabel: appIdToLabel.get(record.data.app) || record.data.app,
-          target: record.data.target,
-        })
-      );
+      const appletsList: Applet[] = appletsData.records.map((record) => ({
+        id: record.id,
+        label: record.data.label,
+        description: record.data.description,
+        appLabel: appIdToLabel.get(record.data.app) || record.data.app,
+        target: record.data.target,
+      }));
       setAvailableApplets(appletsList);
     } catch (error) {
       console.error("Failed to fetch apps:", error);

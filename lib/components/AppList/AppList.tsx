@@ -7,6 +7,8 @@ import Toast from "../Toast";
 import ConfirmModal from "../ConfirmModal";
 import Badge from "../Badge/Badge";
 import styles from "./AppList.module.css";
+import AppManager from "@/lib/database/client/managers/app";
+import ApiRouteManager from "@/lib/database/client/managers/apiRoute";
 
 interface Widget {
   id: string;
@@ -78,19 +80,19 @@ export default function AppList() {
 
   const fetchApps = async () => {
     try {
+      const appManager = new AppManager();
+      const apiRouteManager = new ApiRouteManager();
+
       // Fetch apps and apiRoutes in parallel
-      const [appsResponse, apiRoutesResponse] = await Promise.all([
-        fetch("/api/system/apps/system/tables/app"),
-        fetch("/api/system/apps/system/tables/api-route"),
+      const [appsData, apiRoutesData] = await Promise.all([
+        appManager.readRecords({}),
+        apiRouteManager.readRecords({}),
       ]);
 
-      const appsData = await appsResponse.json();
-      const apiRoutesData = await apiRoutesResponse.json();
-
-      if (appsData.success && appsData.records) {
+      if (appsData.records) {
         // Group API routes by app
         const apiRoutesByApp: Record<string, any[]> = {};
-        if (apiRoutesData.success && apiRoutesData.records) {
+        if (apiRoutesData.records) {
           for (const route of apiRoutesData.records) {
             const appId = route.data.app;
             if (!apiRoutesByApp[appId]) {
@@ -107,7 +109,7 @@ export default function AppList() {
 
         // Transform apps with their API routes
         const transformedApps = appsData.records
-          .map((record: any) => ({
+          .map((record) => ({
             id: record.id,
             label: record.data.label,
             version: record.data.version,

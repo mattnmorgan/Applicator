@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import Row from '../Row';
 import Badge from '../Badge/Badge';
 import styles from './AuthorizationList.module.css';
+import AuthorizationManager from '@/lib/database/client/managers/authorization';
+import AppManager from '@/lib/database/client/managers/app';
 
 interface Authorization {
   id: string;
@@ -20,21 +22,22 @@ export default function AuthorizationList() {
 
   const fetchAuthorizations = async () => {
     try {
-      const [authResponse, appsResponse] = await Promise.all([
-        fetch('/api/system/apps/system/tables/authorization'),
-        fetch('/api/system/apps/system/tables/app'),
+      const authorizationManager = new AuthorizationManager();
+      const appManager = new AppManager();
+
+      const [authData, appsData] = await Promise.all([
+        authorizationManager.readRecords({}),
+        appManager.readRecords({}),
       ]);
-      const authData = await authResponse.json();
-      const appsData = await appsResponse.json();
 
       // Create app label lookup
       const appLabels: Record<string, string> = {};
-      for (const app of appsData.records || []) {
+      for (const app of appsData.records) {
         appLabels[app.id] = app.data.label;
       }
 
       // Transform authorization records to expected format
-      const authorizationsList = (authData.records || []).map((record: any) => ({
+      const authorizationsList = authData.records.map((record) => ({
         id: record.id,
         name: record.data.name,
         description: record.data.description,

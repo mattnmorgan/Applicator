@@ -7,6 +7,8 @@ import Row from "../Row";
 import UserCreate from "../UserCreate";
 import Badge from "../Badge/Badge";
 import styles from "./UserList.module.css";
+import UserManager from "@/lib/database/client/managers/user";
+import AuthorityManager from "@/lib/database/client/managers/authority";
 
 interface User {
   id: string;
@@ -38,23 +40,24 @@ export default function UserList() {
   const [showCreateUser, setShowCreateUser] = useState(false);
   const [editingUser, setEditingUser] = useState<User | null>(null);
 
+  const userManager = new UserManager();
+  const authorityManager = new AuthorityManager();
+
   const fetchUsers = async () => {
     try {
-      const [usersResponse, authoritiesResponse] = await Promise.all([
-        fetch("/api/system/apps/system/tables/user"),
-        fetch("/api/system/apps/system/tables/authority"),
+      const [usersData, authoritiesData] = await Promise.all([
+        userManager.readRecords({}),
+        authorityManager.readRecords({}),
       ]);
-      const usersData = await usersResponse.json();
-      const authoritiesData = await authoritiesResponse.json();
 
       // Create authority ID to name mapping
       const authorityIdToName = new Map<string, string>();
-      for (const record of authoritiesData.records || []) {
+      for (const record of authoritiesData.records) {
         authorityIdToName.set(record.id, record.data.name);
       }
 
       // Transform user records to expected format
-      const usersList = (usersData.records || []).map((record: any) => ({
+      const usersList = usersData.records.map((record) => ({
         id: record.id,
         username: record.data.username,
         email: record.data.email,
@@ -67,6 +70,14 @@ export default function UserList() {
           record.data.icon && record.data.icon.trim() !== ""
             ? `/api/system/assets/icons/users/${record.id}?t=${Date.now()}`
             : undefined,
+        allAuthorizations: {
+          authorizations: [],
+          userAuthorizations: [],
+        },
+        allAppAccess: {
+          accesses: [],
+          userAccesses: [],
+        },
       }));
 
       setUsers(usersList);
@@ -102,21 +113,14 @@ export default function UserList() {
 
     setLoading(true);
     try {
-      const response = await fetch("/api/system/apps/system/tables/user", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          updates: Array.from(selectedUserIds).map((id) => ({
-            id: id,
-            data: { isActive: isActive },
-          })),
-        }),
-      });
+      const updates = Array.from(selectedUserIds).reduce((acc, id) => {
+        acc[id] = { isActive };
+        return acc;
+      }, {} as Record<string, { isActive: boolean }>);
 
-      if (response.ok) {
-        await fetchUsers();
-        setSelectedUserIds(new Set());
-      }
+      await userManager.updateRecords(updates);
+      await fetchUsers();
+      setSelectedUserIds(new Set());
     } catch (error) {
       console.error("Failed to update user status:", error);
     } finally {
@@ -144,10 +148,7 @@ export default function UserList() {
   const handleEditUser = async (userId: string) => {
     try {
       // Fetch user data
-      const userResponse = await fetch(
-        `/api/system/apps/system/tables/user?ids=${userId}`
-      );
-      const userData = await userResponse.json();
+      const userData = await userManager.readRecords({ ids: [userId] });
 
       if (!userData.records || userData.records.length === 0) {
         console.error("User not found");
@@ -157,17 +158,15 @@ export default function UserList() {
       const userRecord = userData.records[0];
 
       // Fetch main authority data
-      const mainAuthorityResponse = await fetch(
-        `/api/system/apps/system/tables/authority?ids=${userRecord.data.authority}`
-      );
-      const mainAuthorityData = await mainAuthorityResponse.json();
+      const mainAuthorityData = await authorityManager.readRecords({
+        ids: [userRecord.data.authority],
+      });
       const mainAuthority = mainAuthorityData.records?.[0];
 
       // Fetch user-specific authority data
-      const userAuthorityResponse = await fetch(
-        `/api/system/apps/system/tables/authority?ids=user-specific:${userId}`
-      );
-      const userAuthorityData = await userAuthorityResponse.json();
+      const userAuthorityData = await authorityManager.readRecords({
+        ids: [`user-specific:${userId}`],
+      });
       const userAuthority = userAuthorityData.records?.[0];
 
       setEditingUser({

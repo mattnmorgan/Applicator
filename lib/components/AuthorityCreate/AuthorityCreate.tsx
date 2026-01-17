@@ -4,6 +4,10 @@ import { useState, useEffect } from "react";
 import Toast from "../Toast";
 import Badge from "../Badge/Badge";
 import styles from "./AuthorityCreate.module.css";
+import AuthorityManager from "@/lib/database/client/managers/authority";
+import AppManager from "@/lib/database/client/managers/app";
+import AuthorizationManager from "@/lib/database/client/managers/authorization";
+import AppletManager from "@/lib/database/client/managers/applet";
 
 interface AuthorityCreateProps {
   onCancel: () => void;
@@ -67,49 +71,45 @@ export default function AuthorityCreate({
     editAuthority &&
     ["system:admin", "system:user", "system:guest"].includes(editAuthority.id);
 
+  const authorityManager = new AuthorityManager();
+  const appManager = new AppManager();
+  const authorizationManager = new AuthorizationManager();
+  const appletManager = new AppletManager();
+
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [authResponse, appsResponse, appletsResponse] = await Promise.all(
-          [
-            fetch("/api/system/apps/system/tables/authorization"),
-            fetch("/api/system/apps/system/tables/app"),
-            fetch("/api/system/apps/system/tables/applet"),
-          ]
-        );
-        const authData = await authResponse.json();
-        const appsData = await appsResponse.json();
-        const appletsData = await appletsResponse.json();
+        const [authData, appsData, appletsData] = await Promise.all([
+          authorizationManager.readRecords({}),
+          appManager.readRecords({}),
+          appletManager.readRecords({}),
+        ]);
 
         // Create app ID to label mapping
         const appIdToLabel = new Map<string, string>();
-        for (const app of appsData.records || []) {
+        for (const app of appsData.records) {
           appIdToLabel.set(app.id, app.data.label);
         }
 
         // Transform authorization records to expected format
-        const authorizationsList = (authData.records || []).map(
-          (record: any) => ({
-            id: record.id,
-            name: record.data.name,
-            description: record.data.description,
-            app: record.data.app,
-            appLabel: appIdToLabel.get(record.data.app) || record.data.app,
-            contextual: record.data.contextual,
-          })
-        );
+        const authorizationsList = authData.records.map((record) => ({
+          id: record.id,
+          name: record.data.name,
+          description: record.data.description,
+          app: record.data.app,
+          appLabel: appIdToLabel.get(record.data.app) || record.data.app,
+          contextual: record.data.contextual,
+        }));
         setAuthorizations(authorizationsList);
 
         // Transform applet records into expected format
-        const appletsList: Applet[] = (appletsData.records || []).map(
-          (record: any) => ({
-            id: record.id,
-            label: record.data.label,
-            description: record.data.description,
-            appLabel: appIdToLabel.get(record.data.app) || record.data.app,
-            target: record.data.target,
-          })
-        );
+        const appletsList: Applet[] = appletsData.records.map((record) => ({
+          id: record.id,
+          label: record.data.label,
+          description: record.data.description,
+          appLabel: appIdToLabel.get(record.data.app) || record.data.app,
+          target: record.data.target,
+        }));
         setApplets(appletsList);
       } catch (error) {
         console.error("Failed to fetch data:", error);
@@ -191,7 +191,7 @@ export default function AuthorityCreate({
     setCreating(true);
     try {
       if (isEditMode) {
-        // Update authority using generic table route
+        // Update authority using manager
         const updateData: any = {};
 
         if (!isSystemAuthority) {
@@ -204,24 +204,7 @@ export default function AuthorityCreate({
         // Add applets
         updateData.apps = Array.from(selectedApplets);
 
-        const response = await fetch(
-          "/api/system/apps/system/tables/authority",
-          {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              id: editAuthority.id,
-              data: updateData,
-            }),
-          }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          setError(data.error || "Failed to update authority");
-          return;
-        }
+        await authorityManager.updateRecord(editAuthority.id, updateData);
 
         // Handle icon upload/removal separately if needed
         if (iconFile) {
@@ -254,22 +237,9 @@ export default function AuthorityCreate({
           }
 
           // Update the authority record with icon flag
-          const updateIconResponse = await fetch(
-            "/api/system/apps/system/tables/authority",
-            {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                id: editAuthority.id,
-                data: { icon: "true" },
-              }),
-            }
-          );
-
-          if (!updateIconResponse.ok) {
-            setError("Failed to update authority with icon path");
-            return;
-          }
+          await authorityManager.updateRecord(editAuthority.id, {
+            icon: "true",
+          });
         } else if (clearIcon) {
           // Get the current icon path and delete the file
           const storageResponse = await fetch("/api/system/settings");
@@ -288,50 +258,20 @@ export default function AuthorityCreate({
           }
 
           // Clear the icon field in the database
-          const updateIconResponse = await fetch(
-            "/api/system/apps/system/tables/authority",
-            {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                id: editAuthority.id,
-                data: { icon: "" },
-              }),
-            }
-          );
-
-          if (!updateIconResponse.ok) {
-            setError("Failed to remove icon");
-            return;
-          }
+          await authorityManager.updateRecord(editAuthority.id, { icon: "" });
         }
 
         onAuthorityCreated();
       } else {
-        // Create authority using generic table route
+        // Create authority using manager
         const createData: any = {
           name: name.trim(),
           authorizations: Array.from(selectedAuthorizations),
           apps: Array.from(selectedApplets),
         };
 
-        const response = await fetch(
-          "/api/system/apps/system/tables/authority",
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ data: createData }),
-          }
-        );
-
-        const data = await response.json();
-
-        if (!response.ok) {
-          setError(data.error || "Failed to create authority");
-          return;
-        }
-
-        const authorityId = data.record.id;
+        const result = await authorityManager.createRecord(createData);
+        const authorityId = result.id;
 
         // Handle icon upload separately if provided
         if (iconFile) {
@@ -366,22 +306,9 @@ export default function AuthorityCreate({
 
           // Update the authority record with the icon path
           const relativePath = `system\\authorities\\icons\\${authorityId}\\${fileName}`;
-          const updateIconResponse = await fetch(
-            "/api/system/apps/system/tables/authority",
-            {
-              method: "PATCH",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({
-                id: authorityId,
-                data: { icon: relativePath },
-              }),
-            }
-          );
-
-          if (!updateIconResponse.ok) {
-            setError("Failed to update authority with icon path");
-            return;
-          }
+          await authorityManager.updateRecord(authorityId, {
+            icon: relativePath,
+          });
         }
 
         onAuthorityCreated();

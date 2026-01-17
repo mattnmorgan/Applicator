@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import styles from "./AssumeIdentityModal.module.css";
 import User from "@/lib/database/types/user";
 import TableRecord from "@/lib/database/crud/types/record";
+import UserManager from "@/lib/database/client/managers/user";
 
 interface AssumeIdentityModalProps {
   onClose: () => void;
@@ -20,14 +21,15 @@ export default function AssumeIdentityModal({
   const [searchQuery, setSearchQuery] = useState("");
   const [assuming, setAssuming] = useState(false);
 
+  const userManager = new UserManager();
+
   useEffect(() => {
     fetchUsers();
   }, []);
 
   const fetchUsers = async () => {
     try {
-      const response = await fetch("/api/system/apps/system/tables/user");
-      const data = await response.json();
+      const data = await userManager.readRecords({});
 
       for (const user of data.records) {
         if (user.data.icon) {

@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import TableDefinition from "@/lib/database/types/table";
 import Badge from "@/lib/components/Badge/Badge";
+import TableManager from "@/lib/database/client/managers/table";
+import AppManager from "@/lib/database/client/managers/app";
 
 interface TableSearchResult {
   appId: string;
@@ -42,31 +44,30 @@ export default function DataModelsPage() {
 
   const fetchTables = async () => {
     try {
-      // Fetch all table records from system:table using generic API
-      const response = await fetch("/api/system/apps/system/tables/table");
-      const data = await response.json();
+      const tableManager = new TableManager();
+      const appManager = new AppManager();
 
-      if (data.success && data.records) {
-        // Fetch all apps to get app names
-        const appsResponse = await fetch("/api/system/apps/system/tables/app");
-        const appsData = await appsResponse.json();
+      // Fetch all table records and apps in parallel
+      const [data, appsData] = await Promise.all([
+        tableManager.readRecords({}),
+        appManager.readRecords({}),
+      ]);
 
+      if (data.records) {
         // Create a map of app IDs to app names
         const appNamesMap = new Map<string, string>();
-        if (appsData.success && appsData.records) {
-          appsData.records.forEach((app: any) => {
+        if (appsData.records) {
+          appsData.records.forEach((app) => {
             appNamesMap.set(app.id, app.data.label);
           });
         }
 
         // Transform records into TableSearchResult format
-        const results: TableSearchResult[] = data.records.map(
-          (record: any) => ({
-            appId: record.data.app,
-            appName: appNamesMap.get(record.data.app) || record.data.app,
-            table: record.data,
-          })
-        );
+        const results: TableSearchResult[] = data.records.map((record) => ({
+          appId: record.data.app,
+          appName: appNamesMap.get(record.data.app) || record.data.app,
+          table: record.data,
+        }));
 
         // Sort tables alphabetically by table name
         const sortedResults = results.sort((a, b) =>

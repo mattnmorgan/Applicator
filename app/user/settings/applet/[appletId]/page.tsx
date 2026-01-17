@@ -3,6 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import DynamicAppLoader from "@/lib/components/DynamicAppLoader";
+import AppletManager from "@/lib/database/client/managers/applet";
+import AppManager from "@/lib/database/client/managers/app";
 
 export default function UserSettingsAppletPage() {
   const params = useParams();
@@ -12,6 +14,9 @@ export default function UserSettingsAppletPage() {
   const [moduleUrl, setModuleUrl] = useState<string | null>(null);
   const [componentName, setComponentName] = useState<string | null>(null);
   const [userApplets, setUserApplets] = useState<string[]>([]);
+
+  const appletManager = new AppletManager();
+  const appManager = new AppManager();
 
   // Fetch user's accessible applets
   useEffect(() => {
@@ -55,16 +60,11 @@ export default function UserSettingsAppletPage() {
 
         const appId = parts[0];
 
-        // Fetch applet metadata from system:applet table
-        const appletResponse = await fetch(`/api/system/apps/system/tables/applet?ids=${encodeURIComponent(fullAppletId)}`);
-        if (!appletResponse.ok) {
-          setError(`Applet "${fullAppletId}" does not exist`);
-          setLoading(false);
-          return;
-        }
-
-        const appletData = await appletResponse.json();
-        if (!appletData.success || !appletData.records || appletData.records.length === 0) {
+        // Fetch applet metadata
+        const appletData = await appletManager.readRecords({
+          ids: [fullAppletId],
+        });
+        if (!appletData.records || appletData.records.length === 0) {
           setError(`Applet "${fullAppletId}" does not exist`);
           setLoading(false);
           return;
@@ -73,16 +73,9 @@ export default function UserSettingsAppletPage() {
         const appletRecord = appletData.records[0].data;
         setComponentName(appletRecord.component);
 
-        // Fetch app metadata to get version from system:app table
-        const appResponse = await fetch(`/api/system/apps/system/tables/app?ids=${encodeURIComponent(appId)}`);
-        if (!appResponse.ok) {
-          setError("Failed to load app information");
-          setLoading(false);
-          return;
-        }
-
-        const appResponseData = await appResponse.json();
-        if (!appResponseData.success || !appResponseData.records || appResponseData.records.length === 0) {
+        // Fetch app metadata to get version
+        const appResponseData = await appManager.readRecords({ ids: [appId] });
+        if (!appResponseData.records || appResponseData.records.length === 0) {
           setError("Failed to load app information");
           setLoading(false);
           return;

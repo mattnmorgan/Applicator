@@ -7,6 +7,9 @@ import Toast from "../Toast";
 import AuthorityCreate from "../AuthorityCreate";
 import Badge from "../Badge/Badge";
 import styles from "./AuthorityList.module.css";
+import AuthorityManager from "@/lib/database/client/managers/authority";
+import UserManager from "@/lib/database/client/managers/user";
+import AppManager from "@/lib/database/client/managers/app";
 
 interface Authority {
   id: string;
@@ -35,53 +38,53 @@ export default function AuthorityList() {
     type: "success" | "error";
   } | null>(null);
 
+  const authorityManager = new AuthorityManager();
+  const userManager = new UserManager();
+  const appManager = new AppManager();
+
   const fetchAuthorities = async () => {
     try {
-      const response = await fetch("/api/system/apps/system/tables/authority");
-      const data = await response.json();
+      const data = await authorityManager.readRecords({});
 
       // Filter out user-specific authorities and enrich with icon URLs and app labels
-      const allAuthorities = data.records || [];
+      const allAuthorities = data.records;
 
-      const nonUserAuthorities = allAuthorities.filter((record: any) => {
+      const nonUserAuthorities = allAuthorities.filter((record) => {
         return record && record.data && !record.data.userId;
       });
 
+      // Fetch all apps for contextual authorities
+      const appsData = await appManager.readRecords({});
+      const appIdToLabel = new Map<string, string>();
+      for (const appRecord of appsData.records) {
+        appIdToLabel.set(appRecord.id, appRecord.data.label);
+      }
+
       // Transform records to match expected format and add icon URLs
-      const authoritiesWithIcons = await Promise.all(
-        nonUserAuthorities.map(async (record: any) => {
-          const authority = record.data;
-          let appLabel = undefined;
+      const authoritiesWithIcons = nonUserAuthorities.map((record) => {
+        const authority = record.data;
+        let appLabel = undefined;
 
-          if (authority.contextual && authority.app) {
-            try {
-              const appResponse = await fetch(
-                `/api/system/apps/${authority.app}`
-              );
-              const appData = await appResponse.json();
-              appLabel = appData.app?.label || "Unknown";
-            } catch {
-              appLabel = "Unknown";
-            }
-          }
+        if (authority.contextual && authority.app) {
+          appLabel = appIdToLabel.get(authority.app) || "Unknown";
+        }
 
-          return {
-            id: record.id,
-            name: authority.name,
-            icon:
-              authority.icon && authority.icon.trim() !== ""
-                ? `/api/system/assets/icons/authorities/${
-                    record.id
-                  }?t=${Date.now()}`
-                : undefined,
-            authorizations: authority.authorizations,
-            apps: authority.apps,
-            contextual: authority.contextual,
-            app: authority.app,
-            appLabel,
-          };
-        })
-      );
+        return {
+          id: record.id,
+          name: authority.name,
+          icon:
+            authority.icon && authority.icon.trim() !== ""
+              ? `/api/system/assets/icons/authorities/${
+                  record.id
+                }?t=${Date.now()}`
+              : undefined,
+          authorizations: authority.authorizations,
+          apps: authority.apps,
+          contextual: authority.contextual,
+          app: authority.app,
+          appLabel,
+        };
+      });
 
       // Sort authorities alphabetically by name
       authoritiesWithIcons.sort((a, b) => a.name.localeCompare(b.name));
@@ -133,16 +136,11 @@ export default function AuthorityList() {
       const violatedAuthorities: string[] = [];
       for (const authorityId of authorityIdsArray) {
         try {
-          const checkResponse = await fetch(
-            `/api/system/apps/system/tables/user?limit=1&fields=${JSON.stringify(
-              { authority: true }
-            )}`
-          );
-          const checkData = await checkResponse.json();
-          const hasUsers = checkData.records?.some((r: any) => {
-            return r.data && r.data.authority === authorityId;
+          const checkData = await userManager.readRecords({
+            fields: { authority: authorityId },
+            limit: 1,
           });
-          if (hasUsers) {
+          if (checkData.records.length > 0) {
             violatedAuthorities.push(authorityId);
           }
         } catch {
@@ -165,22 +163,8 @@ export default function AuthorityList() {
         return;
       }
 
-      // Delete using generic table route
-      const response = await fetch("/api/system/apps/system/tables/authority", {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ids: authorityIdsArray }),
-      });
-
-      const data = await response.json();
-
-      if (!response.ok) {
-        setToast({
-          message: data.error || "Failed to delete authorities",
-          type: "error",
-        });
-        return;
-      }
+      // Delete authorities
+      await authorityManager.deleteRecords(authorityIdsArray);
 
       setToast({
         message: `Successfully deleted ${authorityIdsArray.length} ${
@@ -221,10 +205,7 @@ export default function AuthorityList() {
     }
 
     try {
-      const response = await fetch(
-        `/api/system/apps/system/tables/authority?ids=${authorityId}`
-      );
-      const data = await response.json();
+      const data = await authorityManager.readRecords({ ids: [authorityId] });
       if (data.records && data.records.length > 0) {
         const record = data.records[0];
         const authorityData = record.data;
