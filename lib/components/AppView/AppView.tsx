@@ -52,7 +52,9 @@ function formatVersion(version: AppVersion): string {
   return `${version.major}.${version.minor}.${version.dev}`;
 }
 
-function getMethodBadgeVariant(method: string): "green" | "blue" | "yellow" | "red" | "purple" | "gray" {
+function getMethodBadgeVariant(
+  method: string
+): "green" | "blue" | "yellow" | "red" | "purple" | "gray" {
   switch (method.toUpperCase()) {
     case "GET":
       return "blue";
@@ -68,7 +70,9 @@ function getMethodBadgeVariant(method: string): "green" | "blue" | "yellow" | "r
   }
 }
 
-function getTargetBadgeVariant(target: string): "green" | "blue" | "yellow" | "red" | "purple" | "gray" {
+function getTargetBadgeVariant(
+  target: string
+): "green" | "blue" | "yellow" | "red" | "purple" | "gray" {
   switch (target) {
     case "home":
       return "blue";
@@ -168,9 +172,7 @@ export default function AppView({ appId, onBack }: AppViewProps) {
         <div className={styles.details}>
           <div className={styles.titleRow}>
             <h1 className={styles.title}>{app.label}</h1>
-            <Badge variant="gray">
-              v{formatVersion(app.version)}
-            </Badge>
+            <Badge variant="gray">v{formatVersion(app.version)}</Badge>
           </div>
           <p className={styles.author}>
             by {app.author}
@@ -198,7 +200,7 @@ export default function AppView({ appId, onBack }: AppViewProps) {
                             {depApp.label.charAt(0).toUpperCase()}
                           </span>
                           <img
-                            src={`/api/system/apps/${depId}/assets/icon`}
+                            src={`/api/${depId}/assets/icon`}
                             alt={depApp?.label || depId}
                             onError={(e) => {
                               const target = e.target as HTMLImageElement;
@@ -249,19 +251,40 @@ export default function AppView({ appId, onBack }: AppViewProps) {
       {app.subApps && app.subApps.length > 0 && (
         <div className={styles.section}>
           <h2 className={styles.sectionTitle}>Sub-Applications</h2>
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+          <div
+            style={{ display: "flex", flexDirection: "column", gap: "12px" }}
+          >
             {app.subApps.map((subApp) => (
               <Accordion
                 key={subApp.id}
                 title={
-                  <div style={{ color: "#f1f5f9", fontSize: "16px", fontWeight: "500" }}>
+                  <div
+                    style={{
+                      color: "#f1f5f9",
+                      fontSize: "16px",
+                      fontWeight: "500",
+                    }}
+                  >
                     {subApp.label}
                   </div>
                 }
               >
-                <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    gap: "16px",
+                  }}
+                >
                   <div>
-                    <div style={{ color: "#cbd5e1", fontSize: "13px", fontWeight: "500", marginBottom: "8px" }}>
+                    <div
+                      style={{
+                        color: "#cbd5e1",
+                        fontSize: "13px",
+                        fontWeight: "500",
+                        marginBottom: "8px",
+                      }}
+                    >
                       Description
                     </div>
                     <div style={{ color: "#e2e8f0", fontSize: "14px" }}>
@@ -271,10 +294,23 @@ export default function AppView({ appId, onBack }: AppViewProps) {
 
                   {subApp.widgets && subApp.widgets.length > 0 && (
                     <div>
-                      <div style={{ color: "#cbd5e1", fontSize: "13px", fontWeight: "500", marginBottom: "8px" }}>
+                      <div
+                        style={{
+                          color: "#cbd5e1",
+                          fontSize: "13px",
+                          fontWeight: "500",
+                          marginBottom: "8px",
+                        }}
+                      >
                         Widgets ({subApp.widgets.length})
                       </div>
-                      <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+                      <div
+                        style={{
+                          display: "flex",
+                          flexDirection: "column",
+                          gap: "8px",
+                        }}
+                      >
                         {subApp.widgets.map((widget) => (
                           <div
                             key={widget.id}
@@ -285,14 +321,31 @@ export default function AppView({ appId, onBack }: AppViewProps) {
                               padding: "12px",
                             }}
                           >
-                            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: "6px" }}>
-                              <div style={{ color: "#f1f5f9", fontSize: "14px", fontWeight: "500" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                justifyContent: "space-between",
+                                alignItems: "flex-start",
+                                marginBottom: "6px",
+                              }}
+                            >
+                              <div
+                                style={{
+                                  color: "#f1f5f9",
+                                  fontSize: "14px",
+                                  fontWeight: "500",
+                                }}
+                              >
                                 {widget.name}
                               </div>
-                              <Badge variant={getTargetBadgeVariant(widget.target)}>
+                              <Badge
+                                variant={getTargetBadgeVariant(widget.target)}
+                              >
                                 {widget.target === "home" && "Home"}
-                                {widget.target === "user-settings" && "User Settings"}
-                                {widget.target === "system-settings" && "System Settings"}
+                                {widget.target === "user-settings" &&
+                                  "User Settings"}
+                                {widget.target === "system-settings" &&
+                                  "System Settings"}
                               </Badge>
                             </div>
                             <div style={{ color: "#94a3b8", fontSize: "13px" }}>

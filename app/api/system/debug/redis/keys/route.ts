@@ -10,7 +10,7 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    if (!user.authorizations.some((a) => a === "admin")) {
+    if (!user.authorizations.some((a) => a === "system:admin")) {
       return NextResponse.json(
         { error: "Forbidden - Admin access required" },
         { status: 403 }

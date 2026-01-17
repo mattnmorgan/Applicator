@@ -142,7 +142,7 @@ export default async function UserSettingsLayout({
   const profilePictureUrl = user.icon
     ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}`
     : undefined;
-  const hasAdminAuth = user.authorizations.includes("admin");
+  const hasAdminAuth = user.authorizations.includes("system:admin");
   const brandSettings = await getBrandSettings();
   const userSettingsMenuItems = await getUserSettingsMenuItems();
 

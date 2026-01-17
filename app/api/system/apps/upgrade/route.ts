@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has admin authorization
-    const hasAdmin = await userHasAuthorization(session.userId, "admin");
+    const hasAdmin = await userHasAuthorization(session.userId, "system:admin");
     if (!hasAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -829,10 +829,14 @@ export async function POST(request: NextRequest) {
         const tableManager = new TableManager();
         const allTables = await tableManager.listRecords();
         const existingTables = allTables.filter((t: any) =>
-          t && typeof t === 'string' ? t.startsWith(`${appAttributes.id}:`) : t?.id?.startsWith(`${appAttributes.id}:`)
+          t && typeof t === "string"
+            ? t.startsWith(`${appAttributes.id}:`)
+            : t?.id?.startsWith(`${appAttributes.id}:`)
         );
         const existingTableNames = new Set(
-          existingTables.map((t: any) => typeof t === 'string' ? t.split(':')[1] : t.data.tableName)
+          existingTables.map((t: any) =>
+            typeof t === "string" ? t.split(":")[1] : t.data.tableName
+          )
         );
 
         // Create or update tables

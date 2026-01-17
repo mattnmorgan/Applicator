@@ -41,7 +41,7 @@ export async function GET() {
     return NextResponse.json(
       {
         settings,
-        version: versionInfo
+        version: versionInfo,
       },
       { status: 200 }
     );
@@ -67,7 +67,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has admin authorization
-    const hasAdmin = await userHasAuthorization(session.userId, "admin");
+    const hasAdmin = await userHasAuthorization(session.userId, "system:admin");
     if (!hasAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -105,7 +105,12 @@ export async function POST(request: NextRequest) {
       if (clearBrandIcon === "true") {
         const storagePath = await getSetting("storage");
         if (storagePath) {
-          const logoPath = path.join(storagePath, "apps", "system", "brand.png");
+          const logoPath = path.join(
+            storagePath,
+            "apps",
+            "system",
+            "brand.png"
+          );
           try {
             await fs.unlink(logoPath);
           } catch (error) {
@@ -133,7 +138,7 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({
         success: true,
-        brandName: brandName || await getSetting("brandName")
+        brandName: brandName || (await getSetting("brandName")),
       });
     } else {
       // Handle JSON settings (storage, logging, etc.)

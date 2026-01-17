@@ -18,15 +18,21 @@ export async function GET() {
 
     // Get user's authorizations
     const authorityManager = new AuthorityManager();
-    const mainAuthority = await authorityManager.readRecord(user.data.authority);
+    const mainAuthority = await authorityManager.readRecord(
+      user.data.authority
+    );
     const userAuthority = await authorityManager.readUserAuthority(user.id);
 
     const authorizations = new Set<string>();
     if (mainAuthority) {
-      mainAuthority.data.authorizations.forEach(auth => authorizations.add(auth));
+      mainAuthority.data.authorizations.forEach((auth) =>
+        authorizations.add(auth)
+      );
     }
     if (userAuthority) {
-      userAuthority.data.authorizations.forEach(auth => authorizations.add(auth));
+      userAuthority.data.authorizations.forEach((auth) =>
+        authorizations.add(auth)
+      );
     }
 
     // Get applet IDs from user's authorities
@@ -56,7 +62,7 @@ export async function GET() {
         username: user.data.username,
         email: user.data.email,
         authority: user.data.authority,
-        isAdmin: authorizations.has("admin"),
+        isAdmin: authorizations.has("system:admin"),
         profilePicture: profilePictureUrl,
       },
       authorizations: Array.from(authorizations),

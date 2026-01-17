@@ -97,6 +97,8 @@ export default function DataModelsPage() {
       | "orange"
       | "emerald"
       | "amber"
+      | "brown"
+      | "lime"
     > = {
       string: "blue",
       number: "emerald",
@@ -106,6 +108,8 @@ export default function DataModelsPage() {
       json: "pink",
       relationship: "cyan",
       formula: "amber",
+      picklist: "brown",
+      multipicklist: "lime",
     };
     return variantMap[type] || "gray";
   };
@@ -194,7 +198,8 @@ export default function DataModelsPage() {
                       background: "#1e293b",
                       border: `2px solid ${
                         selectedTable?.appId === result.appId &&
-                        selectedTable?.table.tableName === result.table.tableName
+                        selectedTable?.table.tableName ===
+                          result.table.tableName
                           ? "#3b82f6"
                           : "#334155"
                       }`,
@@ -205,7 +210,8 @@ export default function DataModelsPage() {
                     onMouseOver={(e) => {
                       if (
                         selectedTable?.appId !== result.appId ||
-                        selectedTable?.table.tableName !== result.table.tableName
+                        selectedTable?.table.tableName !==
+                          result.table.tableName
                       ) {
                         e.currentTarget.style.borderColor = "#475569";
                       }
@@ -213,7 +219,8 @@ export default function DataModelsPage() {
                     onMouseOut={(e) => {
                       if (
                         selectedTable?.appId !== result.appId ||
-                        selectedTable?.table.tableName !== result.table.tableName
+                        selectedTable?.table.tableName !==
+                          result.table.tableName
                       ) {
                         e.currentTarget.style.borderColor = "#334155";
                       }

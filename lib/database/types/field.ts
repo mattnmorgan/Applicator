@@ -7,7 +7,9 @@ export type FieldType =
   | "json"
   | "relationship"
   | "formula"
-  | "password";
+  | "password"
+  | "picklist"
+  | "multipicklist";
 
 export default interface TableField {
   name: string;
@@ -16,4 +18,5 @@ export default interface TableField {
   required?: boolean;
   relatedTo?: string;
   defaultValue?: any;
+  options?: { [id: string]: string };
 }

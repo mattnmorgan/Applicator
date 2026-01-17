@@ -23,7 +23,9 @@ async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
   const userRecord = await userManager.readRecord(userId);
   if (!userRecord) return homeMenuItems;
 
-  const mainAuthority = await authorityManager.readRecord(userRecord.data.authority);
+  const mainAuthority = await authorityManager.readRecord(
+    userRecord.data.authority
+  );
   const userAuthority = await authorityManager.readUserAuthority(userId);
 
   const appletIds = [
@@ -36,8 +38,7 @@ async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
   const allAppletsResult = await appletManager.readRecords();
   const appTypeApplets = allAppletsResult.records.filter(
     (applet) =>
-      applet.data.target === "app" &&
-      uniqueAppletIds.includes(applet.id)
+      applet.data.target === "app" && uniqueAppletIds.includes(applet.id)
   );
 
   for (const applet of appTypeApplets) {
@@ -74,10 +75,14 @@ export default async function HomePage() {
   const settings = await getSystemSettings();
   const brandSettings = {
     brandName: settings.brandName || "Applicator",
-    brandIcon: settings.brandIcon ? `/api/system/assets/brand?t=${Date.now()}` : undefined,
+    brandIcon: settings.brandIcon
+      ? `/api/system/assets/brand?t=${Date.now()}`
+      : undefined,
   };
 
-  const hasAdminAuth = currentUserResult.authorizations.flat().includes("admin");
+  const hasAdminAuth = currentUserResult.authorizations
+    .flat()
+    .includes("system:admin");
 
   const homeMenuItems = await getHomeMenuItems(user.id);
 

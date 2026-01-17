@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import NotificationManager from "@/lib/database/client/managers/notification";
+import { getCurrentUser } from "@/lib/database/client/managers/user";
 
 type NotificationType = "info" | "success" | "warning" | "error";
 
@@ -13,20 +15,19 @@ export default function TestNotificationsPage() {
     setMessage("");
 
     try {
-      const response = await fetch(
-        "/api/system/debug/test/notifications/send-notification",
+      await new NotificationManager().createRecord(
         {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ type }),
-        }
+          type: type,
+          message: "This is a test notification",
+          timestamp: Date.now(),
+          userId: (await getCurrentUser()).user.id,
+          app: "system",
+          title: "Test Notification (" + type + ")",
+          archived: false,
+          read: false,
+        },
+        `${Date.now()}`
       );
-
-      if (response.ok) {
-        setMessage(`Test ${type} notification sent successfully!`);
-      } else {
-        setMessage("Failed to send test notification.");
-      }
     } catch (error) {
       console.error("Error sending notification:", error);
       setMessage("Error sending test notification.");

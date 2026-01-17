@@ -1,9 +1,9 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Toast from '../Toast';
-import Badge from '../Badge/Badge';
-import styles from './AuthorityCreate.module.css';
+import { useState, useEffect } from "react";
+import Toast from "../Toast";
+import Badge from "../Badge/Badge";
+import styles from "./AuthorityCreate.module.css";
 
 interface AuthorityCreateProps {
   onCancel: () => void;
@@ -34,36 +34,49 @@ interface Applet {
   target: string;
 }
 
-export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuthority }: AuthorityCreateProps) {
-  const [name, setName] = useState(editAuthority?.name || '');
+export default function AuthorityCreate({
+  onCancel,
+  onAuthorityCreated,
+  editAuthority,
+}: AuthorityCreateProps) {
+  const [name, setName] = useState(editAuthority?.name || "");
   const [iconFile, setIconFile] = useState<File | null>(null);
-  const [previewUrl, setPreviewUrl] = useState<string>(editAuthority?.icon || '');
+  const [previewUrl, setPreviewUrl] = useState<string>(
+    editAuthority?.icon || ""
+  );
   const [clearIcon, setClearIcon] = useState(false);
   const [creating, setCreating] = useState(false);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [authorizations, setAuthorizations] = useState<Authorization[]>([]);
-  const [selectedAuthorizations, setSelectedAuthorizations] = useState<Set<string>>(
-    new Set(editAuthority?.authorizations || [])
-  );
-  const [authorizationSearch, setAuthorizationSearch] = useState('');
+  const [selectedAuthorizations, setSelectedAuthorizations] = useState<
+    Set<string>
+  >(new Set(editAuthority?.authorizations || []));
+  const [authorizationSearch, setAuthorizationSearch] = useState("");
   const [applets, setApplets] = useState<Applet[]>([]);
   const [selectedApplets, setSelectedApplets] = useState<Set<string>>(
     new Set(editAuthority?.apps || [])
   );
-  const [appletSearch, setAppletSearch] = useState('');
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [appletSearch, setAppletSearch] = useState("");
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
   const isEditMode = !!editAuthority;
-  const isSystemAuthority = editAuthority && ['admin', 'user', 'guest'].includes(editAuthority.id);
+  const isSystemAuthority =
+    editAuthority &&
+    ["system:admin", "system:user", "system:guest"].includes(editAuthority.id);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [authResponse, appsResponse, appletsResponse] = await Promise.all([
-          fetch('/api/system/apps/system/tables/authorization'),
-          fetch('/api/system/apps'),
-          fetch('/api/system/apps/system/tables/applet'),
-        ]);
+        const [authResponse, appsResponse, appletsResponse] = await Promise.all(
+          [
+            fetch("/api/system/apps/system/tables/authorization"),
+            fetch("/api/system/apps"),
+            fetch("/api/system/apps/system/tables/applet"),
+          ]
+        );
         const authData = await authResponse.json();
         const appsData = await appsResponse.json();
         const appletsData = await appletsResponse.json();
@@ -75,27 +88,31 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
         }
 
         // Transform authorization records to expected format
-        const authorizationsList = (authData.records || []).map((record: any) => ({
-          id: record.id,
-          name: record.data.name,
-          description: record.data.description,
-          app: record.data.app,
-          appLabel: appIdToLabel.get(record.data.app) || record.data.app,
-          contextual: record.data.contextual,
-        }));
+        const authorizationsList = (authData.records || []).map(
+          (record: any) => ({
+            id: record.id,
+            name: record.data.name,
+            description: record.data.description,
+            app: record.data.app,
+            appLabel: appIdToLabel.get(record.data.app) || record.data.app,
+            contextual: record.data.contextual,
+          })
+        );
         setAuthorizations(authorizationsList);
 
         // Transform applet records into expected format
-        const appletsList: Applet[] = (appletsData.records || []).map((record: any) => ({
-          id: record.id,
-          label: record.data.label,
-          description: record.data.description,
-          appLabel: appIdToLabel.get(record.data.app) || record.data.app,
-          target: record.data.target,
-        }));
+        const appletsList: Applet[] = (appletsData.records || []).map(
+          (record: any) => ({
+            id: record.id,
+            label: record.data.label,
+            description: record.data.description,
+            appLabel: appIdToLabel.get(record.data.app) || record.data.app,
+            target: record.data.target,
+          })
+        );
         setApplets(appletsList);
       } catch (error) {
-        console.error('Failed to fetch data:', error);
+        console.error("Failed to fetch data:", error);
       }
     };
     fetchData();
@@ -124,14 +141,22 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
 
   const handleClearIcon = () => {
     setIconFile(null);
-    setPreviewUrl('');
+    setPreviewUrl("");
     setClearIcon(true);
   };
 
   const handleToggleAuthorization = (authorizationId: string) => {
-    // Validation for admin authority: cannot deselect 'admin' authorization
-    if (editAuthority?.id === 'admin' && authorizationId === 'admin' && selectedAuthorizations.has(authorizationId)) {
-      setToast({ message: 'Cannot remove Administrator authorization from admin authority', type: 'error' });
+    // Validation for admin authority: cannot deselect 'system:admin' authorization
+    if (
+      editAuthority?.id === "system:admin" &&
+      authorizationId === "system:admin" &&
+      selectedAuthorizations.has(authorizationId)
+    ) {
+      setToast({
+        message:
+          "Cannot remove Administrator authorization from admin authority",
+        type: "error",
+      });
       return;
     }
 
@@ -156,10 +181,10 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setError('');
+    setError("");
 
     if (!name.trim() && !isSystemAuthority) {
-      setError('Authority name is required');
+      setError("Authority name is required");
       return;
     }
 
@@ -179,31 +204,34 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
         // Add applets
         updateData.apps = Array.from(selectedApplets);
 
-        const response = await fetch('/api/system/apps/system/tables/authority', {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            id: editAuthority.id,
-            data: updateData,
-          }),
-        });
+        const response = await fetch(
+          "/api/system/apps/system/tables/authority",
+          {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              id: editAuthority.id,
+              data: updateData,
+            }),
+          }
+        );
 
         const data = await response.json();
 
         if (!response.ok) {
-          setError(data.error || 'Failed to update authority');
+          setError(data.error || "Failed to update authority");
           return;
         }
 
         // Handle icon upload/removal separately if needed
         if (iconFile) {
           // Get system storage path and construct the icon path
-          const storageResponse = await fetch('/api/system/settings');
+          const storageResponse = await fetch("/api/system/settings");
           const storageData = await storageResponse.json();
           const systemStorage = storageData.settings.storage;
 
           if (!systemStorage) {
-            setError('System storage not configured');
+            setError("System storage not configured");
             return;
           }
 
@@ -211,63 +239,69 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
           const fileName = `${editAuthority.id}.png`;
 
           const iconFormData = new FormData();
-          iconFormData.append('file', iconFile);
-          iconFormData.append('path', iconDirectory);
-          iconFormData.append('name', fileName);
+          iconFormData.append("file", iconFile);
+          iconFormData.append("path", iconDirectory);
+          iconFormData.append("name", fileName);
 
-          const iconResponse = await fetch('/api/system/apps/fs', {
-            method: 'PUT',
+          const iconResponse = await fetch("/api/system/apps/fs", {
+            method: "PUT",
             body: iconFormData,
           });
 
           if (!iconResponse.ok) {
-            setError('Failed to upload icon');
+            setError("Failed to upload icon");
             return;
           }
 
           // Update the authority record with icon flag
-          const updateIconResponse = await fetch('/api/system/apps/system/tables/authority', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: editAuthority.id,
-              data: { icon: 'true' },
-            }),
-          });
+          const updateIconResponse = await fetch(
+            "/api/system/apps/system/tables/authority",
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: editAuthority.id,
+                data: { icon: "true" },
+              }),
+            }
+          );
 
           if (!updateIconResponse.ok) {
-            setError('Failed to update authority with icon path');
+            setError("Failed to update authority with icon path");
             return;
           }
         } else if (clearIcon) {
           // Get the current icon path and delete the file
-          const storageResponse = await fetch('/api/system/settings');
+          const storageResponse = await fetch("/api/system/settings");
           const storageData = await storageResponse.json();
           const systemStorage = storageData.settings.storage;
           const iconPath = `${systemStorage}/apps/system/icons/authorities/${editAuthority.id}.png`;
 
-          const deleteResponse = await fetch('/api/system/apps/fs', {
-            method: 'DELETE',
-            headers: { 'Content-Type': 'application/json' },
+          const deleteResponse = await fetch("/api/system/apps/fs", {
+            method: "DELETE",
+            headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ path: iconPath }),
           });
 
           if (!deleteResponse.ok) {
-            console.warn('Failed to delete icon file');
+            console.warn("Failed to delete icon file");
           }
 
           // Clear the icon field in the database
-          const updateIconResponse = await fetch('/api/system/apps/system/tables/authority', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: editAuthority.id,
-              data: { icon: "" },
-            }),
-          });
+          const updateIconResponse = await fetch(
+            "/api/system/apps/system/tables/authority",
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: editAuthority.id,
+                data: { icon: "" },
+              }),
+            }
+          );
 
           if (!updateIconResponse.ok) {
-            setError('Failed to remove icon');
+            setError("Failed to remove icon");
             return;
           }
         }
@@ -281,16 +315,19 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
           apps: Array.from(selectedApplets),
         };
 
-        const response = await fetch('/api/system/apps/system/tables/authority', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ data: createData }),
-        });
+        const response = await fetch(
+          "/api/system/apps/system/tables/authority",
+          {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ data: createData }),
+          }
+        );
 
         const data = await response.json();
 
         if (!response.ok) {
-          setError(data.error || 'Failed to create authority');
+          setError(data.error || "Failed to create authority");
           return;
         }
 
@@ -299,47 +336,50 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
         // Handle icon upload separately if provided
         if (iconFile) {
           // Get system storage path and construct the icon path
-          const storageResponse = await fetch('/api/system/settings');
+          const storageResponse = await fetch("/api/system/settings");
           const storageData = await storageResponse.json();
           const systemStorage = storageData.settings.storage;
 
           if (!systemStorage) {
-            setError('System storage not configured');
+            setError("System storage not configured");
             return;
           }
 
-          const fileExtension = iconFile.name.split('.').pop() || 'jpg';
+          const fileExtension = iconFile.name.split(".").pop() || "jpg";
           const fileName = `icon.${fileExtension}`;
           const iconDirectory = `${systemStorage}\\system\\authorities\\icons\\${authorityId}`;
 
           const iconFormData = new FormData();
-          iconFormData.append('file', iconFile);
-          iconFormData.append('path', iconDirectory);
-          iconFormData.append('name', fileName);
+          iconFormData.append("file", iconFile);
+          iconFormData.append("path", iconDirectory);
+          iconFormData.append("name", fileName);
 
-          const iconResponse = await fetch('/api/system/apps/fs', {
-            method: 'PUT',
+          const iconResponse = await fetch("/api/system/apps/fs", {
+            method: "PUT",
             body: iconFormData,
           });
 
           if (!iconResponse.ok) {
-            setError('Failed to upload icon');
+            setError("Failed to upload icon");
             return;
           }
 
           // Update the authority record with the icon path
           const relativePath = `system\\authorities\\icons\\${authorityId}\\${fileName}`;
-          const updateIconResponse = await fetch('/api/system/apps/system/tables/authority', {
-            method: 'PATCH',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              id: authorityId,
-              data: { icon: relativePath },
-            }),
-          });
+          const updateIconResponse = await fetch(
+            "/api/system/apps/system/tables/authority",
+            {
+              method: "PATCH",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                id: authorityId,
+                data: { icon: relativePath },
+              }),
+            }
+          );
 
           if (!updateIconResponse.ok) {
-            setError('Failed to update authority with icon path');
+            setError("Failed to update authority with icon path");
             return;
           }
         }
@@ -347,25 +387,29 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
         onAuthorityCreated();
       }
     } catch (err) {
-      setError(`Failed to ${isEditMode ? 'update' : 'create'} authority`);
+      setError(`Failed to ${isEditMode ? "update" : "create"} authority`);
     } finally {
       setCreating(false);
     }
   };
 
   const filteredAuthorizations = authorizations
-    .filter(auth => !auth.contextual) // Exclude contextual authorizations
-    .filter(auth =>
-      auth.name.toLowerCase().includes(authorizationSearch.toLowerCase()) ||
-      auth.description.toLowerCase().includes(authorizationSearch.toLowerCase())
+    .filter((auth) => !auth.contextual) // Exclude contextual authorizations
+    .filter(
+      (auth) =>
+        auth.name.toLowerCase().includes(authorizationSearch.toLowerCase()) ||
+        auth.description
+          .toLowerCase()
+          .includes(authorizationSearch.toLowerCase())
     );
 
   const filteredApplets = applets
-    .filter(applet => !applet.id.startsWith('system:')) // Exclude system applets
-    .filter(applet =>
-      applet.label.toLowerCase().includes(appletSearch.toLowerCase()) ||
-      applet.description.toLowerCase().includes(appletSearch.toLowerCase()) ||
-      applet.appLabel.toLowerCase().includes(appletSearch.toLowerCase())
+    .filter((applet) => !applet.id.startsWith("system:")) // Exclude system applets
+    .filter(
+      (applet) =>
+        applet.label.toLowerCase().includes(appletSearch.toLowerCase()) ||
+        applet.description.toLowerCase().includes(appletSearch.toLowerCase()) ||
+        applet.appLabel.toLowerCase().includes(appletSearch.toLowerCase())
     );
 
   return (
@@ -381,15 +425,13 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
       )}
 
       <div className={styles.header}>
-        <h2 className={styles.title}>{isEditMode ? 'Edit Authority' : 'Create Authority'}</h2>
+        <h2 className={styles.title}>
+          {isEditMode ? "Edit Authority" : "Create Authority"}
+        </h2>
       </div>
 
       <form onSubmit={handleSubmit} className={styles.form}>
-        {error && (
-          <div className={styles.error}>
-            {error}
-          </div>
-        )}
+        {error && <div className={styles.error}>{error}</div>}
 
         <div className={styles.formGroup}>
           <label className={styles.label}>Name *</label>
@@ -408,7 +450,11 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
           <div className={styles.fileInputContainer}>
             {previewUrl && (
               <div className={styles.preview} onClick={handleClearIcon}>
-                <img src={previewUrl} alt="Preview" className={styles.previewImage} />
+                <img
+                  src={previewUrl}
+                  alt="Preview"
+                  className={styles.previewImage}
+                />
                 <div className={styles.previewOverlay}>
                   <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
                     <path
@@ -429,7 +475,7 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
               id="iconFile"
             />
             <label htmlFor="iconFile" className={styles.fileLabel}>
-              {iconFile ? iconFile.name : 'Choose file'}
+              {iconFile ? iconFile.name : "Choose file"}
             </label>
           </div>
         </div>
@@ -442,10 +488,10 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
             placeholder="Search authorizations..."
             value={authorizationSearch}
             onChange={(e) => setAuthorizationSearch(e.target.value)}
-            style={{ marginBottom: '12px' }}
+            style={{ marginBottom: "12px" }}
           />
           <div className={styles.authorizationList}>
-            {filteredAuthorizations.map(authorization => (
+            {filteredAuthorizations.map((authorization) => (
               <div key={authorization.id} className={styles.authorizationItem}>
                 <input
                   type="checkbox"
@@ -454,14 +500,23 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
                   checked={selectedAuthorizations.has(authorization.id)}
                   onChange={() => handleToggleAuthorization(authorization.id)}
                 />
-                <label htmlFor={`auth-${authorization.id}`} className={styles.authorizationLabel}>
+                <label
+                  htmlFor={`auth-${authorization.id}`}
+                  className={styles.authorizationLabel}
+                >
                   <div className={styles.authorizationName}>
-                    <Badge variant={authorization.app === 'system' ? 'purple' : 'blue'}>
+                    <Badge
+                      variant={
+                        authorization.app === "system" ? "purple" : "blue"
+                      }
+                    >
                       {authorization.appLabel}
                     </Badge>
                     {authorization.name}
                   </div>
-                  <div className={styles.authorizationDescription}>{authorization.description}</div>
+                  <div className={styles.authorizationDescription}>
+                    {authorization.description}
+                  </div>
                 </label>
               </div>
             ))}
@@ -479,10 +534,10 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
             placeholder="Search apps..."
             value={appletSearch}
             onChange={(e) => setAppletSearch(e.target.value)}
-            style={{ marginBottom: '12px' }}
+            style={{ marginBottom: "12px" }}
           />
           <div className={styles.authorizationList}>
-            {filteredApplets.map(applet => (
+            {filteredApplets.map((applet) => (
               <div key={applet.id} className={styles.authorizationItem}>
                 <input
                   type="checkbox"
@@ -491,14 +546,17 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
                   checked={selectedApplets.has(applet.id)}
                   onChange={() => handleToggleApplet(applet.id)}
                 />
-                <label htmlFor={`applet-${applet.id}`} className={styles.authorizationLabel}>
+                <label
+                  htmlFor={`applet-${applet.id}`}
+                  className={styles.authorizationLabel}
+                >
                   <div className={styles.authorizationName}>
-                    <Badge variant="blue">
-                      {applet.appLabel}
-                    </Badge>
+                    <Badge variant="blue">{applet.appLabel}</Badge>
                     {applet.label}
                   </div>
-                  <div className={styles.authorizationDescription}>{applet.description}</div>
+                  <div className={styles.authorizationDescription}>
+                    {applet.description}
+                  </div>
                 </label>
               </div>
             ))}
@@ -509,8 +567,11 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
         </div>
 
         {isSystemAuthority && (
-          <div style={{ color: '#94a3b8', fontSize: '14px', fontStyle: 'italic' }}>
-            Note: System authorities (Administrator, User, Guest) cannot be modified except for their icon, authorizations, and apps.
+          <div
+            style={{ color: "#94a3b8", fontSize: "14px", fontStyle: "italic" }}
+          >
+            Note: System authorities (Administrator, User, Guest) cannot be
+            modified except for their icon, authorizations, and apps.
           </div>
         )}
 
@@ -527,7 +588,13 @@ export default function AuthorityCreate({ onCancel, onAuthorityCreated, editAuth
             className={styles.submitButton}
             disabled={creating}
           >
-            {creating ? (isEditMode ? 'Updating...' : 'Creating...') : (isEditMode ? 'Update Authority' : 'Create Authority')}
+            {creating
+              ? isEditMode
+                ? "Updating..."
+                : "Creating..."
+              : isEditMode
+              ? "Update Authority"
+              : "Create Authority"}
           </button>
         </div>
       </form>

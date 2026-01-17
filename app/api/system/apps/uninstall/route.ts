@@ -29,7 +29,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has admin authorization
-    const hasAdmin = await userHasAuthorization(session.userId, "admin");
+    const hasAdmin = await userHasAuthorization(session.userId, "system:admin");
     if (!hasAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -72,7 +72,9 @@ export async function POST(request: NextRequest) {
     );
 
     if (dependentApps.length > 0) {
-      const dependentAppNames = dependentApps.map((a) => a.data.label).join(", ");
+      const dependentAppNames = dependentApps
+        .map((a) => a.data.label)
+        .join(", ");
       const errorMsg = `App uninstallation rejected: Cannot uninstall '${app.data.label}' because it is required by: ${dependentAppNames}`;
       await new LogManager().error("system", errorMsg);
       return NextResponse.json(
@@ -103,9 +105,9 @@ export async function POST(request: NextRequest) {
         if (uninstallationHookExists) {
           await new LogManager().info(
             "system",
-            `Running OnUninstallation hook for ${app.data.label} v${formatVersion(
-              app.data.version
-            )}`
+            `Running OnUninstallation hook for ${
+              app.data.label
+            } v${formatVersion(app.data.version)}`
           );
 
           const require = createRequire(import.meta.url || __filename);
@@ -190,7 +192,8 @@ export async function POST(request: NextRequest) {
       await import("@/lib/database/managers/contextualAuthority")
     ).default;
     const contextualAuthorityManager = new ContextualAuthorityManager();
-    const contextualAuthoritiesResult = await contextualAuthorityManager.readRecords();
+    const contextualAuthoritiesResult =
+      await contextualAuthorityManager.readRecords();
     for (const auth of contextualAuthoritiesResult.records) {
       if (auth.data.app === appId) {
         await contextualAuthorityManager.deleteRecord(auth.id);
@@ -218,7 +221,9 @@ export async function POST(request: NextRequest) {
         if (updatedApps.length !== authority.data.apps.length) {
           await authorityManager.updateRecord(
             await authorityManager.getTable(),
-            authority.data.userId ? `user-specific:${authority.id}` : authority.id,
+            authority.data.userId
+              ? `user-specific:${authority.id}`
+              : authority.id,
             { ...authority.data, apps: updatedApps }
           );
         }
@@ -231,10 +236,14 @@ export async function POST(request: NextRequest) {
         );
 
         // Only update if something changed
-        if (updatedAuthorizations.length !== authority.data.authorizations.length) {
+        if (
+          updatedAuthorizations.length !== authority.data.authorizations.length
+        ) {
           await authorityManager.updateRecord(
             await authorityManager.getTable(),
-            authority.data.userId ? `user-specific:${authority.id}` : authority.id,
+            authority.data.userId
+              ? `user-specific:${authority.id}`
+              : authority.id,
             {
               ...authority.data,
               authorizations: updatedAuthorizations,

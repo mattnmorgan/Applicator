@@ -79,6 +79,16 @@
   color: #fbbf24;
 }
 
+.badgeCircle.badgeBrown {
+  background: brown;
+  color: white;
+}
+
+.badgeCircle.badgeLime {
+  background: lime;
+  color: black;
+}
+
 /* Color variants - Square style (solid vibrant colors) */
 .badgeSquare.badgePurple {
   background: #8b5cf6;
@@ -133,4 +143,14 @@
 .badgeSquare.badgeAmber {
   background: #eab308;
   color: white;
+}
+
+.badgeSquare.badgeBrown {
+  background: brown;
+  color: white;
+}
+
+.badgeSquare.badgeLime {
+  background: lime;
+  color: black;
 }

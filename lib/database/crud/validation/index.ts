@@ -2,14 +2,13 @@ import Table from "@/lib/database/types/table";
 import {
   validateRequiredFields,
   validateFields,
+  validatePicklistFields,
+  validateMultipicklistFields,
 } from "@/lib/database/crud/validation/validator";
 import { calculateFormulas } from "@/lib/database/crud/validation/formulae";
 
 /**
- * Validate and process a record according to the execution order:
- * 1. Check required fields
- * 2. Calculate formula fields
- * 3. Execute validator scripts
+ * Validate and process a record according to the execution order
  *
  * @param appId The app ID
  * @param tableName The table name
@@ -33,7 +32,7 @@ export async function validateAndProcessRecord(
     return processedData;
   }
 
-  // Step 1: Validate required fields
+  // Validate required fields
   const requiredResults = validateRequiredFields(table, processedData);
   const requiredFailures = requiredResults.filter((r) => !r.valid);
 
@@ -42,7 +41,28 @@ export async function validateAndProcessRecord(
     throw new Error(`Required field validation failed: ${errors}`);
   }
 
-  // Step 2: Calculate formula fields
+  // Validate picklist fields
+  const picklistResults = validatePicklistFields(table, processedData);
+  const picklistFailures = picklistResults.filter((r) => !r.valid);
+
+  if (picklistFailures.length) {
+    const errors = picklistFailures.map((r) => r.error).join(", ");
+    throw new Error(`Picklist field validation failed: ${errors}`);
+  }
+
+  // Validate multipicklist fields
+  const multipicklistResults = validateMultipicklistFields(
+    table,
+    processedData
+  );
+  const multipicklistFailures = multipicklistResults.filter((r) => !r.valid);
+
+  if (multipicklistFailures.length) {
+    const errors = multipicklistFailures.map((r) => r.error).join(", ");
+    throw new Error(`Multipicklist field validation failed: ${errors}`);
+  }
+
+  // Calculate formula fields
   processedData = await calculateFormulas(
     appId,
     tableName,
@@ -50,7 +70,7 @@ export async function validateAndProcessRecord(
     processedData
   );
 
-  // Step 3: Execute validator scripts
+  // Execute validator scripts
   const validationResults = await validateFields(
     appId,
     tableName,

@@ -24,7 +24,9 @@ export async function executeValidator(
 ): Promise<Result> {
   try {
     // Get system storage path (lazy import to avoid circular dependency)
-    const { default: SettingManager } = await import("@/lib/database/managers/setting");
+    const { default: SettingManager } = await import(
+      "@/lib/database/managers/setting"
+    );
     const storagePath = (await new SettingManager().readRecord("storage"))?.data
       .value;
     if (!storagePath) {
@@ -146,7 +148,11 @@ export function validateRequiredFields(
 
     if (field.required) {
       const value = data[field.name];
-      const hasValue = value !== undefined && value !== null && value !== "";
+      const hasValue =
+        value !== undefined &&
+        value !== null &&
+        value !== "" &&
+        (!Array.isArray(value) || (value as any[]).length);
 
       if (!hasValue) {
         results.push({
@@ -160,6 +166,83 @@ export function validateRequiredFields(
           valid: true,
         });
       }
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Validates picklist fields for a record
+ *
+ * @param table Table metadata
+ * @param data Record to verify
+ * @returns List of results for valid or invalid fields in the record data for picklist fields
+ */
+export function validatePicklistFields(
+  table: Table,
+  data: Record<string, any>
+): Result[] {
+  const results: Result[] = [];
+
+  for (const field of table.fields) {
+    if (field.type === "picklist") {
+      const value = data[field.name];
+
+      if (value !== undefined && value !== null && value !== "") {
+        if (!(value in field.options!)) {
+          results.push({
+            field: field.name,
+            valid: false,
+            error: `Field ${field.name} must match available options`,
+          });
+          continue;
+        }
+      }
+
+      results.push({ field: field.name, valid: true });
+    }
+  }
+
+  return results;
+}
+
+/**
+ * Validates multipicklist fields for tables
+ *
+ * @param table Table metadata
+ * @param data Record data to validate
+ * @returns List of validation results for multipicklist fields in record data
+ */
+export function validateMultipicklistFields(
+  table: Table,
+  data: Record<string, any>
+): Result[] {
+  const results: Result[] = [];
+
+  for (const field of table.fields) {
+    if (field.type === "multipicklist") {
+      const value = data[field.name];
+
+      if (value !== undefined && value !== null) {
+        if (!Array.isArray(value)) {
+          results.push({
+            field: field.name,
+            valid: false,
+            error: `Field ${field.name} value must be an array`,
+          });
+          continue;
+        } else if ((value as any[]).some((v) => !(v in field.options!))) {
+          results.push({
+            field: field.name,
+            valid: false,
+            error: `Field ${field.name} values must match available options`,
+          });
+          continue;
+        }
+      }
+
+      results.push({ field: field.name, valid: true });
     }
   }
 

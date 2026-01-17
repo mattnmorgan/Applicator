@@ -56,7 +56,10 @@ export interface PluginContext {
   hasAuthorization: (authorization: string) => Promise<boolean>;
 }
 
-export async function createPlugin(appId: string, userId?: string): Promise<PluginContext> {
+export async function createPlugin(
+  appId: string,
+  userId?: string
+): Promise<PluginContext> {
   const settingManager = new SettingManager();
   const storageRecord = await settingManager.readRecord("storage");
   const storagePath = storageRecord?.data.value;
@@ -177,7 +180,10 @@ export async function createPlugin(appId: string, userId?: string): Promise<Plug
         ];
 
         for (const authority of authorities) {
-          if (authority && authority.data.authorizations.includes(authorization)) {
+          if (
+            authority &&
+            authority.data.authorizations.includes(authorization)
+          ) {
             return true;
           }
         }
@@ -190,7 +196,9 @@ export async function createPlugin(appId: string, userId?: string): Promise<Plug
         if (!user) return null;
 
         const authorityManager = new AuthorityManager();
-        const authority = await authorityManager.readRecord(user.data.authority);
+        const authority = await authorityManager.readRecord(
+          user.data.authority
+        );
 
         return {
           id: user.id,
@@ -215,7 +223,9 @@ export async function createPlugin(appId: string, userId?: string): Promise<Plug
 
           if (!includeInactive && !user.data.isActive) continue;
 
-          const authority = await authorityManager.readRecord(user.data.authority);
+          const authority = await authorityManager.readRecord(
+            user.data.authority
+          );
 
           users.push({
             id: user.id,
@@ -265,7 +275,10 @@ export async function createPlugin(appId: string, userId?: string): Promise<Plug
       ];
 
       for (const authority of authorities) {
-        if (authority && authority.data.authorizations.includes(authorization)) {
+        if (
+          authority &&
+          authority.data.authorizations.includes(authorization)
+        ) {
           return true;
         }
       }
@@ -282,17 +295,18 @@ export { getSession };
 /**
  * Require authorization middleware for plugin API handlers
  * Usage:
- *   await requireAuthorization(context, "admin");
+ *   await requireAuthorization(context, "system:admin");
  *   await requireAuthorization(plugin, "task:manage");
  */
 export async function requireAuthorization(
   contextOrPlugin: { plugin: PluginContext } | PluginContext,
   authorization: string
 ): Promise<boolean> {
-  const plugin = 'plugin' in contextOrPlugin ? contextOrPlugin.plugin : contextOrPlugin;
+  const plugin =
+    "plugin" in contextOrPlugin ? contextOrPlugin.plugin : contextOrPlugin;
 
   if (!plugin.userId) {
-    throw new Error('User must be authenticated to check authorization');
+    throw new Error("User must be authenticated to check authorization");
   }
 
   const hasAuth = await plugin.hasAuthorization(authorization);

@@ -1,12 +1,12 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import ButtonMenu from '../ButtonMenu';
-import Row from '../Row';
-import Toast from '../Toast';
-import AuthorityCreate from '../AuthorityCreate';
-import Badge from '../Badge/Badge';
-import styles from './AuthorityList.module.css';
+import { useState, useEffect } from "react";
+import ButtonMenu from "../ButtonMenu";
+import Row from "../Row";
+import Toast from "../Toast";
+import AuthorityCreate from "../AuthorityCreate";
+import Badge from "../Badge/Badge";
+import styles from "./AuthorityList.module.css";
 
 interface Authority {
   id: string;
@@ -21,26 +21,31 @@ interface Authority {
 
 export default function AuthorityList() {
   const [authorities, setAuthorities] = useState<Authority[]>([]);
-  const [selectedAuthorityIds, setSelectedAuthorityIds] = useState<Set<string>>(new Set());
-  const [searchQuery, setSearchQuery] = useState('');
+  const [selectedAuthorityIds, setSelectedAuthorityIds] = useState<Set<string>>(
+    new Set()
+  );
+  const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [showCreateAuthority, setShowCreateAuthority] = useState(false);
-  const [editingAuthority, setEditingAuthority] = useState<Authority | null>(null);
-  const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+  const [editingAuthority, setEditingAuthority] = useState<Authority | null>(
+    null
+  );
+  const [toast, setToast] = useState<{
+    message: string;
+    type: "success" | "error";
+  } | null>(null);
 
   const fetchAuthorities = async () => {
     try {
-      const response = await fetch('/api/system/apps/system/tables/authority');
+      const response = await fetch("/api/system/apps/system/tables/authority");
       const data = await response.json();
 
       // Filter out user-specific authorities and enrich with icon URLs and app labels
       const allAuthorities = data.records || [];
 
-      const nonUserAuthorities = allAuthorities.filter(
-        (record: any) => {
-          return record && record.data && !record.data.userId;
-        }
-      );
+      const nonUserAuthorities = allAuthorities.filter((record: any) => {
+        return record && record.data && !record.data.userId;
+      });
 
       // Transform records to match expected format and add icon URLs
       const authoritiesWithIcons = await Promise.all(
@@ -50,20 +55,25 @@ export default function AuthorityList() {
 
           if (authority.contextual && authority.app) {
             try {
-              const appResponse = await fetch(`/api/system/apps/${authority.app}`);
+              const appResponse = await fetch(
+                `/api/system/apps/${authority.app}`
+              );
               const appData = await appResponse.json();
-              appLabel = appData.app?.label || 'Unknown';
+              appLabel = appData.app?.label || "Unknown";
             } catch {
-              appLabel = 'Unknown';
+              appLabel = "Unknown";
             }
           }
 
           return {
             id: record.id,
             name: authority.name,
-            icon: authority.icon && authority.icon.trim() !== ""
-              ? `/api/system/assets/icons/authorities/${record.id}?t=${Date.now()}`
-              : undefined,
+            icon:
+              authority.icon && authority.icon.trim() !== ""
+                ? `/api/system/assets/icons/authorities/${
+                    record.id
+                  }?t=${Date.now()}`
+                : undefined,
             authorizations: authority.authorizations,
             apps: authority.apps,
             contextual: authority.contextual,
@@ -78,7 +88,7 @@ export default function AuthorityList() {
 
       setAuthorities(authoritiesWithIcons);
     } catch (error) {
-      console.error('Failed to fetch authorities:', error);
+      console.error("Failed to fetch authorities:", error);
     }
   };
 
@@ -104,11 +114,17 @@ export default function AuthorityList() {
       const authorityIdsArray = Array.from(selectedAuthorityIds);
 
       // Check for system authorities
-      const systemAuthorities = ['admin', 'user', 'guest'];
-      const systemAuthorityAttempts = authorityIdsArray.filter(id => systemAuthorities.includes(id));
+      const systemAuthorities = ["system:admin", "system:user", "system:guest"];
+      const systemAuthorityAttempts = authorityIdsArray.filter((id) =>
+        systemAuthorities.includes(id)
+      );
 
       if (systemAuthorityAttempts.length > 0) {
-        setToast({ message: 'Cannot delete system authorities (Administrator, User, or Guest)', type: 'error' });
+        setToast({
+          message:
+            "Cannot delete system authorities (Administrator, User, or Guest)",
+          type: "error",
+        });
         setLoading(false);
         return;
       }
@@ -117,7 +133,11 @@ export default function AuthorityList() {
       const violatedAuthorities: string[] = [];
       for (const authorityId of authorityIdsArray) {
         try {
-          const checkResponse = await fetch(`/api/system/apps/system/tables/user?limit=1&fields=${JSON.stringify({ authority: true })}`);
+          const checkResponse = await fetch(
+            `/api/system/apps/system/tables/user?limit=1&fields=${JSON.stringify(
+              { authority: true }
+            )}`
+          );
           const checkData = await checkResponse.json();
           const hasUsers = checkData.records?.some((r: any) => {
             return r.data && r.data.authority === authorityId;
@@ -131,40 +151,53 @@ export default function AuthorityList() {
       }
 
       if (violatedAuthorities.length > 0) {
-        const violatedNames = violatedAuthorities.map((id: string) => {
-          const auth = authorities.find(a => a.id === id);
-          return auth?.name || id;
-        }).join(', ');
-        setToast({ message: `Cannot delete authorities with assigned users: ${violatedNames}`, type: 'error' });
+        const violatedNames = violatedAuthorities
+          .map((id: string) => {
+            const auth = authorities.find((a) => a.id === id);
+            return auth?.name || id;
+          })
+          .join(", ");
+        setToast({
+          message: `Cannot delete authorities with assigned users: ${violatedNames}`,
+          type: "error",
+        });
         setLoading(false);
         return;
       }
 
       // Delete using generic table route
-      const response = await fetch('/api/system/apps/system/tables/authority', {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/system/apps/system/tables/authority", {
+        method: "DELETE",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ ids: authorityIdsArray }),
       });
 
       const data = await response.json();
 
       if (!response.ok) {
-        setToast({ message: data.error || 'Failed to delete authorities', type: 'error' });
+        setToast({
+          message: data.error || "Failed to delete authorities",
+          type: "error",
+        });
         return;
       }
 
-      setToast({ message: `Successfully deleted ${authorityIdsArray.length} ${authorityIdsArray.length === 1 ? 'authority' : 'authorities'}`, type: 'success' });
+      setToast({
+        message: `Successfully deleted ${authorityIdsArray.length} ${
+          authorityIdsArray.length === 1 ? "authority" : "authorities"
+        }`,
+        type: "success",
+      });
       await fetchAuthorities();
       setSelectedAuthorityIds(new Set());
     } catch (error) {
-      setToast({ message: 'Failed to delete authorities', type: 'error' });
+      setToast({ message: "Failed to delete authorities", type: "error" });
     } finally {
       setLoading(false);
     }
   };
 
-  const filteredAuthorities = authorities.filter(authority =>
+  const filteredAuthorities = authorities.filter((authority) =>
     authority.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
@@ -177,15 +210,20 @@ export default function AuthorityList() {
   };
 
   const handleEditAuthority = async (authorityId: string) => {
-    const authority = authorities.find(a => a.id === authorityId);
+    const authority = authorities.find((a) => a.id === authorityId);
     // Prevent editing contextual authorities
     if (authority?.contextual) {
-      setToast({ message: 'Contextual authorities cannot be edited', type: 'error' });
+      setToast({
+        message: "Contextual authorities cannot be edited",
+        type: "error",
+      });
       return;
     }
 
     try {
-      const response = await fetch(`/api/system/apps/system/tables/authority?ids=${authorityId}`);
+      const response = await fetch(
+        `/api/system/apps/system/tables/authority?ids=${authorityId}`
+      );
       const data = await response.json();
       if (data.records && data.records.length > 0) {
         const record = data.records[0];
@@ -193,14 +231,22 @@ export default function AuthorityList() {
         setEditingAuthority({
           id: record.id,
           name: authorityData.name,
-          icon: authorityData.icon && authorityData.icon.trim() !== "" ? `/api/system/assets/icons/authorities/${record.id}?t=${Date.now()}` : undefined,
+          icon:
+            authorityData.icon && authorityData.icon.trim() !== ""
+              ? `/api/system/assets/icons/authorities/${
+                  record.id
+                }?t=${Date.now()}`
+              : undefined,
           authorizations: authorityData.authorizations,
           apps: authorityData.apps,
         });
       }
     } catch (error) {
-      console.error('Failed to fetch authority:', error);
-      setToast({ message: 'Failed to load authority for editing', type: 'error' });
+      console.error("Failed to fetch authority:", error);
+      setToast({
+        message: "Failed to load authority for editing",
+        type: "error",
+      });
     }
   };
 
@@ -212,13 +258,17 @@ export default function AuthorityList() {
           setEditingAuthority(null);
         }}
         onAuthorityCreated={handleAuthorityCreated}
-        editAuthority={editingAuthority ? {
-          id: editingAuthority.id,
-          name: editingAuthority.name,
-          icon: editingAuthority.icon,
-          authorizations: editingAuthority.authorizations,
-          apps: editingAuthority.apps,
-        } : undefined}
+        editAuthority={
+          editingAuthority
+            ? {
+                id: editingAuthority.id,
+                name: editingAuthority.name,
+                icon: editingAuthority.icon,
+                authorizations: editingAuthority.authorizations,
+                apps: editingAuthority.apps,
+              }
+            : undefined
+        }
       />
     );
   }
@@ -236,7 +286,10 @@ export default function AuthorityList() {
       )}
 
       <div className={styles.toolbar}>
-        <button className={styles.addButton} onClick={() => setShowCreateAuthority(true)}>
+        <button
+          className={styles.addButton}
+          onClick={() => setShowCreateAuthority(true)}
+        >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path
               d="M8 3V13M3 8H13"
@@ -251,14 +304,18 @@ export default function AuthorityList() {
           disabled={!someSelected}
           alignment="left"
           trigger={
-            <button className={`${styles.actionButton} ${!someSelected ? styles.actionButtonDisabled : ''}`}>
+            <button
+              className={`${styles.actionButton} ${
+                !someSelected ? styles.actionButtonDisabled : ""
+              }`}
+            >
               <span>Actions</span>
               <svg
                 width="12"
                 height="12"
                 viewBox="0 0 12 12"
                 fill="none"
-                style={{ transition: 'transform 0.2s' }}
+                style={{ transition: "transform 0.2s" }}
               >
                 <path
                   d="M3 4.5L6 7.5L9 4.5"
@@ -286,20 +343,40 @@ export default function AuthorityList() {
       </div>
 
       <div className={styles.authorityList}>
-        {filteredAuthorities.map(authority => (
+        {filteredAuthorities.map((authority) => (
           <Row key={authority.id}>
             <input
               type="checkbox"
               className={styles.checkbox}
               checked={selectedAuthorityIds.has(authority.id)}
-              onChange={(e) => handleSelectAuthority(authority.id, e.target.checked)}
+              onChange={(e) =>
+                handleSelectAuthority(authority.id, e.target.checked)
+              }
               disabled={authority.contextual}
-              style={{ opacity: authority.contextual ? 0.5 : 1, cursor: authority.contextual ? 'not-allowed' : 'pointer' }}
+              style={{
+                opacity: authority.contextual ? 0.5 : 1,
+                cursor: authority.contextual ? "not-allowed" : "pointer",
+              }}
             />
-            <div className={styles.authorityInfo} onClick={() => handleEditAuthority(authority.id)} style={{ cursor: authority.contextual ? 'not-allowed' : 'pointer' }}>
+            <div
+              className={styles.authorityInfo}
+              onClick={() => handleEditAuthority(authority.id)}
+              style={{
+                cursor: authority.contextual ? "not-allowed" : "pointer",
+              }}
+            >
               {authority.icon ? (
                 <div className={styles.iconPlaceholder}>
-                  <img src={authority.icon} alt={authority.name} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                  <img
+                    src={authority.icon}
+                    alt={authority.name}
+                    style={{
+                      width: "100%",
+                      height: "100%",
+                      objectFit: "cover",
+                      borderRadius: "50%",
+                    }}
+                  />
                 </div>
               ) : (
                 <div className={styles.iconPlaceholder}>
@@ -312,12 +389,10 @@ export default function AuthorityList() {
             </div>
             <div className={styles.badgeColumn}>
               {authority.contextual && (
-                <Badge variant="yellow">
-                  Contextual
-                </Badge>
+                <Badge variant="yellow">Contextual</Badge>
               )}
               {authority.appLabel && (
-                <Badge variant={authority.app === 'system' ? 'purple' : 'blue'}>
+                <Badge variant={authority.app === "system" ? "purple" : "blue"}>
                   {authority.appLabel}
                 </Badge>
               )}
@@ -326,9 +401,7 @@ export default function AuthorityList() {
         ))}
 
         {filteredAuthorities.length === 0 && (
-          <div className={styles.emptyState}>
-            No authorities found
-          </div>
+          <div className={styles.emptyState}>No authorities found</div>
         )}
       </div>
     </div>

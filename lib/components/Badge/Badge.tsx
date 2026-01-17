@@ -13,7 +13,9 @@ interface BadgeProps {
     | "pink"
     | "orange"
     | "emerald"
-    | "amber";
+    | "amber"
+    | "brown"
+    | "lime";
   shape?: "circle" | "square";
   uppercase?: boolean;
 }
@@ -36,9 +38,12 @@ export default function Badge({
     orange: styles.badgeOrange,
     emerald: styles.badgeEmerald,
     amber: styles.badgeAmber,
+    brown: styles.badgeBrown,
+    lime: styles.badgeLime,
   }[variant];
 
-  const shapeClass = shape === "square" ? styles.badgeSquare : styles.badgeCircle;
+  const shapeClass =
+    shape === "square" ? styles.badgeSquare : styles.badgeCircle;
   const uppercaseClass = uppercase ? styles.badgeUppercase : "";
 
   return (

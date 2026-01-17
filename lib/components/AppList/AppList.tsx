@@ -347,7 +347,7 @@ export default function AppList() {
                   {(app.label || "U").charAt(0).toUpperCase()}
                 </span>
                 <img
-                  src={`/api/system/apps/${app.id}/assets/icon`}
+                  src={`/api/${app.id}/assets/icon`}
                   alt={app.label}
                   onError={(e) => {
                     // If image fails to load, hide it to show the fallback letter
@@ -377,9 +377,7 @@ export default function AppList() {
                   <div className={styles.appLabel}>
                     {app.label || "Unknown App"}
                   </div>
-                  <Badge variant="gray">
-                    v{formatVersion(app.version)}
-                  </Badge>
+                  <Badge variant="gray">v{formatVersion(app.version)}</Badge>
                 </div>
                 <div className={styles.appDescription}>
                   {app.description || "No description"}

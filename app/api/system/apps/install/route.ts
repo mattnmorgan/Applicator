@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has admin authorization
-    const hasAdmin = await userHasAuthorization(session.userId, "admin");
+    const hasAdmin = await userHasAuthorization(session.userId, "system:admin");
     if (!hasAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -201,7 +201,9 @@ export async function POST(request: NextRequest) {
     ) {
       const appManager = new AppManager();
       const allAppsResult = await appManager.readRecords();
-      const installedApps = new Map(allAppsResult.records.map((app) => [app.id, app]));
+      const installedApps = new Map(
+        allAppsResult.records.map((app) => [app.id, app])
+      );
 
       for (const [depId, requiredVersion] of Object.entries(
         appAttributes.dependencies
@@ -457,16 +459,20 @@ export async function POST(request: NextRequest) {
     }
 
     // Create app in database
-    await appManager.createRecord(await appManager.getTable(), {
-      label: appAttributes.name,
-      version: appAttributes.version,
-      author: appAttributes.author,
-      contactEmail: appAttributes.contactEmail || "",
-      description: appAttributes.description,
-      dependencies: appAttributes.dependencies || {},
-    }, {
-      id: appAttributes.id,
-    });
+    await appManager.createRecord(
+      await appManager.getTable(),
+      {
+        label: appAttributes.name,
+        version: appAttributes.version,
+        author: appAttributes.author,
+        contactEmail: appAttributes.contactEmail || "",
+        description: appAttributes.description,
+        dependencies: appAttributes.dependencies || {},
+      },
+      {
+        id: appAttributes.id,
+      }
+    );
 
     // Install applets
     if (appAttributes.applets && Array.isArray(appAttributes.applets)) {
@@ -532,7 +538,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Install contextual authorities
-    if (appAttributes.authorities && Array.isArray(appAttributes.authorities) && appAttributes.authorities.length > 0) {
+    if (
+      appAttributes.authorities &&
+      Array.isArray(appAttributes.authorities) &&
+      appAttributes.authorities.length > 0
+    ) {
       const authorityManager = new AuthorityManager();
       const authorityTable = await authorityManager.getTable();
 
@@ -565,16 +575,12 @@ export async function POST(request: NextRequest) {
       }
 
       for (const table of appAttributes.tables) {
-        await tableManager.createTable(
-          appAttributes.id,
-          table.name,
-          {
-            tableName: table.name,
-            app: appAttributes.id,
-            description: table.description || "",
-            fields: table.fields || [],
-          }
-        );
+        await tableManager.createTable(appAttributes.id, table.name, {
+          tableName: table.name,
+          app: appAttributes.id,
+          description: table.description || "",
+          fields: table.fields || [],
+        });
       }
     }
 

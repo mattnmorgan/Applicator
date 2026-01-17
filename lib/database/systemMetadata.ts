@@ -4,7 +4,7 @@ export const SYSTEM_APP_METADATA = {
   version: {
     major: 1,
     minor: 4,
-    dev: 3,
+    dev: 5,
   },
   author: "Matthew Morgan",
   contactEmail: "matthew@morgantech.info",
@@ -459,8 +459,9 @@ export const SYSTEM_APP_METADATA = {
           name: "target",
           description:
             "Where the applet should be displayed (app, home, user-settings, system-settings)",
-          type: "string",
+          type: "picklist",
           required: true,
+          options: ["home", "app", "user-settings", "system-settings"],
         },
       ],
     },
@@ -469,7 +470,7 @@ export const SYSTEM_APP_METADATA = {
     {
       id: "admin",
       name: "Administrator",
-      authorizations: ["admin"],
+      authorizations: ["system:admin"],
       apps: [],
       contextual: false,
     },

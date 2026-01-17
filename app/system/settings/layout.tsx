@@ -111,7 +111,7 @@ async function getSettingsMenuItems(
   ];
 
   // Load system-settings applets from apps the user has access to
-  const authority = await getAuthority("admin"); // Admin users see all system settings
+  const authority = await getAuthority("system:admin"); // Admin users see all system settings
   const userAuthority = await getUserAuthority(userId);
 
   const appletIds = [
@@ -213,8 +213,8 @@ export default async function SettingsLayout({
   }
 
   // Check if user has admin authorization
-  const hasAdminAuth = user.authorizations.includes("admin");
-  const hasDeveloperAuth = user.authorizations.includes("developer");
+  const hasAdminAuth = user.authorizations.includes("system:admin");
+  const hasDeveloperAuth = user.authorizations.includes("system:developer");
 
   const profilePictureUrl = user.icon
     ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}`
