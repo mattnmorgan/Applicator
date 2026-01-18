@@ -21,7 +21,7 @@ export async function getCurrentUser(): Promise<{
   userMainApps: string[];
   isAssumedIdentity: boolean;
 }> {
-  const response = await fetch("/api/system/auth/me");
+  const response = await fetch("/api/system/settings/user");
 
   if (!response.ok) {
     throw new Error(

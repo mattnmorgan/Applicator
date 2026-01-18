@@ -20,7 +20,7 @@ export default function UserSettingsAppletPage() {
 
   // Fetch user's accessible applets
   useEffect(() => {
-    fetch("/api/system/auth/me")
+    fetch("/api/system/settings/user")
       .then((res) => res.json())
       .then((data) => {
         if (data.userApplets) {

@@ -35,7 +35,7 @@ export default abstract class CRUD<T = any> {
   table!: Table | null;
   fields!: Field[] | null;
 
-  async readRecords<T>(filter: RecordFilter<T> = {}): Promise<Result<T>> {
+  async readRecords(filter: RecordFilter<T> = {}): Promise<Result<T>> {
     return await readRecords<T>(
       this.appId,
       this.tableName,

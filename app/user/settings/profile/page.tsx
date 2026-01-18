@@ -25,7 +25,7 @@ export default function ProfilePage() {
 
   const fetchCurrentUser = async () => {
     try {
-      const response = await fetch("/api/system/auth/me");
+      const response = await fetch("/api/system/settings/user");
       const data = await response.json();
 
       if (data.user) {

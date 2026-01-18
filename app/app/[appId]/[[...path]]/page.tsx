@@ -51,7 +51,7 @@ export default function AppPage() {
 
   // Fetch user data
   useEffect(() => {
-    fetch("/api/system/auth/me")
+    fetch("/api/system/settings/user")
       .then((res) => res.json())
       .then((data) => {
         if (data.user) {
