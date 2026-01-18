@@ -38,8 +38,8 @@ export async function GET(
     // Handle system app assets with special routing
     if (appId === "system") {
       if (pathSegments.length === 1 && pathSegments[0] === "icon") {
-        // Redirect to the static system icon in the public folder
-        return NextResponse.redirect(new URL("/assets/icons/system.png", request.url));
+        // Serve the static system icon from the public folder
+        filePath = path.join(process.cwd(), "public", "assets", "icons", "system.png");
       } else if (pathSegments.length === 1 && pathSegments[0] === "brand") {
         filePath = path.join(storagePath, "apps", "system", "brand.png");
       } else if (
@@ -69,10 +69,14 @@ export async function GET(
       }
     }
 
-    // Security check: ensure the resolved path is within the storage directory
+    // Security check: ensure the resolved path is within the storage directory or public folder
     const resolvedPath = path.resolve(filePath);
     const resolvedStoragePath = path.resolve(storagePath);
-    if (!resolvedPath.startsWith(resolvedStoragePath)) {
+    const resolvedPublicPath = path.resolve(process.cwd(), "public");
+    const isInStorage = resolvedPath.startsWith(resolvedStoragePath);
+    const isInPublic = resolvedPath.startsWith(resolvedPublicPath);
+
+    if (!isInStorage && !isInPublic) {
       return NextResponse.json({ error: "Invalid path" }, { status: 403 });
     }
 

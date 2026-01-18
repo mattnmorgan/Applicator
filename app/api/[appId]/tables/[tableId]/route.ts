@@ -261,10 +261,10 @@ export async function PUT(
 /**
  * DELETE /api/[appId]/tables/[tableId]
  * Delete one or multiple records from the specified table
- * Body can be:
- * - Single delete: { id: string }
- * - Bulk delete: { ids: string[] }
- * - Delete all: { deleteAll: true }
+ * Query parameters:
+ * - deleteAll: boolean - Delete all records in the table
+ * - id: string - Single record ID to delete
+ * - ids: comma-separated list of record IDs to delete
  */
 export async function DELETE(
   request: NextRequest,
@@ -280,20 +280,24 @@ export async function DELETE(
       return NextResponse.json({ error: "Table not found" }, { status: 404 });
     }
 
-    const body = await request.json();
+    const searchParams = request.nextUrl.searchParams;
+    const deleteAllParam = searchParams.get("deleteAll");
+    const idParam = searchParams.get("id");
+    const idsParam = searchParams.get("ids");
 
     // Handle delete all
-    if (body.deleteAll) {
+    if (deleteAllParam === "true") {
       await deleteAll(appId, tableId);
-      return NextResponse.json({});
-    } else if (body.ids && Array.isArray(body.ids)) {
-      return NextResponse.json(await deleteRecords(appId, tableId, body.ids));
-    } else if (body.id) {
-      return NextResponse.json(await deleteRecord(appId, tableId, body.id));
+      return NextResponse.json({ success: true, message: "All records deleted" });
+    } else if (idsParam) {
+      const ids = idsParam.split(",");
+      return NextResponse.json(await deleteRecords(appId, tableId, ids));
+    } else if (idParam) {
+      return NextResponse.json(await deleteRecord(appId, tableId, idParam));
     }
 
     return NextResponse.json(
-      { error: "Either id, ids array, or deleteAll flag is required" },
+      { error: "Either id, ids, or deleteAll query parameter is required" },
       { status: 400 }
     );
   } catch (error) {
