@@ -5,7 +5,7 @@ import UserManager from "@/lib/database/managers/user";
 import AuthorityManager from "@/lib/database/managers/authority";
 import AppletManager from "@/lib/database/managers/applet";
 import Navigation from "@/lib/components/Navigation";
-import Tabset, { TabsetItem } from "@/lib/components/Tabset";
+import Tabset, { TabsetItem } from "@/lib/components/utility/Tabset";
 
 async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
   const homeMenuItems: TabsetItem[] = [
@@ -24,7 +24,7 @@ async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
   if (!userRecord) return homeMenuItems;
 
   const mainAuthority = await authorityManager.readRecord(
-    userRecord.data.authority
+    userRecord.data.authority,
   );
   const userAuthority = await authorityManager.readUserAuthority(userId);
 
@@ -38,7 +38,7 @@ async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
   const allAppletsResult = await appletManager.readRecords();
   const appTypeApplets = allAppletsResult.records.filter(
     (applet) =>
-      applet.data.target === "app" && uniqueAppletIds.includes(applet.id)
+      applet.data.target === "app" && uniqueAppletIds.includes(applet.id),
   );
 
   for (const applet of appTypeApplets) {

@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import TableDefinition from "@/lib/database/types/table";
 import TableField from "@/lib/database/types/field";
-import Badge from "@/lib/components/Badge/Badge";
+import Badge from "@/lib/components/utility/Badge/Badge";
 import TableManager from "@/lib/database/client/managers/table";
 import FieldManager from "@/lib/database/client/managers/field";
 import AppManager from "@/lib/database/client/managers/app";
@@ -20,7 +20,7 @@ export default function DataModelsPage() {
   const [filteredTables, setFilteredTables] = useState<TableSearchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [selectedTable, setSelectedTable] = useState<TableSearchResult | null>(
-    null
+    null,
   );
 
   useEffect(() => {
@@ -37,7 +37,7 @@ export default function DataModelsPage() {
           (t) =>
             t.table.tableName.toLowerCase().includes(query) ||
             t.table.description.toLowerCase().includes(query) ||
-            t.appName.toLowerCase().includes(query)
+            t.appName.toLowerCase().includes(query),
         )
         .sort((a, b) => a.table.tableName.localeCompare(b.table.tableName));
       setFilteredTables(filtered);
@@ -98,7 +98,7 @@ export default function DataModelsPage() {
 
         // Sort tables alphabetically by table name
         const sortedResults = results.sort((a, b) =>
-          a.table.tableName.localeCompare(b.table.tableName)
+          a.table.tableName.localeCompare(b.table.tableName),
         );
 
         setTables(sortedResults);
@@ -479,13 +479,13 @@ export default function DataModelsPage() {
                                       <Badge
                                         key={key}
                                         variant={getFieldTypeVariant(
-                                          field.type
+                                          field.type,
                                         )}
                                         shape="square"
                                       >
                                         {value}
                                       </Badge>
-                                    )
+                                    ),
                                   )}
                                 </div>
                               </div>

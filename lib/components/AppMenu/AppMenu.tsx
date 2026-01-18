@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Tabset, { TabsetItem } from "../Tabset/Tabset";
+import Tabset, { TabsetItem } from "../utility/Tabset/Tabset";
 import styles from "./AppMenu.module.css";
 
 interface App {

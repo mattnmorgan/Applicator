@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import ProfileIndicator from "../ProfileIndicator";
-import ButtonMenu from "../ButtonMenu";
-import Row from "../Row";
+import ProfileIndicator from "../../utility/ProfileIndicator";
+import ButtonMenu from "../../utility/ButtonMenu";
+import Row from "../../utility/Row";
 import UserCreate from "../UserCreate";
-import Badge from "../Badge/Badge";
+import Badge from "../../utility/Badge/Badge";
 import styles from "./UserList.module.css";
 import UserManager from "@/lib/database/client/managers/user";
 import AuthorityManager from "@/lib/database/client/managers/authority";
@@ -33,7 +33,7 @@ interface User {
 export default function UserList() {
   const [users, setUsers] = useState<User[]>([]);
   const [selectedUserIds, setSelectedUserIds] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
@@ -113,10 +113,13 @@ export default function UserList() {
 
     setLoading(true);
     try {
-      const updates = Array.from(selectedUserIds).reduce((acc, id) => {
-        acc[id] = { isActive };
-        return acc;
-      }, {} as Record<string, { isActive: boolean }>);
+      const updates = Array.from(selectedUserIds).reduce(
+        (acc, id) => {
+          acc[id] = { isActive };
+          return acc;
+        },
+        {} as Record<string, { isActive: boolean }>,
+      );
 
       await userManager.updateRecords(updates);
       await fetchUsers();
@@ -131,7 +134,7 @@ export default function UserList() {
   const filteredUsers = users.filter(
     (user) =>
       user.displayName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.username.toLowerCase().includes(searchQuery.toLowerCase())
+      user.username.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const allSelected =

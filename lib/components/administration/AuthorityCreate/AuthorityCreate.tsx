@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Toast from "../Toast";
-import Badge from "../Badge/Badge";
 import styles from "./AuthorityCreate.module.css";
+import Toast from "@/lib/components/utility/Toast";
+import Badge from "@/lib/components/utility/Badge/Badge";
 import AuthorityManager from "@/lib/database/client/managers/authority";
 import AppManager from "@/lib/database/client/managers/app";
 import AuthorizationManager from "@/lib/database/client/managers/authorization";
@@ -49,7 +49,7 @@ export default function AuthorityCreate({
   const [name, setName] = useState(editAuthority?.name || "");
   const [iconFile, setIconFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>(
-    editAuthority?.icon || ""
+    editAuthority?.icon || "",
   );
   const [clearIcon, setClearIcon] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -61,7 +61,7 @@ export default function AuthorityCreate({
   const [authorizationSearch, setAuthorizationSearch] = useState("");
   const [applets, setApplets] = useState<Applet[]>([]);
   const [selectedApplets, setSelectedApplets] = useState<Set<string>>(
-    new Set(editAuthority?.apps || [])
+    new Set(editAuthority?.apps || []),
   );
   const [appletSearch, setAppletSearch] = useState("");
   const [toast, setToast] = useState<{
@@ -341,7 +341,7 @@ export default function AuthorityCreate({
         auth.name.toLowerCase().includes(authorizationSearch.toLowerCase()) ||
         auth.description
           .toLowerCase()
-          .includes(authorizationSearch.toLowerCase())
+          .includes(authorizationSearch.toLowerCase()),
     );
 
   const filteredApplets = applets
@@ -350,7 +350,7 @@ export default function AuthorityCreate({
       (applet) =>
         applet.label.toLowerCase().includes(appletSearch.toLowerCase()) ||
         applet.description.toLowerCase().includes(appletSearch.toLowerCase()) ||
-        applet.appLabel.toLowerCase().includes(appletSearch.toLowerCase())
+        applet.appLabel.toLowerCase().includes(appletSearch.toLowerCase()),
     );
 
   return (
@@ -549,8 +549,8 @@ export default function AuthorityCreate({
                 ? "Updating..."
                 : "Creating..."
               : isEditMode
-              ? "Update Authority"
-              : "Create Authority"}
+                ? "Update Authority"
+                : "Create Authority"}
           </button>
         </div>
       </form>

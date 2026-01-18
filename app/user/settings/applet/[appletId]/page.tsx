@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
-import DynamicAppLoader from "@/lib/components/DynamicAppLoader";
+import DynamicAppLoader from "@/lib/components/utility/DynamicAppLoader";
 import AppletManager from "@/lib/database/client/managers/applet";
 import AppManager from "@/lib/database/client/managers/app";
 
@@ -45,7 +45,9 @@ export default function UserSettingsAppletPage() {
         const hasAccess = userApplets.includes(fullAppletId);
 
         if (!hasAccess) {
-          setError(`Access denied: You do not have permission to access this applet`);
+          setError(
+            `Access denied: You do not have permission to access this applet`,
+          );
           setLoading(false);
           return;
         }

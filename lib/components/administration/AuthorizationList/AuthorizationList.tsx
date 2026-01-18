@@ -1,8 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Row from "../Row";
-import Badge from "../Badge/Badge";
+import Row from "../../utility/Row";
+import Badge from "../../utility/Badge/Badge";
 import styles from "./AuthorizationList.module.css";
 import AuthorizationManager from "@/lib/database/client/managers/authorization";
 import AppManager from "@/lib/database/client/managers/app";

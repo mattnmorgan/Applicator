@@ -3,8 +3,8 @@
 import { useParams } from "next/navigation";
 import { useEffect, useState } from "react";
 import Navigation from "@/lib/components/Navigation/Navigation";
-import Tabset from "@/lib/components/Tabset/Tabset";
-import DynamicAppLoader from "@/lib/components/DynamicAppLoader";
+import Tabset from "@/lib/components/utility/Tabset/Tabset";
+import DynamicAppLoader from "@/lib/components/utility/DynamicAppLoader";
 import AppletManager from "@/lib/database/client/managers/applet";
 import AppManager from "@/lib/database/client/managers/app";
 
@@ -41,9 +41,7 @@ export default function AppPage() {
   const appManager = new AppManager();
 
   // Parse app ID and applet ID from URL (format: appId:appletId)
-  const appId = fullAppId.includes(":")
-    ? fullAppId.split(":")[0]
-    : fullAppId;
+  const appId = fullAppId.includes(":") ? fullAppId.split(":")[0] : fullAppId;
   const appletId = fullAppId.includes(":")
     ? fullAppId.split(":")[1]
     : path[0] || "main";
@@ -156,9 +154,7 @@ export default function AppPage() {
         setAppVersion(versionString);
 
         // Set the module URL for the DynamicAppLoader
-        setModuleUrl(
-          `/api/${appId}/assets/source?v=${versionString}`
-        );
+        setModuleUrl(`/api/${appId}/assets/source?v=${versionString}`);
         setLoading(false);
       } catch (err) {
         console.error("Error fetching applet metadata:", err);

@@ -4,8 +4,8 @@ import { getSystemSettings } from "@/lib/database/managers/setting";
 import AppletManager from "@/lib/database/managers/applet";
 import AuthorityManager from "@/lib/database/managers/authority";
 import Navigation from "@/lib/components/Navigation";
-import Tabset, { TabsetItem } from "@/lib/components/Tabset";
-import AccessDenied from "@/lib/components/AccessDenied";
+import Tabset, { TabsetItem } from "@/lib/components/utility/Tabset";
+import AccessDenied from "@/lib/components/utility/AccessDenied";
 
 // Inlined helper functions
 async function getCurrentUser() {
@@ -65,7 +65,7 @@ function sortMenuItems(items: TabsetItem[]): TabsetItem[] {
 
 async function getSettingsMenuItems(
   hasDeveloperAuth: boolean,
-  userId: string
+  userId: string,
 ): Promise<TabsetItem[]> {
   const unsortedSettingsMenuItems: TabsetItem[] = [
     {
@@ -127,7 +127,7 @@ async function getSettingsMenuItems(
     const systemSettingsApplets = allAppletsResult.records.filter(
       (applet) =>
         applet.data.target === "system-settings" &&
-        uniqueAppletIds.includes(applet.id)
+        uniqueAppletIds.includes(applet.id),
     );
 
     const appSettingsChildren: TabsetItem[] = [];
@@ -240,7 +240,7 @@ export default async function SettingsLayout({
 
   const settingsMenuItems = await getSettingsMenuItems(
     hasDeveloperAuth,
-    user.id
+    user.id,
   );
 
   return (

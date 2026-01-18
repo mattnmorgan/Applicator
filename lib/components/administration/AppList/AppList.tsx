@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import Row from "../Row";
 import AppView from "../AppView/AppView";
-import Toast from "../Toast";
-import ConfirmModal from "../ConfirmModal";
-import Badge from "../Badge/Badge";
+import Row from "@/lib/components/utility/Row";
+import Toast from "@/lib/components/utility/Toast";
+import ConfirmModal from "@/lib/components/utility/ConfirmModal";
+import Badge from "@/lib/components/utility/Badge/Badge";
 import styles from "./AppList.module.css";
 import AppManager from "@/lib/database/client/managers/app";
 import ApiRouteManager from "@/lib/database/client/managers/apiRoute";

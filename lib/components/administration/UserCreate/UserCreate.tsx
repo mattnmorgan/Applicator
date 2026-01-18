@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Badge from "../Badge/Badge";
+import Badge from "@/lib/components/utility/Badge/Badge";
 import styles from "./UserCreate.module.css";
 import UserManager from "@/lib/database/client/managers/user";
 import AuthorityManager from "@/lib/database/client/managers/authority";

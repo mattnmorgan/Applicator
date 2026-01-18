@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import FolderBrowser from "@/lib/components/FolderBrowser";
-import Toast from "@/lib/components/Toast";
+import FolderBrowser from "@/lib/components/utility/FolderBrowser";
+import Toast from "@/lib/components/utility/Toast";
 
 export default function SettingsPage() {
   const router = useRouter();
@@ -102,7 +102,7 @@ export default function SettingsPage() {
         body: JSON.stringify({
           storage,
           loggingEnabled,
-          ...((!brandIcon && !clearBrandIcon) && { brandName })
+          ...(!brandIcon && !clearBrandIcon && { brandName }),
         }),
       });
 

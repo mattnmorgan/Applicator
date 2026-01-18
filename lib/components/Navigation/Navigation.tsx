@@ -2,10 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useState } from "react";
-import ButtonMenu from "../ButtonMenu";
-import ProfileIndicator from "../ProfileIndicator";
+import ButtonMenu from "../utility/ButtonMenu";
+import ProfileIndicator from "../utility/ProfileIndicator";
 import NotificationBell from "../NotificationBell";
-import AssumeIdentityModal from "../AssumeIdentityModal/AssumeIdentityModal";
+import AssumeIdentityModal from "../administration/AssumeIdentityModal/AssumeIdentityModal";
 import styles from "./Navigation.module.css";
 
 interface NavigationProps {

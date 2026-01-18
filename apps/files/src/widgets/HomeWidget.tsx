@@ -1,6 +1,6 @@
-import React, { useState, useEffect, useRef } from 'react';
-import ButtonIcon from '@/lib/components/ButtonIcon';
-import ButtonMenu from '@/lib/components/ButtonMenu';
+import React, { useState, useEffect, useRef } from "react";
+import ButtonIcon from "@/lib/components/utility/ButtonIcon";
+import ButtonMenu from "@/lib/components/utility/ButtonMenu";
 
 interface FileItem {
   name: string;
@@ -19,11 +19,11 @@ interface DirectoryItem {
 
 export default function HomeWidget() {
   const [files, setFiles] = useState<FileItem[]>([]);
-  const [currentPath, setCurrentPath] = useState('');
+  const [currentPath, setCurrentPath] = useState("");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState('');
+  const [error, setError] = useState("");
   const [uploading, setUploading] = useState(false);
-  const [uploadProgress, setUploadProgress] = useState('');
+  const [uploadProgress, setUploadProgress] = useState("");
   const [selectedFile, setSelectedFile] = useState<FileItem | null>(null);
   const [selectedFiles, setSelectedFiles] = useState<Set<string>>(new Set());
   const [showRenameModal, setShowRenameModal] = useState(false);
@@ -36,18 +36,20 @@ export default function HomeWidget() {
   const [showOverwriteModal, setShowOverwriteModal] = useState(false);
   const [filesToOverwrite, setFilesToOverwrite] = useState<string[]>([]);
   const [pendingUpload, setPendingUpload] = useState<FileList | null>(null);
-  const [newName, setNewName] = useState('');
-  const [targetPath, setTargetPath] = useState('');
+  const [newName, setNewName] = useState("");
+  const [targetPath, setTargetPath] = useState("");
   const [moveDirectories, setMoveDirectories] = useState<DirectoryItem[]>([]);
-  const [moveBrowsePath, setMoveBrowsePath] = useState('');
+  const [moveBrowsePath, setMoveBrowsePath] = useState("");
   const [moveExcludePaths, setMoveExcludePaths] = useState<string[]>([]);
   const [copyDirectories, setCopyDirectories] = useState<DirectoryItem[]>([]);
-  const [copyBrowsePath, setCopyBrowsePath] = useState('');
-  const [copyTargetPath, setCopyTargetPath] = useState('');
+  const [copyBrowsePath, setCopyBrowsePath] = useState("");
+  const [copyTargetPath, setCopyTargetPath] = useState("");
   const [copyExcludePaths, setCopyExcludePaths] = useState<string[]>([]);
-  const [previewUrl, setPreviewUrl] = useState('');
-  const [previewType, setPreviewType] = useState<'image' | 'text' | 'pdf' | 'unsupported'>('unsupported');
-  const [previewContent, setPreviewContent] = useState('');
+  const [previewUrl, setPreviewUrl] = useState("");
+  const [previewType, setPreviewType] = useState<
+    "image" | "text" | "pdf" | "unsupported"
+  >("unsupported");
+  const [previewContent, setPreviewContent] = useState("");
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -57,26 +59,33 @@ export default function HomeWidget() {
 
   const loadFiles = async () => {
     setLoading(true);
-    setError('');
+    setError("");
     try {
-      const response = await fetch(`/api/files/list?directory=${encodeURIComponent(currentPath)}`);
+      const response = await fetch(
+        `/api/files/list?directory=${encodeURIComponent(currentPath)}`,
+      );
       const data = await response.json();
 
       if (data.success) {
         setFiles(data.files);
       } else {
-        setError(data.error || 'Failed to load files');
+        setError(data.error || "Failed to load files");
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to load files');
+      setError(err.message || "Failed to load files");
     } finally {
       setLoading(false);
     }
   };
 
-  const loadMoveDirectories = async (path: string, excludePaths: string[] = []) => {
+  const loadMoveDirectories = async (
+    path: string,
+    excludePaths: string[] = [],
+  ) => {
     try {
-      const response = await fetch(`/api/files/list?directory=${encodeURIComponent(path)}`);
+      const response = await fetch(
+        `/api/files/list?directory=${encodeURIComponent(path)}`,
+      );
       const data = await response.json();
 
       if (data.success) {
@@ -86,7 +95,7 @@ export default function HomeWidget() {
           if (excludePaths.includes(f.path)) return false;
           // Exclude subdirectories of excluded paths
           for (const excludePath of excludePaths) {
-            if (f.path.startsWith(excludePath + '/')) return false;
+            if (f.path.startsWith(excludePath + "/")) return false;
           }
           return true;
         });
@@ -94,13 +103,18 @@ export default function HomeWidget() {
         setMoveBrowsePath(path);
       }
     } catch (err: any) {
-      console.error('Failed to load directories:', err);
+      console.error("Failed to load directories:", err);
     }
   };
 
-  const loadCopyDirectories = async (path: string, excludePaths: string[] = []) => {
+  const loadCopyDirectories = async (
+    path: string,
+    excludePaths: string[] = [],
+  ) => {
     try {
-      const response = await fetch(`/api/files/list?directory=${encodeURIComponent(path)}`);
+      const response = await fetch(
+        `/api/files/list?directory=${encodeURIComponent(path)}`,
+      );
       const data = await response.json();
 
       if (data.success) {
@@ -110,7 +124,7 @@ export default function HomeWidget() {
           if (excludePaths.includes(f.path)) return false;
           // Exclude subdirectories of excluded paths
           for (const excludePath of excludePaths) {
-            if (f.path.startsWith(excludePath + '/')) return false;
+            if (f.path.startsWith(excludePath + "/")) return false;
           }
           return true;
         });
@@ -118,13 +132,13 @@ export default function HomeWidget() {
         setCopyBrowsePath(path);
       }
     } catch (err: any) {
-      console.error('Failed to load directories:', err);
+      console.error("Failed to load directories:", err);
     }
   };
 
   const checkForOverwrites = (fileList: FileList): string[] => {
     const overwrites: string[] = [];
-    const existingFileNames = new Set(files.map(f => f.name));
+    const existingFileNames = new Set(files.map((f) => f.name));
 
     for (let i = 0; i < fileList.length; i++) {
       if (existingFileNames.has(fileList[i].name)) {
@@ -166,13 +180,13 @@ export default function HomeWidget() {
     setPendingUpload(null);
     setFilesToOverwrite([]);
     if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+      fileInputRef.current.value = "";
     }
   };
 
   const performUpload = async (fileList: FileList) => {
     setUploading(true);
-    setError('');
+    setError("");
     setUploadProgress(`Uploading ${fileList.length} file(s)...`);
 
     try {
@@ -181,15 +195,17 @@ export default function HomeWidget() {
 
       for (let i = 0; i < fileList.length; i++) {
         const file = fileList[i];
-        setUploadProgress(`Uploading ${i + 1} of ${fileList.length}: ${file.name}`);
+        setUploadProgress(
+          `Uploading ${i + 1} of ${fileList.length}: ${file.name}`,
+        );
 
         const formData = new FormData();
-        formData.append('file', file);
-        formData.append('directory', currentPath);
+        formData.append("file", file);
+        formData.append("directory", currentPath);
 
         try {
-          const response = await fetch('/api/files/upload', {
-            method: 'POST',
+          const response = await fetch("/api/files/upload", {
+            method: "POST",
             body: formData,
           });
 
@@ -215,12 +231,12 @@ export default function HomeWidget() {
         setError(`Failed to upload ${failCount} file(s)`);
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to upload files');
+      setError(err.message || "Failed to upload files");
     } finally {
       setUploading(false);
-      setUploadProgress('');
+      setUploadProgress("");
       if (fileInputRef.current) {
-        fileInputRef.current.value = '';
+        fileInputRef.current.value = "";
       }
     }
   };
@@ -248,7 +264,7 @@ export default function HomeWidget() {
       if (fileList.length > 0) {
         // Convert array to FileList-like object
         const dt = new DataTransfer();
-        fileList.forEach(file => dt.items.add(file));
+        fileList.forEach((file) => dt.items.add(file));
         await handleUploadWithCheck(dt.files);
       }
     } else {
@@ -263,7 +279,10 @@ export default function HomeWidget() {
   const getAllFiles = async (items: DataTransferItemList): Promise<File[]> => {
     const files: File[] = [];
 
-    const traverseFileTree = async (item: any, path: string = ''): Promise<void> => {
+    const traverseFileTree = async (
+      item: any,
+      path: string = "",
+    ): Promise<void> => {
       return new Promise((resolve) => {
         if (item.isFile) {
           item.file((file: File) => {
@@ -281,7 +300,7 @@ export default function HomeWidget() {
           const dirReader = item.createReader();
           dirReader.readEntries(async (entries: any[]) => {
             for (const entry of entries) {
-              await traverseFileTree(entry, path + item.name + '/');
+              await traverseFileTree(entry, path + item.name + "/");
             }
             resolve();
           });
@@ -309,21 +328,24 @@ export default function HomeWidget() {
   };
 
   const handleBulkDeleteClick = () => {
-    const selectedItems = files.filter(f => selectedFiles.has(f.path));
+    const selectedItems = files.filter((f) => selectedFiles.has(f.path));
     setDeleteTargets(selectedItems);
     setShowDeleteModal(true);
   };
 
   const confirmDelete = async () => {
-    setError('');
+    setError("");
     let successCount = 0;
     let failCount = 0;
 
     for (const file of deleteTargets) {
       try {
-        const response = await fetch(`/api/files/delete?path=${encodeURIComponent(file.path)}`, {
-          method: 'DELETE',
-        });
+        const response = await fetch(
+          `/api/files/delete?path=${encodeURIComponent(file.path)}`,
+          {
+            method: "DELETE",
+          },
+        );
 
         const data = await response.json();
 
@@ -348,74 +370,100 @@ export default function HomeWidget() {
   };
 
   const handleBulkMove = () => {
-    const selectedItems = files.filter(f => selectedFiles.has(f.path));
-    const selectedFolderPaths = selectedItems.filter(f => f.isDirectory).map(f => f.path);
+    const selectedItems = files.filter((f) => selectedFiles.has(f.path));
+    const selectedFolderPaths = selectedItems
+      .filter((f) => f.isDirectory)
+      .map((f) => f.path);
 
-    setTargetPath('');
-    setMoveBrowsePath('');
+    setTargetPath("");
+    setMoveBrowsePath("");
     setMoveDirectories([]);
     setMoveExcludePaths(selectedFolderPaths);
-    loadMoveDirectories('', selectedFolderPaths);
+    loadMoveDirectories("", selectedFolderPaths);
     setShowMoveModal(true);
   };
 
   const handleBulkCopy = () => {
-    const selectedItems = files.filter(f => selectedFiles.has(f.path));
-    const selectedFolderPaths = selectedItems.filter(f => f.isDirectory).map(f => f.path);
+    const selectedItems = files.filter((f) => selectedFiles.has(f.path));
+    const selectedFolderPaths = selectedItems
+      .filter((f) => f.isDirectory)
+      .map((f) => f.path);
 
-    setCopyTargetPath('');
-    setCopyBrowsePath('');
+    setCopyTargetPath("");
+    setCopyBrowsePath("");
     setCopyDirectories([]);
     setCopyExcludePaths(selectedFolderPaths);
-    loadCopyDirectories('', selectedFolderPaths);
+    loadCopyDirectories("", selectedFolderPaths);
     setShowCopyModal(true);
   };
 
   const handleDownload = (file: FileItem) => {
-    window.open(`/api/files/download?path=${encodeURIComponent(file.path)}`, '_blank');
+    window.open(
+      `/api/files/download?path=${encodeURIComponent(file.path)}`,
+      "_blank",
+    );
   };
 
   const handlePreview = async (file: FileItem) => {
     if (file.isDirectory) return;
 
     setSelectedFile(file);
-    const fileExt = file.name.split('.').pop()?.toLowerCase() || '';
+    const fileExt = file.name.split(".").pop()?.toLowerCase() || "";
 
-    const imageExts = ['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp', 'svg'];
-    const textExts = ['txt', 'md', 'json', 'js', 'ts', 'tsx', 'jsx', 'css', 'html', 'xml', 'log', 'csv'];
-    const pdfExts = ['pdf'];
+    const imageExts = ["jpg", "jpeg", "png", "gif", "bmp", "webp", "svg"];
+    const textExts = [
+      "txt",
+      "md",
+      "json",
+      "js",
+      "ts",
+      "tsx",
+      "jsx",
+      "css",
+      "html",
+      "xml",
+      "log",
+      "csv",
+    ];
+    const pdfExts = ["pdf"];
 
     if (imageExts.includes(fileExt)) {
-      setPreviewType('image');
-      setPreviewUrl(`/api/files/download?path=${encodeURIComponent(file.path)}&inline=true`);
+      setPreviewType("image");
+      setPreviewUrl(
+        `/api/files/download?path=${encodeURIComponent(file.path)}&inline=true`,
+      );
       setShowPreviewModal(true);
     } else if (pdfExts.includes(fileExt)) {
-      setPreviewType('pdf');
-      setPreviewUrl(`/api/files/download?path=${encodeURIComponent(file.path)}&inline=true`);
+      setPreviewType("pdf");
+      setPreviewUrl(
+        `/api/files/download?path=${encodeURIComponent(file.path)}&inline=true`,
+      );
       setShowPreviewModal(true);
     } else if (textExts.includes(fileExt)) {
       try {
-        const response = await fetch(`/api/files/download?path=${encodeURIComponent(file.path)}&inline=true`);
+        const response = await fetch(
+          `/api/files/download?path=${encodeURIComponent(file.path)}&inline=true`,
+        );
         const text = await response.text();
-        setPreviewType('text');
+        setPreviewType("text");
         setPreviewContent(text);
         setShowPreviewModal(true);
       } catch (err) {
-        setError('Failed to load file preview');
+        setError("Failed to load file preview");
       }
     } else {
-      setError('Preview not supported for this file type');
+      setError("Preview not supported for this file type");
     }
   };
 
   const handleRename = async () => {
     if (!selectedFile || !newName) return;
 
-    setError('');
+    setError("");
     try {
-      const response = await fetch('/api/files/rename', {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/files/rename", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           oldPath: selectedFile.path,
           newName,
@@ -426,33 +474,36 @@ export default function HomeWidget() {
 
       if (data.success) {
         setShowRenameModal(false);
-        setNewName('');
+        setNewName("");
         setSelectedFile(null);
         loadFiles();
       } else {
-        setError(data.error || 'Failed to rename file');
+        setError(data.error || "Failed to rename file");
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to rename file');
+      setError(err.message || "Failed to rename file");
     }
   };
 
   const handleMove = async () => {
-    const itemsToMove = selectedFiles.size > 0
-      ? files.filter(f => selectedFiles.has(f.path))
-      : selectedFile ? [selectedFile] : [];
+    const itemsToMove =
+      selectedFiles.size > 0
+        ? files.filter((f) => selectedFiles.has(f.path))
+        : selectedFile
+          ? [selectedFile]
+          : [];
 
     if (itemsToMove.length === 0) return;
 
-    setError('');
+    setError("");
     let successCount = 0;
     let failCount = 0;
 
     for (const file of itemsToMove) {
       try {
-        const response = await fetch('/api/files/move', {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/files/move", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             sourcePath: file.path,
             destinationDir: targetPath,
@@ -476,30 +527,33 @@ export default function HomeWidget() {
     }
 
     setShowMoveModal(false);
-    setTargetPath('');
+    setTargetPath("");
     setSelectedFile(null);
     setSelectedFiles(new Set());
-    setMoveBrowsePath('');
+    setMoveBrowsePath("");
     setMoveDirectories([]);
     loadFiles();
   };
 
   const handleCopy = async () => {
-    const itemsToCopy = selectedFiles.size > 0
-      ? files.filter(f => selectedFiles.has(f.path))
-      : selectedFile ? [selectedFile] : [];
+    const itemsToCopy =
+      selectedFiles.size > 0
+        ? files.filter((f) => selectedFiles.has(f.path))
+        : selectedFile
+          ? [selectedFile]
+          : [];
 
     if (itemsToCopy.length === 0) return;
 
-    setError('');
+    setError("");
     let successCount = 0;
     let failCount = 0;
 
     for (const file of itemsToCopy) {
       try {
-        const response = await fetch('/api/files/copy', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+        const response = await fetch("/api/files/copy", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             sourcePath: file.path,
             destinationDir: copyTargetPath,
@@ -523,10 +577,10 @@ export default function HomeWidget() {
     }
 
     setShowCopyModal(false);
-    setCopyTargetPath('');
+    setCopyTargetPath("");
     setSelectedFile(null);
     setSelectedFiles(new Set());
-    setCopyBrowsePath('');
+    setCopyBrowsePath("");
     setCopyDirectories([]);
     loadFiles();
   };
@@ -536,11 +590,11 @@ export default function HomeWidget() {
 
     const folderPath = currentPath ? `${currentPath}/${newName}` : newName;
 
-    setError('');
+    setError("");
     try {
-      const response = await fetch('/api/files/mkdir', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+      const response = await fetch("/api/files/mkdir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ path: folderPath }),
       });
 
@@ -548,13 +602,13 @@ export default function HomeWidget() {
 
       if (data.success) {
         setShowNewFolderModal(false);
-        setNewName('');
+        setNewName("");
         loadFiles();
       } else {
-        setError(data.error || 'Failed to create folder');
+        setError(data.error || "Failed to create folder");
       }
     } catch (err: any) {
-      setError(err.message || 'Failed to create folder');
+      setError(err.message || "Failed to create folder");
     }
   };
 
@@ -577,17 +631,17 @@ export default function HomeWidget() {
     if (selectedFiles.size === files.length) {
       setSelectedFiles(new Set());
     } else {
-      setSelectedFiles(new Set(files.map(f => f.path)));
+      setSelectedFiles(new Set(files.map((f) => f.path)));
     }
   };
 
   const getMovePathParts = () => {
-    if (!moveBrowsePath) return [{ label: 'Home', path: '' }];
+    if (!moveBrowsePath) return [{ label: "Home", path: "" }];
 
-    const parts = moveBrowsePath.split('/');
-    const breadcrumbs = [{ label: 'Home', path: '' }];
+    const parts = moveBrowsePath.split("/");
+    const breadcrumbs = [{ label: "Home", path: "" }];
 
-    let accumulatedPath = '';
+    let accumulatedPath = "";
     for (const part of parts) {
       accumulatedPath = accumulatedPath ? `${accumulatedPath}/${part}` : part;
       breadcrumbs.push({ label: part, path: accumulatedPath });
@@ -597,12 +651,12 @@ export default function HomeWidget() {
   };
 
   const getCopyPathParts = () => {
-    if (!copyBrowsePath) return [{ label: 'Home', path: '' }];
+    if (!copyBrowsePath) return [{ label: "Home", path: "" }];
 
-    const parts = copyBrowsePath.split('/');
-    const breadcrumbs = [{ label: 'Home', path: '' }];
+    const parts = copyBrowsePath.split("/");
+    const breadcrumbs = [{ label: "Home", path: "" }];
 
-    let accumulatedPath = '';
+    let accumulatedPath = "";
     for (const part of parts) {
       accumulatedPath = accumulatedPath ? `${accumulatedPath}/${part}` : part;
       breadcrumbs.push({ label: part, path: accumulatedPath });
@@ -612,12 +666,12 @@ export default function HomeWidget() {
   };
 
   const getPathParts = () => {
-    if (!currentPath) return [{ label: 'Home', path: '' }];
+    if (!currentPath) return [{ label: "Home", path: "" }];
 
-    const parts = currentPath.split('/');
-    const breadcrumbs = [{ label: 'Home', path: '' }];
+    const parts = currentPath.split("/");
+    const breadcrumbs = [{ label: "Home", path: "" }];
 
-    let accumulatedPath = '';
+    let accumulatedPath = "";
     for (const part of parts) {
       accumulatedPath = accumulatedPath ? `${accumulatedPath}/${part}` : part;
       breadcrumbs.push({ label: part, path: accumulatedPath });
@@ -627,58 +681,95 @@ export default function HomeWidget() {
   };
 
   const formatFileSize = (bytes: number): string => {
-    if (bytes === 0) return '0 B';
+    if (bytes === 0) return "0 B";
     const k = 1024;
-    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const sizes = ["B", "KB", "MB", "GB"];
     const i = Math.floor(Math.log(bytes) / Math.log(k));
     return `${(bytes / Math.pow(k, i)).toFixed(1)} ${sizes[i]}`;
   };
 
   const formatDate = (dateString: string): string => {
     const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString();
+    return date.toLocaleDateString() + " " + date.toLocaleTimeString();
   };
 
   const getFileIcon = (file: FileItem): string => {
-    if (file.isDirectory) return '📁';
+    if (file.isDirectory) return "📁";
     switch (file.type) {
-      case 'image': return '🖼️';
-      case 'document': return '📄';
-      case 'spreadsheet': return '📊';
-      case 'archive': return '📦';
-      case 'code': return '💻';
-      case 'video': return '🎥';
-      case 'audio': return '🎵';
-      default: return '📄';
+      case "image":
+        return "🖼️";
+      case "document":
+        return "📄";
+      case "spreadsheet":
+        return "📊";
+      case "archive":
+        return "📦";
+      case "code":
+        return "💻";
+      case "video":
+        return "🎥";
+      case "audio":
+        return "🎵";
+      default:
+        return "📄";
     }
   };
 
   return (
     <div
-      style={{ height: '100%', padding: '16px', display: 'flex', flexDirection: 'column', overflow: 'hidden', boxSizing: 'border-box', position: 'relative' }}
+      style={{
+        height: "100%",
+        padding: "16px",
+        display: "flex",
+        flexDirection: "column",
+        overflow: "hidden",
+        boxSizing: "border-box",
+        position: "relative",
+      }}
       onDragOver={handleDragOver}
       onDragLeave={handleDragLeave}
       onDrop={handleDrop}
     >
       {/* Header */}
-      <div style={{ marginBottom: '8px', flexShrink: 0 }}>
+      <div style={{ marginBottom: "8px", flexShrink: 0 }}>
         {/* Breadcrumb Navigation and Action Buttons */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', marginBottom: '8px', flexWrap: 'wrap' }}>
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: "16px",
+            marginBottom: "8px",
+            flexWrap: "wrap",
+          }}
+        >
           {/* Breadcrumb Navigation */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap', flex: 1 }}>
+          <div
+            style={{
+              display: "flex",
+              alignItems: "center",
+              gap: "4px",
+              flexWrap: "wrap",
+              flex: 1,
+            }}
+          >
             {getPathParts().map((part, index) => (
               <React.Fragment key={part.path}>
-                {index > 0 && <span style={{ color: '#94a3b8' }}>{'>'}</span>}
+                {index > 0 && <span style={{ color: "#94a3b8" }}>{">"}</span>}
                 <button
                   onClick={() => navigateToDirectory(part.path)}
                   style={{
-                    background: 'none',
-                    border: 'none',
-                    color: index === getPathParts().length - 1 ? '#3b82f6' : '#e2e8f0',
-                    cursor: 'pointer',
-                    padding: '4px 8px',
-                    fontSize: '14px',
-                    fontWeight: index === getPathParts().length - 1 ? 'bold' : 'normal',
+                    background: "none",
+                    border: "none",
+                    color:
+                      index === getPathParts().length - 1
+                        ? "#3b82f6"
+                        : "#e2e8f0",
+                    cursor: "pointer",
+                    padding: "4px 8px",
+                    fontSize: "14px",
+                    fontWeight:
+                      index === getPathParts().length - 1 ? "bold" : "normal",
                   }}
                 >
                   {part.label}
@@ -688,10 +779,10 @@ export default function HomeWidget() {
           </div>
 
           {/* Action Buttons */}
-          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+          <div style={{ display: "flex", gap: "8px", alignItems: "center" }}>
             <ButtonIcon
-              icon={<span style={{ fontSize: '18px' }}>⬆️</span>}
-              label={uploading ? 'Uploading...' : 'Upload File'}
+              icon={<span style={{ fontSize: "18px" }}>⬆️</span>}
+              label={uploading ? "Uploading..." : "Upload File"}
               onClick={() => fileInputRef.current?.click()}
               variant="bordered"
               subvariant="info"
@@ -703,11 +794,11 @@ export default function HomeWidget() {
               multiple
               onChange={(e) => handleUploadWithCheck(e.target.files)}
               disabled={uploading}
-              style={{ display: 'none' }}
+              style={{ display: "none" }}
             />
 
             <ButtonIcon
-              icon={<span style={{ fontSize: '18px' }}>📁</span>}
+              icon={<span style={{ fontSize: "18px" }}>📁</span>}
               label="New Folder"
               onClick={() => setShowNewFolderModal(true)}
               variant="bordered"
@@ -721,13 +812,14 @@ export default function HomeWidget() {
                 <button
                   disabled={selectedFiles.size === 0}
                   style={{
-                    background: '#1e293b',
-                    border: '1px solid #334155',
-                    borderRadius: '4px',
-                    padding: '6px 12px',
-                    color: selectedFiles.size === 0 ? '#64748b' : '#e2e8f0',
-                    cursor: selectedFiles.size === 0 ? 'not-allowed' : 'pointer',
-                    fontSize: '14px',
+                    background: "#1e293b",
+                    border: "1px solid #334155",
+                    borderRadius: "4px",
+                    padding: "6px 12px",
+                    color: selectedFiles.size === 0 ? "#64748b" : "#e2e8f0",
+                    cursor:
+                      selectedFiles.size === 0 ? "not-allowed" : "pointer",
+                    fontSize: "14px",
                     opacity: selectedFiles.size === 0 ? 0.5 : 1,
                   }}
                 >
@@ -736,20 +828,20 @@ export default function HomeWidget() {
               }
               options={[
                 {
-                  label: 'Move',
+                  label: "Move",
                   icon: <span>📤</span>,
-                  onClick: handleBulkMove
+                  onClick: handleBulkMove,
                 },
                 {
-                  label: 'Copy',
+                  label: "Copy",
                   icon: <span>📋</span>,
-                  onClick: handleBulkCopy
+                  onClick: handleBulkCopy,
                 },
                 {
-                  label: 'Delete',
+                  label: "Delete",
                   icon: <span>🗑️</span>,
-                  onClick: handleBulkDeleteClick
-                }
+                  onClick: handleBulkDeleteClick,
+                },
               ]}
             >
               {null}
@@ -759,14 +851,16 @@ export default function HomeWidget() {
 
         {/* Upload Progress */}
         {uploadProgress && (
-          <div style={{
-            padding: '8px 12px',
-            background: '#1e293b',
-            borderRadius: '4px',
-            fontSize: '12px',
-            color: '#94a3b8',
-            marginBottom: '8px'
-          }}>
+          <div
+            style={{
+              padding: "8px 12px",
+              background: "#1e293b",
+              borderRadius: "4px",
+              fontSize: "12px",
+              color: "#94a3b8",
+              marginBottom: "8px",
+            }}
+          >
             {uploadProgress}
           </div>
         )}
@@ -774,67 +868,134 @@ export default function HomeWidget() {
 
       {/* Error Message */}
       {error && (
-        <div style={{
-          padding: '12px',
-          background: '#ef4444',
-          color: '#fff',
-          borderRadius: '4px',
-          marginBottom: '16px',
-          flexShrink: 0,
-        }}>
+        <div
+          style={{
+            padding: "12px",
+            background: "#ef4444",
+            color: "#fff",
+            borderRadius: "4px",
+            marginBottom: "16px",
+            flexShrink: 0,
+          }}
+        >
           {error}
         </div>
       )}
 
       {/* Drag Overlay */}
       {isDragging && (
-        <div style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(59, 130, 246, 0.1)',
-          border: '2px dashed #3b82f6',
-          borderRadius: '8px',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 10,
-          pointerEvents: 'none',
-        }}>
-          <div style={{ color: '#3b82f6', fontSize: '24px', fontWeight: 'bold' }}>
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(59, 130, 246, 0.1)",
+            border: "2px dashed #3b82f6",
+            borderRadius: "8px",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 10,
+            pointerEvents: "none",
+          }}
+        >
+          <div
+            style={{ color: "#3b82f6", fontSize: "24px", fontWeight: "bold" }}
+          >
             Drop files to upload
           </div>
         </div>
       )}
 
       {/* File List */}
-      <div style={{ flex: 1, overflow: 'auto', background: '#1e293b', borderRadius: '4px', minHeight: 0 }}>
+      <div
+        style={{
+          flex: 1,
+          overflow: "auto",
+          background: "#1e293b",
+          borderRadius: "4px",
+          minHeight: 0,
+        }}
+      >
         {loading ? (
-          <div style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
+          <div
+            style={{ padding: "32px", textAlign: "center", color: "#94a3b8" }}
+          >
             Loading files...
           </div>
         ) : files.length === 0 ? (
-          <div style={{ padding: '32px', textAlign: 'center', color: '#94a3b8' }}>
+          <div
+            style={{ padding: "32px", textAlign: "center", color: "#94a3b8" }}
+          >
             No files in this directory
           </div>
         ) : (
-          <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
+          <table
+            style={{
+              width: "100%",
+              borderCollapse: "collapse",
+              tableLayout: "fixed",
+            }}
+          >
             <thead>
-              <tr style={{ borderBottom: '1px solid #334155' }}>
-                <th style={{ padding: '12px', textAlign: 'left', width: '40px' }}>
+              <tr style={{ borderBottom: "1px solid #334155" }}>
+                <th
+                  style={{ padding: "12px", textAlign: "left", width: "40px" }}
+                >
                   <input
                     type="checkbox"
-                    checked={selectedFiles.size === files.length && files.length > 0}
+                    checked={
+                      selectedFiles.size === files.length && files.length > 0
+                    }
                     onChange={toggleSelectAll}
-                    style={{ cursor: 'pointer' }}
+                    style={{ cursor: "pointer" }}
                   />
                 </th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#e2e8f0', fontSize: '14px' }}>Name</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#e2e8f0', fontSize: '14px', width: '120px' }}>Size</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#e2e8f0', fontSize: '14px', width: '180px' }}>Modified</th>
-                <th style={{ padding: '12px', textAlign: 'left', color: '#e2e8f0', fontSize: '14px', width: '200px' }}>Actions</th>
+                <th
+                  style={{
+                    padding: "12px",
+                    textAlign: "left",
+                    color: "#e2e8f0",
+                    fontSize: "14px",
+                  }}
+                >
+                  Name
+                </th>
+                <th
+                  style={{
+                    padding: "12px",
+                    textAlign: "left",
+                    color: "#e2e8f0",
+                    fontSize: "14px",
+                    width: "120px",
+                  }}
+                >
+                  Size
+                </th>
+                <th
+                  style={{
+                    padding: "12px",
+                    textAlign: "left",
+                    color: "#e2e8f0",
+                    fontSize: "14px",
+                    width: "180px",
+                  }}
+                >
+                  Modified
+                </th>
+                <th
+                  style={{
+                    padding: "12px",
+                    textAlign: "left",
+                    color: "#e2e8f0",
+                    fontSize: "14px",
+                    width: "200px",
+                  }}
+                >
+                  Actions
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -842,36 +1003,45 @@ export default function HomeWidget() {
                 <tr
                   key={file.path}
                   style={{
-                    borderBottom: '1px solid #334155',
-                    background: selectedFiles.has(file.path) ? '#334155' : 'transparent'
+                    borderBottom: "1px solid #334155",
+                    background: selectedFiles.has(file.path)
+                      ? "#334155"
+                      : "transparent",
                   }}
                 >
-                  <td style={{ padding: '12px' }}>
+                  <td style={{ padding: "12px" }}>
                     <input
                       type="checkbox"
                       checked={selectedFiles.has(file.path)}
                       onChange={() => toggleFileSelection(file.path)}
-                      style={{ cursor: 'pointer' }}
+                      style={{ cursor: "pointer" }}
                     />
                   </td>
-                  <td style={{ padding: '12px' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', overflow: 'hidden' }}>
+                  <td style={{ padding: "12px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        alignItems: "center",
+                        gap: "8px",
+                        overflow: "hidden",
+                      }}
+                    >
                       <span style={{ flexShrink: 0 }}>{getFileIcon(file)}</span>
                       {file.isDirectory ? (
                         <button
                           onClick={() => navigateToDirectory(file.path)}
                           title={file.name}
                           style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#3b82f6',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            textDecoration: 'underline',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            textAlign: 'left',
+                            background: "none",
+                            border: "none",
+                            color: "#3b82f6",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            textDecoration: "underline",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            textAlign: "left",
                             flex: 1,
                             minWidth: 0,
                           }}
@@ -883,16 +1053,16 @@ export default function HomeWidget() {
                           onClick={() => handlePreview(file)}
                           title={file.name}
                           style={{
-                            background: 'none',
-                            border: 'none',
-                            color: '#f1f5f9',
-                            cursor: 'pointer',
-                            fontSize: '14px',
-                            textDecoration: 'underline',
-                            overflow: 'hidden',
-                            textOverflow: 'ellipsis',
-                            whiteSpace: 'nowrap',
-                            textAlign: 'left',
+                            background: "none",
+                            border: "none",
+                            color: "#f1f5f9",
+                            cursor: "pointer",
+                            fontSize: "14px",
+                            textDecoration: "underline",
+                            overflow: "hidden",
+                            textOverflow: "ellipsis",
+                            whiteSpace: "nowrap",
+                            textAlign: "left",
                             flex: 1,
                             minWidth: 0,
                           }}
@@ -902,17 +1072,36 @@ export default function HomeWidget() {
                       )}
                     </div>
                   </td>
-                  <td style={{ padding: '12px', color: '#94a3b8', fontSize: '14px' }}>
-                    {file.isDirectory ? '-' : formatFileSize(file.size)}
+                  <td
+                    style={{
+                      padding: "12px",
+                      color: "#94a3b8",
+                      fontSize: "14px",
+                    }}
+                  >
+                    {file.isDirectory ? "-" : formatFileSize(file.size)}
                   </td>
-                  <td style={{ padding: '12px', color: '#94a3b8', fontSize: '14px' }}>
+                  <td
+                    style={{
+                      padding: "12px",
+                      color: "#94a3b8",
+                      fontSize: "14px",
+                    }}
+                  >
                     {formatDate(file.modifiedAt)}
                   </td>
-                  <td style={{ padding: '12px' }}>
-                    <div style={{ display: 'flex', gap: '4px', flexWrap: 'wrap', alignItems: 'center' }}>
+                  <td style={{ padding: "12px" }}>
+                    <div
+                      style={{
+                        display: "flex",
+                        gap: "4px",
+                        flexWrap: "wrap",
+                        alignItems: "center",
+                      }}
+                    >
                       {!file.isDirectory && (
                         <ButtonIcon
-                          icon={<span style={{ fontSize: '16px' }}>⬇️</span>}
+                          icon={<span style={{ fontSize: "16px" }}>⬇️</span>}
                           label="Download"
                           onClick={() => handleDownload(file)}
                           variant="bare"
@@ -920,7 +1109,7 @@ export default function HomeWidget() {
                         />
                       )}
                       <ButtonIcon
-                        icon={<span style={{ fontSize: '16px' }}>✏️</span>}
+                        icon={<span style={{ fontSize: "16px" }}>✏️</span>}
                         label="Rename"
                         onClick={() => {
                           setSelectedFile(file);
@@ -931,39 +1120,43 @@ export default function HomeWidget() {
                         subvariant="warning"
                       />
                       <ButtonIcon
-                        icon={<span style={{ fontSize: '16px' }}>📤</span>}
+                        icon={<span style={{ fontSize: "16px" }}>📤</span>}
                         label="Move"
                         onClick={() => {
                           setSelectedFile(file);
-                          const excludePaths = file.isDirectory ? [file.path] : [];
-                          setTargetPath('');
-                          setMoveBrowsePath('');
+                          const excludePaths = file.isDirectory
+                            ? [file.path]
+                            : [];
+                          setTargetPath("");
+                          setMoveBrowsePath("");
                           setMoveDirectories([]);
                           setMoveExcludePaths(excludePaths);
-                          loadMoveDirectories('', excludePaths);
+                          loadMoveDirectories("", excludePaths);
                           setShowMoveModal(true);
                         }}
                         variant="bare"
                         subvariant="info"
                       />
                       <ButtonIcon
-                        icon={<span style={{ fontSize: '16px' }}>📋</span>}
+                        icon={<span style={{ fontSize: "16px" }}>📋</span>}
                         label="Copy"
                         onClick={() => {
                           setSelectedFile(file);
-                          const excludePaths = file.isDirectory ? [file.path] : [];
-                          setCopyTargetPath('');
-                          setCopyBrowsePath('');
+                          const excludePaths = file.isDirectory
+                            ? [file.path]
+                            : [];
+                          setCopyTargetPath("");
+                          setCopyBrowsePath("");
                           setCopyDirectories([]);
                           setCopyExcludePaths(excludePaths);
-                          loadCopyDirectories('', excludePaths);
+                          loadCopyDirectories("", excludePaths);
                           setShowCopyModal(true);
                         }}
                         variant="bare"
                         subvariant="info"
                       />
                       <ButtonIcon
-                        icon={<span style={{ fontSize: '16px' }}>🗑️</span>}
+                        icon={<span style={{ fontSize: "16px" }}>🗑️</span>}
                         label="Delete"
                         onClick={() => handleDelete(file)}
                         variant="bare"
@@ -978,87 +1171,109 @@ export default function HomeWidget() {
         )}
       </div>
 
-
       {/* Preview Modal */}
       {showPreviewModal && (
         <div
           style={{
-            position: 'absolute',
+            position: "absolute",
             top: 0,
             left: 0,
             right: 0,
             bottom: 0,
-            background: '#0f172a',
-            display: 'flex',
-            flexDirection: 'column',
+            background: "#0f172a",
+            display: "flex",
+            flexDirection: "column",
             zIndex: 1000,
           }}
         >
-          <div style={{
-            padding: '16px 24px',
-            borderBottom: '1px solid #334155',
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            background: '#1e293b',
-          }}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-              <h3 style={{ margin: 0, color: '#94a3b8', fontSize: '14px', fontWeight: 'normal' }}>Preview</h3>
-              <h2 style={{ margin: 0, color: '#f1f5f9', fontSize: '18px' }}>{selectedFile?.name}</h2>
+          <div
+            style={{
+              padding: "16px 24px",
+              borderBottom: "1px solid #334155",
+              display: "flex",
+              justifyContent: "space-between",
+              alignItems: "center",
+              background: "#1e293b",
+            }}
+          >
+            <div
+              style={{ display: "flex", flexDirection: "column", gap: "4px" }}
+            >
+              <h3
+                style={{
+                  margin: 0,
+                  color: "#94a3b8",
+                  fontSize: "14px",
+                  fontWeight: "normal",
+                }}
+              >
+                Preview
+              </h3>
+              <h2 style={{ margin: 0, color: "#f1f5f9", fontSize: "18px" }}>
+                {selectedFile?.name}
+              </h2>
             </div>
             <button
               onClick={() => {
                 setShowPreviewModal(false);
-                setPreviewUrl('');
-                setPreviewContent('');
+                setPreviewUrl("");
+                setPreviewContent("");
               }}
               style={{
-                background: '#334155',
-                border: '1px solid #475569',
-                borderRadius: '4px',
-                color: '#f1f5f9',
-                cursor: 'pointer',
-                fontSize: '16px',
-                padding: '8px 16px',
+                background: "#334155",
+                border: "1px solid #475569",
+                borderRadius: "4px",
+                color: "#f1f5f9",
+                cursor: "pointer",
+                fontSize: "16px",
+                padding: "8px 16px",
               }}
             >
               Close
             </button>
           </div>
-          <div style={{
-            flex: 1,
-            overflow: 'auto',
-            display: 'flex',
-            alignItems: previewType === 'text' ? 'flex-start' : 'center',
-            justifyContent: 'center',
-            padding: '24px',
-          }}>
-            {previewType === 'image' && (
+          <div
+            style={{
+              flex: 1,
+              overflow: "auto",
+              display: "flex",
+              alignItems: previewType === "text" ? "flex-start" : "center",
+              justifyContent: "center",
+              padding: "24px",
+            }}
+          >
+            {previewType === "image" && (
               <img
                 src={previewUrl}
                 alt={selectedFile?.name}
-                style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+                style={{
+                  maxWidth: "100%",
+                  maxHeight: "100%",
+                  objectFit: "contain",
+                }}
               />
             )}
-            {previewType === 'pdf' && (
+            {previewType === "pdf" && (
               <iframe
                 src={`${previewUrl}#view=FitH`}
-                style={{ width: '100%', height: '100%', border: 'none' }}
+                style={{ width: "100%", height: "100%", border: "none" }}
                 title={selectedFile?.name}
               />
             )}
-            {previewType === 'text' && (
-              <pre style={{
-                margin: 0,
-                color: '#e2e8f0',
-                fontSize: '14px',
-                fontFamily: 'monospace',
-                whiteSpace: 'pre-wrap',
-                wordBreak: 'break-word',
-                width: '100%',
-                maxWidth: '1200px',
-                overflow: 'visible',
-              }}>
+            {previewType === "text" && (
+              <pre
+                style={{
+                  margin: 0,
+                  color: "#e2e8f0",
+                  fontSize: "14px",
+                  fontFamily: "monospace",
+                  whiteSpace: "pre-wrap",
+                  wordBreak: "break-word",
+                  width: "100%",
+                  maxWidth: "1200px",
+                  overflow: "visible",
+                }}
+              >
                 {previewContent}
               </pre>
             )}
@@ -1068,71 +1283,95 @@ export default function HomeWidget() {
 
       {/* Overwrite Confirmation Modal */}
       {showOverwriteModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            background: '#1e293b',
-            padding: '24px',
-            borderRadius: '8px',
-            width: '500px',
-            maxWidth: '90vw',
-            maxHeight: '80vh',
-            display: 'flex',
-            flexDirection: 'column',
-          }}>
-            <h3 style={{ margin: '0 0 20px 0', color: '#f1f5f9' }}>Confirm File Overwrite</h3>
-            <p style={{ color: '#e2e8f0', marginBottom: '12px' }}>
-              The following {filesToOverwrite.length === 1 ? 'file' : 'files'} will be overwritten:
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: "#1e293b",
+              padding: "24px",
+              borderRadius: "8px",
+              width: "500px",
+              maxWidth: "90vw",
+              maxHeight: "80vh",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <h3 style={{ margin: "0 0 20px 0", color: "#f1f5f9" }}>
+              Confirm File Overwrite
+            </h3>
+            <p style={{ color: "#e2e8f0", marginBottom: "12px" }}>
+              The following {filesToOverwrite.length === 1 ? "file" : "files"}{" "}
+              will be overwritten:
             </p>
-            <div style={{
-              flex: 1,
-              overflow: 'auto',
-              background: '#0f172a',
-              border: '1px solid #334155',
-              borderRadius: '4px',
-              padding: '16px',
-              marginBottom: '16px',
-              maxHeight: '300px',
-            }}>
+            <div
+              style={{
+                flex: 1,
+                overflow: "auto",
+                background: "#0f172a",
+                border: "1px solid #334155",
+                borderRadius: "4px",
+                padding: "16px",
+                marginBottom: "16px",
+                maxHeight: "300px",
+              }}
+            >
               {filesToOverwrite.map((fileName, index) => (
                 <div
                   key={index}
                   style={{
-                    color: '#fbbf24',
-                    padding: '8px 12px',
-                    background: index % 2 === 0 ? 'rgba(59, 130, 246, 0.05)' : 'transparent',
-                    borderRadius: '4px',
-                    fontSize: '14px',
-                    fontFamily: 'monospace',
+                    color: "#fbbf24",
+                    padding: "8px 12px",
+                    background:
+                      index % 2 === 0
+                        ? "rgba(59, 130, 246, 0.05)"
+                        : "transparent",
+                    borderRadius: "4px",
+                    fontSize: "14px",
+                    fontFamily: "monospace",
                   }}
                 >
                   {fileName}
                 </div>
               ))}
             </div>
-            <p style={{ color: '#94a3b8', fontSize: '14px', marginBottom: '20px' }}>
+            <p
+              style={{
+                color: "#94a3b8",
+                fontSize: "14px",
+                marginBottom: "20px",
+              }}
+            >
               Do you want to proceed with the upload?
             </p>
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                justifyContent: "flex-end",
+              }}
+            >
               <button
                 onClick={cancelOverwrite}
                 style={{
-                  padding: '8px 16px',
-                  background: '#334155',
-                  color: '#f1f5f9',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
+                  padding: "8px 16px",
+                  background: "#334155",
+                  color: "#f1f5f9",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
                 }}
               >
                 Cancel
@@ -1140,13 +1379,13 @@ export default function HomeWidget() {
               <button
                 onClick={confirmOverwrite}
                 style={{
-                  padding: '8px 16px',
-                  background: '#fbbf24',
-                  color: '#0f172a',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
+                  padding: "8px 16px",
+                  background: "#fbbf24",
+                  color: "#0f172a",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
+                  fontWeight: "bold",
                 }}
               >
                 Overwrite
@@ -1158,44 +1397,56 @@ export default function HomeWidget() {
 
       {/* Delete Confirmation Modal */}
       {showDeleteModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            background: '#1e293b',
-            padding: '24px',
-            borderRadius: '8px',
-            width: '400px',
-            maxWidth: '90vw',
-          }}>
-            <h3 style={{ margin: '0 0 16px 0', color: '#f1f5f9' }}>Confirm Delete</h3>
-            <p style={{ color: '#e2e8f0', marginBottom: '24px' }}>
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: "#1e293b",
+              padding: "24px",
+              borderRadius: "8px",
+              width: "400px",
+              maxWidth: "90vw",
+            }}
+          >
+            <h3 style={{ margin: "0 0 16px 0", color: "#f1f5f9" }}>
+              Confirm Delete
+            </h3>
+            <p style={{ color: "#e2e8f0", marginBottom: "24px" }}>
               {deleteTargets.length === 1
                 ? `Are you sure you want to delete "${deleteTargets[0].name}"?`
                 : `Are you sure you want to delete ${deleteTargets.length} selected item(s)?`}
             </p>
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                justifyContent: "flex-end",
+              }}
+            >
               <button
                 onClick={() => {
                   setShowDeleteModal(false);
                   setDeleteTargets([]);
                 }}
                 style={{
-                  padding: '8px 16px',
-                  background: '#334155',
-                  color: '#f1f5f9',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
+                  padding: "8px 16px",
+                  background: "#334155",
+                  color: "#f1f5f9",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
                 }}
               >
                 Cancel
@@ -1203,12 +1454,12 @@ export default function HomeWidget() {
               <button
                 onClick={confirmDelete}
                 style={{
-                  padding: '8px 16px',
-                  background: '#ef4444',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
+                  padding: "8px 16px",
+                  background: "#ef4444",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
                 }}
               >
                 Delete
@@ -1220,55 +1471,67 @@ export default function HomeWidget() {
 
       {/* Rename Modal */}
       {showRenameModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            background: '#1e293b',
-            padding: '24px',
-            borderRadius: '8px',
-            width: '400px',
-            maxWidth: '90vw',
-          }}>
-            <h3 style={{ margin: '0 0 16px 0', color: '#f1f5f9' }}>Rename {selectedFile?.name}</h3>
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: "#1e293b",
+              padding: "24px",
+              borderRadius: "8px",
+              width: "400px",
+              maxWidth: "90vw",
+            }}
+          >
+            <h3 style={{ margin: "0 0 16px 0", color: "#f1f5f9" }}>
+              Rename {selectedFile?.name}
+            </h3>
             <input
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               style={{
-                width: 'calc(100% - 16px)',
-                padding: '8px',
-                background: '#0f172a',
-                border: '1px solid #334155',
-                borderRadius: '4px',
-                color: '#f1f5f9',
-                marginBottom: '16px',
-                boxSizing: 'border-box',
+                width: "calc(100% - 16px)",
+                padding: "8px",
+                background: "#0f172a",
+                border: "1px solid #334155",
+                borderRadius: "4px",
+                color: "#f1f5f9",
+                marginBottom: "16px",
+                boxSizing: "border-box",
               }}
             />
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                justifyContent: "flex-end",
+              }}
+            >
               <button
                 onClick={() => {
                   setShowRenameModal(false);
-                  setNewName('');
+                  setNewName("");
                   setSelectedFile(null);
                 }}
                 style={{
-                  padding: '8px 16px',
-                  background: '#334155',
-                  color: '#f1f5f9',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
+                  padding: "8px 16px",
+                  background: "#334155",
+                  color: "#f1f5f9",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
                 }}
               >
                 Cancel
@@ -1276,12 +1539,12 @@ export default function HomeWidget() {
               <button
                 onClick={handleRename}
                 style={{
-                  padding: '8px 16px',
-                  background: '#3b82f6',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
+                  padding: "8px 16px",
+                  background: "#3b82f6",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
                 }}
               >
                 Rename
@@ -1293,59 +1556,70 @@ export default function HomeWidget() {
 
       {/* Move Modal */}
       {showMoveModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            background: '#1e293b',
-            padding: '24px',
-            borderRadius: '8px',
-            width: '500px',
-            maxWidth: '90vw',
-            maxHeight: '80vh',
-            display: 'flex',
-            flexDirection: 'column',
-          }}>
-            <h3 style={{ margin: '0 0 16px 0', color: '#f1f5f9' }}>
-              Move {selectedFiles.size > 0 ? `${selectedFiles.size} item(s)` : selectedFile?.name}
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: "#1e293b",
+              padding: "24px",
+              borderRadius: "8px",
+              width: "500px",
+              maxWidth: "90vw",
+              maxHeight: "80vh",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <h3 style={{ margin: "0 0 16px 0", color: "#f1f5f9" }}>
+              Move{" "}
+              {selectedFiles.size > 0
+                ? `${selectedFiles.size} item(s)`
+                : selectedFile?.name}
             </h3>
 
             {/* Path breadcrumbs */}
-            <div style={{
-              marginBottom: '12px',
-              padding: '8px',
-              background: '#0f172a',
-              borderRadius: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              flexWrap: 'wrap',
-            }}>
+            <div
+              style={{
+                marginBottom: "12px",
+                padding: "8px",
+                background: "#0f172a",
+                borderRadius: "4px",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                flexWrap: "wrap",
+              }}
+            >
               {getMovePathParts().map((part, index) => (
                 <React.Fragment key={part.path}>
-                  {index > 0 && <span style={{ color: '#94a3b8' }}>{'>'}</span>}
+                  {index > 0 && <span style={{ color: "#94a3b8" }}>{">"}</span>}
                   <button
                     onClick={() => {
                       setTargetPath(part.path);
                       loadMoveDirectories(part.path, moveExcludePaths);
                     }}
                     style={{
-                      background: 'none',
-                      border: 'none',
-                      color: moveBrowsePath === part.path ? '#3b82f6' : '#e2e8f0',
-                      cursor: 'pointer',
-                      padding: '4px 8px',
-                      fontSize: '13px',
-                      fontWeight: moveBrowsePath === part.path ? 'bold' : 'normal',
+                      background: "none",
+                      border: "none",
+                      color:
+                        moveBrowsePath === part.path ? "#3b82f6" : "#e2e8f0",
+                      cursor: "pointer",
+                      padding: "4px 8px",
+                      fontSize: "13px",
+                      fontWeight:
+                        moveBrowsePath === part.path ? "bold" : "normal",
                     }}
                   >
                     {part.label}
@@ -1355,18 +1629,26 @@ export default function HomeWidget() {
             </div>
 
             {/* Directory list */}
-            <div style={{
-              flex: 1,
-              overflow: 'auto',
-              background: '#0f172a',
-              border: '1px solid #334155',
-              borderRadius: '4px',
-              marginBottom: '16px',
-              minHeight: '200px',
-              maxHeight: '400px',
-            }}>
+            <div
+              style={{
+                flex: 1,
+                overflow: "auto",
+                background: "#0f172a",
+                border: "1px solid #334155",
+                borderRadius: "4px",
+                marginBottom: "16px",
+                minHeight: "200px",
+                maxHeight: "400px",
+              }}
+            >
               {moveDirectories.length === 0 ? (
-                <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8' }}>
+                <div
+                  style={{
+                    padding: "16px",
+                    textAlign: "center",
+                    color: "#94a3b8",
+                  }}
+                >
                   No subdirectories
                 </div>
               ) : (
@@ -1378,23 +1660,24 @@ export default function HomeWidget() {
                       loadMoveDirectories(dir.path, moveExcludePaths);
                     }}
                     style={{
-                      padding: '12px',
-                      borderBottom: '1px solid #334155',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      color: '#e2e8f0',
-                      background: targetPath === dir.path ? '#334155' : 'transparent',
+                      padding: "12px",
+                      borderBottom: "1px solid #334155",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      color: "#e2e8f0",
+                      background:
+                        targetPath === dir.path ? "#334155" : "transparent",
                     }}
                     onMouseEnter={(e) => {
                       if (targetPath !== dir.path) {
-                        e.currentTarget.style.background = '#1e293b';
+                        e.currentTarget.style.background = "#1e293b";
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (targetPath !== dir.path) {
-                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.background = "transparent";
                       }
                     }}
                   >
@@ -1406,26 +1689,39 @@ export default function HomeWidget() {
             </div>
 
             {/* Current selection */}
-            <div style={{ marginBottom: '16px', fontSize: '13px', color: '#94a3b8' }}>
-              Selected: <span style={{ color: '#3b82f6' }}>{targetPath || '(root)'}</span>
+            <div
+              style={{
+                marginBottom: "16px",
+                fontSize: "13px",
+                color: "#94a3b8",
+              }}
+            >
+              Selected:{" "}
+              <span style={{ color: "#3b82f6" }}>{targetPath || "(root)"}</span>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                justifyContent: "flex-end",
+              }}
+            >
               <button
                 onClick={() => {
                   setShowMoveModal(false);
-                  setTargetPath('');
+                  setTargetPath("");
                   setSelectedFile(null);
-                  setMoveBrowsePath('');
+                  setMoveBrowsePath("");
                   setMoveDirectories([]);
                 }}
                 style={{
-                  padding: '8px 16px',
-                  background: '#334155',
-                  color: '#f1f5f9',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
+                  padding: "8px 16px",
+                  background: "#334155",
+                  color: "#f1f5f9",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
                 }}
               >
                 Cancel
@@ -1433,12 +1729,12 @@ export default function HomeWidget() {
               <button
                 onClick={handleMove}
                 style={{
-                  padding: '8px 16px',
-                  background: '#3b82f6',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
+                  padding: "8px 16px",
+                  background: "#3b82f6",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
                 }}
               >
                 Move Here
@@ -1450,59 +1746,70 @@ export default function HomeWidget() {
 
       {/* Copy Modal */}
       {showCopyModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            background: '#1e293b',
-            padding: '24px',
-            borderRadius: '8px',
-            width: '500px',
-            maxWidth: '90vw',
-            maxHeight: '80vh',
-            display: 'flex',
-            flexDirection: 'column',
-          }}>
-            <h3 style={{ margin: '0 0 16px 0', color: '#f1f5f9' }}>
-              Copy {selectedFiles.size > 0 ? `${selectedFiles.size} item(s)` : selectedFile?.name}
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: "#1e293b",
+              padding: "24px",
+              borderRadius: "8px",
+              width: "500px",
+              maxWidth: "90vw",
+              maxHeight: "80vh",
+              display: "flex",
+              flexDirection: "column",
+            }}
+          >
+            <h3 style={{ margin: "0 0 16px 0", color: "#f1f5f9" }}>
+              Copy{" "}
+              {selectedFiles.size > 0
+                ? `${selectedFiles.size} item(s)`
+                : selectedFile?.name}
             </h3>
 
             {/* Path breadcrumbs */}
-            <div style={{
-              marginBottom: '12px',
-              padding: '8px',
-              background: '#0f172a',
-              borderRadius: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '4px',
-              flexWrap: 'wrap',
-            }}>
+            <div
+              style={{
+                marginBottom: "12px",
+                padding: "8px",
+                background: "#0f172a",
+                borderRadius: "4px",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                flexWrap: "wrap",
+              }}
+            >
               {getCopyPathParts().map((part, index) => (
                 <React.Fragment key={part.path}>
-                  {index > 0 && <span style={{ color: '#94a3b8' }}>{'>'}</span>}
+                  {index > 0 && <span style={{ color: "#94a3b8" }}>{">"}</span>}
                   <button
                     onClick={() => {
                       setCopyTargetPath(part.path);
                       loadCopyDirectories(part.path, copyExcludePaths);
                     }}
                     style={{
-                      background: 'none',
-                      border: 'none',
-                      color: copyBrowsePath === part.path ? '#3b82f6' : '#e2e8f0',
-                      cursor: 'pointer',
-                      padding: '4px 8px',
-                      fontSize: '13px',
-                      fontWeight: copyBrowsePath === part.path ? 'bold' : 'normal',
+                      background: "none",
+                      border: "none",
+                      color:
+                        copyBrowsePath === part.path ? "#3b82f6" : "#e2e8f0",
+                      cursor: "pointer",
+                      padding: "4px 8px",
+                      fontSize: "13px",
+                      fontWeight:
+                        copyBrowsePath === part.path ? "bold" : "normal",
                     }}
                   >
                     {part.label}
@@ -1512,18 +1819,26 @@ export default function HomeWidget() {
             </div>
 
             {/* Directory list */}
-            <div style={{
-              flex: 1,
-              overflow: 'auto',
-              background: '#0f172a',
-              border: '1px solid #334155',
-              borderRadius: '4px',
-              marginBottom: '16px',
-              minHeight: '200px',
-              maxHeight: '400px',
-            }}>
+            <div
+              style={{
+                flex: 1,
+                overflow: "auto",
+                background: "#0f172a",
+                border: "1px solid #334155",
+                borderRadius: "4px",
+                marginBottom: "16px",
+                minHeight: "200px",
+                maxHeight: "400px",
+              }}
+            >
               {copyDirectories.length === 0 ? (
-                <div style={{ padding: '16px', textAlign: 'center', color: '#94a3b8' }}>
+                <div
+                  style={{
+                    padding: "16px",
+                    textAlign: "center",
+                    color: "#94a3b8",
+                  }}
+                >
                   No subdirectories
                 </div>
               ) : (
@@ -1535,23 +1850,24 @@ export default function HomeWidget() {
                       loadCopyDirectories(dir.path, copyExcludePaths);
                     }}
                     style={{
-                      padding: '12px',
-                      borderBottom: '1px solid #334155',
-                      cursor: 'pointer',
-                      display: 'flex',
-                      alignItems: 'center',
-                      gap: '8px',
-                      color: '#e2e8f0',
-                      background: copyTargetPath === dir.path ? '#334155' : 'transparent',
+                      padding: "12px",
+                      borderBottom: "1px solid #334155",
+                      cursor: "pointer",
+                      display: "flex",
+                      alignItems: "center",
+                      gap: "8px",
+                      color: "#e2e8f0",
+                      background:
+                        copyTargetPath === dir.path ? "#334155" : "transparent",
                     }}
                     onMouseEnter={(e) => {
                       if (copyTargetPath !== dir.path) {
-                        e.currentTarget.style.background = '#1e293b';
+                        e.currentTarget.style.background = "#1e293b";
                       }
                     }}
                     onMouseLeave={(e) => {
                       if (copyTargetPath !== dir.path) {
-                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.background = "transparent";
                       }
                     }}
                   >
@@ -1563,26 +1879,41 @@ export default function HomeWidget() {
             </div>
 
             {/* Current selection */}
-            <div style={{ marginBottom: '16px', fontSize: '13px', color: '#94a3b8' }}>
-              Copying to: <span style={{ color: '#3b82f6' }}>{copyTargetPath || '(root)'}</span>
+            <div
+              style={{
+                marginBottom: "16px",
+                fontSize: "13px",
+                color: "#94a3b8",
+              }}
+            >
+              Copying to:{" "}
+              <span style={{ color: "#3b82f6" }}>
+                {copyTargetPath || "(root)"}
+              </span>
             </div>
 
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                justifyContent: "flex-end",
+              }}
+            >
               <button
                 onClick={() => {
                   setShowCopyModal(false);
-                  setCopyTargetPath('');
+                  setCopyTargetPath("");
                   setSelectedFile(null);
-                  setCopyBrowsePath('');
+                  setCopyBrowsePath("");
                   setCopyDirectories([]);
                 }}
                 style={{
-                  padding: '8px 16px',
-                  background: '#334155',
-                  color: '#f1f5f9',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
+                  padding: "8px 16px",
+                  background: "#334155",
+                  color: "#f1f5f9",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
                 }}
               >
                 Cancel
@@ -1590,12 +1921,12 @@ export default function HomeWidget() {
               <button
                 onClick={handleCopy}
                 style={{
-                  padding: '8px 16px',
-                  background: '#8b5cf6',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
+                  padding: "8px 16px",
+                  background: "#8b5cf6",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
                 }}
               >
                 Copy Here
@@ -1607,55 +1938,67 @@ export default function HomeWidget() {
 
       {/* New Folder Modal */}
       {showNewFolderModal && (
-        <div style={{
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          background: 'rgba(0, 0, 0, 0.5)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 1000,
-        }}>
-          <div style={{
-            background: '#1e293b',
-            padding: '24px',
-            borderRadius: '8px',
-            width: '400px',
-            maxWidth: '90vw',
-          }}>
-            <h3 style={{ margin: '0 0 16px 0', color: '#f1f5f9' }}>Create New Folder</h3>
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.5)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 1000,
+          }}
+        >
+          <div
+            style={{
+              background: "#1e293b",
+              padding: "24px",
+              borderRadius: "8px",
+              width: "400px",
+              maxWidth: "90vw",
+            }}
+          >
+            <h3 style={{ margin: "0 0 16px 0", color: "#f1f5f9" }}>
+              Create New Folder
+            </h3>
             <input
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
               placeholder="Folder name"
               style={{
-                width: 'calc(100% - 16px)',
-                padding: '8px',
-                background: '#0f172a',
-                border: '1px solid #334155',
-                borderRadius: '4px',
-                color: '#f1f5f9',
-                marginBottom: '16px',
-                boxSizing: 'border-box',
+                width: "calc(100% - 16px)",
+                padding: "8px",
+                background: "#0f172a",
+                border: "1px solid #334155",
+                borderRadius: "4px",
+                color: "#f1f5f9",
+                marginBottom: "16px",
+                boxSizing: "border-box",
               }}
             />
-            <div style={{ display: 'flex', gap: '8px', justifyContent: 'flex-end' }}>
+            <div
+              style={{
+                display: "flex",
+                gap: "8px",
+                justifyContent: "flex-end",
+              }}
+            >
               <button
                 onClick={() => {
                   setShowNewFolderModal(false);
-                  setNewName('');
+                  setNewName("");
                 }}
                 style={{
-                  padding: '8px 16px',
-                  background: '#334155',
-                  color: '#f1f5f9',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
+                  padding: "8px 16px",
+                  background: "#334155",
+                  color: "#f1f5f9",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
                 }}
               >
                 Cancel
@@ -1663,12 +2006,12 @@ export default function HomeWidget() {
               <button
                 onClick={handleCreateFolder}
                 style={{
-                  padding: '8px 16px',
-                  background: '#3b82f6',
-                  color: '#fff',
-                  border: 'none',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
+                  padding: "8px 16px",
+                  background: "#3b82f6",
+                  color: "#fff",
+                  border: "none",
+                  borderRadius: "4px",
+                  cursor: "pointer",
                 }}
               >
                 Create

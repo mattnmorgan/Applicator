@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import ButtonMenu from "../ButtonMenu";
-import Row from "../Row";
-import Toast from "../Toast";
+import ButtonMenu from "../../utility/ButtonMenu";
+import Row from "../../utility/Row";
+import Toast from "../../utility/Toast";
 import AuthorityCreate from "../AuthorityCreate";
-import Badge from "../Badge/Badge";
+import Badge from "../../utility/Badge/Badge";
 import styles from "./AuthorityList.module.css";
 import AuthorityManager from "@/lib/database/client/managers/authority";
 import UserManager from "@/lib/database/client/managers/user";
@@ -26,13 +26,13 @@ interface Authority {
 export default function AuthorityList() {
   const [authorities, setAuthorities] = useState<Authority[]>([]);
   const [selectedAuthorityIds, setSelectedAuthorityIds] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(false);
   const [showCreateAuthority, setShowCreateAuthority] = useState(false);
   const [editingAuthority, setEditingAuthority] = useState<Authority | null>(
-    null
+    null,
   );
   const [toast, setToast] = useState<{
     message: string;
@@ -122,7 +122,7 @@ export default function AuthorityList() {
       // Check for system authorities
       const systemAuthorities = ["system:admin", "system:user", "system:guest"];
       const systemAuthorityAttempts = authorityIdsArray.filter((id) =>
-        systemAuthorities.includes(id)
+        systemAuthorities.includes(id),
       );
 
       if (systemAuthorityAttempts.length > 0) {
@@ -185,7 +185,7 @@ export default function AuthorityList() {
   };
 
   const filteredAuthorities = authorities.filter((authority) =>
-    authority.name.toLowerCase().includes(searchQuery.toLowerCase())
+    authority.name.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const someSelected = selectedAuthorityIds.size > 0;
@@ -343,15 +343,22 @@ export default function AuthorityList() {
               }
               disabled={authority.contextual || authority.isAppSpecific}
               style={{
-                opacity: authority.contextual || authority.isAppSpecific ? 0.5 : 1,
-                cursor: authority.contextual || authority.isAppSpecific ? "not-allowed" : "pointer",
+                opacity:
+                  authority.contextual || authority.isAppSpecific ? 0.5 : 1,
+                cursor:
+                  authority.contextual || authority.isAppSpecific
+                    ? "not-allowed"
+                    : "pointer",
               }}
             />
             <div
               className={styles.authorityInfo}
               onClick={() => handleEditAuthority(authority.id)}
               style={{
-                cursor: authority.contextual && !authority.isAppSpecific ? "not-allowed" : "pointer",
+                cursor:
+                  authority.contextual && !authority.isAppSpecific
+                    ? "not-allowed"
+                    : "pointer",
               }}
             >
               {authority.icon ? (
@@ -377,9 +384,7 @@ export default function AuthorityList() {
               </div>
             </div>
             <div className={styles.badgeColumn}>
-              {authority.isAppSpecific && (
-                <Badge variant="green">App</Badge>
-              )}
+              {authority.isAppSpecific && <Badge variant="green">App</Badge>}
               {authority.contextual && !authority.isAppSpecific && (
                 <Badge variant="yellow">Contextual</Badge>
               )}

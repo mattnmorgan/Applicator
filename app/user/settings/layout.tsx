@@ -4,7 +4,7 @@ import { getSystemSettings } from "@/lib/database/managers/setting";
 import AppletManager from "@/lib/database/managers/applet";
 import AuthorityManager from "@/lib/database/managers/authority";
 import Navigation from "@/lib/components/Navigation";
-import Tabset, { TabsetItem } from "@/lib/components/Tabset";
+import Tabset, { TabsetItem } from "@/lib/components/utility/Tabset";
 
 // Inlined helper functions
 async function getCurrentUser() {
@@ -97,7 +97,7 @@ async function getUserSettingsMenuItems(): Promise<TabsetItem[]> {
   const userSettingsApplets = allAppletsResult.records.filter(
     (applet) =>
       applet.data.target === "user-settings" &&
-      uniqueAppletIds.includes(applet.id)
+      uniqueAppletIds.includes(applet.id),
   );
 
   // Build children array for app settings

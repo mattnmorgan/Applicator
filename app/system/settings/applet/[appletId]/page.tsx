@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
-import DynamicAppLoader from "@/lib/components/DynamicAppLoader";
+import DynamicAppLoader from "@/lib/components/utility/DynamicAppLoader";
 import AppletManager from "@/lib/database/client/managers/applet";
 import AppManager from "@/lib/database/client/managers/app";
 

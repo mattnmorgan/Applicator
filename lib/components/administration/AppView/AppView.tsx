@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from "react";
 import styles from "./AppView.module.css";
-import Accordion from "@/lib/components/Accordion/Accordion";
-import Badge from "@/lib/components/Badge/Badge";
+import Accordion from "@/lib/components/utility/Accordion/Accordion";
+import Badge from "@/lib/components/utility/Badge/Badge";
 import AppManager from "@/lib/database/client/managers/app";
 import ApiRouteManager from "@/lib/database/client/managers/apiRoute";
 
