@@ -3,9 +3,18 @@ import TableManager from "@/lib/database/managers/table";
 import { getSessionFromRequest } from "@/lib/database/managers/session";
 import { createRecord } from "@/lib/database/crud/create";
 import { readRecords } from "@/lib/database/crud/read";
-import { bulkUpdateRecords as updateRecords } from "@/lib/database/crud/update";
-import { bulkDeleteRecords as deleteRecords } from "@/lib/database/crud/delete";
+import {
+  bulkUpdateRecords as updateRecords,
+  updateRecord,
+} from "@/lib/database/crud/update";
+import {
+  bulkDeleteRecords as deleteRecords,
+  deleteRecord,
+  deleteAll,
+} from "@/lib/database/crud/delete";
 import { upsertRecord } from "@/lib/database/crud/upsert";
+import FieldManager from "@/lib/database/managers/field";
+import { createRecords } from "@/lib/database/client/crud/create";
 
 /**
  * POST /api/[appId]/tables/[tableId]
@@ -31,26 +40,18 @@ export async function POST(
 
     // Handle bulk creation
     if (body.records && Array.isArray(body.records)) {
-      const createdRecords = [];
-      for (const recordData of body.records) {
-        const result = await createRecord(appId, tableId, recordData, userId);
-        createdRecords.push(result);
-      }
-      return NextResponse.json({
-        records: createdRecords,
-        count: createdRecords.length,
-      });
+      return NextResponse.json(
+        await createRecords(appId, tableId, body.records, true)
+      );
     }
 
-    // Handle single record creation
-    const result = await createRecord(
-      appId,
-      tableId,
-      body.data || body,
-      userId
+    return NextResponse.json(
+      body.records && Array.isArray(body.records)
+        ? await createRecords(appId, tableId, body.records, true)
+        : await createRecord(appId, tableId, tableRecord.data, body.data, {
+            id: body.id,
+          })
     );
-
-    return NextResponse.json(result);
   } catch (error) {
     console.error("Error creating record:", error);
     return NextResponse.json(
@@ -84,7 +85,9 @@ export async function GET(
 
     // Load table definition
     const tableManager = new TableManager();
+    const fieldManager = new FieldManager();
     const tableRecord = await tableManager.readRecord(`${appId}:${tableId}`);
+    const fieldRecords = await fieldManager.loadTableFields(appId, tableId);
     if (!tableRecord) {
       return NextResponse.json({ error: "Table not found" }, { status: 404 });
     }
@@ -125,7 +128,7 @@ export async function GET(
       options.includeRelated = includeRelatedParam === "true";
     }
 
-    const result = await readRecords(appId, tableId, options, userId);
+    const result = await readRecords(appId, tableId, fieldRecords, options);
 
     return NextResponse.json(result);
   } catch (error) {
@@ -153,8 +156,6 @@ export async function PATCH(
 ) {
   try {
     const { appId, tableId } = await params;
-    const session = await getSessionFromRequest(request);
-    const userId = session?.userId;
 
     // Load table definition
     const tableManager = new TableManager();
@@ -167,52 +168,34 @@ export async function PATCH(
 
     // Handle bulk update
     if (body.updates && Array.isArray(body.updates)) {
-      const updatedRecords = [];
       for (const update of body.updates) {
-        if (!update.id) {
+        if (!update.id || !update.data) {
           return NextResponse.json(
-            { error: "Each update must have an id field" },
+            { error: "Each update must have an id and data field" },
             { status: 400 }
           );
         }
-        const result = await updateRecords(
-          appId,
-          tableId,
-          [update.id],
-          update.data,
-          userId
-        );
-        if (result.records && result.records.length > 0) {
-          updatedRecords.push(result.records[0]);
-        }
       }
-      return NextResponse.json({
-        records: updatedRecords,
-        count: updatedRecords.length,
-      });
-    }
-
-    // Handle single record update
-    if (!body.id) {
+    } else if (!body.id || !body.data) {
       return NextResponse.json(
-        { error: "Record id is required" },
+        {
+          error: "Record update should containa an id and data fields",
+        },
         { status: 400 }
       );
     }
 
-    const result = await updateRecords(
-      appId,
-      tableId,
-      [body.id],
-      body.data,
-      userId
+    return NextResponse.json(
+      body.updates && Array.isArray(body.updates)
+        ? await updateRecords(appId, tableId, tableRecord.data, body.updates)
+        : await updateRecord(
+            appId,
+            tableId,
+            tableRecord.data,
+            body.id,
+            body.data
+          )
     );
-
-    if (!result.records || result.records.length === 0) {
-      return NextResponse.json({ error: "Record not found" }, { status: 404 });
-    }
-
-    return NextResponse.json(result.records[0]);
   } catch (error) {
     console.error("Error updating record:", error);
     return NextResponse.json(
@@ -236,8 +219,6 @@ export async function PUT(
 ) {
   try {
     const { appId, tableId } = await params;
-    const session = await getSessionFromRequest(request);
-    const userId = session?.userId;
 
     // Load table definition
     const tableManager = new TableManager();
@@ -255,15 +236,16 @@ export async function PUT(
       );
     }
 
-    const result = await upsertRecord(
-      appId,
-      tableId,
-      body.id,
-      body.data,
-      userId
+    return NextResponse.json(
+      await upsertRecord(
+        appId,
+        tableId,
+        tableRecord.data,
+        body.id,
+        body.data,
+        {}
+      )
     );
-
-    return NextResponse.json(result);
   } catch (error) {
     console.error("Error upserting record:", error);
     return NextResponse.json(
@@ -290,8 +272,6 @@ export async function DELETE(
 ) {
   try {
     const { appId, tableId } = await params;
-    const session = await getSessionFromRequest(request);
-    const userId = session?.userId;
 
     // Load table definition
     const tableManager = new TableManager();
@@ -303,33 +283,19 @@ export async function DELETE(
     const body = await request.json();
 
     // Handle delete all
-    if (body.deleteAll === true) {
-      const result = await deleteRecords(
-        appId,
-        tableId,
-        undefined, // undefined ids means delete all
-        userId
-      );
-      return NextResponse.json(result);
+    if (body.deleteAll) {
+      await deleteAll(appId, tableId);
+      return NextResponse.json({});
+    } else if (body.ids && Array.isArray(body.ids)) {
+      return NextResponse.json(await deleteRecords(appId, tableId, body.ids));
+    } else if (body.id) {
+      return NextResponse.json(await deleteRecord(appId, tableId, body.id));
     }
 
-    // Handle bulk delete
-    if (body.ids && Array.isArray(body.ids)) {
-      const result = await deleteRecords(appId, tableId, body.ids, userId);
-      return NextResponse.json(result);
-    }
-
-    // Handle single record delete
-    if (!body.id) {
-      return NextResponse.json(
-        { error: "Either id, ids array, or deleteAll flag is required" },
-        { status: 400 }
-      );
-    }
-
-    const result = await deleteRecords(appId, tableId, [body.id], userId);
-
-    return NextResponse.json(result);
+    return NextResponse.json(
+      { error: "Either id, ids array, or deleteAll flag is required" },
+      { status: 400 }
+    );
   } catch (error) {
     console.error("Error deleting record:", error);
     return NextResponse.json(

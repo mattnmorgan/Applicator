@@ -27,7 +27,7 @@ export async function readRecords<T = any>(
   appId: string,
   tableName: string,
   tableFields: Field[],
-  filter: RecordFilter = {}
+  filter: RecordFilter<T> = {}
 ): Promise<ReadResult<T>> {
   const redis = getRedisClient();
   const { ids, fields, limit, offset = 0, includeRelated } = filter;

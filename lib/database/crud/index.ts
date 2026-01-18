@@ -27,6 +27,7 @@ import { listRecords } from "@/lib/database/crud/list";
 import Table from "@/lib/database/types/table";
 import Field from "@/lib/database/types/field";
 import RecordFilter from "@/lib/database/crud/types/record-filter";
+import Result from "@/lib/database/crud/types/read-result";
 
 export default abstract class CRUD<T = any> {
   tableName!: string;
@@ -34,7 +35,7 @@ export default abstract class CRUD<T = any> {
   table!: Table | null;
   fields!: Field[] | null;
 
-  async readRecords<T>(filter: RecordFilter = {}) {
+  async readRecords<T>(filter: RecordFilter<T> = {}): Promise<Result<T>> {
     return await readRecords<T>(
       this.appId,
       this.tableName,
