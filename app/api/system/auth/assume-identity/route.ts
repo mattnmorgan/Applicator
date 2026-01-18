@@ -12,12 +12,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has assume-identity authorization
-    if (!currentUser.authorizations.some((a) => a === "assume-identity")) {
+    if (
+      !currentUser.authorizations.some((a) => a === "system:assume-identity")
+    ) {
       return NextResponse.json(
         {
           error: "Forbidden - You do not have permission to assume identities",
         },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -26,7 +28,7 @@ export async function POST(request: NextRequest) {
     if (!userId) {
       return NextResponse.json(
         { error: "User ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -39,7 +41,15 @@ export async function POST(request: NextRequest) {
     if (!targetUser.data.isActive) {
       return NextResponse.json(
         { error: "Cannot assume identity of inactive user" },
-        { status: 400 }
+        { status: 400 },
+      );
+    }
+
+    // Prevent assuming own identity
+    if (targetUser.id === currentUser.user.id) {
+      return NextResponse.json(
+        { error: "Cannot assume your own identity" },
+        { status: 400 },
       );
     }
 
@@ -53,7 +63,7 @@ export async function POST(request: NextRequest) {
     // Create a new session for the assumed identity
     const newSession = await new SessionManager().createSession(
       targetUser.id,
-      currentSessionId
+      currentSessionId,
     );
 
     // Update the session cookie to use the new session
@@ -72,7 +82,7 @@ export async function POST(request: NextRequest) {
     console.error("Assume identity error:", error);
     return NextResponse.json(
       { error: "Failed to assume identity" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

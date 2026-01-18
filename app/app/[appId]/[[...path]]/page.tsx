@@ -157,7 +157,7 @@ export default function AppPage() {
 
         // Set the module URL for the DynamicAppLoader
         setModuleUrl(
-          `/api/system/apps/${appId}/assets/source?v=${versionString}`
+          `/api/${appId}/assets/source?v=${versionString}`
         );
         setLoading(false);
       } catch (err) {

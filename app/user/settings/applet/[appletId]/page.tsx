@@ -83,7 +83,7 @@ export default function UserSettingsAppletPage() {
 
         const appData = appResponseData.records[0].data;
         const versionString = `${appData.version.major}.${appData.version.minor}.${appData.version.dev}`;
-        const url = `/api/system/apps/${appId}/assets/source?v=${versionString}`;
+        const url = `/api/${appId}/assets/source?v=${versionString}`;
         setModuleUrl(url);
         setLoading(false);
       } catch (err) {

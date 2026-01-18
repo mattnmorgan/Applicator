@@ -20,7 +20,7 @@ export async function GET(request: NextRequest, context: { plugin: any }) {
     }
 
     // Get task
-    const task = await plugin.records.read(taskId);
+    const task = await plugin.records.get(taskId);
     if (!task) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }

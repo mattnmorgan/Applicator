@@ -55,7 +55,7 @@ export default function SystemSettingsAppletPage() {
 
         const appData = appResponseData.records[0].data;
         const versionString = `${appData.version.major}.${appData.version.minor}.${appData.version.dev}`;
-        setModuleUrl(`/api/system/apps/${appId}/assets/source?v=${versionString}`);
+        setModuleUrl(`/api/${appId}/assets/source?v=${versionString}`);
         setLoading(false);
       } catch (err) {
         console.error("Error loading applet:", err);

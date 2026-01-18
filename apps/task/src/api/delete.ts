@@ -20,7 +20,7 @@ export async function DELETE(request: NextRequest, context: { plugin: any }) {
     }
 
     // Get existing task
-    const existing = await plugin.records.read(taskId);
+    const existing = await plugin.records.get(taskId);
     if (!existing) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }

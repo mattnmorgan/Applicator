@@ -27,7 +27,7 @@ export async function PATCH(request: NextRequest, context: { plugin: any }) {
     const updates: any = updatesJson ? JSON.parse(updatesJson) : {};
 
     // Get existing task
-    const existing = await plugin.records.read(taskId);
+    const existing = await plugin.records.get(taskId);
     if (!existing) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
