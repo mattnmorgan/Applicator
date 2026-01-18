@@ -26,7 +26,7 @@ import { validateAppPackage } from "@/lib/system/installation/package-validator"
 export async function saveAppFiles(
   appId: string,
   storagePath: string,
-  packageData: AppPackage
+  packageData: AppPackage,
 ): Promise<void> {
   const appDir = path.join(storagePath, "apps", appId);
   await fs.mkdir(appDir, { recursive: true });
@@ -79,7 +79,7 @@ export async function saveAppFiles(
  */
 export async function installAppComponents(
   appId: string,
-  appAttributes: any
+  appAttributes: any,
 ): Promise<void> {
   // Install API routes
   if (appAttributes.apiRoutes && Array.isArray(appAttributes.apiRoutes)) {
@@ -96,7 +96,7 @@ export async function installAppComponents(
           handler: apiRoute.handler,
           description: apiRoute.description || "",
         },
-        { id: `${appId}:${apiRoute.path}:${apiRoute.method}` }
+        { id: `${appId}:${apiRoute.path}:${apiRoute.method}` },
       );
     }
   }
@@ -116,7 +116,7 @@ export async function installAppComponents(
           app: appId,
           target: applet.target,
         },
-        { id: `${appId}:${applet.id}` }
+        { id: `${appId}:${applet.id}` },
       );
     }
   }
@@ -161,7 +161,7 @@ export async function installAppComponents(
           app: appId,
           contextual: auth.contextual || false,
         },
-        { id: `${appId}:${auth.id}` }
+        { id: `${appId}:${auth.id}` },
       );
     }
   }
@@ -177,7 +177,7 @@ export async function installAppComponents(
 
     for (const authority of appAttributes.authorities) {
       const authorizations = (authority.authorizations || []).map(
-        (authId: string) => `${appId}:${authId}`
+        (authId: string) => `${appId}:${authId}`,
       );
 
       await authorityManager.createRecord(
@@ -190,7 +190,7 @@ export async function installAppComponents(
           contextual: true,
           app: appId,
         },
-        { id: `${appId}:${authority.id}` }
+        { id: `${appId}:${authority.id}` },
       );
     }
   }
@@ -203,16 +203,16 @@ export async function installAppComponents(
  */
 export async function updateAppComponents(
   appId: string,
-  appAttributes: any
+  appAttributes: any,
 ): Promise<void> {
   // Update API routes
   const apiRouteManager = new ApiRouteManager();
   const allApiRoutes = await apiRouteManager.readRecords();
   const existingApiRoutes = allApiRoutes.records.filter(
-    (route) => route.data.app === appId
+    (route) => route.data.app === appId,
   );
   const existingApiRouteKeys = new Set(
-    existingApiRoutes.map((r) => `${r.data.path}:${r.data.method}`)
+    existingApiRoutes.map((r) => `${r.data.path}:${r.data.method}`),
   );
 
   if (appAttributes.apiRoutes && Array.isArray(appAttributes.apiRoutes)) {
@@ -223,7 +223,7 @@ export async function updateAppComponents(
 
       if (existingApiRouteKeys.has(routeKey)) {
         await apiRouteManager.deleteRecord(
-          `${appId}:${apiRoute.path}:${apiRoute.method}`
+          `${appId}:${apiRoute.path}:${apiRoute.method}`,
         );
       }
 
@@ -236,7 +236,7 @@ export async function updateAppComponents(
           handler: apiRoute.handler,
           description: apiRoute.description || "",
         },
-        { id: `${appId}:${apiRoute.path}:${apiRoute.method}` }
+        { id: `${appId}:${apiRoute.path}:${apiRoute.method}` },
       );
 
       existingApiRouteKeys.delete(routeKey);
@@ -255,10 +255,10 @@ export async function updateAppComponents(
   const appletManager = new AppletManager();
   const allApplets = await appletManager.readRecords();
   const existingApplets = allApplets.records.filter(
-    (applet) => applet.data.app === appId
+    (applet) => applet.data.app === appId,
   );
   const existingAppletIds = new Set(
-    existingApplets.map((a) => a.id.split(":").pop() || "")
+    existingApplets.map((a) => a.id.split(":").pop() || ""),
   );
 
   if (appAttributes.applets && Array.isArray(appAttributes.applets)) {
@@ -278,7 +278,7 @@ export async function updateAppComponents(
           app: appId,
           target: applet.target,
         },
-        { id: `${appId}:${applet.id}` }
+        { id: `${appId}:${applet.id}` },
       );
 
       existingAppletIds.delete(applet.id);
@@ -302,12 +302,12 @@ export async function updateAppComponents(
     const existingTables = allTables.filter((t: any) =>
       t && typeof t === "string"
         ? t.startsWith(`${appId}:`)
-        : t?.id?.startsWith(`${appId}:`)
+        : t?.id?.startsWith(`${appId}:`),
     );
     const existingTableNames = new Set(
       existingTables.map((t: any) =>
-        typeof t === "string" ? t.split(":")[1] : t.data.tableName
-      )
+        typeof t === "string" ? t.split(":")[1] : t.data.tableName,
+      ),
     );
 
     for (const table of appAttributes.tables) {
@@ -355,7 +355,7 @@ export async function executeInstallHook(
     priorVersion?: string;
     currentVersion: string;
     appId: string;
-  }
+  },
 ): Promise<void> {
   const appDir = path.join(storagePath, "apps", appId);
   const installationHookPath = path.join(appDir, "system", "install.js");
@@ -397,7 +397,7 @@ export async function executeInstallHook(
  * @throws Error if installation fails
  */
 export async function installApp(
-  fileBuffer: Buffer
+  fileBuffer: Buffer,
 ): Promise<{ appId: string; name: string }> {
   // Extract package
   const packageData = await extractAppPackage(fileBuffer);
@@ -438,7 +438,7 @@ export async function installApp(
       description: appAttributes.description,
       dependencies: appAttributes.dependencies || {},
     },
-    { id: appAttributes.id }
+    { id: appAttributes.id },
   );
 
   // Install components
@@ -463,8 +463,8 @@ export async function installApp(
   await new LogManager().info(
     "system",
     `Application installed: ${appAttributes.name} v${formatVersion(
-      appAttributes.version
-    )} (${appAttributes.id})`
+      appAttributes.version,
+    )} (${appAttributes.id})`,
   );
 
   return {
@@ -519,7 +519,7 @@ export async function upgradeSystemApp(): Promise<{
   const apiRouteManager = new ApiRouteManager();
   const allApiRoutes = await apiRouteManager.readRecords();
   const existingSystemApiRoutes = allApiRoutes.records.filter(
-    (route) => route.data.app === "system"
+    (route) => route.data.app === "system",
   );
 
   for (const route of existingSystemApiRoutes) {
@@ -541,7 +541,7 @@ export async function upgradeSystemApp(): Promise<{
           handler: apiRoute.handler,
           description: apiRoute.description || "",
         },
-        { id: `system:${apiRoute.path}:${apiRoute.method}` }
+        { id: `system:${apiRoute.path}:${apiRoute.method}` },
       );
     }
   }
@@ -550,7 +550,7 @@ export async function upgradeSystemApp(): Promise<{
   const appletManager = new AppletManager();
   const allApplets = await appletManager.readRecords();
   const existingSystemApplets = allApplets.records.filter(
-    (applet) => applet.data.app === "system"
+    (applet) => applet.data.app === "system",
   );
 
   for (const applet of existingSystemApplets) {
@@ -572,7 +572,7 @@ export async function upgradeSystemApp(): Promise<{
           app: "system",
           target: applet.target,
         },
-        { id: `system:${applet.id}` }
+        { id: `system:${applet.id}` },
       );
     }
   }
@@ -587,7 +587,7 @@ export async function upgradeSystemApp(): Promise<{
     if (!fieldsTableExists) {
       await new LogManager().info(
         "system",
-        "Migrating table fields to separate field records..."
+        "Migrating table fields to separate field records...",
       );
 
       // Migrate existing table fields to field records
@@ -603,14 +603,14 @@ export async function upgradeSystemApp(): Promise<{
 
           await new LogManager().debug(
             "system",
-            `Migrated ${tableData.fields.length} fields for table ${appId}:${tableName}`
+            `Migrated ${tableData.fields.length} fields for table ${appId}:${tableName}`,
           );
         }
       }
 
       await new LogManager().info(
         "system",
-        "Field migration completed successfully"
+        "Field migration completed successfully",
       );
     }
 
@@ -618,8 +618,8 @@ export async function upgradeSystemApp(): Promise<{
     const existingTables = allTables.filter((t) => t.startsWith("system:"));
     const existingTableNames = new Set(
       existingTables.map((t: any) =>
-        typeof t === "string" ? t.split(":")[1] : t.data.tableName
-      )
+        typeof t === "string" ? t.split(":")[1] : t.data.tableName,
+      ),
     );
 
     for (const table of SYSTEM_APP_METADATA.tables) {
@@ -681,7 +681,7 @@ export async function upgradeSystemApp(): Promise<{
         description: auth.description,
         contextual: auth.contextual,
       },
-      { id: auth.id }
+      { id: auth.id },
     );
   }
 
@@ -696,15 +696,15 @@ export async function upgradeSystemApp(): Promise<{
         contextual: auth.contextual || false,
         app: auth.contextual ? "system" : undefined,
       },
-      { id: auth.id }
+      { id: auth.id },
     );
   }
 
   await new LogManager().info(
     "system",
     `System upgraded: ${formatVersion(
-      existingApp.data.version
-    )} → ${formatVersion(SYSTEM_APP_METADATA.version)}`
+      existingApp.data.version,
+    )} → ${formatVersion(SYSTEM_APP_METADATA.version)}`,
   );
 
   return {
@@ -724,7 +724,7 @@ export async function upgradeSystemApp(): Promise<{
  */
 export async function upgradeApp(
   appId: string,
-  fileBuffer: Buffer
+  fileBuffer: Buffer,
 ): Promise<{
   appId: string;
   name: string;
@@ -745,7 +745,7 @@ export async function upgradeApp(
   // Verify app ID matches
   if (appAttributes.id !== appId) {
     throw new Error(
-      `App ID mismatch. Expected '${appId}', got '${appAttributes.id}'`
+      `App ID mismatch. Expected '${appId}', got '${appAttributes.id}'`,
     );
   }
 
@@ -834,7 +834,7 @@ export async function upgradeApp(
       } catch (rollbackError) {
         console.error(
           "Failed to rollback after installation hook failure:",
-          rollbackError
+          rollbackError,
         );
       }
       throw new Error(`Installation hook failed: ${error.message}`);
@@ -844,8 +844,8 @@ export async function upgradeApp(
     await new LogManager().info(
       "system",
       `Application upgraded: ${appAttributes.name} (${formatVersion(
-        existingApp.data.version
-      )} → ${formatVersion(appAttributes.version)})`
+        existingApp.data.version,
+      )} → ${formatVersion(appAttributes.version)})`,
     );
 
     return {
@@ -917,7 +917,7 @@ export async function setupSystem(adminUser: {
       description: SYSTEM_APP_METADATA.description,
       dependencies: SYSTEM_APP_METADATA.dependencies,
     },
-    { id: "system" }
+    { id: "system" },
   );
 
   // Create API routes for system app
@@ -938,7 +938,7 @@ export async function setupSystem(adminUser: {
           handler: apiRoute.handler,
           description: apiRoute.description || "",
         },
-        { id: `system:${apiRoute.path}:${apiRoute.method}` }
+        { id: `system:${apiRoute.path}:${apiRoute.method}` },
       );
     }
   }
@@ -961,7 +961,7 @@ export async function setupSystem(adminUser: {
           app: "system",
           target: applet.target,
         },
-        { id: `system:${applet.id}` }
+        { id: `system:${applet.id}` },
       );
     }
   }
@@ -1000,7 +1000,7 @@ export async function setupSystem(adminUser: {
         app: authorization.app,
         contextual: authorization.contextual,
       },
-      { id: authorization.id }
+      { id: "system:" + authorization.id },
     );
   }
 
@@ -1014,7 +1014,7 @@ export async function setupSystem(adminUser: {
         apps: authority.apps,
         contextual: authority.contextual,
       },
-      { id: authority.id }
+      { id: "system:" + authority.id },
     );
   }
 
@@ -1034,6 +1034,6 @@ export async function setupSystem(adminUser: {
   await settingManager.createRecord(
     await settingManager.getTable(),
     { value: user.id },
-    { id: "administratorUserId" }
+    { id: "administratorUserId" },
   );
 }
