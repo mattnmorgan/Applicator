@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import TableManager from "@/lib/database/managers/table";
+import FieldManager from "@/lib/database/managers/field";
 import UserManager from "@/lib/database/managers/user";
 import AppManager from "@/lib/database/managers/app";
 import SettingManager from "@/lib/database/managers/setting";
@@ -98,13 +99,22 @@ export async function POST(request: Request) {
 
     // Step 2: Create all table definitions
     const tableManager = new TableManager();
+    const fieldManager = new FieldManager();
+
     for (const table of SYSTEM_APP_METADATA.tables) {
+      // Create the table definition (without fields)
       await tableManager.createTable("system", table.name, {
         tableName: table.name,
         app: "system",
         description: table.description,
-        fields: table.fields as any,
       });
+
+      // Create each field definition separately
+      if (table.fields && Array.isArray(table.fields)) {
+        for (const field of table.fields) {
+          await fieldManager.createField("system", table.name, field as any);
+        }
+      }
     }
 
     // Step 3: Initialize authorities
