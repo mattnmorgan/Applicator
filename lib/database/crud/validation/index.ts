@@ -13,7 +13,7 @@ import { hashPasswordFields } from "@/lib/database/crud/validation/password";
  *
  * @param appId The app ID
  * @param tableName The table name
- * @param table The table definition (null during bootstrap)
+ * @param table The table definition (null during bootstrap - will be ignored)
  * @param data The record data
  * @param skipValidation Whether to skip validation
  * @returns Processed record data
@@ -28,16 +28,21 @@ export async function validateAndProcessRecord(
 ): Promise<Record<string, any>> {
   let processedData = { ...data };
 
-  // If table is null (bootstrap scenario), skip all validation and processing
+  // If table is null (bootstrap scenario) or skipValidation, skip all validation and processing
   if (!table || skipValidation) {
     return processedData;
   }
 
+  // Fetch fields once for all validation functions
+  const FieldManager = (await import("@/lib/database/managers/field")).default;
+  const fieldManager = new FieldManager();
+  const fields = await fieldManager.loadTableFields(appId, tableName);
+
   // Hash password fields (before validation)
-  processedData = await hashPasswordFields(table, processedData);
+  processedData = await hashPasswordFields(fields, processedData);
 
   // Validate required fields
-  const requiredResults = validateRequiredFields(table, processedData);
+  const requiredResults = await validateRequiredFields(fields, processedData);
   const requiredFailures = requiredResults.filter((r) => !r.valid);
 
   if (requiredFailures.length > 0) {
@@ -46,7 +51,7 @@ export async function validateAndProcessRecord(
   }
 
   // Validate picklist fields
-  const picklistResults = validatePicklistFields(table, processedData);
+  const picklistResults = await validatePicklistFields(fields, processedData);
   const picklistFailures = picklistResults.filter((r) => !r.valid);
 
   if (picklistFailures.length) {
@@ -55,8 +60,8 @@ export async function validateAndProcessRecord(
   }
 
   // Validate multipicklist fields
-  const multipicklistResults = validateMultipicklistFields(
-    table,
+  const multipicklistResults = await validateMultipicklistFields(
+    fields,
     processedData
   );
   const multipicklistFailures = multipicklistResults.filter((r) => !r.valid);
@@ -70,7 +75,7 @@ export async function validateAndProcessRecord(
   processedData = await calculateFormulas(
     appId,
     tableName,
-    table,
+    fields,
     processedData
   );
 
@@ -78,7 +83,7 @@ export async function validateAndProcessRecord(
   const validationResults = await validateFields(
     appId,
     tableName,
-    table,
+    fields,
     processedData
   );
   const validationFailures = validationResults.filter((r) => !r.valid);

@@ -2,14 +2,16 @@
 
 import { useState, useEffect } from "react";
 import TableDefinition from "@/lib/database/types/table";
+import TableField from "@/lib/database/types/field";
 import Badge from "@/lib/components/Badge/Badge";
 import TableManager from "@/lib/database/client/managers/table";
+import FieldManager from "@/lib/database/client/managers/field";
 import AppManager from "@/lib/database/client/managers/app";
 
 interface TableSearchResult {
   appId: string;
   appName: string;
-  table: TableDefinition;
+  table: TableDefinition & { fields: TableField[] };
 }
 
 export default function DataModelsPage() {
@@ -46,6 +48,7 @@ export default function DataModelsPage() {
     try {
       const tableManager = new TableManager();
       const appManager = new AppManager();
+      const fieldManager = new FieldManager();
 
       // Fetch all table records and apps in parallel
       const [data, appsData] = await Promise.all([
@@ -62,12 +65,36 @@ export default function DataModelsPage() {
           });
         }
 
+        // Fetch fields for all tables
+        const fieldsData = await fieldManager.readRecords({});
+
+        // Create a map of "appId:tableName" to fields array
+        const tableFieldsMap = new Map<string, TableField[]>();
+        if (fieldsData.records) {
+          fieldsData.records.forEach((fieldRecord) => {
+            const key = `${fieldRecord.data.app}:${fieldRecord.data.table}`;
+            if (!tableFieldsMap.has(key)) {
+              tableFieldsMap.set(key, []);
+            }
+
+            tableFieldsMap.get(key)!.push(fieldRecord.data);
+          });
+        }
+
         // Transform records into TableSearchResult format
-        const results: TableSearchResult[] = data.records.map((record) => ({
-          appId: record.data.app,
-          appName: appNamesMap.get(record.data.app) || record.data.app,
-          table: record.data,
-        }));
+        const results: TableSearchResult[] = data.records.map((record) => {
+          const tableKey = `${record.data.app}:${record.data.tableName}`;
+          const fields = tableFieldsMap.get(tableKey) || [];
+
+          return {
+            appId: record.data.app,
+            appName: appNamesMap.get(record.data.app) || record.data.app,
+            table: {
+              ...record.data,
+              fields,
+            },
+          };
+        });
 
         // Sort tables alphabetically by table name
         const sortedResults = results.sort((a, b) =>

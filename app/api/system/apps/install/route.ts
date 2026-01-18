@@ -10,6 +10,7 @@ import AuthorizationManager from "@/lib/database/managers/authorization";
 import AuthorityManager from "@/lib/database/managers/authority";
 import SettingManager from "@/lib/database/managers/setting";
 import TableManager from "@/lib/database/managers/table";
+import FieldManager from "@/lib/database/managers/field";
 import ApiRouteManager from "@/lib/database/managers/apiRoute";
 import AppletManager from "@/lib/database/managers/applet";
 import LogManager from "@/lib/database/managers/log";
@@ -569,18 +570,22 @@ export async function POST(request: NextRequest) {
     // Install tables
     if (appAttributes.tables && Array.isArray(appAttributes.tables)) {
       const tableManager = new TableManager();
-      const tableDefinition = await tableManager.loadTable("system", "table");
-      if (!tableDefinition) {
-        throw new Error("System table definition not found");
-      }
+      const fieldManager = new FieldManager();
 
       for (const table of appAttributes.tables) {
+        // Create table record
         await tableManager.createTable(appAttributes.id, table.name, {
           tableName: table.name,
           app: appAttributes.id,
           description: table.description || "",
-          fields: table.fields || [],
         });
+
+        // Create field records
+        if (table.fields && Array.isArray(table.fields)) {
+          for (const field of table.fields) {
+            await fieldManager.createField(appAttributes.id, table.name, field);
+          }
+        }
       }
     }
 

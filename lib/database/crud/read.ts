@@ -6,14 +6,10 @@ import {
 import ReadResult from "@/lib/database/crud/types/read-result";
 import RecordFilter from "@/lib/database/crud/types/record-filter";
 import TableRecord from "@/lib/database/crud/types/record";
+import Field from "@/lib/database/types/field";
 
 export function readRecordWrapper<T = any>(appId: string, tableName: string) {
   return (id: string) => readRecord<T>(appId, tableName, id);
-}
-
-export function readRecordsWrapper<T = any>(appId: string, tableName: string) {
-  return (filter: RecordFilter = {}) =>
-    readRecords<T>(appId, tableName, filter);
 }
 
 export async function readRecord<T = any>(
@@ -30,8 +26,8 @@ export async function readRecord<T = any>(
 export async function readRecords<T = any>(
   appId: string,
   tableName: string,
-  filter: RecordFilter = {},
-  table: any = null
+  tableFields: Field[],
+  filter: RecordFilter = {}
 ): Promise<ReadResult<T>> {
   const redis = getRedisClient();
   const { ids, fields, limit, offset = 0, includeRelated } = filter;
@@ -86,16 +82,17 @@ export async function readRecords<T = any>(
 
   // Fetch related records if requested
   let related: Record<string, Record<string, TableRecord[]>> | undefined;
-  if (includeRelated && includeRelated.length > 0 && table) {
+  if (includeRelated && includeRelated.length > 0) {
     related = {};
 
     for (const record of paginatedRecords) {
       const recordRelated: Record<string, TableRecord[]> = {};
 
       for (const relationshipFieldName of includeRelated) {
-        // Find the relationship field definition in the table
-        const relationshipField = table.fields?.find(
-          (f: any) => f.name === relationshipFieldName && f.type === "relationship"
+        // Find the relationship field definition
+        const relationshipField = tableFields.find(
+          (f: Field) =>
+            f.name === relationshipFieldName && f.type === "relationship"
         );
 
         if (relationshipField && relationshipField.relatedTo) {

@@ -4,7 +4,7 @@ export const SYSTEM_APP_METADATA = {
   version: {
     major: 1,
     minor: 4,
-    dev: 5,
+    dev: 6,
   },
   author: "Matthew Morgan",
   contactEmail: "matthew@morgantech.info",
@@ -462,6 +462,78 @@ export const SYSTEM_APP_METADATA = {
           type: "picklist",
           required: true,
           options: ["home", "app", "user-settings", "system-settings"],
+        },
+      ],
+    },
+    {
+      name: "field",
+      description: "Database field definitions for tables",
+      fields: [
+        {
+          name: "app",
+          description: "The app this field belongs to",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "table",
+          description: "The table this field belongs to",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "name",
+          description: "The field name",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "description",
+          description: "Field description",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "type",
+          description: "Field data type",
+          type: "picklist",
+          required: true,
+          options: [
+            "string",
+            "number",
+            "boolean",
+            "date",
+            "datetime",
+            "json",
+            "relationship",
+            "formula",
+            "password",
+            "picklist",
+            "multipicklist",
+          ],
+        },
+        {
+          name: "required",
+          description: "Whether the field is required",
+          type: "boolean",
+          defaultValue: false,
+        },
+        {
+          name: "relatedTo",
+          description:
+            "For relationship fields - the related table (format: appId:tableName)",
+          type: "string",
+        },
+        {
+          name: "defaultValue",
+          description: "Default value for the field",
+          type: "json",
+        },
+        {
+          name: "options",
+          description:
+            "For picklist/multipicklist fields - the available options",
+          type: "json",
         },
       ],
     },

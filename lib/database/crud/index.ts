@@ -4,8 +4,8 @@ import {
 } from "@/lib/database/crud/update";
 import {
   readRecord,
+  readRecords,
   readRecordWrapper,
-  readRecordsWrapper,
 } from "@/lib/database/crud/read";
 import {
   deleteRecordWrapper,
@@ -25,11 +25,23 @@ import {
 } from "@/lib/database/crud/redis";
 import { listRecords } from "@/lib/database/crud/list";
 import Table from "@/lib/database/types/table";
+import Field from "@/lib/database/types/field";
+import RecordFilter from "@/lib/database/crud/types/record-filter";
 
 export default abstract class CRUD<T = any> {
   tableName!: string;
   appId!: string;
   table!: Table | null;
+  fields!: Field[] | null;
+
+  async readRecords<T>(filter: RecordFilter = {}) {
+    return await readRecords<T>(
+      this.appId,
+      this.tableName,
+      await this.getTableFields(),
+      filter
+    );
+  }
 
   get createRecord() {
     return createRecordWrapper<T>(this.appId, this.tableName);
@@ -46,9 +58,6 @@ export default abstract class CRUD<T = any> {
   get readRecord() {
     return readRecordWrapper<T>(this.appId, this.tableName);
   }
-  get readRecords() {
-    return readRecordsWrapper<T>(this.appId, this.tableName);
-  }
   get updateRecord() {
     return updateRecordWrapper<T>(this.appId, this.tableName);
   }
@@ -61,10 +70,26 @@ export default abstract class CRUD<T = any> {
 
   async getTable(): Promise<Table | null> {
     if (!this.table) {
-      const tableRecord = await readRecord<Table>("system", "table", this.tableName);
+      const tableRecord = await readRecord<Table>(
+        "system",
+        "table",
+        this.tableName
+      );
       this.table = tableRecord?.data || null;
     }
     return this.table;
+  }
+
+  async getTableFields(): Promise<Field[] | null> {
+    if (!this.fields) {
+      // We pass an empty array for readRecords here because it only gets used for
+      // checking relationships, which we don't care about here
+      this.fields =
+        (await readRecords<Field>("system", "field", [], {}))?.records?.map(
+          (r) => r.data
+        ) || null;
+    }
+    return this.fields;
   }
 
   async listRecords() {

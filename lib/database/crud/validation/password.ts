@@ -1,18 +1,16 @@
-import Table from "@/lib/database/types/table";
+import Field from "@/lib/database/types/field";
 
 /**
  * Hash password fields in data
- * @param table The table definition
+ * @param fields The table field definitions
  * @param data The data to process
  * @returns Processed data with hashed passwords
  */
 export async function hashPasswordFields(
-  table: Table,
+  fields: Field[],
   data: Record<string, any>
 ): Promise<Record<string, any>> {
-  const passwordFields = table.fields.filter(
-    (field) => field.type === "password"
-  );
+  const passwordFields = fields.filter((field) => field.type === "password");
 
   if (passwordFields.length === 0) {
     return data;

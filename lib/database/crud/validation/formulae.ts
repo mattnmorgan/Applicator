@@ -1,4 +1,3 @@
-import Table from "@/lib/database/types/table";
 import Field from "@/lib/database/types/field";
 import Context from "@/lib/database/crud/validation/types/formula-context";
 import path from "path";
@@ -91,19 +90,19 @@ export async function executeFormula(
  * Calculate all formula fields in a record
  * @param appId The app ID
  * @param tableName The table name
- * @param table The table definition
+ * @param fields The table field definitions
  * @param data The record data
  * @returns Updated record data with calculated formula values
  */
 export async function calculateFormulas(
   appId: string,
   tableName: string,
-  table: Table,
+  fields: Field[],
   data: Record<string, any>
 ): Promise<Record<string, any>> {
   const updatedData = { ...data };
 
-  for (const field of table.fields) {
+  for (const field of fields) {
     if (field.type === "formula") {
       const value = await executeFormula(appId, tableName, field, updatedData);
       updatedData[field.name] = value;

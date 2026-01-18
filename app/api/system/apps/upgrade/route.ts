@@ -166,9 +166,42 @@ export async function POST(request: NextRequest) {
         Array.isArray(SYSTEM_APP_METADATA.tables)
       ) {
         const tableManager = new TableManager();
-        const tableDefinition = await tableManager.loadTable("system", "table");
-        if (!tableDefinition) {
-          throw new Error("System table definition not found");
+        const fieldManager = (await import("@/lib/database/managers/field"))
+          .default;
+        const fieldMgr = new fieldManager();
+
+        // MIGRATION: Check if fields table exists, if not this is the first upgrade with the new field system
+        const fieldsTableExists = await tableManager.loadTable("system", "field");
+        if (!fieldsTableExists) {
+          await new LogManager().info(
+            "system",
+            "Migrating table fields to separate field records..."
+          );
+
+          // Migrate existing table fields to field records
+          const allTablesResult = await tableManager.readRecords({});
+          for (const tableRecord of allTablesResult.records) {
+            const tableData = tableRecord.data as any;
+            if (tableData.fields && Array.isArray(tableData.fields)) {
+              // Extract appId and tableName from record ID (format: "appId:tableName")
+              const [appId, tableName] = tableRecord.id.split(":");
+
+              // Create field records for each field
+              for (const field of tableData.fields) {
+                await fieldMgr.createField(appId, tableName, field);
+              }
+
+              await new LogManager().debug(
+                "system",
+                `Migrated ${tableData.fields.length} fields for table ${appId}:${tableName}`
+              );
+            }
+          }
+
+          await new LogManager().info(
+            "system",
+            "Field migration completed successfully"
+          );
         }
 
         const allTables = await tableManager.listRecords();
@@ -179,15 +212,24 @@ export async function POST(request: NextRequest) {
 
         for (const table of SYSTEM_APP_METADATA.tables) {
           if (existingTableNames.has(table.name)) {
+            // Delete old table and its fields
+            await fieldMgr.deleteTableFields("system", table.name);
             await tableManager.deleteTable("system", table.name);
           }
 
+          // Create table record
           await tableManager.createTable("system", table.name, {
             tableName: table.name,
             app: "system",
             description: table.description || "",
-            fields: (table.fields || []) as any,
           });
+
+          // Create field records
+          if (table.fields && Array.isArray(table.fields)) {
+            for (const field of table.fields) {
+              await fieldMgr.createField("system", table.name, field as any);
+            }
+          }
 
           existingTableNames.delete(table.name);
         }
@@ -840,19 +882,30 @@ export async function POST(request: NextRequest) {
         );
 
         // Create or update tables
+        const FieldManager = (await import("@/lib/database/managers/field"))
+          .default;
+        const fieldManager = new FieldManager();
+
         for (const table of appAttributes.tables) {
           if (existingTableNames.has(table.name)) {
-            // Update existing table
-            await new TableManager().deleteTable(appAttributes.id, table.name);
+            // Update existing table - delete old table and fields
+            await fieldManager.deleteTableFields(appAttributes.id, table.name);
+            await tableManager.deleteTable(appAttributes.id, table.name);
           }
 
-          // Create/recreate table record
-          await new TableManager().createTable(appAttributes.id, table.name, {
+          // Create table record
+          await tableManager.createTable(appAttributes.id, table.name, {
             tableName: table.name,
             app: appAttributes.id,
             description: table.description || "",
-            fields: table.fields || [],
           });
+
+          // Create field records
+          if (table.fields && Array.isArray(table.fields)) {
+            for (const field of table.fields) {
+              await fieldManager.createField(appAttributes.id, table.name, field);
+            }
+          }
 
           existingTableNames.delete(table.name);
         }

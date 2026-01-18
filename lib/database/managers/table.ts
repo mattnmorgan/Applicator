@@ -24,15 +24,13 @@ export default class TableManager extends CRUD<Table> {
    * @returns The created table record
    */
   async createTable(appId: string, tableName: string, tableData: Table) {
-    return await this.createRecord(
-      await this.getTable(),
-      tableData,
-      { id: `${appId}:${tableName}` }
-    );
+    return await this.createRecord(await this.getTable(), tableData, {
+      id: `${appId}:${tableName}`,
+    });
   }
 
   /**
-   * Delete a table
+   * Delete a table record
    * @param appId The app ID
    * @param tableName The table name
    */

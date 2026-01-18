@@ -1,4 +1,3 @@
-import Table from "@/lib/database/types/table";
 import Field from "@/lib/database/types/field";
 import Result from "@/lib/database/crud/validation/types/validator-result";
 import Context from "@/lib/database/crud/validation/types/validator-context";
@@ -107,19 +106,19 @@ export async function executeValidator(
  * Validate all fields with validators in a record
  * @param appId The app ID
  * @param tableName The table name
- * @param table The table definition
+ * @param fields The table field definitions
  * @param data The record data
  * @returns Array of validation results
  */
 export async function validateFields(
   appId: string,
   tableName: string,
-  table: Table,
+  fields: Field[],
   data: Record<string, any>
 ): Promise<Result[]> {
   const results: Result[] = [];
 
-  for (const field of table.fields) {
+  for (const field of fields) {
     const value = data[field.name];
     const result = await executeValidator(appId, tableName, field, value, data);
     results.push(result);
@@ -130,17 +129,17 @@ export async function validateFields(
 
 /**
  * Validate required fields in a record
- * @param table The table definition
+ * @param fields The table field definitions
  * @param data The record data
  * @returns Array of validation results for required fields
  */
-export function validateRequiredFields(
-  table: Table,
+export async function validateRequiredFields(
+  fields: Field[],
   data: Record<string, any>
-): Result[] {
+): Promise<Result[]> {
   const results: Result[] = [];
 
-  for (const field of table.fields) {
+  for (const field of fields) {
     // Skip formula fields (they can't be required)
     if (field.type === "formula") {
       continue;
@@ -175,17 +174,17 @@ export function validateRequiredFields(
 /**
  * Validates picklist fields for a record
  *
- * @param table Table metadata
+ * @param fields The table field definitions
  * @param data Record to verify
  * @returns List of results for valid or invalid fields in the record data for picklist fields
  */
-export function validatePicklistFields(
-  table: Table,
+export async function validatePicklistFields(
+  fields: Field[],
   data: Record<string, any>
-): Result[] {
+): Promise<Result[]> {
   const results: Result[] = [];
 
-  for (const field of table.fields) {
+  for (const field of fields) {
     if (field.type === "picklist") {
       const value = data[field.name];
 
@@ -210,17 +209,17 @@ export function validatePicklistFields(
 /**
  * Validates multipicklist fields for tables
  *
- * @param table Table metadata
+ * @param fields The table field definitions
  * @param data Record data to validate
  * @returns List of validation results for multipicklist fields in record data
  */
-export function validateMultipicklistFields(
-  table: Table,
+export async function validateMultipicklistFields(
+  fields: Field[],
   data: Record<string, any>
-): Result[] {
+): Promise<Result[]> {
   const results: Result[] = [];
 
-  for (const field of table.fields) {
+  for (const field of fields) {
     if (field.type === "multipicklist") {
       const value = data[field.name];
 
