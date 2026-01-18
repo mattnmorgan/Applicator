@@ -42,6 +42,9 @@ export async function GET() {
       {
         settings,
         version: versionInfo,
+        setup: {
+          complete: versionInfo !== null,
+        },
       },
       { status: 200 }
     );
