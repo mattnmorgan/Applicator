@@ -46,7 +46,6 @@ export default interface AppMetadata {
   apiRoutes?: {
     path: string;
     method: string;
-    handler: string;
     description: string;
   }[];
   applets: {

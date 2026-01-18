@@ -59,7 +59,7 @@ export interface PluginContext {
 
 export async function createPlugin(
   appId: string,
-  userId?: string
+  userId?: string,
 ): Promise<PluginContext> {
   const settingManager = new SettingManager();
   const storageRecord = await settingManager.readRecord("storage");
@@ -87,9 +87,9 @@ export async function createPlugin(
   // Load the table fields
   const fieldManager = new FieldManager();
   const fieldsResult = await fieldManager.readRecords({
-    fields: { app: appId, table: tableName }
+    fields: { app: appId, table: tableName },
   });
-  const tableFields = fieldsResult.records.map(r => r.data);
+  const tableFields = fieldsResult.records.map((r) => r.data);
 
   const plugin: PluginContext = {
     appId,
@@ -205,7 +205,7 @@ export async function createPlugin(
 
         const authorityManager = new AuthorityManager();
         const authority = await authorityManager.readRecord(
-          user.data.authority
+          user.data.authority,
         );
 
         return {
@@ -232,7 +232,7 @@ export async function createPlugin(
           if (!includeInactive && !user.data.isActive) continue;
 
           const authority = await authorityManager.readRecord(
-            user.data.authority
+            user.data.authority,
           );
 
           users.push({
@@ -308,7 +308,7 @@ export { getSession };
  */
 export async function requireAuthorization(
   contextOrPlugin: { plugin: PluginContext } | PluginContext,
-  authorization: string
+  authorization: string,
 ): Promise<boolean> {
   const plugin =
     "plugin" in contextOrPlugin ? contextOrPlugin.plugin : contextOrPlugin;

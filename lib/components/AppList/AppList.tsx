@@ -42,13 +42,13 @@ function formatVersion(version: AppVersion): string {
 
 function canUninstallApp(
   appId: string,
-  apps: App[]
+  apps: App[],
 ): { canUninstall: boolean; dependents: string[] } {
   const dependentApps = apps.filter(
     (app) =>
       app.id !== appId &&
       app.dependencies &&
-      Object.keys(app.dependencies).includes(appId)
+      Object.keys(app.dependencies).includes(appId),
   );
 
   return {
@@ -101,7 +101,6 @@ export default function AppList() {
             apiRoutesByApp[appId].push({
               path: route.data.path,
               method: route.data.method,
-              handler: route.data.handler,
               description: route.data.description,
             });
           }
@@ -148,7 +147,7 @@ export default function AppList() {
   };
 
   const handleFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
@@ -194,7 +193,7 @@ export default function AppList() {
   };
 
   const handleUpgradeFileChange = async (
-    event: React.ChangeEvent<HTMLInputElement>
+    event: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const file = event.target.files?.[0];
     if (!file || !upgradeAppId) return;
@@ -313,7 +312,7 @@ export default function AppList() {
   const filteredApps = apps.filter(
     (app) =>
       app.label?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      app.description?.toLowerCase().includes(searchQuery.toLowerCase())
+      app.description?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   // If an app is selected, show the AppView
@@ -439,27 +438,27 @@ export default function AppList() {
                     {upgradingSystem
                       ? "Upgrading..."
                       : systemNeedsUpgrade
-                      ? "Upgrade"
-                      : "Up to Date"}
+                        ? "Upgrade"
+                        : "Up to Date"}
                   </button>
                 </div>
               ) : (
                 (() => {
                   const { canUninstall, dependents } = canUninstallApp(
                     app.id,
-                    apps
+                    apps,
                   );
                   return (
                     <div className={styles.buttonGroup}>
                       {app.widgets &&
                         app.widgets.some(
-                          (w) => w.target === "system-settings"
+                          (w) => w.target === "system-settings",
                         ) && (
                           <button
                             onClick={(e) => {
                               e.stopPropagation();
                               const systemWidget = app.widgets!.find(
-                                (w) => w.target === "system-settings"
+                                (w) => w.target === "system-settings",
                               );
                               if (systemWidget) {
                                 window.location.href = `/system/settings/applet/${systemWidget.id}`;
@@ -525,7 +524,7 @@ export default function AppList() {
                               border: "2px solid #1e293b",
                             }}
                             title={`Cannot uninstall: Required by ${dependents.join(
-                              ", "
+                              ", ",
                             )}`}
                           >
                             i

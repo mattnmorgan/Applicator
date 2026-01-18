@@ -10,7 +10,6 @@ import ApiRouteManager from "@/lib/database/client/managers/apiRoute";
 interface ApiRoute {
   path: string;
   method: string;
-  handler: string;
   description: string;
 }
 
@@ -55,7 +54,7 @@ function formatVersion(version: AppVersion): string {
 }
 
 function getMethodBadgeVariant(
-  method: string
+  method: string,
 ): "green" | "blue" | "yellow" | "red" | "purple" | "gray" {
   switch (method.toUpperCase()) {
     case "GET":
@@ -73,7 +72,7 @@ function getMethodBadgeVariant(
 }
 
 function getTargetBadgeVariant(
-  target: string
+  target: string,
 ): "green" | "blue" | "yellow" | "red" | "purple" | "gray" {
   switch (target) {
     case "home":
@@ -126,7 +125,6 @@ export default function AppView({ appId, onBack }: AppViewProps) {
             apiRoutesByApp[appIdKey].push({
               path: route.data.path,
               method: route.data.method,
-              handler: route.data.handler,
               description: route.data.description,
             });
           }
@@ -278,7 +276,7 @@ export default function AppView({ appId, onBack }: AppViewProps) {
                     </div>
                   </div>
                 );
-              }
+              },
             )}
           </div>
         </div>

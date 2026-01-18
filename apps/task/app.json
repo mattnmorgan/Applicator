@@ -118,37 +118,31 @@
     {
       "path": "list",
       "method": "GET",
-      "handler": "list",
       "description": "Get all tasks visible to the current user"
     },
     {
       "path": "create",
       "method": "POST",
-      "handler": "create",
       "description": "Create a new task"
     },
     {
       "path": "update",
       "method": "PATCH",
-      "handler": "update",
       "description": "Update an existing task"
     },
     {
       "path": "delete",
       "method": "DELETE",
-      "handler": "delete",
       "description": "Delete a task"
     },
     {
       "path": "users",
       "method": "GET",
-      "handler": "users",
       "description": "Get all active users for task assignment"
     },
     {
       "path": "download",
       "method": "GET",
-      "handler": "download",
       "description": "Download a task attachment"
     }
   ],

@@ -14,55 +14,46 @@
     {
       "path": "upload",
       "method": "POST",
-      "handler": "upload",
       "description": "Upload a file to a directory"
     },
     {
       "path": "download",
       "method": "GET",
-      "handler": "download",
       "description": "Download a file"
     },
     {
       "path": "delete",
       "method": "DELETE",
-      "handler": "delete",
       "description": "Delete a file"
     },
     {
       "path": "rename",
       "method": "PUT",
-      "handler": "rename",
       "description": "Rename a file"
     },
     {
       "path": "move",
       "method": "PUT",
-      "handler": "move",
       "description": "Move a file to a different directory"
     },
     {
       "path": "copy",
       "method": "POST",
-      "handler": "copy",
       "description": "Copy a file to a different directory"
     },
     {
       "path": "list",
       "method": "GET",
-      "handler": "list",
       "description": "List files in a directory"
     },
     {
       "path": "info",
       "method": "GET",
-      "handler": "info",
       "description": "Get file information"
     },
     {
       "path": "mkdir",
       "method": "POST",
-      "handler": "mkdir",
       "description": "Create a new directory"
     }
   ],

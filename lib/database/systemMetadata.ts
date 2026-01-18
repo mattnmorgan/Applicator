@@ -421,12 +421,6 @@ export const SYSTEM_APP_METADATA = {
           required: true,
         },
         {
-          name: "handler",
-          description: "Handler file name (without .js extension)",
-          type: "string",
-          required: true,
-        },
-        {
           name: "description",
           description: "Description of what this route does",
           type: "string",

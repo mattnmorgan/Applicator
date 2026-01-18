@@ -1,54 +1,54 @@
-import { NextRequest, NextResponse } from 'next/server';
-import ApiRouteManager from '@/lib/database/managers/apiRoute';
-import SettingManager from '@/lib/database/managers/setting';
-import { createPlugin, getSession } from '@/lib/sdk';
-import * as path from 'path';
-import * as fs from 'fs';
-import { createRequire } from 'module';
+import { NextRequest, NextResponse } from "next/server";
+import ApiRouteManager from "@/lib/database/managers/apiRoute";
+import SettingManager from "@/lib/database/managers/setting";
+import { createPlugin, getSession } from "@/lib/sdk";
+import * as path from "path";
+import * as fs from "fs";
+import { createRequire } from "module";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ appId: string; path: string[] }> }
+  { params }: { params: Promise<{ appId: string; path: string[] }> },
 ) {
-  return handleRequest(request, params, 'GET');
+  return handleRequest(request, params, "GET");
 }
 
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ appId: string; path: string[] }> }
+  { params }: { params: Promise<{ appId: string; path: string[] }> },
 ) {
-  return handleRequest(request, params, 'POST');
+  return handleRequest(request, params, "POST");
 }
 
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ appId: string; path: string[] }> }
+  { params }: { params: Promise<{ appId: string; path: string[] }> },
 ) {
-  return handleRequest(request, params, 'PATCH');
+  return handleRequest(request, params, "PATCH");
 }
 
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ appId: string; path: string[] }> }
+  { params }: { params: Promise<{ appId: string; path: string[] }> },
 ) {
-  return handleRequest(request, params, 'PUT');
+  return handleRequest(request, params, "PUT");
 }
 
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ appId: string; path: string[] }> }
+  { params }: { params: Promise<{ appId: string; path: string[] }> },
 ) {
-  return handleRequest(request, params, 'DELETE');
+  return handleRequest(request, params, "DELETE");
 }
 
 async function handleRequest(
   request: NextRequest,
   params: Promise<{ appId: string; path: string[] }>,
-  method: string
+  method: string,
 ) {
   try {
     const { appId, path: routePath } = await params;
-    const route = routePath.join('/');
+    const route = routePath.join("/");
 
     // Find matching API route from database
     const apiRouteManager = new ApiRouteManager();
@@ -57,8 +57,8 @@ async function handleRequest(
 
     if (!apiRouteRecord) {
       return NextResponse.json(
-        { error: 'API route not found' },
-        { status: 404 }
+        { error: "API route not found" },
+        { status: 404 },
       );
     }
 
@@ -66,38 +66,34 @@ async function handleRequest(
 
     // Get system storage path
     const settingManager = new SettingManager();
-    const storageSetting = await settingManager.readRecord('storage');
+    const storageSetting = await settingManager.readRecord("storage");
     const storagePath = storageSetting?.data.value;
     if (!storagePath) {
       return NextResponse.json(
-        { error: 'System storage not configured' },
-        { status: 500 }
+        { error: "System storage not configured" },
+        { status: 500 },
       );
     }
 
     // Load the handler from the app's API directory in system storage
-    // The handler path can include folders (e.g., "tasks/delete")
-    // Split the handler path and treat all but the last segment as folders,
-    // and the last segment as the filename (without extension)
-    const handlerSegments = apiRoute.handler.split('/');
-    const fileName = handlerSegments[handlerSegments.length - 1];
-    const folders = handlerSegments.slice(0, -1);
+    const fileName = routePath[routePath.length - 1];
+    const folders = routePath.slice(0, -1);
 
     // Build the full path: storage/apps/{appId}/api/{folders}/{fileName}.js
     const handlerPath = path.join(
       storagePath,
-      'apps',
+      "apps",
       appId,
-      'api',
+      "api",
       ...folders,
-      `${fileName}.js`
+      `${fileName}.js`,
     );
 
     // Check if file exists
     if (!fs.existsSync(handlerPath)) {
       return NextResponse.json(
-        { error: 'Handler file not found', path: handlerPath },
-        { status: 500 }
+        { error: "Handler file not found", path: handlerPath },
+        { status: 500 },
       );
     }
 
@@ -111,15 +107,15 @@ async function handleRequest(
     const handlerModule = require(absolutePath);
     const handler = handlerModule[method];
 
-    if (!handler || typeof handler !== 'function') {
+    if (!handler || typeof handler !== "function") {
       return NextResponse.json(
-        { error: 'Handler function not found' },
-        { status: 500 }
+        { error: "Handler function not found" },
+        { status: 500 },
       );
     }
 
     // Get session for user context (optional)
-    const sessionId = request.cookies.get('session')?.value;
+    const sessionId = request.cookies.get("session")?.value;
     let userId: string | undefined;
 
     if (sessionId) {
@@ -136,12 +132,21 @@ async function handleRequest(
     // Execute the handler with context
     return await handler(request, context);
   } catch (error) {
-    console.error('Error handling app API request:', error);
-    console.error('Error details:', error instanceof Error ? error.message : String(error));
-    console.error('Stack trace:', error instanceof Error ? error.stack : 'No stack trace');
+    console.error("Error handling app API request:", error);
+    console.error(
+      "Error details:",
+      error instanceof Error ? error.message : String(error),
+    );
+    console.error(
+      "Stack trace:",
+      error instanceof Error ? error.stack : "No stack trace",
+    );
     return NextResponse.json(
-      { error: 'Internal server error', details: error instanceof Error ? error.message : String(error) },
-      { status: 500 }
+      {
+        error: "Internal server error",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 },
     );
   }
 }
