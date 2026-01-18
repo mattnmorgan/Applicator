@@ -19,7 +19,7 @@ export default class FieldManager extends CRUD<Field> {
    * @returns Array of Field objects
    */
   async loadTableFields(appId: string, tableName: string): Promise<Field[]> {
-    const result = await super.readRecords<Field>({
+    const result = await super.readRecords({
       fields: { app: appId, table: tableName },
     });
     return result.records.map((r) => r.data);

@@ -9,6 +9,7 @@ import AuthorityManager from "@/lib/database/managers/authority";
 import UserManager from "@/lib/database/managers/user";
 import LogManager from "@/lib/database/managers/log";
 import TableManager from "@/lib/database/managers/table";
+import FieldManager from "@/lib/database/managers/field";
 import { createRecord, bulkCreateRecords } from "@/lib/database/crud/create";
 import { readRecord, readRecords } from "@/lib/database/crud/read";
 import { updateRecord } from "@/lib/database/crud/update";
@@ -83,6 +84,13 @@ export async function createPlugin(
   const tableName = appId; // Convention: table name matches app ID
   const table = await tableManager.loadTable(appId, tableName);
 
+  // Load the table fields
+  const fieldManager = new FieldManager();
+  const fieldsResult = await fieldManager.readRecords({
+    fields: { app: appId, table: tableName }
+  });
+  const tableFields = fieldsResult.records.map(r => r.data);
+
   const plugin: PluginContext = {
     appId,
     userId,
@@ -146,7 +154,7 @@ export async function createPlugin(
         return record;
       },
       list: async (options?: { limit?: number; offset?: number }) => {
-        const result = await readRecords(appId, tableName, {
+        const result = await readRecords(appId, tableName, tableFields, {
           limit: options?.limit || 100,
           offset: options?.offset || 0,
         });

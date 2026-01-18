@@ -36,10 +36,11 @@ export default abstract class CRUD<T = any> {
   fields!: Field[] | null;
 
   async readRecords(filter: RecordFilter<T> = {}): Promise<Result<T>> {
+    const fields = await this.getTableFields();
     return await readRecords<T>(
       this.appId,
       this.tableName,
-      await this.getTableFields(),
+      fields || [],
       filter
     );
   }
