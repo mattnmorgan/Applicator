@@ -50,7 +50,7 @@ export async function readRecords<T = any>(
   ];
   const paramUrl = paramBits.filter((b) => b.length).join("&");
   const response = await fetch(
-    `/api/system/apps/${appId}/tables/${tableId}${
+    `/api/${appId}/tables/${tableId}${
       paramUrl.length ? "?" + paramUrl : ""
     }`,
     {

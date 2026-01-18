@@ -47,7 +47,7 @@ async function _deleteRecords(
   ];
   const paramUrl = paramBits.filter((b) => b.length).join("&");
   const response = await fetch(
-    `/api/system/apps/${appId}/tables/${tableId}${
+    `/api/${appId}/tables/${tableId}${
       paramUrl ? "?" + paramUrl : ""
     }`,
     {

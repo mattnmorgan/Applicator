@@ -21,7 +21,7 @@ export async function createRecord<T = any>(
   id: string | undefined = undefined,
   errorOnFail: boolean = false
 ): Promise<TableRecord<T>> {
-  const response = await fetch(`/api/system/apps/${appId}/tables/${tableId}`, {
+  const response = await fetch(`/api/${appId}/tables/${tableId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({
@@ -46,7 +46,7 @@ export async function createRecords<T = any>(
   records: Partial<T>[],
   errorOnFail: boolean = false
 ): Promise<BulkResult<T>> {
-  const response = await fetch(`/api/system/apps/${appId}/tables/${tableId}`, {
+  const response = await fetch(`/api/${appId}/tables/${tableId}`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

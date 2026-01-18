@@ -35,7 +35,7 @@ export async function updateRecords<T = any>(
   updates: { [id: string]: Partial<T> },
   errorOnFail: boolean = false
 ): Promise<BulkResult<T>> {
-  const response = await fetch(`/api/system/apps/${appId}/tables/${tableId}`, {
+  const response = await fetch(`/api/${appId}/tables/${tableId}`, {
     method: "PATCH",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({

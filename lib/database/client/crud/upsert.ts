@@ -11,7 +11,7 @@ export async function upsertRecord<T = any>(
   data: T
 ): Promise<TableRecord<T>> {
   const response = await fetch(
-    `/api/system/apps/${appId}/tables/${tableId}`,
+    `/api/${appId}/tables/${tableId}`,
     {
       method: "PUT",
       headers: { "Content-Type": "application/json" },
