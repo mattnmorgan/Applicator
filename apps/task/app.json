@@ -111,7 +111,6 @@
     {
       "id": "task-administrator",
       "name": "Task Administrator",
-      "description": "Full administrative access to task management system",
       "authorizations": ["manage", "assign", "view-all", "task-admin"]
     }
   ],
