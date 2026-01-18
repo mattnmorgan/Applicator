@@ -37,7 +37,10 @@ export async function GET(
 
     // Handle system app assets with special routing
     if (appId === "system") {
-      if (pathSegments.length === 1 && pathSegments[0] === "brand") {
+      if (pathSegments.length === 1 && pathSegments[0] === "icon") {
+        // Redirect to the static system icon in the public folder
+        return NextResponse.redirect(new URL("/assets/icons/system.png", request.url));
+      } else if (pathSegments.length === 1 && pathSegments[0] === "brand") {
         filePath = path.join(storagePath, "apps", "system", "brand.png");
       } else if (
         pathSegments.length === 3 &&

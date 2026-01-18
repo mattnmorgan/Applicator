@@ -106,7 +106,7 @@ export default function ProfilePage() {
         formData.append("clearProfilePicture", "true");
       }
 
-      const response = await fetch("/api/system/model/users/settings/profile", {
+      const response = await fetch("/api/system/settings/user", {
         method: "PATCH",
         body: formData,
       });
