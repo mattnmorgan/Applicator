@@ -59,5 +59,8 @@ export async function bulkDeleteRecords(
 
 export async function deleteAll(appId: string, tableName: string) {
   const client = getRedisClient();
-  await client.del(await client.keys(getKeyPrefix(appId, tableName) + "*"));
+  const keys = await client.keys(getKeyPrefix(appId, tableName) + "*");
+  if (keys.length > 0) {
+    await client.del(...keys);
+  }
 }
