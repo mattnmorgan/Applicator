@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from "react";
 import { useRouter } from "next/navigation";
+import UserManager from "@/lib/database/client/managers/user";
 
 export default function SetupPage() {
   const router = useRouter();
@@ -13,6 +14,13 @@ export default function SetupPage() {
   });
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+
+  // Redirect from first-time setup if a user is created already
+  new UserManager().readRecords({ limit: 1 }).then((result) => {
+    if (result.total) {
+      router.replace("/");
+    }
+  });
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
