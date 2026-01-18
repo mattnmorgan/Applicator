@@ -20,7 +20,7 @@ export default function SetupPage() {
     setLoading(true);
 
     try {
-      const response = await fetch("/api/system/settings/setup/register", {
+      const response = await fetch("/api/system/settings/setup", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
