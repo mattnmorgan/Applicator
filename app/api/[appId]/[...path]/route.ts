@@ -76,19 +76,27 @@ async function handleRequest(
     }
 
     // Load the handler from the app's API directory in system storage
-    // Use .js extension since we're loading compiled output
+    // The handler path can include folders (e.g., "tasks/delete")
+    // Split the handler path and treat all but the last segment as folders,
+    // and the last segment as the filename (without extension)
+    const handlerSegments = apiRoute.handler.split('/');
+    const fileName = handlerSegments[handlerSegments.length - 1];
+    const folders = handlerSegments.slice(0, -1);
+
+    // Build the full path: storage/apps/{appId}/api/{folders}/{fileName}.js
     const handlerPath = path.join(
       storagePath,
       'apps',
       appId,
       'api',
-      `${apiRoute.handler}.js`
+      ...folders,
+      `${fileName}.js`
     );
 
     // Check if file exists
     if (!fs.existsSync(handlerPath)) {
       return NextResponse.json(
-        { error: 'Handler file not found' },
+        { error: 'Handler file not found', path: handlerPath },
         { status: 500 }
       );
     }
