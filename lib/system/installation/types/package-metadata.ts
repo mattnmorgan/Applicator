@@ -33,6 +33,7 @@ export default interface AppMetadata {
     name: string;
     description: string;
     contextual?: boolean;
+    target?: "user" | "app";
   }[];
   authorities?: {
     id: string;

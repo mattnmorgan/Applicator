@@ -20,6 +20,7 @@ interface Authorization {
   app: string;
   appLabel: string;
   contextual?: boolean;
+  target?: "user" | "app";
 }
 
 interface Applet {
@@ -66,7 +67,7 @@ export default function UserCreate({
   const [previewUrl, setPreviewUrl] = useState<string>(
     editUser?.icon
       ? `/api/system/assets/icons/users/${editUser.id}?t=${Date.now()}`
-      : ""
+      : "",
   );
   const [clearProfilePicture, setClearProfilePicture] = useState(false);
   const [creating, setCreating] = useState(false);
@@ -74,10 +75,10 @@ export default function UserCreate({
 
   // Custom authorizations and apps
   const [customAuthorizations, setCustomAuthorizations] = useState<string[]>(
-    editUser?.authorizations?.userAuthorizations || []
+    editUser?.authorizations?.userAuthorizations || [],
   );
   const [customApps, setCustomApps] = useState<string[]>(
-    editUser?.apps?.userAccesses || []
+    editUser?.apps?.userAccesses || [],
   );
   const [availableAuthorizations, setAvailableAuthorizations] = useState<
     Authorization[]
@@ -101,7 +102,7 @@ export default function UserCreate({
           await new AuthorityManager().readRecords({
             fields: { contextual: false },
           })
-        ).records.filter((r) => !r.data.userId)
+        ).records.filter((r) => !r.data.userId),
       );
     } catch (error) {
       console.error("Failed to fetch authorities:", error);
@@ -134,6 +135,7 @@ export default function UserCreate({
           app: record.data.app,
           appLabel: appIdToLabel.get(record.data.app) || record.data.app,
           contextual: record.data.contextual,
+          target: record.data.target,
         }));
 
       setAvailableAuthorizations(nonContextualAuthorizations);
@@ -176,7 +178,7 @@ export default function UserCreate({
     setCustomAuthorizations((prev) =>
       prev.includes(authId)
         ? prev.filter((id) => id !== authId)
-        : [...prev, authId]
+        : [...prev, authId],
     );
   };
 
@@ -184,7 +186,7 @@ export default function UserCreate({
     setCustomApps((prev) =>
       prev.includes(appId)
         ? prev.filter((id) => id !== appId)
-        : [...prev, appId]
+        : [...prev, appId],
     );
   };
 
@@ -216,7 +218,7 @@ export default function UserCreate({
       setError(
         isEditMode
           ? "Display name, username, and email are required"
-          : "All fields except profile picture are required"
+          : "All fields except profile picture are required",
       );
       return;
     }
@@ -247,11 +249,13 @@ export default function UserCreate({
       }
       // Note: If new icon file is selected, it will be uploaded and updated after this
 
+      console.log(JSON.stringify(record));
       if (isEditMode) {
         record = await manager.updateRecord(record.id, record.data);
       } else {
         record = await manager.createRecord(record.data);
       }
+      console.log(JSON.stringify(record));
 
       if (profilePicture && !clearProfilePicture) {
         const systemSettings = await getSystemSettings();
@@ -265,11 +269,11 @@ export default function UserCreate({
         await uploadFile(
           profilePicture,
           `${systemSettings.storage}/apps/system/icons/users`,
-          fname
+          fname,
         );
         record = await manager.updateRecord(record.id, {
           ...record?.data,
-          icon: 'true',
+          icon: "true",
         });
       }
 
@@ -287,7 +291,7 @@ export default function UserCreate({
             name: `${record.data.displayName} (User-specific)`,
             userId: record.id,
           },
-          userAuthorityId
+          userAuthorityId,
         );
       } else {
         await authorityManager.updateRecord(`user-specific:${record.id}`, {
@@ -307,7 +311,7 @@ export default function UserCreate({
   };
 
   const filteredAuthorizations = availableAuthorizations
-    .filter((auth) => !auth.contextual)
+    .filter((auth) => !auth.contextual && auth.target !== "app")
     .filter((auth) =>
       authorizationSearch
         ? auth.name.toLowerCase().includes(authorizationSearch.toLowerCase()) ||
@@ -317,7 +321,7 @@ export default function UserCreate({
           auth.appLabel
             .toLowerCase()
             .includes(authorizationSearch.toLowerCase())
-        : true
+        : true,
     );
 
   const filteredApplets = availableApplets
@@ -327,7 +331,7 @@ export default function UserCreate({
         ? applet.label.toLowerCase().includes(appSearch.toLowerCase()) ||
           applet.description.toLowerCase().includes(appSearch.toLowerCase()) ||
           applet.appLabel.toLowerCase().includes(appSearch.toLowerCase())
-        : true
+        : true,
     );
 
   return (
@@ -545,8 +549,8 @@ export default function UserCreate({
                 ? "Updating..."
                 : "Creating..."
               : isEditMode
-              ? "Update User"
-              : "Create User"}
+                ? "Update User"
+                : "Create User"}
           </button>
         </div>
       </form>

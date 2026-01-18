@@ -207,6 +207,10 @@ export async function POST(request: NextRequest) {
 
     // Delete contextual authorities created by this app
     const authorityManager = new AuthorityManager();
+
+    // Delete app-specific authority
+    await authorityManager.deleteAppSpecificAuthority(appId);
+
     const authoritiesResult = await authorityManager.readRecords();
     for (const authority of authoritiesResult.records) {
       // Delete contextual authorities created by this app

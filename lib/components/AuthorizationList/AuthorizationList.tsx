@@ -1,11 +1,11 @@
-'use client';
+"use client";
 
-import { useState, useEffect } from 'react';
-import Row from '../Row';
-import Badge from '../Badge/Badge';
-import styles from './AuthorizationList.module.css';
-import AuthorizationManager from '@/lib/database/client/managers/authorization';
-import AppManager from '@/lib/database/client/managers/app';
+import { useState, useEffect } from "react";
+import Row from "../Row";
+import Badge from "../Badge/Badge";
+import styles from "./AuthorizationList.module.css";
+import AuthorizationManager from "@/lib/database/client/managers/authorization";
+import AppManager from "@/lib/database/client/managers/app";
 
 interface Authorization {
   id: string;
@@ -14,11 +14,12 @@ interface Authorization {
   app: string;
   appLabel: string;
   contextual?: boolean;
+  target?: "user" | "app";
 }
 
 export default function AuthorizationList() {
   const [authorizations, setAuthorizations] = useState<Authorization[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
 
   const fetchAuthorizations = async () => {
     try {
@@ -44,11 +45,12 @@ export default function AuthorizationList() {
         app: record.data.app,
         appLabel: appLabels[record.data.app] || record.data.app,
         contextual: record.data.contextual,
+        target: record.data.target,
       }));
 
       setAuthorizations(authorizationsList);
     } catch (error) {
-      console.error('Failed to fetch authorizations:', error);
+      console.error("Failed to fetch authorizations:", error);
     }
   };
 
@@ -56,9 +58,12 @@ export default function AuthorizationList() {
     fetchAuthorizations();
   }, []);
 
-  const filteredAuthorizations = authorizations.filter(authorization =>
-    authorization.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    authorization.description.toLowerCase().includes(searchQuery.toLowerCase())
+  const filteredAuthorizations = authorizations.filter(
+    (authorization) =>
+      authorization.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      authorization.description
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()),
   );
 
   return (
@@ -74,24 +79,31 @@ export default function AuthorizationList() {
       </div>
 
       <div className={styles.authorizationList}>
-        {filteredAuthorizations.map(authorization => (
+        {filteredAuthorizations.map((authorization) => (
           <Row key={authorization.id}>
             <div className={styles.authorizationInfo}>
               <div className={styles.iconPlaceholder}>
                 {authorization.name.charAt(0).toUpperCase()}
               </div>
               <div className={styles.contentColumn}>
-                <div className={styles.authorizationName}>{authorization.name}</div>
-                <div className={styles.authorizationDescription}>{authorization.description}</div>
+                <div className={styles.authorizationName}>
+                  {authorization.name}
+                </div>
+                <div className={styles.authorizationDescription}>
+                  {authorization.description}
+                </div>
               </div>
             </div>
             <div className={styles.appColumn}>
               {authorization.contextual && (
-                <Badge variant="yellow">
-                  Contextual
-                </Badge>
+                <Badge variant="yellow">Contextual</Badge>
               )}
-              <Badge variant={authorization.app === 'system' ? 'purple' : 'blue'}>
+              {authorization.target === "app" && (
+                <Badge variant="green">App</Badge>
+              )}
+              <Badge
+                variant={authorization.app === "system" ? "purple" : "blue"}
+              >
                 {authorization.appLabel}
               </Badge>
             </div>
@@ -99,9 +111,7 @@ export default function AuthorizationList() {
         ))}
 
         {filteredAuthorizations.length === 0 && (
-          <div className={styles.emptyState}>
-            No authorizations found
-          </div>
+          <div className={styles.emptyState}>No authorizations found</div>
         )}
       </div>
     </div>

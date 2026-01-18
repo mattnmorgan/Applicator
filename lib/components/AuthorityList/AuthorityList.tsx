@@ -20,6 +20,7 @@ interface Authority {
   contextual?: boolean;
   app?: string;
   appLabel?: string;
+  isAppSpecific?: boolean;
 }
 
 export default function AuthorityList() {
@@ -63,9 +64,10 @@ export default function AuthorityList() {
       // Transform records to match expected format and add icon URLs
       const authoritiesWithIcons = nonUserAuthorities.map((record) => {
         const authority = record.data;
+        const isAppSpecific = record.id.startsWith("app-specific:");
         let appLabel = undefined;
 
-        if (authority.contextual && authority.app) {
+        if ((authority.contextual || isAppSpecific) && authority.app) {
           appLabel = appIdToLabel.get(authority.app) || "Unknown";
         }
 
@@ -83,6 +85,7 @@ export default function AuthorityList() {
           contextual: authority.contextual,
           app: authority.app,
           appLabel,
+          isAppSpecific,
         };
       });
 
@@ -195,8 +198,8 @@ export default function AuthorityList() {
 
   const handleEditAuthority = async (authorityId: string) => {
     const authority = authorities.find((a) => a.id === authorityId);
-    // Prevent editing contextual authorities
-    if (authority?.contextual) {
+    // Prevent editing contextual authorities (but allow app-specific)
+    if (authority?.contextual && !authority?.isAppSpecific) {
       setToast({
         message: "Contextual authorities cannot be edited",
         type: "error",
@@ -209,6 +212,7 @@ export default function AuthorityList() {
       if (data.records && data.records.length > 0) {
         const record = data.records[0];
         const authorityData = record.data;
+        const isAppSpecific = record.id.startsWith("app-specific:");
         setEditingAuthority({
           id: record.id,
           name: authorityData.name,
@@ -220,6 +224,8 @@ export default function AuthorityList() {
               : undefined,
           authorizations: authorityData.authorizations,
           apps: authorityData.apps,
+          isAppSpecific,
+          app: authorityData.app,
         });
       }
     } catch (error) {
@@ -247,6 +253,8 @@ export default function AuthorityList() {
                 icon: editingAuthority.icon,
                 authorizations: editingAuthority.authorizations,
                 apps: editingAuthority.apps,
+                isAppSpecific: editingAuthority.isAppSpecific,
+                appId: editingAuthority.app,
               }
             : undefined
         }
@@ -333,17 +341,17 @@ export default function AuthorityList() {
               onChange={(e) =>
                 handleSelectAuthority(authority.id, e.target.checked)
               }
-              disabled={authority.contextual}
+              disabled={authority.contextual || authority.isAppSpecific}
               style={{
-                opacity: authority.contextual ? 0.5 : 1,
-                cursor: authority.contextual ? "not-allowed" : "pointer",
+                opacity: authority.contextual || authority.isAppSpecific ? 0.5 : 1,
+                cursor: authority.contextual || authority.isAppSpecific ? "not-allowed" : "pointer",
               }}
             />
             <div
               className={styles.authorityInfo}
               onClick={() => handleEditAuthority(authority.id)}
               style={{
-                cursor: authority.contextual ? "not-allowed" : "pointer",
+                cursor: authority.contextual && !authority.isAppSpecific ? "not-allowed" : "pointer",
               }}
             >
               {authority.icon ? (
@@ -369,7 +377,10 @@ export default function AuthorityList() {
               </div>
             </div>
             <div className={styles.badgeColumn}>
-              {authority.contextual && (
+              {authority.isAppSpecific && (
+                <Badge variant="green">App</Badge>
+              )}
+              {authority.contextual && !authority.isAppSpecific && (
                 <Badge variant="yellow">Contextual</Badge>
               )}
               {authority.appLabel && (

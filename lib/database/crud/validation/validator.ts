@@ -19,13 +19,12 @@ export async function executeValidator(
   tableName: string,
   field: Field,
   value: any,
-  record: Record<string, any>
+  record: Record<string, any>,
 ): Promise<Result> {
   try {
     // Get system storage path (lazy import to avoid circular dependency)
-    const { default: SettingManager } = await import(
-      "@/lib/database/managers/setting"
-    );
+    const { default: SettingManager } =
+      await import("@/lib/database/managers/setting");
     const storagePath = (await new SettingManager().readRecord("storage"))?.data
       .value;
     if (!storagePath) {
@@ -40,7 +39,7 @@ export async function executeValidator(
       "tables",
       tableName,
       field.name,
-      "validator.js"
+      "validator.js",
     );
 
     // Check if validator exists
@@ -114,7 +113,7 @@ export async function validateFields(
   appId: string,
   tableName: string,
   fields: Field[],
-  data: Record<string, any>
+  data: Record<string, any>,
 ): Promise<Result[]> {
   const results: Result[] = [];
 
@@ -135,7 +134,7 @@ export async function validateFields(
  */
 export async function validateRequiredFields(
   fields: Field[],
-  data: Record<string, any>
+  data: Record<string, any>,
 ): Promise<Result[]> {
   const results: Result[] = [];
 
@@ -147,11 +146,7 @@ export async function validateRequiredFields(
 
     if (field.required) {
       const value = data[field.name];
-      const hasValue =
-        value !== undefined &&
-        value !== null &&
-        value !== "" &&
-        (!Array.isArray(value) || (value as any[]).length);
+      const hasValue = value !== undefined && value !== null && value !== "";
 
       if (!hasValue) {
         results.push({
@@ -180,7 +175,7 @@ export async function validateRequiredFields(
  */
 export async function validatePicklistFields(
   fields: Field[],
-  data: Record<string, any>
+  data: Record<string, any>,
 ): Promise<Result[]> {
   const results: Result[] = [];
 
@@ -215,7 +210,7 @@ export async function validatePicklistFields(
  */
 export async function validateMultipicklistFields(
   fields: Field[],
-  data: Record<string, any>
+  data: Record<string, any>,
 ): Promise<Result[]> {
   const results: Result[] = [];
 

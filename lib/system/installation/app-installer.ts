@@ -153,6 +153,7 @@ export async function installAppComponents(
     const authTable = await authorizationManager.getTable();
 
     for (const auth of appAttributes.authorizations) {
+      const authId = `${appId}:${auth.id}`;
       await authorizationManager.createRecord(
         authTable,
         {
@@ -160,11 +161,22 @@ export async function installAppComponents(
           description: auth.description || "",
           app: appId,
           contextual: auth.contextual || false,
+          target: auth.target || "user",
         },
-        { id: `${appId}:${auth.id}` },
+        { id: authId },
       );
     }
   }
+
+  // Create app-specific authority if there are app-only authorizations
+  const authorityManager = new AuthorityManager();
+  await authorityManager.createAppSpecificAuthority(appId, {
+    name: `${appAttributes.name} (App-specific)`,
+    authorizations: [],
+    apps: [],
+    contextual: true,
+    app: appId,
+  });
 
   // Install contextual authorities
   if (
@@ -680,6 +692,7 @@ export async function upgradeSystemApp(): Promise<{
         name: auth.name,
         description: auth.description,
         contextual: auth.contextual,
+        target: (auth as any).target || "user",
       },
       { id: auth.id },
     );
@@ -999,6 +1012,7 @@ export async function setupSystem(adminUser: {
         description: authorization.description,
         app: authorization.app,
         contextual: authorization.contextual,
+        target: (authorization as any).target || "user",
       },
       { id: "system:" + authorization.id },
     );

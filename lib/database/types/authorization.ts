@@ -3,4 +3,5 @@ export default interface Authorization {
   description: string;
   app: string;
   contextual?: boolean;
+  target?: "user" | "app";
 }

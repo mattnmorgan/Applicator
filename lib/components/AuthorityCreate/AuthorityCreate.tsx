@@ -18,6 +18,8 @@ interface AuthorityCreateProps {
     icon?: string;
     authorizations?: string[];
     apps?: string[];
+    isAppSpecific?: boolean;
+    appId?: string;
   };
 }
 
@@ -28,6 +30,7 @@ interface Authorization {
   app: string;
   appLabel: string;
   contextual?: boolean;
+  target?: "user" | "app";
 }
 
 interface Applet {
@@ -70,6 +73,9 @@ export default function AuthorityCreate({
   const isSystemAuthority =
     editAuthority &&
     ["system:admin", "system:user", "system:guest"].includes(editAuthority.id);
+  const isAppSpecificAuthority =
+    editAuthority?.isAppSpecific ||
+    editAuthority?.id.startsWith("app-specific:");
 
   const authorityManager = new AuthorityManager();
   const appManager = new AppManager();
@@ -99,6 +105,7 @@ export default function AuthorityCreate({
           app: record.data.app,
           appLabel: appIdToLabel.get(record.data.app) || record.data.app,
           contextual: record.data.contextual,
+          target: record.data.target,
         }));
         setAuthorizations(authorizationsList);
 
@@ -183,7 +190,7 @@ export default function AuthorityCreate({
     e.preventDefault();
     setError("");
 
-    if (!name.trim() && !isSystemAuthority) {
+    if (!name.trim() && !isSystemAuthority && !isAppSpecificAuthority) {
       setError("Authority name is required");
       return;
     }
@@ -321,7 +328,14 @@ export default function AuthorityCreate({
   };
 
   const filteredAuthorizations = authorizations
-    .filter((auth) => !auth.contextual) // Exclude contextual authorizations
+    .filter((auth) => {
+      // For app-specific authorities, only show app-target authorizations
+      if (isAppSpecificAuthority) {
+        return auth.target === "app";
+      }
+      // For normal authorities, exclude contextual and app-target authorizations
+      return !auth.contextual && auth.target !== "app";
+    })
     .filter(
       (auth) =>
         auth.name.toLowerCase().includes(authorizationSearch.toLowerCase()) ||
@@ -368,7 +382,7 @@ export default function AuthorityCreate({
             value={name}
             onChange={(e) => setName(e.target.value)}
             placeholder="Authority Name"
-            disabled={isSystemAuthority}
+            disabled={isSystemAuthority || isAppSpecificAuthority}
           />
         </div>
 
@@ -432,13 +446,17 @@ export default function AuthorityCreate({
                   className={styles.authorizationLabel}
                 >
                   <div className={styles.authorizationName}>
-                    <Badge
-                      variant={
-                        authorization.app === "system" ? "purple" : "blue"
-                      }
-                    >
-                      {authorization.appLabel}
-                    </Badge>
+                    {authorization.target === "app" ? (
+                      <Badge variant="green">App</Badge>
+                    ) : (
+                      <Badge
+                        variant={
+                          authorization.app === "system" ? "purple" : "blue"
+                        }
+                      >
+                        {authorization.appLabel}
+                      </Badge>
+                    )}
                     {authorization.name}
                   </div>
                   <div className={styles.authorizationDescription}>
@@ -453,45 +471,56 @@ export default function AuthorityCreate({
           </div>
         </div>
 
-        <div className={styles.formGroup}>
-          <label className={styles.label}>Apps</label>
-          <input
-            type="text"
-            className={styles.input}
-            placeholder="Search apps..."
-            value={appletSearch}
-            onChange={(e) => setAppletSearch(e.target.value)}
-            style={{ marginBottom: "12px" }}
-          />
-          <div className={styles.authorizationList}>
-            {filteredApplets.map((applet) => (
-              <div key={applet.id} className={styles.authorizationItem}>
-                <input
-                  type="checkbox"
-                  id={`applet-${applet.id}`}
-                  className={styles.checkbox}
-                  checked={selectedApplets.has(applet.id)}
-                  onChange={() => handleToggleApplet(applet.id)}
-                />
-                <label
-                  htmlFor={`applet-${applet.id}`}
-                  className={styles.authorizationLabel}
-                >
-                  <div className={styles.authorizationName}>
-                    <Badge variant="blue">{applet.appLabel}</Badge>
-                    {applet.label}
-                  </div>
-                  <div className={styles.authorizationDescription}>
-                    {applet.description}
-                  </div>
-                </label>
-              </div>
-            ))}
-            {filteredApplets.length === 0 && (
-              <div className={styles.emptyState}>No apps found</div>
-            )}
+        {!isAppSpecificAuthority && (
+          <div className={styles.formGroup}>
+            <label className={styles.label}>Apps</label>
+            <input
+              type="text"
+              className={styles.input}
+              placeholder="Search apps..."
+              value={appletSearch}
+              onChange={(e) => setAppletSearch(e.target.value)}
+              style={{ marginBottom: "12px" }}
+            />
+            <div className={styles.authorizationList}>
+              {filteredApplets.map((applet) => (
+                <div key={applet.id} className={styles.authorizationItem}>
+                  <input
+                    type="checkbox"
+                    id={`applet-${applet.id}`}
+                    className={styles.checkbox}
+                    checked={selectedApplets.has(applet.id)}
+                    onChange={() => handleToggleApplet(applet.id)}
+                  />
+                  <label
+                    htmlFor={`applet-${applet.id}`}
+                    className={styles.authorizationLabel}
+                  >
+                    <div className={styles.authorizationName}>
+                      <Badge variant="blue">{applet.appLabel}</Badge>
+                      {applet.label}
+                    </div>
+                    <div className={styles.authorizationDescription}>
+                      {applet.description}
+                    </div>
+                  </label>
+                </div>
+              ))}
+              {filteredApplets.length === 0 && (
+                <div className={styles.emptyState}>No apps found</div>
+              )}
+            </div>
           </div>
-        </div>
+        )}
+
+        {isAppSpecificAuthority && (
+          <div
+            style={{ color: "#94a3b8", fontSize: "14px", fontStyle: "italic" }}
+          >
+            Note: App-specific authorities can only be modified for their
+            authorizations. The name and apps are managed by the app.
+          </div>
+        )}
 
         {isSystemAuthority && (
           <div

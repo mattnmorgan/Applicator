@@ -3,8 +3,8 @@ export const SYSTEM_APP_METADATA = {
   name: "System",
   version: {
     major: 1,
-    minor: 4,
-    dev: 7,
+    minor: 5,
+    dev: 0,
   },
   author: "Matthew Morgan",
   contactEmail: "matthew@morgantech.info",
@@ -150,6 +150,14 @@ export const SYSTEM_APP_METADATA = {
           description: "Whether this is a contextual authorization",
           type: "boolean",
           defaultValue: false,
+        },
+        {
+          name: "target",
+          description:
+            "Target for this authorization: 'user' for user-assignable, 'app' for app-only",
+          type: "picklist",
+          options: ["user", "app"],
+          defaultValue: "user",
         },
       ],
     },
@@ -582,6 +590,15 @@ export const SYSTEM_APP_METADATA = {
       description: "Allows user to impersonate other users in the system",
       app: "system",
       contextual: false,
+    },
+    {
+      id: "fs-access",
+      name: "Filesystem Access",
+      description:
+        "Permits access to the filesystem API for reading and writing files",
+      app: "system",
+      contextual: false,
+      target: "app",
     },
   ],
 };
