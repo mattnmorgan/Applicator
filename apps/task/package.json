@@ -5,7 +5,7 @@
   "scripts": {
     "build": "npm run build:api && webpack --mode production && npm run package",
     "build:api": "webpack --config webpack.api.config.js",
-    "package": "node scripts/package.js > ./logs/build.log",
+    "package": "node scripts/package.js",
     "dev": "webpack --mode development --watch"
   },
   "dependencies": {

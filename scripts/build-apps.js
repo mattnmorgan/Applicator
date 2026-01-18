@@ -3,12 +3,6 @@ const fs = require('fs');
 const path = require('path');
 
 const APPS_DIR = path.join(__dirname, '..', 'apps');
-const LOGS_DIR = path.join(__dirname, '..', 'logs');
-
-// Ensure logs directory exists
-if (!fs.existsSync(LOGS_DIR)) {
-  fs.mkdirSync(LOGS_DIR, { recursive: true });
-}
 
 // Get all app directories
 const apps = fs.readdirSync(APPS_DIR).filter(file => {
@@ -27,7 +21,7 @@ console.log(`Found ${apps.length} app(s) to build: ${apps.join(', ')}\n`);
 async function buildApps() {
   for (const app of apps) {
     const appPath = path.join(APPS_DIR, app);
-    const logFile = path.join(LOGS_DIR, `${app}.log`);
+    const logFile = path.join(appPath, 'build.log');
 
     console.log(`Building ${app}...`);
 
@@ -60,7 +54,7 @@ async function buildApps() {
           logStream.write(`npm install failed with code ${code}\n`);
           logStream.write(`Finished at: ${new Date().toISOString()}\n`);
           logStream.end();
-          console.log(`  ✗ ${app} - npm install failed (see logs/${app}.log)`);
+          console.log(`  ✗ ${app} - npm install failed (see apps/${app}/build.log)`);
           resolve(); // Continue with next app even if this one fails
           return;
         }
@@ -89,7 +83,7 @@ async function buildApps() {
             console.log(`  ✓ ${app} - build successful`);
           } else {
             logStream.write(`Build failed with code ${buildCode}\n`);
-            console.log(`  ✗ ${app} - build failed (see logs/${app}.log)`);
+            console.log(`  ✗ ${app} - build failed (see apps/${app}/build.log)`);
           }
           logStream.write(`Finished at: ${new Date().toISOString()}\n`);
           logStream.end();
@@ -99,7 +93,7 @@ async function buildApps() {
     });
   }
 
-  console.log('\nAll app builds completed. Check logs/ directory for details.');
+  console.log('\nAll app builds completed. Check each app\'s build.log for details.');
 }
 
 buildApps().catch(err => {
