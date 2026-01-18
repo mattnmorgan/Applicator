@@ -72,7 +72,7 @@ export default function Navigation({
     }
   };
 
-  const hasAssumeIdentity = authorizations.includes("assume-identity");
+  const hasAssumeIdentity = authorizations.includes("system:assume-identity");
 
   const menuOptions = [
     {
