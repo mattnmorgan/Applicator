@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, context: { plugin: any }) {
     const canViewAll = await plugin.system.checkMyAuthorization("demo:view");
 
     // Get all demo items
-    const result = await plugin.records.list({ limit: 1000 });
+    const result = await plugin.records.list("demo-item", { limit: 1000 });
 
     // Filter based on permissions and enrich with user data
     const items = [];

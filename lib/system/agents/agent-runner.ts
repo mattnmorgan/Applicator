@@ -252,13 +252,6 @@ export async function startAgent(agentId: string): Promise<boolean> {
  * Stop an agent
  */
 export async function stopAgent(agentId: string): Promise<boolean> {
-  const agentManager = new AgentManager();
-  const agent = await agentManager.readRecord(agentId);
-
-  if (!agent) {
-    throw new Error(`Agent not found: ${agentId}`);
-  }
-
   const agentState = runningAgents.get(agentId);
 
   if (agentState) {
@@ -275,21 +268,26 @@ export async function stopAgent(agentId: string): Promise<boolean> {
     runningAgents.delete(agentId);
   }
 
-  // Update status to stopped
-  await agentManager.updateRecord(
-    await agentManager.getTable(),
-    agentId,
-    {
-      status: "stopped",
-      wasRunning: false,
-      pid: undefined,
-    }
-  );
+  // Try to update the database record (may not exist if being uninstalled)
+  const agentManager = new AgentManager();
+  const agent = await agentManager.readRecord(agentId);
 
-  await new LogManager().info(
-    agent.data.app,
-    `Agent '${agent.data.name}' stopped`
-  );
+  if (agent) {
+    await agentManager.updateRecord(
+      await agentManager.getTable(),
+      agentId,
+      {
+        status: "stopped",
+        wasRunning: false,
+        pid: undefined,
+      }
+    );
+
+    await new LogManager().info(
+      agent.data.app,
+      `Agent '${agent.data.name}' stopped`
+    );
+  }
 
   return true;
 }

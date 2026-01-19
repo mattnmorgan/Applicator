@@ -29,7 +29,7 @@ export async function run(context: PluginContext): Promise<void> {
 
   // Demonstrate we can access the database
   try {
-    const items: ListResult = await context.records.list({ limit: 1 });
+    const items: ListResult = await context.records.list("demo-item", { limit: 1 });
     await context.logger.info(
       `[Debug Logger] Demo items in database: ${items.total || 0}`
     );

@@ -30,7 +30,7 @@ export async function POST(request: NextRequest, context: { plugin: any }) {
     }
 
     // Create the demo item
-    const record = await plugin.records.create({
+    const record = await plugin.records.create("demo-item", {
       title: body.title,
       description: body.description || "",
       status: body.status || "draft",

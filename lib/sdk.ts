@@ -37,11 +37,11 @@ export interface PluginContext {
     }>;
   };
   records: {
-    create: (data: any) => Promise<any>;
-    list: (options?: { limit?: number; offset?: number }) => Promise<any>;
-    get: (id: string) => Promise<any>;
-    update: (id: string, data: any) => Promise<any>;
-    delete: (id: string) => Promise<void>;
+    create: (tableName: string, data: any) => Promise<any>;
+    list: (tableName: string, options?: { limit?: number; offset?: number }) => Promise<any>;
+    get: (tableName: string, id: string) => Promise<any>;
+    update: (tableName: string, id: string, data: any) => Promise<any>;
+    delete: (tableName: string, id: string) => Promise<void>;
   };
   system: {
     checkMyAuthorization: (authorization: string) => Promise<boolean>;
@@ -78,18 +78,31 @@ export async function createPlugin(
     // Directory might already exist
   }
 
-  // Determine the main table for this app
-  // For now, apps use a table with the same name as the appId (e.g., "task" app uses "task" table)
+  // Managers for loading tables on demand
   const tableManager = new TableManager();
-  const tableName = appId; // Convention: table name matches app ID
-  const table = await tableManager.loadTable(appId, tableName);
-
-  // Load the table fields
   const fieldManager = new FieldManager();
-  const fieldsResult = await fieldManager.readRecords({
-    fields: { app: appId, table: tableName },
-  });
-  const tableFields = fieldsResult.records.map((r) => r.data);
+
+  // Cache for loaded tables and fields
+  const tableCache = new Map<string, any>();
+  const fieldsCache = new Map<string, any[]>();
+
+  // Helper to load table and fields on demand
+  const loadTableAndFields = async (tableName: string) => {
+    if (!tableCache.has(tableName)) {
+      const table = await tableManager.loadTable(appId, tableName);
+      tableCache.set(tableName, table);
+    }
+    if (!fieldsCache.has(tableName)) {
+      const fieldsResult = await fieldManager.readRecords({
+        fields: { app: appId, table: tableName },
+      });
+      fieldsCache.set(tableName, fieldsResult.records.map((r) => r.data));
+    }
+    return {
+      table: tableCache.get(tableName),
+      fields: fieldsCache.get(tableName)!,
+    };
+  };
 
   const plugin: PluginContext = {
     appId,
@@ -149,26 +162,29 @@ export async function createPlugin(
       },
     },
     records: {
-      create: async (data: any) => {
+      create: async (tableName: string, data: any) => {
+        const { table } = await loadTableAndFields(tableName);
         const record = await createRecord(appId, tableName, table, data);
         return record;
       },
-      list: async (options?: { limit?: number; offset?: number }) => {
-        const result = await readRecords(appId, tableName, tableFields, {
+      list: async (tableName: string, options?: { limit?: number; offset?: number }) => {
+        const { fields } = await loadTableAndFields(tableName);
+        const result = await readRecords(appId, tableName, fields, {
           limit: options?.limit || 100,
           offset: options?.offset || 0,
         });
         return result;
       },
-      get: async (id: string) => {
+      get: async (tableName: string, id: string) => {
         const record = await readRecord(appId, tableName, id);
         return record;
       },
-      update: async (id: string, data: any) => {
+      update: async (tableName: string, id: string, data: any) => {
+        const { table } = await loadTableAndFields(tableName);
         const record = await updateRecord(appId, tableName, table, id, data);
         return record;
       },
-      delete: async (id: string) => {
+      delete: async (tableName: string, id: string) => {
         await deleteRecord(appId, tableName, id);
       },
     },

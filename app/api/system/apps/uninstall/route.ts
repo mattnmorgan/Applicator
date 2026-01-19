@@ -12,6 +12,7 @@ import FieldManager from "@/lib/database/managers/field";
 import ApiRouteManager from "@/lib/database/managers/apiRoute";
 import AppletManager from "@/lib/database/managers/applet";
 import AgentManager from "@/lib/database/managers/agent";
+import { stopAgent } from "@/lib/system/agents/agent-runner";
 import { deleteAll } from "@/lib/database/crud/delete";
 import path from "path";
 import fs from "fs/promises";
@@ -149,8 +150,12 @@ export async function POST(request: NextRequest) {
     );
 
     for (const agent of appAgents) {
-      // Stop agent if running - will be implemented in agent-runner
-      // For now, just delete the record
+      // Stop agent if running
+      try {
+        await stopAgent(agent.id);
+      } catch {
+        // Agent may not be running, ignore errors
+      }
       await agentManager.deleteRecord(agent.id);
     }
 
@@ -246,45 +251,39 @@ export async function POST(request: NextRequest) {
       }
 
       // Remove main app and all subApps from non-contextual authorities
-      if (authority.data.apps) {
-        // Filter out the main app and all subApps (appId:*)
-        const updatedApps = authority.data.apps.filter(
-          (id) => id !== appId && !id.startsWith(`${appId}:`)
+      // Also remove app's authorizations
+      const updatedApps = authority.data.apps
+        ? authority.data.apps.filter(
+            (id) => id !== appId && !id.startsWith(`${appId}:`)
+          )
+        : [];
+
+      const updatedAuthorizations = authority.data.authorizations
+        ? authority.data.authorizations.filter(
+            (authId) => !authId.startsWith(`${appId}:`)
+          )
+        : [];
+
+      const appsChanged =
+        authority.data.apps &&
+        updatedApps.length !== authority.data.apps.length;
+      const authorizationsChanged =
+        authority.data.authorizations &&
+        updatedAuthorizations.length !== authority.data.authorizations.length;
+
+      // Only update if something changed
+      if (appsChanged || authorizationsChanged) {
+        await authorityManager.updateRecord(
+          await authorityManager.getTable(),
+          authority.data.userId
+            ? `user-specific:${authority.id}`
+            : authority.id,
+          {
+            ...authority.data,
+            apps: updatedApps,
+            authorizations: updatedAuthorizations,
+          }
         );
-
-        // Only update if something changed
-        if (updatedApps.length !== authority.data.apps.length) {
-          await authorityManager.updateRecord(
-            await authorityManager.getTable(),
-            authority.data.userId
-              ? `user-specific:${authority.id}`
-              : authority.id,
-            { ...authority.data, apps: updatedApps }
-          );
-        }
-      }
-
-      // Remove app's authorizations from non-contextual authorities
-      if (authority.data.authorizations) {
-        const updatedAuthorizations = authority.data.authorizations.filter(
-          (authId) => !authId.startsWith(`${appId}:`)
-        );
-
-        // Only update if something changed
-        if (
-          updatedAuthorizations.length !== authority.data.authorizations.length
-        ) {
-          await authorityManager.updateRecord(
-            await authorityManager.getTable(),
-            authority.data.userId
-              ? `user-specific:${authority.id}`
-              : authority.id,
-            {
-              ...authority.data,
-              authorizations: updatedAuthorizations,
-            }
-          );
-        }
       }
     }
 

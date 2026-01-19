@@ -27,7 +27,7 @@ export async function PATCH(request: NextRequest, context: { plugin: any }) {
     const updates: any = updatesJson ? JSON.parse(updatesJson) : {};
 
     // Get existing task
-    const existing = await plugin.records.get(taskId);
+    const existing = await plugin.records.get("task", taskId);
     if (!existing) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
@@ -95,7 +95,7 @@ export async function PATCH(request: NextRequest, context: { plugin: any }) {
       updates.attachmentFilePath = filePath;
     }
 
-    const updated = await plugin.records.update(taskId, updates);
+    const updated = await plugin.records.update("task", taskId, updates);
 
     // Log task update
     if (updated) {

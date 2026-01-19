@@ -12,7 +12,7 @@ export async function GET(request: NextRequest, context: { plugin: any }) {
     const canViewAll = await plugin.system.checkMyAuthorization('task:view-all');
 
     // Get all tasks
-    const result = await plugin.records.list({ limit: 1000 });
+    const result = await plugin.records.list("task", { limit: 1000 });
 
     // Filter based on permissions and enrich with user data
     const tasks = [];

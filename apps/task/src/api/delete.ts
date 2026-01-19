@@ -20,7 +20,7 @@ export async function DELETE(request: NextRequest, context: { plugin: any }) {
     }
 
     // Get existing task
-    const existing = await plugin.records.get(taskId);
+    const existing = await plugin.records.get("task", taskId);
     if (!existing) {
       return NextResponse.json({ error: 'Task not found' }, { status: 404 });
     }
@@ -38,7 +38,7 @@ export async function DELETE(request: NextRequest, context: { plugin: any }) {
     const taskTitle = existing.data.title;
     await plugin.logger.info(`Task deleted: ${taskTitle}`);
 
-    await plugin.records.delete(taskId);
+    await plugin.records.delete("task", taskId);
 
     return NextResponse.json({ success: true });
   } catch (error: any) {

@@ -71,7 +71,7 @@ export async function POST(request: NextRequest, context: { plugin: any }) {
       task.attachmentFilePath = filePath;
     }
 
-    const record = await plugin.records.create(task);
+    const record = await plugin.records.create("task", task);
 
     // Log task creation
     await plugin.logger.info(`Task created: ${title}`);

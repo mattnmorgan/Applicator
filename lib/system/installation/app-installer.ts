@@ -390,29 +390,25 @@ export async function updateAppComponents(
   const existingAgents = allAgents.records.filter(
     (agent) => agent.data.app === appId,
   );
-  const existingAgentNames = new Set(
-    existingAgents.map((a) => a.data.name),
-  );
+  const existingAgentNames = new Set(existingAgents.map((a) => a.data.name));
 
   if (appAttributes.agents && Array.isArray(appAttributes.agents)) {
     const agentTable = await agentManager.getTable();
 
     for (const agent of appAttributes.agents) {
-      const existingAgent = existingAgents.find((a) => a.data.name === agent.name);
+      const existingAgent = existingAgents.find(
+        (a) => a.data.name === agent.name,
+      );
 
       if (existingAgent) {
         // Update existing agent, preserve runtime state
-        await agentManager.updateRecord(
-          agentTable,
-          existingAgent.id,
-          {
-            name: agent.name,
-            description: agent.description || "",
-            app: appId,
-            cron: agent.cron,
-            // Preserve: status, pid, lastRun, lastError, wasRunning
-          },
-        );
+        await agentManager.updateRecord(agentTable, existingAgent.id, {
+          name: agent.name,
+          description: agent.description || "",
+          app: appId,
+          cron: agent.cron,
+          // Preserve: status, pid, lastRun, lastError, wasRunning
+        });
       } else {
         // Create new agent
         await agentManager.createRecord(
@@ -759,13 +755,10 @@ export async function upgradeSystemApp(): Promise<{
     }
   }
 
-  // Delete existing system authorities
+  // Delete existing system authorities (identified by system: prefix or app === "system")
   const authoritiesResult = await authorityManager.readRecords();
   for (const authority of authoritiesResult.records) {
-    if (
-      (authority.data.apps && authority.data.apps.includes("system")) ||
-      authority.data.app === "system"
-    ) {
+    if (authority.id.startsWith("system:") || authority.data.app === "system") {
       await authorityManager.deleteRecord(authority.id);
     }
   }
@@ -781,7 +774,7 @@ export async function upgradeSystemApp(): Promise<{
         contextual: auth.contextual,
         target: (auth as any).target || "user",
       },
-      { id: auth.id },
+      { id: "system:" + auth.id },
     );
   }
 
@@ -796,7 +789,7 @@ export async function upgradeSystemApp(): Promise<{
         contextual: auth.contextual || false,
         app: auth.contextual ? "system" : undefined,
       },
-      { id: auth.id },
+      { id: "system:" + auth.id },
     );
   }
 
@@ -874,15 +867,11 @@ export async function upgradeApp(
       runningAgentIds.push(agent.id);
       // Stop the agent - will be implemented in agent-runner
       // For now, just mark as stopped and wasRunning
-      await agentManager.updateRecord(
-        await agentManager.getTable(),
-        agent.id,
-        {
-          status: "stopped",
-          wasRunning: true,
-          pid: undefined,
-        },
-      );
+      await agentManager.updateRecord(await agentManager.getTable(), agent.id, {
+        status: "stopped",
+        wasRunning: true,
+        pid: undefined,
+      });
     }
   }
 
