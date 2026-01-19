@@ -36,14 +36,15 @@ export async function extractAppPackage(
   );
   const iconData = iconEntry ? iconEntry.getData() : null;
 
-  // Extract API handlers
+  // Extract API handlers (preserving nested paths)
   const apiHandlers = new Map<string, Buffer>();
   const apiEntries = zipEntries.filter(
     (e) => e.entryName.startsWith("api/") && e.entryName.endsWith(".js")
   );
   for (const entry of apiEntries) {
-    const handlerName = path.basename(entry.entryName, ".js");
-    apiHandlers.set(handlerName, entry.getData());
+    // Remove "api/" prefix and ".js" suffix, keeping nested path
+    const handlerPath = entry.entryName.slice(4, -3); // "api/settings/user-color.js" -> "settings/user-color"
+    apiHandlers.set(handlerPath, entry.getData());
   }
 
   // Extract assets
@@ -64,6 +65,16 @@ export async function extractAppPackage(
     tables.set(entry.entryName, entry.getData());
   }
 
+  // Extract agent scripts
+  const agents = new Map<string, Buffer>();
+  const agentEntries = zipEntries.filter(
+    (e) => e.entryName.startsWith("agents/") && e.entryName.endsWith(".js")
+  );
+  for (const entry of agentEntries) {
+    const agentName = path.basename(entry.entryName, ".js");
+    agents.set(agentName, entry.getData());
+  }
+
   return {
     appAttributes,
     uiBundle,
@@ -71,6 +82,7 @@ export async function extractAppPackage(
     apiHandlers,
     assets,
     tables,
+    agents,
     zip,
   };
 }

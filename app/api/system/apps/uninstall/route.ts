@@ -11,6 +11,7 @@ import TableManager from "@/lib/database/managers/table";
 import FieldManager from "@/lib/database/managers/field";
 import ApiRouteManager from "@/lib/database/managers/apiRoute";
 import AppletManager from "@/lib/database/managers/applet";
+import AgentManager from "@/lib/database/managers/agent";
 import { deleteAll } from "@/lib/database/crud/delete";
 import path from "path";
 import fs from "fs/promises";
@@ -138,6 +139,31 @@ export async function POST(request: NextRequest) {
         { error: `Uninstallation hook failed: ${error.message}` },
         { status: 500 }
       );
+    }
+
+    // Stop and delete all agents for this app
+    const agentManager = new AgentManager();
+    const allAgentsResult = await agentManager.readRecords();
+    const appAgents = allAgentsResult.records.filter(
+      (agent) => agent.data.app === appId
+    );
+
+    for (const agent of appAgents) {
+      // Stop agent if running - will be implemented in agent-runner
+      // For now, just delete the record
+      await agentManager.deleteRecord(agent.id);
+    }
+
+    // Clean up agent log files
+    try {
+      const storageRecord3 = await settingManager.readRecord("storage");
+      const storagePath3 = storageRecord3?.data.value;
+      if (storagePath3) {
+        const agentLogsDir = path.join(storagePath3, "logs", "agents", appId);
+        await fs.rm(agentLogsDir, { recursive: true, force: true });
+      }
+    } catch (error) {
+      // Ignore errors cleaning up log files
     }
 
     // Delete all app tables and their records

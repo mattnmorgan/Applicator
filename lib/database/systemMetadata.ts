@@ -4,7 +4,7 @@ export const SYSTEM_APP_METADATA = {
   version: {
     major: 1,
     minor: 5,
-    dev: 0,
+    dev: 2,
   },
   author: "Matthew Morgan",
   contactEmail: "matthew@morgantech.info",
@@ -539,6 +539,70 @@ export const SYSTEM_APP_METADATA = {
         },
       ],
     },
+    {
+      name: "agent",
+      description: "Asynchronous job that runs for an installed application",
+      fields: [
+        {
+          name: "name",
+          description: "Name of the agent",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "description",
+          description: "Description of the agent",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "app",
+          description: "Application the agent belongs to",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "cron",
+          description:
+            "CRON string for scheduling the job, or null to always run",
+          type: "string",
+          required: false,
+        },
+        {
+          name: "status",
+          description: "Current status of the agent",
+          type: "picklist",
+          options: ["stopped", "running", "error"],
+          required: true,
+          defaultValue: "stopped",
+        },
+        {
+          name: "pid",
+          description: "Process ID when agent is running",
+          type: "number",
+          required: false,
+        },
+        {
+          name: "lastRun",
+          description: "Timestamp of the last execution",
+          type: "number",
+          required: false,
+        },
+        {
+          name: "lastError",
+          description: "Last error message if status is error",
+          type: "string",
+          required: false,
+        },
+        {
+          name: "wasRunning",
+          description: "Whether agent was running before server restart",
+          type: "boolean",
+          required: false,
+          defaultValue: false,
+        },
+      ],
+    },
   ],
   authorities: [
     {
@@ -595,4 +659,5 @@ export const SYSTEM_APP_METADATA = {
       target: "app",
     },
   ],
+  agents: [],
 };

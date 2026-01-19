@@ -101,6 +101,10 @@ async function getSettingsMenuItems(
   // Build App Management section
   const appManagementChildren: TabsetItem[] = [
     {
+      label: "Agents",
+      path: "/system/settings/agents",
+    },
+    {
       label: "Apps",
       path: "/system/settings/apps",
     },

@@ -12,6 +12,7 @@ import AuthorityManager from "@/lib/database/managers/authority";
 import LogManager from "@/lib/database/managers/log";
 import SettingManager from "@/lib/database/managers/setting";
 import UserManager from "@/lib/database/managers/user";
+import AgentManager from "@/lib/database/managers/agent";
 import { formatVersion } from "@/lib/database/managers/app";
 import AppPackage from "@/lib/system/installation/types/package";
 import { extractAppPackage } from "@/lib/system/installation/package-extractor";
@@ -45,9 +46,11 @@ export async function saveAppFiles(
   const bundlePath = path.join(appDir, "app.js");
   await fs.writeFile(bundlePath, packageData.uiBundle, "utf-8");
 
-  // Save API handlers
+  // Save API handlers (supports nested paths like "settings/user-color")
   for (const [handlerName, handlerData] of packageData.apiHandlers) {
     const handlerPath = path.join(apiDir, `${handlerName}.js`);
+    // Create parent directories for nested handlers
+    await fs.mkdir(path.dirname(handlerPath), { recursive: true });
     await fs.writeFile(handlerPath, handlerData);
   }
 
@@ -63,6 +66,16 @@ export async function saveAppFiles(
     const tableFilePath = path.join(appDir, tablePath);
     await fs.mkdir(path.dirname(tableFilePath), { recursive: true });
     await fs.writeFile(tableFilePath, tableFile);
+  }
+
+  // Save agent scripts
+  if (packageData.agents.size > 0) {
+    const agentsDir = path.join(appDir, "agents");
+    await fs.mkdir(agentsDir, { recursive: true });
+    for (const [agentName, agentScript] of packageData.agents) {
+      const agentPath = path.join(agentsDir, `${agentName}.js`);
+      await fs.writeFile(agentPath, agentScript);
+    }
   }
 
   // Save icon if provided
@@ -202,6 +215,27 @@ export async function installAppComponents(
           app: appId,
         },
         { id: `${appId}:${authority.id}` },
+      );
+    }
+  }
+
+  // Install agents
+  if (appAttributes.agents && Array.isArray(appAttributes.agents)) {
+    const agentManager = new AgentManager();
+    const agentTable = await agentManager.getTable();
+
+    for (const agent of appAttributes.agents) {
+      await agentManager.createRecord(
+        agentTable,
+        {
+          name: agent.name,
+          description: agent.description || "",
+          app: appId,
+          cron: agent.cron,
+          status: "stopped",
+          wasRunning: false,
+        },
+        { id: `${appId}:${agent.name}` },
       );
     }
   }
@@ -347,6 +381,62 @@ export async function updateAppComponents(
     // Delete tables that no longer exist
     for (const tableName of existingTableNames) {
       await tableManager.deleteTable(appId, tableName);
+    }
+  }
+
+  // Update agents
+  const agentManager = new AgentManager();
+  const allAgents = await agentManager.readRecords();
+  const existingAgents = allAgents.records.filter(
+    (agent) => agent.data.app === appId,
+  );
+  const existingAgentNames = new Set(
+    existingAgents.map((a) => a.data.name),
+  );
+
+  if (appAttributes.agents && Array.isArray(appAttributes.agents)) {
+    const agentTable = await agentManager.getTable();
+
+    for (const agent of appAttributes.agents) {
+      const existingAgent = existingAgents.find((a) => a.data.name === agent.name);
+
+      if (existingAgent) {
+        // Update existing agent, preserve runtime state
+        await agentManager.updateRecord(
+          agentTable,
+          existingAgent.id,
+          {
+            name: agent.name,
+            description: agent.description || "",
+            app: appId,
+            cron: agent.cron,
+            // Preserve: status, pid, lastRun, lastError, wasRunning
+          },
+        );
+      } else {
+        // Create new agent
+        await agentManager.createRecord(
+          agentTable,
+          {
+            name: agent.name,
+            description: agent.description || "",
+            app: appId,
+            cron: agent.cron,
+            status: "stopped",
+            wasRunning: false,
+          },
+          { id: `${appId}:${agent.name}` },
+        );
+      }
+
+      existingAgentNames.delete(agent.name);
+    }
+  }
+
+  // Delete agents that no longer exist
+  for (const agent of existingAgents) {
+    if (existingAgentNames.has(agent.data.name)) {
+      await agentManager.deleteRecord(agent.id);
     }
   }
 }
@@ -773,12 +863,37 @@ export async function upgradeApp(
     throw new Error("System storage not configured");
   }
 
+  // Stop running agents and mark them for restart
+  const agentManager = new AgentManager();
+  const allAgents = await agentManager.readRecords();
+  const appAgents = allAgents.records.filter((a) => a.data.app === appId);
+  const runningAgentIds: string[] = [];
+
+  for (const agent of appAgents) {
+    if (agent.data.status === "running") {
+      runningAgentIds.push(agent.id);
+      // Stop the agent - will be implemented in agent-runner
+      // For now, just mark as stopped and wasRunning
+      await agentManager.updateRecord(
+        await agentManager.getTable(),
+        agent.id,
+        {
+          status: "stopped",
+          wasRunning: true,
+          pid: undefined,
+        },
+      );
+    }
+  }
+
   // Backup old version
   const appDir = path.join(storagePath, "apps", appId);
   const apiDir = path.join(appDir, "api");
   const tablesDir = path.join(appDir, "tables");
+  const agentsDir = path.join(appDir, "agents");
   const backupApiDir = path.join(appDir, `api.backup.${Date.now()}`);
   const backupTablesDir = path.join(appDir, `tables.backup.${Date.now()}`);
+  const backupAgentsDir = path.join(appDir, `agents.backup.${Date.now()}`);
 
   try {
     await fs.rename(apiDir, backupApiDir);
@@ -790,6 +905,12 @@ export async function upgradeApp(
     await fs.rename(tablesDir, backupTablesDir);
   } catch (error) {
     // If tables directory doesn't exist, that's okay
+  }
+
+  try {
+    await fs.rename(agentsDir, backupAgentsDir);
+  } catch (error) {
+    // If agents directory doesn't exist, that's okay
   }
 
   // Create new directories
@@ -826,6 +947,12 @@ export async function upgradeApp(
       // Ignore
     }
 
+    try {
+      await fs.rm(backupAgentsDir, { recursive: true, force: true });
+    } catch (error) {
+      // Ignore
+    }
+
     // Execute installation hook
     try {
       await executeInstallHook(appId, storagePath, {
@@ -841,6 +968,9 @@ export async function upgradeApp(
 
         await fs.rm(tablesDir, { recursive: true, force: true });
         await fs.rename(backupTablesDir, tablesDir);
+
+        await fs.rm(agentsDir, { recursive: true, force: true });
+        await fs.rename(backupAgentsDir, agentsDir);
       } catch (rollbackError) {
         console.error(
           "Failed to rollback after installation hook failure:",
@@ -878,6 +1008,13 @@ export async function upgradeApp(
       await fs.rename(backupTablesDir, tablesDir);
     } catch (restoreError) {
       console.error("Failed to restore tables backup:", restoreError);
+    }
+
+    try {
+      await fs.rm(agentsDir, { recursive: true, force: true });
+      await fs.rename(backupAgentsDir, agentsDir);
+    } catch (restoreError) {
+      console.error("Failed to restore agents backup:", restoreError);
     }
 
     throw error;

@@ -8,5 +8,6 @@ export default interface AppPackage {
   apiHandlers: Map<string, Buffer>;
   assets: Map<string, Buffer>;
   tables: Map<string, Buffer>;
+  agents: Map<string, Buffer>;
   zip: AdmZip;
 }

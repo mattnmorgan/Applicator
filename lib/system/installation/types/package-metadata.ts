@@ -55,4 +55,9 @@ export default interface AppMetadata {
     target: string;
     component: string;
   }[];
+  agents?: {
+    name: string;
+    description: string;
+    cron?: string;
+  }[];
 }

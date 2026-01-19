@@ -8,6 +8,84 @@ import type AppVersion from "@/lib/database/types/appVersion";
 import AppMetadata from "@/lib/system/installation/types/package-metadata";
 import TableManager from "@/lib/database/managers/table";
 
+/**
+ * Validate a CRON string format
+ * Supports standard 5-field format: minute hour day-of-month month day-of-week
+ * Also supports 6-field format with seconds: second minute hour day-of-month month day-of-week
+ */
+export function isValidCronString(cronString: string): boolean {
+  const parts = cronString.trim().split(/\s+/);
+
+  // Must have 5 or 6 parts
+  if (parts.length < 5 || parts.length > 6) {
+    return false;
+  }
+
+  // Field ranges for validation
+  const ranges = parts.length === 6
+    ? [
+        { min: 0, max: 59 }, // seconds
+        { min: 0, max: 59 }, // minutes
+        { min: 0, max: 23 }, // hours
+        { min: 1, max: 31 }, // day of month
+        { min: 1, max: 12 }, // month
+        { min: 0, max: 7 },  // day of week (0 and 7 are Sunday)
+      ]
+    : [
+        { min: 0, max: 59 }, // minutes
+        { min: 0, max: 23 }, // hours
+        { min: 1, max: 31 }, // day of month
+        { min: 1, max: 12 }, // month
+        { min: 0, max: 7 },  // day of week (0 and 7 are Sunday)
+      ];
+
+  for (let i = 0; i < parts.length; i++) {
+    if (!isValidCronField(parts[i], ranges[i].min, ranges[i].max)) {
+      return false;
+    }
+  }
+
+  return true;
+}
+
+function isValidCronField(field: string, min: number, max: number): boolean {
+  // Handle wildcard
+  if (field === "*") {
+    return true;
+  }
+
+  // Handle step values (e.g., */5, 1-10/2)
+  const stepMatch = field.match(/^(.+)\/(\d+)$/);
+  if (stepMatch) {
+    const base = stepMatch[1];
+    const step = parseInt(stepMatch[2], 10);
+    if (step < 1) return false;
+    if (base === "*") return true;
+    return isValidCronField(base, min, max);
+  }
+
+  // Handle list values (e.g., 1,3,5)
+  if (field.includes(",")) {
+    return field.split(",").every((part) => isValidCronField(part, min, max));
+  }
+
+  // Handle range values (e.g., 1-5)
+  const rangeMatch = field.match(/^(\d+)-(\d+)$/);
+  if (rangeMatch) {
+    const start = parseInt(rangeMatch[1], 10);
+    const end = parseInt(rangeMatch[2], 10);
+    return start >= min && end <= max && start <= end;
+  }
+
+  // Handle single numeric value
+  const num = parseInt(field, 10);
+  if (!isNaN(num)) {
+    return num >= min && num <= max;
+  }
+
+  return false;
+}
+
 export interface AppValidationError {
   field: string;
   error: string;
@@ -264,6 +342,33 @@ export async function validateAppPackage(
         });
       }
       apiRouteKeys.add(routeKey);
+    }
+  }
+
+  // Validate agents
+  if (appAttributes.agents && Array.isArray(appAttributes.agents)) {
+    const agentNames = new Set<string>();
+    for (const agent of appAttributes.agents) {
+      // Validate no duplicate agent names
+      if (agentNames.has(agent.name)) {
+        errors.push({
+          field: "agents",
+          error: `Duplicate agent name: ${agent.name}`,
+          context: { agentName: agent.name },
+        });
+      }
+      agentNames.add(agent.name);
+
+      // Validate CRON string if provided
+      if (agent.cron) {
+        if (!isValidCronString(agent.cron)) {
+          errors.push({
+            field: "agents",
+            error: `Invalid CRON string for agent '${agent.name}': ${agent.cron}`,
+            context: { agentName: agent.name, cron: agent.cron },
+          });
+        }
+      }
     }
   }
 
