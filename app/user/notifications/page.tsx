@@ -5,8 +5,12 @@ import { useRouter } from "next/navigation";
 import Notification from "@/lib/database/types/notification";
 import TableRecord from "@/lib/database/crud/types/record";
 import NotificationManager from "@/lib/database/client/managers/notification";
+import { redirectToFirstTimeSetup, redirectToLogin } from "@/lib/client/setup";
 
-export default function NotificationsPage() {
+export default async function NotificationsPage() {
+  await redirectToFirstTimeSetup();
+  await redirectToLogin();
+
   const [notifications, setNotifications] = useState<
     TableRecord<Notification>[]
   >([]);
@@ -15,7 +19,7 @@ export default function NotificationsPage() {
   >([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterType, setFilterType] = useState<"all" | "unread" | "archived">(
-    "all"
+    "all",
   );
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
@@ -28,8 +32,8 @@ export default function NotificationsPage() {
       setNotifications(
         result.records.sort(
           (a: TableRecord<Notification>, b: TableRecord<Notification>) =>
-            b.createdAt - a.createdAt
-        )
+            b.createdAt - a.createdAt,
+        ),
       );
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
@@ -63,7 +67,7 @@ export default function NotificationsPage() {
           new Date(n.data.timestamp)
             .toLocaleString()
             .toLowerCase()
-            .includes(query)
+            .includes(query),
       );
     }
 
@@ -419,7 +423,7 @@ export default function NotificationsPage() {
                         <span>{notification.data.app}</span>
                         <span>
                           {new Date(
-                            notification.data.timestamp
+                            notification.data.timestamp,
                           ).toLocaleString()}
                         </span>
                       </div>
@@ -432,7 +436,7 @@ export default function NotificationsPage() {
                             e.stopPropagation();
                             handleMarkRead(
                               notification.id,
-                              !notification.data.read
+                              !notification.data.read,
                             );
                           }}
                           style={{
@@ -484,7 +488,7 @@ export default function NotificationsPage() {
                           e.stopPropagation();
                           handleArchive(
                             notification.id,
-                            notification.data.archived
+                            notification.data.archived,
                           );
                         }}
                         style={{

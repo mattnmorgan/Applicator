@@ -3,8 +3,13 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
+import { redirectToFirstTimeSetup, redirectToLogin } from "@/lib/client/setup";
 
 export default function ProfilePage() {
+  redirectToFirstTimeSetup().then(() => {
+    redirectToLogin();
+  });
+
   const router = useRouter();
   const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");

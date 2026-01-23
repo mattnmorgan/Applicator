@@ -1,8 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/sdk";
 import { userHasAuthorization } from "@/lib/database/managers/user";
-import { formatVersion } from "@/lib/database/managers/app";
 import AppManager from "@/lib/database/managers/app";
+import { formatVersion } from "@/lib/system/version";
 import AuthorizationManager from "@/lib/database/managers/authorization";
 import AuthorityManager from "@/lib/database/managers/authority";
 import SettingManager from "@/lib/database/managers/setting";
@@ -16,7 +16,7 @@ import { stopAgent } from "@/lib/system/agents/agent-runner";
 import { deleteAll } from "@/lib/database/crud/delete";
 import path from "path";
 import fs from "fs/promises";
-import { createRequire } from "module";
+import { loadModule } from "@/lib/system/source";
 
 export async function POST(request: NextRequest) {
   try {
@@ -113,12 +113,7 @@ export async function POST(request: NextRequest) {
             } v${formatVersion(app.data.version)}`
           );
 
-          const require = createRequire(import.meta.url || __filename);
-          const absolutePath = path.resolve(uninstallationHookPath);
-
-          // Clear cache to ensure fresh load
-          delete require.cache[absolutePath];
-          const uninstallationHook = require(absolutePath);
+          const uninstallationHook = loadModule(uninstallationHookPath);
 
           if (
             uninstallationHook.OnUninstallation &&

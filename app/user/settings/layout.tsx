@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser as getUser } from "@/lib/database/managers/user";
+import { getCurrentUser as getUser } from "@/lib/database/client/managers/user";
 import { getSystemSettings } from "@/lib/database/managers/setting";
 import AppletManager from "@/lib/database/managers/applet";
 import AuthorityManager from "@/lib/database/managers/authority";
@@ -13,13 +13,12 @@ async function getCurrentUser() {
 
   return {
     id: result.user.id,
-    displayName: result.user.data.displayName,
-    username: result.user.data.username,
-    email: result.user.data.email,
-    icon: result.user.data.icon,
-    authority: result.user.data.authority,
+    displayName: result.user.displayName,
+    username: result.user.username,
+    email: result.user.email,
+    icon: result.user.profilePicture,
+    authority: result.user.authority,
     authorizations: result.authorizations.flat(),
-    authorities: result.authorities,
     isAssumedIdentity: result.isAssumedIdentity,
   };
 }

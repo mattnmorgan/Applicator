@@ -4,7 +4,7 @@ import SettingManager from "@/lib/database/managers/setting";
 import { createPlugin, getSession } from "@/lib/sdk";
 import * as path from "path";
 import * as fs from "fs";
-import { createRequire } from "module";
+import { loadModule } from "@/lib/system/source";
 
 export async function GET(
   request: NextRequest,
@@ -97,14 +97,8 @@ async function handleRequest(
       );
     }
 
-    // Use createRequire to load the handler dynamically
-    // This bypasses Next.js static analysis
-    const require = createRequire(import.meta.url || __filename);
-    const absolutePath = path.resolve(handlerPath);
-
-    // Clear cache to ensure fresh load
-    delete require.cache[absolutePath];
-    const handlerModule = require(absolutePath);
+    // Load the handler dynamically
+    const handlerModule = loadModule(handlerPath);
     const handler = handlerModule[method];
 
     if (!handler || typeof handler !== "function") {

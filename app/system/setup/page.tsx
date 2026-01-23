@@ -1,10 +1,15 @@
 "use client";
 
-import { useState, FormEvent } from "react";
+import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import UserManager from "@/lib/database/client/managers/user";
+import { redirectToHome } from "@/lib/client/setup";
 
 export default function SetupPage() {
+  useEffect(() => {
+    redirectToHome();
+  }, []);
+
   const router = useRouter();
   const [formData, setFormData] = useState({
     displayName: "",
@@ -16,11 +21,11 @@ export default function SetupPage() {
   const [loading, setLoading] = useState(false);
 
   // Redirect from first-time setup if a user is created already
-  new UserManager().readRecords({ limit: 1 }).then((result) => {
-    if (result.total) {
-      router.replace("/");
-    }
-  });
+  // new UserManager().readRecords({ limit: 1 }).then((result) => {
+  //   if (result.total) {
+  //     router.replace("/");
+  //   }
+  // });
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();

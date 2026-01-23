@@ -13,9 +13,15 @@ export async function GET() {
     const settings = await getSystemSettings();
 
     // Get version information
-    const appManager = new AppManager();
-    const systemApp = await appManager.readRecord("system");
+    let systemApp;
     let versionInfo = null;
+
+    try {
+      const appManager = new AppManager();
+      systemApp = await appManager.readRecord("system");
+    } catch (e) {
+      systemApp = null;
+    }
 
     if (systemApp) {
       const installedVersion = systemApp.data.version;
@@ -46,13 +52,13 @@ export async function GET() {
           complete: versionInfo !== null,
         },
       },
-      { status: 200 }
+      { status: 200 },
     );
   } catch (error) {
     console.error("Error fetching system settings:", error);
     return NextResponse.json(
       { error: "Failed to fetch system settings" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -112,7 +118,7 @@ export async function POST(request: NextRequest) {
             storagePath,
             "apps",
             "system",
-            "brand.png"
+            "brand.png",
           );
           try {
             await fs.unlink(logoPath);
@@ -164,7 +170,7 @@ export async function POST(request: NextRequest) {
     console.error("Error updating settings:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,7 +1,8 @@
 import path from "path";
 import fs from "fs/promises";
-import { createRequire } from "module";
 import bcrypt from "bcryptjs";
+import { loadModule } from "@/lib/system/source";
+import { formatVersion } from "@/lib/system/version";
 import AppManager from "@/lib/database/managers/app";
 import TableManager from "@/lib/database/managers/table";
 import FieldManager from "@/lib/database/managers/field";
@@ -13,7 +14,6 @@ import LogManager from "@/lib/database/managers/log";
 import SettingManager from "@/lib/database/managers/setting";
 import UserManager from "@/lib/database/managers/user";
 import AgentManager from "@/lib/database/managers/agent";
-import { formatVersion } from "@/lib/database/managers/app";
 import AppPackage from "@/lib/system/installation/types/package";
 import { extractAppPackage } from "@/lib/system/installation/package-extractor";
 import { validateAppPackage } from "@/lib/system/installation/package-validator";
@@ -471,12 +471,7 @@ export async function executeInstallHook(
 
   await new LogManager().info("system", logMsg);
 
-  const require = createRequire(import.meta.url || __filename);
-  const absolutePath = path.resolve(installationHookPath);
-
-  // Clear cache to ensure fresh load
-  delete require.cache[absolutePath];
-  const installationHook = require(absolutePath);
+  const installationHook = loadModule(installationHookPath);
 
   if (
     installationHook.OnInstallation &&

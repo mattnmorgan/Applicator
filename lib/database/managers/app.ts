@@ -1,6 +1,5 @@
 import CRUD from "@/lib/database/crud";
 import App from "@/lib/database/types/app";
-import AppVersion from "@/lib/database/types/appVersion";
 import AuthorityManager from "@/lib/database/managers/authority";
 import AuthorizationManager from "@/lib/database/managers/authorization";
 import type Authority from "@/lib/database/types/authority";
@@ -37,19 +36,4 @@ export default class AppManager extends CRUD<App> {
 
     return { authority, authorizations };
   }
-}
-
-export function formatVersion(version: AppVersion): string {
-  return `v${version.major}.${version.minor}.${version.dev}`;
-}
-
-export function isVersionGreaterOrEqual(
-  version1: AppVersion,
-  version2: AppVersion,
-): boolean {
-  if (version1.major > version2.major) return true;
-  if (version1.major < version2.major) return false;
-  if (version1.minor > version2.minor) return true;
-  if (version1.minor < version2.minor) return false;
-  return version1.dev >= version2.dev;
 }

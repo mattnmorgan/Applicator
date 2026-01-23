@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { redirectToFirstTimeSetup, redirectToLogin } from "@/lib/client/setup";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -14,6 +15,9 @@ interface RequestResult {
 }
 
 export default function ApiEndpointsPage() {
+  redirectToFirstTimeSetup().then(() => {
+    redirectToLogin();
+  });
   const [url, setUrl] = useState("/api/");
   const [method, setMethod] = useState<HttpMethod>("GET");
   const [requestBody, setRequestBody] = useState("");
@@ -81,7 +85,9 @@ export default function ApiEndpointsPage() {
         timestamp: new Date().toLocaleString(),
       });
     } catch (err) {
-      setError(err instanceof Error ? err.message : "An unknown error occurred");
+      setError(
+        err instanceof Error ? err.message : "An unknown error occurred",
+      );
     } finally {
       setIsLoading(false);
     }
@@ -116,7 +122,8 @@ export default function ApiEndpointsPage() {
       </h1>
 
       <p style={{ color: "#94a3b8", marginBottom: "24px", fontSize: "14px" }}>
-        Test API endpoints by specifying the URL, request method, and request body.
+        Test API endpoints by specifying the URL, request method, and request
+        body.
       </p>
 
       <div
@@ -199,40 +206,39 @@ export default function ApiEndpointsPage() {
                 Method
               </label>
               <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
-                {(["GET", "POST", "PUT", "PATCH", "DELETE"] as HttpMethod[]).map(
-                  (m) => (
-                    <button
-                      key={m}
-                      onClick={() => setMethod(m)}
-                      style={{
-                        padding: "8px 16px",
-                        background:
-                          method === m ? methodColors[m] : "#1e293b",
-                        color: method === m ? "#fff" : "#94a3b8",
-                        border: `1px solid ${
-                          method === m ? methodColors[m] : "#334155"
-                        }`,
-                        borderRadius: "6px",
-                        fontSize: "13px",
-                        fontWeight: "600",
-                        cursor: "pointer",
-                        transition: "all 0.2s",
-                      }}
-                      onMouseEnter={(e) => {
-                        if (method !== m) {
-                          e.currentTarget.style.background = "#334155";
-                        }
-                      }}
-                      onMouseLeave={(e) => {
-                        if (method !== m) {
-                          e.currentTarget.style.background = "#1e293b";
-                        }
-                      }}
-                    >
-                      {m}
-                    </button>
-                  )
-                )}
+                {(
+                  ["GET", "POST", "PUT", "PATCH", "DELETE"] as HttpMethod[]
+                ).map((m) => (
+                  <button
+                    key={m}
+                    onClick={() => setMethod(m)}
+                    style={{
+                      padding: "8px 16px",
+                      background: method === m ? methodColors[m] : "#1e293b",
+                      color: method === m ? "#fff" : "#94a3b8",
+                      border: `1px solid ${
+                        method === m ? methodColors[m] : "#334155"
+                      }`,
+                      borderRadius: "6px",
+                      fontSize: "13px",
+                      fontWeight: "600",
+                      cursor: "pointer",
+                      transition: "all 0.2s",
+                    }}
+                    onMouseEnter={(e) => {
+                      if (method !== m) {
+                        e.currentTarget.style.background = "#334155";
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (method !== m) {
+                        e.currentTarget.style.background = "#1e293b";
+                      }
+                    }}
+                  >
+                    {m}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -450,15 +456,16 @@ export default function ApiEndpointsPage() {
                           color: "#94a3b8",
                         }}
                       >
-                        <span style={{ color: "#3b82f6" }}>{key}:</span>{" "}
-                        {value}
+                        <span style={{ color: "#3b82f6" }}>{key}:</span> {value}
                       </div>
                     ))}
                   </div>
                 </div>
 
                 {/* Body */}
-                <div style={{ flex: 1, display: "flex", flexDirection: "column" }}>
+                <div
+                  style={{ flex: 1, display: "flex", flexDirection: "column" }}
+                >
                   <div
                     style={{
                       color: "#e2e8f0",

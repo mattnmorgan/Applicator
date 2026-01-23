@@ -1,8 +1,13 @@
 "use client";
 
 import UserList from "@/lib/components/administration/UserList";
+import { redirectToFirstTimeSetup, redirectToLogin } from "@/lib/client/setup";
 
 export default function UsersPage() {
+  redirectToFirstTimeSetup().then(() => {
+    redirectToLogin();
+  });
+
   return (
     <div>
       <h2

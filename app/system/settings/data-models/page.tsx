@@ -7,6 +7,7 @@ import Badge from "@/lib/components/utility/Badge/Badge";
 import TableManager from "@/lib/database/client/managers/table";
 import FieldManager from "@/lib/database/client/managers/field";
 import AppManager from "@/lib/database/client/managers/app";
+import { redirectToFirstTimeSetup, redirectToLogin } from "@/lib/client/setup";
 
 interface TableSearchResult {
   appId: string;
@@ -15,6 +16,9 @@ interface TableSearchResult {
 }
 
 export default function DataModelsPage() {
+  redirectToFirstTimeSetup().then(() => {
+    redirectToLogin();
+  });
   const [searchQuery, setSearchQuery] = useState("");
   const [tables, setTables] = useState<TableSearchResult[]>([]);
   const [filteredTables, setFilteredTables] = useState<TableSearchResult[]>([]);

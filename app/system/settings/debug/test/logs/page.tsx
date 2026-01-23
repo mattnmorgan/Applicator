@@ -3,10 +3,15 @@
 import { useState } from "react";
 import LogManager from "@/lib/database/client/managers/log";
 import { getCurrentUser } from "@/lib/database/client/managers/user";
+import { redirectToFirstTimeSetup, redirectToLogin } from "@/lib/client/setup";
 
 type LogLevel = "info" | "debug" | "error" | "warning";
 
 export default function TestLogsPage() {
+  redirectToFirstTimeSetup().then(() => {
+    redirectToLogin();
+  });
+
   const [isLoading, setIsLoading] = useState<LogLevel | null>(null);
   const [message, setMessage] = useState("");
 

@@ -1,6 +1,5 @@
 import { fork, ChildProcess } from "child_process";
 import path from "path";
-import fs from "fs/promises";
 import AgentManager from "@/lib/database/managers/agent";
 import SettingManager from "@/lib/database/managers/setting";
 import LogManager from "@/lib/database/managers/log";
@@ -16,11 +15,11 @@ import {
 import {
   getNextCronExecution,
   matchesCronSchedule,
-} from "./agent-scheduler";
-import { createRequire } from "module";
+} from "@/lib/system/cron";
+import { loadModule } from "@/lib/system/source";
 
 // Store running agent processes
-const runningAgents = new Map<string, {
+export const runningAgents = new Map<string, {
   process?: ChildProcess;
   cronInterval?: NodeJS.Timeout;
   lastExecution?: Date;
@@ -38,14 +37,7 @@ async function getAgentScriptPath(appId: string, agentName: string): Promise<str
     return null;
   }
 
-  const scriptPath = path.join(storagePath, "apps", appId, "agents", `${agentName}.js`);
-
-  try {
-    await fs.access(scriptPath);
-    return scriptPath;
-  } catch {
-    return null;
-  }
+  return path.join(storagePath, "apps", appId, "agents", `${agentName}.js`);
 }
 
 /**
@@ -87,12 +79,7 @@ async function executeAgentScript(
     };
 
     // Load and execute the agent script
-    const require = createRequire(import.meta.url || __filename);
-    const absolutePath = path.resolve(scriptPath);
-
-    // Clear cache to ensure fresh load
-    delete require.cache[absolutePath];
-    const agentModule = require(absolutePath);
+    const agentModule = loadModule(scriptPath);
 
     if (agentModule.run && typeof agentModule.run === "function") {
       await agentModule.run(agentPlugin);
@@ -331,54 +318,3 @@ export function isAgentRunning(agentId: string): boolean {
   return runningAgents.has(agentId);
 }
 
-/**
- * Stop all running agents (for graceful shutdown)
- */
-export async function stopAllAgents(): Promise<void> {
-  const agentIds = Array.from(runningAgents.keys());
-
-  for (const agentId of agentIds) {
-    try {
-      await stopAgent(agentId);
-    } catch (error) {
-      console.error(`Failed to stop agent ${agentId}:`, error);
-    }
-  }
-}
-
-/**
- * Restart agents that were running before server shutdown
- */
-export async function restartPreviouslyRunningAgents(): Promise<void> {
-  const agentManager = new AgentManager();
-  const allAgents = await agentManager.readRecords();
-
-  const agentsToRestart = allAgents.records.filter(
-    (agent) => agent.data.wasRunning === true
-  );
-
-  for (const agent of agentsToRestart) {
-    try {
-      await new LogManager().info(
-        agent.data.app,
-        `Auto-restarting agent '${agent.data.name}'`
-      );
-      await startAgent(agent.id);
-    } catch (error: any) {
-      await new LogManager().error(
-        agent.data.app,
-        `Failed to auto-restart agent '${agent.data.name}': ${error.message}`
-      );
-
-      // Update agent with error status
-      await agentManager.updateRecord(
-        await agentManager.getTable(),
-        agent.id,
-        {
-          status: "error",
-          lastError: `Failed to auto-restart: ${error.message}`,
-        }
-      );
-    }
-  }
-}

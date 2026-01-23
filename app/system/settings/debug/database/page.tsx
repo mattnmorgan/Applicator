@@ -1,8 +1,12 @@
 "use client";
 
 import DatabaseViewer from "@/lib/components/administration/DatabaseViewer";
+import { redirectToFirstTimeSetup, redirectToLogin } from "@/lib/client/setup";
 
 export default function DatabasePage() {
+  redirectToFirstTimeSetup().then(() => {
+    redirectToLogin();
+  });
   return (
     <div style={{ height: "100%", display: "flex", flexDirection: "column" }}>
       <h2
