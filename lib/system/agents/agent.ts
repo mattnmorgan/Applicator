@@ -9,15 +9,10 @@ import {
   getNextCronExecution,
   matchesCronSchedule,
 } from "@/lib/system/cron";
-import { loadModule } from "@/lib/system/source";
-import { createPlugin, PluginContext } from "@/lib/sdk";
-import { fork, ChildProcess } from "child_process";
-
-export interface AgentState {
-  cronInterval?: NodeJS.Timeout;
-  lastExecution?: Date;
-  process?: ChildProcess;
-}
+import { ChildProcess, fork } from "child_process";
+import AgentState from "@/lib/system/agents/types/state";
+import AgentIPCRequest from "@/lib/system/agents/types/ipc-request";
+import executeMethod from "@/lib/system/agents/sdk";
 
 export default class Agent {
   private appId: string;
@@ -108,69 +103,38 @@ export default class Agent {
         `Starting continuous agent '${agent.data.name}' as child process`,
       );
 
-      const scriptPath = await this.getScriptPath();
-      if (!scriptPath) {
-        throw new Error(
-          `Could not determine script path for agent: ${this.id}`,
-        );
-      }
-
-      // Fork the worker process
-      const workerPath = path.join(__dirname, "subprocesses", "continuous-agent-process.ts");
-      const child = fork(workerPath, [], {
-        execArgv: ["-r", "ts-node/register", "-r", "tsconfig-paths/register"],
-        env: { ...process.env },
-        stdio: ["pipe", "pipe", "pipe", "ipc"],
-      });
+      const { child, exitPromise } = await this.forkAgentProcess("continuous");
 
       agentState.process = child;
 
-      // Send start message to worker
-      child.send({
-        type: "start",
-        appId: this.appId,
-        agentName: this.agentName,
-        scriptPath,
-      });
+      // Handle process exit asynchronously
+      exitPromise
+        .then(async (code) => {
+          // Only log if agent was still supposed to be running
+          if (Agent.runningAgents.has(this.id)) {
+            await new LogManager().info(
+              this.appId,
+              `Continuous agent '${agent.data.name}' process exited with code ${code}`,
+            );
+            Agent.runningAgents.delete(this.id);
 
-      // Handle worker messages
-      child.on("message", async (message: any) => {
-        if (message.type === "error") {
+            // Update status in database
+            await agentManager.updateRecord(
+              await agentManager.getTable(),
+              this.id,
+              {
+                status: "stopped",
+                wasRunning: false,
+              },
+            );
+          }
+        })
+        .catch(async (error) => {
           await new LogManager().error(
             this.appId,
-            `Continuous agent '${agent.data.name}' error: ${message.message}`,
+            `Continuous agent '${agent.data.name}' process error: ${error.message}`,
           );
-        }
-      });
-
-      // Handle worker exit
-      child.on("exit", async (code) => {
-        // Only log if agent was still supposed to be running
-        if (Agent.runningAgents.has(this.id)) {
-          await new LogManager().info(
-            this.appId,
-            `Continuous agent '${agent.data.name}' process exited with code ${code}`,
-          );
-          Agent.runningAgents.delete(this.id);
-
-          // Update status in database
-          await agentManager.updateRecord(
-            await agentManager.getTable(),
-            this.id,
-            {
-              status: "stopped",
-              wasRunning: false,
-            },
-          );
-        }
-      });
-
-      child.on("error", async (error) => {
-        await new LogManager().error(
-          this.appId,
-          `Continuous agent '${agent.data.name}' process error: ${error.message}`,
-        );
-      });
+        });
     }
 
     Agent.runningAgents.set(this.id, agentState);
@@ -428,7 +392,67 @@ export default class Agent {
   }
 
   /**
-   * Executes the agent
+   * Fork the agent script as a subprocess with IPC handling
+   * @param mode The execution mode ("cron" or "continuous")
+   * @returns The child process and a promise that resolves when the process exits
+   */
+  private async forkAgentProcess(
+    mode: "cron" | "continuous",
+  ): Promise<{ child: ChildProcess; exitPromise: Promise<number> }> {
+    const scriptPath = await this.getScriptPath();
+
+    if (!scriptPath) {
+      throw new Error(`Could not determine script path for agent: ${this.id}`);
+    }
+
+    const child = fork(scriptPath, [], {
+      env: {
+        ...process.env,
+        AGENT_APP_ID: this.appId,
+        AGENT_NAME: this.agentName,
+        AGENT_MODE: mode,
+      },
+      stdio: ["pipe", "pipe", "pipe", "ipc"],
+    });
+
+    child.on("message", async (message: AgentIPCRequest) => {
+      if (message.id && message.method) {
+        const { id, method, params } = message;
+        let result;
+
+        try {
+          result = await executeMethod(
+            this.appId,
+            this.agentName,
+            this.logger,
+            method,
+            params,
+          );
+        } catch (error) {
+          result = { id, error: error.message || String(error) };
+        }
+
+        child.send(result);
+      }
+    });
+
+    // Create a promise that resolves when the process exits
+    const exitPromise = new Promise<number>((resolve, reject) => {
+      child.on("exit", (code) => {
+        resolve(code ?? 1);
+      });
+
+      child.on("error", (error) => {
+        reject(error);
+      });
+    });
+
+    return { child, exitPromise };
+  }
+
+  /**
+   * Executes the agent (for cron/one-shot execution)
+   * Forks the agent script as a subprocess and waits for completion
    */
   public async execute(): Promise<void> {
     const executionStart = Date.now();
@@ -440,42 +464,11 @@ export default class Agent {
     await this.initialize();
 
     try {
-      // Create plugin context for the agent
-      const plugin = await createPlugin(this.appId);
-      const agentPlugin: PluginContext = {
-        ...plugin,
-        logger: {
-          info: async (message: string) => {
-            this._logger.info(message);
-            await plugin.logger.info(message);
-          },
-          warn: async (message: string) => {
-            this._logger.warning(message);
-            await plugin.logger.warn(message);
-          },
-          error: async (message: string) => {
-            this._logger.error(message);
-            await plugin.logger.error(message);
-          },
-        },
-      };
+      const { exitPromise } = await this.forkAgentProcess("cron");
 
-      // Load and execute the agent script
-      const agentModule = loadModule(await this.getScriptPath());
-
-      if (agentModule.run && typeof agentModule.run === "function") {
-        await agentModule.run(agentPlugin);
-      } else if (typeof agentModule === "function") {
-        await agentModule(agentPlugin);
-      } else if (
-        agentModule.default &&
-        typeof agentModule.default === "function"
-      ) {
-        await agentModule.default(agentPlugin);
-      } else {
-        throw new Error(
-          "Agent script must export a 'run' function or be a function",
-        );
+      const exitCode = await exitPromise;
+      if (exitCode !== 0) {
+        throw new Error(`Agent process exited with code ${exitCode}`);
       }
     } catch (error: any) {
       executionContext.success = false;
