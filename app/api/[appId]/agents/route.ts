@@ -3,8 +3,8 @@ import { getSession } from "@/lib/sdk";
 import { userHasAuthorization } from "@/lib/database/managers/user";
 import AgentManager from "@/lib/database/managers/agent";
 import AppManager from "@/lib/database/managers/app";
+import Agent from "@/lib/system/agents/agent";
 import { getNextCronExecution, formatNextExecution } from "@/lib/system/cron";
-import { isAgentRunning } from "@/lib/system/agents/agent-runner";
 
 export async function GET(
   request: NextRequest,
@@ -61,7 +61,7 @@ export async function GET(
       }
 
       // Check if actually running in memory
-      const actuallyRunning = isAgentRunning(agent.id);
+      const actuallyRunning = Agent.isAgentRunning(agent.id);
       const status = actuallyRunning ? "running" : agent.data.status;
 
       return {

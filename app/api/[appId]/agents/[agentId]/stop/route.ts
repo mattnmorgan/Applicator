@@ -2,7 +2,7 @@ import { NextResponse, NextRequest } from "next/server";
 import { getSession } from "@/lib/sdk";
 import { userHasAuthorization } from "@/lib/database/managers/user";
 import AgentManager from "@/lib/database/managers/agent";
-import { stopAgent } from "@/lib/system/agents/agent-runner";
+import Agent from "@/lib/system/agents/agent";
 
 export async function POST(
   request: NextRequest,
@@ -34,32 +34,32 @@ export async function POST(
     }
 
     // Find the agent
-    const fullAgentId = `${appId}:${agentId}`;
     const agentManager = new AgentManager();
-    const agent = await agentManager.readRecord(fullAgentId);
+    const agentRecord = await agentManager.readRecord(`${appId}:${agentId}`);
 
-    if (!agent) {
+    if (!agentRecord) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
     // Verify the agent belongs to the requested app
-    if (agent.data.app !== appId) {
+    if (agentRecord.data.app !== appId) {
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
     // Stop the agent
-    await stopAgent(fullAgentId);
+    const agent = new Agent(appId, agentId);
+    await agent.stop();
 
     return NextResponse.json({
       success: true,
-      message: `Agent '${agent.data.name}' stopped`,
+      message: `Agent '${agentRecord.data.name}' stopped`,
       status: "stopped",
     });
   } catch (error: any) {
     console.error("Error stopping agent:", error);
     return NextResponse.json(
       { error: error.message || "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

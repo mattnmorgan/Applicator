@@ -12,7 +12,7 @@ import FieldManager from "@/lib/database/managers/field";
 import ApiRouteManager from "@/lib/database/managers/apiRoute";
 import AppletManager from "@/lib/database/managers/applet";
 import AgentManager from "@/lib/database/managers/agent";
-import { stopAgent } from "@/lib/system/agents/agent-runner";
+import Agent from "@/lib/system/agents/agent";
 import { deleteAll } from "@/lib/database/crud/delete";
 import path from "path";
 import fs from "fs/promises";
@@ -144,14 +144,15 @@ export async function POST(request: NextRequest) {
       (agent) => agent.data.app === appId
     );
 
-    for (const agent of appAgents) {
+    for (const agentRecord of appAgents) {
       // Stop agent if running
       try {
-        await stopAgent(agent.id);
+        const [agentAppId, agentName] = agentRecord.id.split(":");
+        await new Agent(agentAppId, agentName).stop();
       } catch {
         // Agent may not be running, ignore errors
       }
-      await agentManager.deleteRecord(agent.id);
+      await agentManager.deleteRecord(agentRecord.id);
     }
 
     // Clean up agent log files

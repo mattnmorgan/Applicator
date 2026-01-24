@@ -1,4 +1,4 @@
-import { startAgent, stopAgent, runningAgents } from "./agent-runner";
+import Agent from "@/lib/system/agents/agent";
 import AgentManager from "@/lib/database/managers/agent";
 import LogManager from "@/lib/database/managers/log";
 
@@ -55,7 +55,7 @@ class AgentSystem {
       console.error("Failed to initialize agent system:", error);
       await new LogManager().error(
         "system",
-        `Failed to initialize agent system: ${error.message}`
+        `Failed to initialize agent system: ${error.message}`,
       );
     }
   }
@@ -83,9 +83,9 @@ class AgentSystem {
         try {
           await new LogManager().info(
             "system",
-            `Received ${signal}, stopping all agents...`
+            `Received ${signal}, stopping all agents...`,
           );
-          await this.stopAllAgents();
+          await Agent.stopAll();
         } catch (error) {
           console.error(`Error during shutdown: ${error}`);
         } finally {
@@ -108,10 +108,7 @@ class AgentSystem {
     // Handle unhandled promise rejections
     process.on("unhandledRejection", async (reason) => {
       console.error("Unhandled rejection:", reason);
-      await new LogManager().error(
-        "system",
-        `Unhandled rejection: ${reason}`
-      );
+      await new LogManager().error("system", `Unhandled rejection: ${reason}`);
     });
   }
 
@@ -126,13 +123,13 @@ class AgentSystem {
 
     try {
       await new LogManager().info("system", "Shutting down agent system...");
-      await this.stopAllAgents();
+      await Agent.stopAll();
       await new LogManager().info("system", "Agent system shut down");
     } catch (error: any) {
       console.error("Failed to shutdown agent system:", error);
       await new LogManager().error(
         "system",
-        `Failed to shutdown agent system: ${error.message}`
+        `Failed to shutdown agent system: ${error.message}`,
       );
     }
 
@@ -143,15 +140,7 @@ class AgentSystem {
    * Stop all running agents (for graceful shutdown).
    */
   public async stopAllAgents(): Promise<void> {
-    const agentIds = Array.from(runningAgents.keys());
-
-    for (const agentId of agentIds) {
-      try {
-        await stopAgent(agentId);
-      } catch (error) {
-        console.error(`Failed to stop agent ${agentId}:`, error);
-      }
-    }
+    await Agent.stopAll();
   }
 
   /**
@@ -162,30 +151,32 @@ class AgentSystem {
     const allAgents = await agentManager.readRecords();
 
     const agentsToRestart = allAgents.records.filter(
-      (agent) => agent.data.wasRunning === true
+      (agent) => agent.data.wasRunning === true,
     );
 
-    for (const agent of agentsToRestart) {
+    for (const agentRecord of agentsToRestart) {
       try {
         await new LogManager().info(
-          agent.data.app,
-          `Auto-restarting agent '${agent.data.name}'`
+          agentRecord.data.app,
+          `Auto-restarting agent '${agentRecord.data.name}'`,
         );
-        await startAgent(agent.id);
+
+        const agent = new Agent(agentRecord.data.app, agentRecord.data.name);
+        await agent.start();
       } catch (error: any) {
         await new LogManager().error(
-          agent.data.app,
-          `Failed to auto-restart agent '${agent.data.name}': ${error.message}`
+          agentRecord.data.app,
+          `Failed to auto-restart agent '${agentRecord.data.name}': ${error.message}`,
         );
 
         // Update agent with error status
         await agentManager.updateRecord(
           await agentManager.getTable(),
-          agent.id,
+          agentRecord.id,
           {
             status: "error",
             lastError: `Failed to auto-restart: ${error.message}`,
-          }
+          },
         );
       }
     }

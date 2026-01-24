@@ -14,6 +14,7 @@ import LogManager from "@/lib/database/managers/log";
 import SettingManager from "@/lib/database/managers/setting";
 import UserManager from "@/lib/database/managers/user";
 import AgentManager from "@/lib/database/managers/agent";
+import Agent from "@/lib/system/agents/agent";
 import AppPackage from "@/lib/system/installation/types/package";
 import { extractAppPackage } from "@/lib/system/installation/package-extractor";
 import { validateAppPackage } from "@/lib/system/installation/package-validator";
@@ -857,16 +858,12 @@ export async function upgradeApp(
   const appAgents = allAgents.records.filter((a) => a.data.app === appId);
   const runningAgentIds: string[] = [];
 
-  for (const agent of appAgents) {
-    if (agent.data.status === "running") {
-      runningAgentIds.push(agent.id);
-      // Stop the agent - will be implemented in agent-runner
-      // For now, just mark as stopped and wasRunning
-      await agentManager.updateRecord(await agentManager.getTable(), agent.id, {
-        status: "stopped",
-        wasRunning: true,
-        pid: undefined,
-      });
+  for (const agentRecord of appAgents) {
+    if (agentRecord.data.status === "running") {
+      runningAgentIds.push(agentRecord.id);
+      // Stop the agent
+      const [agentAppId, agentName] = agentRecord.id.split(":");
+      await new Agent(agentAppId, agentName).stop();
     }
   }
 

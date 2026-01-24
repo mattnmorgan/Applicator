@@ -5,9 +5,8 @@ export async function register() {
   // Only run on the server
   if (process.env.NEXT_RUNTIME === "nodejs") {
     // Dynamically import to avoid client-side issues
-    const { default: AgentSystem } = await import(
-      "@/lib/system/agents/startup"
-    );
+    const { default: AgentSystem } =
+      await import("@/lib/system/agents/agent-system");
 
     // Initialize after a short delay to ensure database is ready
     setTimeout(async () => {
