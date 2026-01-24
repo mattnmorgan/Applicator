@@ -5,12 +5,8 @@ import { useRouter } from "next/navigation";
 import Notification from "@/lib/database/types/notification";
 import TableRecord from "@/lib/database/crud/types/record";
 import NotificationManager from "@/lib/database/client/managers/notification";
-import { redirectToFirstTimeSetup, redirectToLogin } from "@/lib/client/setup";
 
-export default async function NotificationsPage() {
-  await redirectToFirstTimeSetup();
-  await redirectToLogin();
-
+export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<
     TableRecord<Notification>[]
   >([]);

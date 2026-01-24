@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { redirectToFirstTimeSetup, redirectToLogin } from "@/lib/client/setup";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -15,9 +14,6 @@ interface RequestResult {
 }
 
 export default function ApiEndpointsPage() {
-  redirectToFirstTimeSetup().then(() => {
-    redirectToLogin();
-  });
   const [url, setUrl] = useState("/api/");
   const [method, setMethod] = useState<HttpMethod>("GET");
   const [requestBody, setRequestBody] = useState("");

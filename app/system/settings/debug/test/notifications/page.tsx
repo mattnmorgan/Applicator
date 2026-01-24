@@ -3,15 +3,9 @@
 import { useState } from "react";
 import NotificationManager from "@/lib/database/client/managers/notification";
 import { getCurrentUser } from "@/lib/database/client/managers/user";
-import { redirectToLogin, redirectToFirstTimeSetup } from "@/lib/client/setup";
-
 type NotificationType = "info" | "success" | "warning" | "error";
 
 export default function TestNotificationsPage() {
-  redirectToFirstTimeSetup().then(() => {
-    redirectToLogin();
-  });
-
   const [isLoading, setIsLoading] = useState<NotificationType | null>(null);
   const [message, setMessage] = useState("");
 

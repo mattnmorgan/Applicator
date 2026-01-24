@@ -1,13 +1,13 @@
 "use client";
 
-import { getCurrentUser } from "@/lib/database/client/managers/user";
 import { redirect } from "next/navigation";
 
 export async function redirectToFirstTimeSetup(): Promise<undefined> {
   try {
     const response = await fetch("/api/system/settings");
 
-    if (!response.ok || !(await response.json())?.setup?.complete === false) {
+    const data = response.ok ? await response.json() : null;
+    if (!data?.setup?.complete) {
       redirect("/system/setup");
     }
   } catch (error) {
@@ -30,21 +30,22 @@ export async function redirectToHome(): Promise<undefined> {
 
 export async function redirectToLogin(): Promise<undefined> {
   try {
-    const user = await getCurrentUser();
+    const response = await fetch("/api/system/settings/user");
 
-    if (!user) {
+    if (!response.ok) {
       redirect("/system/login");
     }
   } catch (e) {
     console.error(e);
+    redirect("/system/login");
   }
 }
 
 export async function redirectToLoggedInHome(): Promise<undefined> {
   try {
-    const user = await getCurrentUser();
+    const response = await fetch("/api/system/settings/user");
 
-    if (user) {
+    if (response.ok) {
       redirect("/");
     }
   } catch (e) {

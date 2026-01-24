@@ -4,13 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import FolderBrowser from "@/lib/components/utility/FolderBrowser";
 import Toast from "@/lib/components/utility/Toast";
-import { redirectToFirstTimeSetup, redirectToLogin } from "@/lib/client/setup";
-
 export default function SettingsPage() {
-  redirectToFirstTimeSetup().then(() => {
-    redirectToLogin();
-  });
-
   const router = useRouter();
   const [storage, setStorage] = useState("");
   const [originalStorage, setOriginalStorage] = useState("");

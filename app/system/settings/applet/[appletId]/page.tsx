@@ -5,12 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import DynamicAppLoader from "@/lib/components/utility/DynamicAppLoader";
 import AppletManager from "@/lib/database/client/managers/applet";
 import AppManager from "@/lib/database/client/managers/app";
-import { redirectToFirstTimeSetup, redirectToLogin } from "@/lib/client/setup";
-
 export default function SystemSettingsAppletPage() {
-  redirectToFirstTimeSetup().then(() => {
-    redirectToLogin();
-  });
   const params = useParams();
   const router = useRouter();
   const fullAppletId = decodeURIComponent(params.appletId as string);

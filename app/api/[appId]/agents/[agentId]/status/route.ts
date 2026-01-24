@@ -3,7 +3,7 @@ import { getSession } from "@/lib/sdk";
 import { userHasAuthorization } from "@/lib/database/managers/user";
 import AgentManager from "@/lib/database/managers/agent";
 import { getAgentStatus } from "@/lib/system/agents/agent-runner";
-import { getNextCronExecution, formatNextExecution } from "@/lib/system/agents/agent-scheduler";
+import { getNextCronExecution, formatNextExecution } from "@/lib/system/cron";
 
 export async function GET(
   request: NextRequest,
