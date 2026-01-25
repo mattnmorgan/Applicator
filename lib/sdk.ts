@@ -24,6 +24,7 @@ export interface PluginContext {
     writeFile: (filePath: string, content: Buffer | string) => Promise<void>;
     readFile: (filePath: string) => Promise<Buffer>;
     deleteFile: (filePath: string) => Promise<void>;
+    deleteDirectory: (dirPath: string, recursive?: boolean) => Promise<void>;
     exists: (filePath: string) => Promise<boolean>;
     mkdir: (dirPath: string) => Promise<void>;
     createDirectory: (dirPath: string) => Promise<void>;
@@ -121,6 +122,10 @@ export async function createPlugin(
       deleteFile: async (filePath: string) => {
         const fullPath = path.join(appStoragePath, filePath);
         await fs.unlink(fullPath);
+      },
+      deleteDirectory: async (dirPath: string, recursive: boolean = false) => {
+        const fullPath = path.join(appStoragePath, dirPath);
+        await fs.rm(fullPath, { recursive, force: recursive });
       },
       exists: async (filePath: string) => {
         const fullPath = path.join(appStoragePath, filePath);
