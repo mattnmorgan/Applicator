@@ -56,7 +56,7 @@ export default function FolderBrowser({ isOpen, onClose, onConfirm, initialPath 
       const response = await fetch(`/api/system/apps/fs?path=${encodeURIComponent(path)}`);
       const data = await response.json();
       setDirectories(data.directories || []);
-      setCurrentPath(data.currentPath);
+      setCurrentPath(data.currentPath || path);
       setDrives([]);
     } catch (error) {
       console.error('Failed to load directory:', error);
@@ -75,13 +75,15 @@ export default function FolderBrowser({ isOpen, onClose, onConfirm, initialPath 
   };
 
   const handleNavigateUp = (index: number) => {
-    const pathParts = currentPath.split(platform === 'win32' ? '\\' : '/').filter(Boolean);
-
     if (index === -1) {
       // Go back to drives
       loadDrives();
       return;
     }
+
+    if (!currentPath) return;
+
+    const pathParts = currentPath.split(platform === 'win32' ? '\\' : '/').filter(Boolean);
 
     const newPathParts = pathParts.slice(0, index + 1);
     const newPath = platform === 'win32'
