@@ -57,7 +57,12 @@ export async function getCurrentUser(): Promise<{
       isAssumedIdentity: !!session.originalSessionId,
     };
   } catch (error) {
-    console.error("Unable to read current user: ", error);
+    // Don't log errors when called outside request context (e.g., during initialization)
+    // This is expected behavior, not an error condition
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    if (!errorMessage.includes("cookies")) {
+      console.error("Unable to read current user: ", error);
+    }
     return null;
   }
 }
