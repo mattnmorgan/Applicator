@@ -63,7 +63,7 @@ export default async function executeMethod(
     throw new Error(`Unknown method "${method}" accessed for agent`);
   }
 
-  return await sdk[method](appId, agentName, logger, params);
+  return await sdk[method]({ appId, agentName, logger, params });
 }
 
 async function logger_info({
@@ -73,7 +73,7 @@ async function logger_info({
   params,
 }: SdkParams): Promise<boolean> {
   new LogManager().info(appId, agentName + ": " + params.message);
-  logger.info(params.message);
+  if (logger) logger.info(params.message);
   return true;
 }
 
@@ -84,7 +84,7 @@ async function logger_warn({
   params,
 }: SdkParams): Promise<boolean> {
   new LogManager().warn(appId, agentName + ": " + params.message);
-  logger.warning(params.message);
+  if (logger) logger.warning(params.message);
   return true;
 }
 
@@ -93,9 +93,9 @@ async function logger_error({
   agentName,
   logger,
   params,
-}: SdkParams): Promise<any> {
+}: SdkParams): Promise<boolean> {
   new LogManager().error(appId, agentName + ": " + params.message);
-  logger.error(params.message);
+  if (logger) logger.error(params.message);
   return true;
 }
 
@@ -140,26 +140,29 @@ async function records_update({ appId, params }: SdkParams): Promise<any> {
   );
 }
 
-async function files_read({ params }: SdkParams): Promise<any> {
-  const appStorage = (await getSystemSettings())?.storage;
+/**
+ * Get the app-scoped storage path for file operations
+ */
+async function getAppStoragePath(appId: string): Promise<string> {
+  const storage = (await getSystemSettings())?.storage;
 
-  if (!appStorage) {
+  if (!storage) {
     throw new Error("Storage is not configured");
   }
 
-  return (await fs.readFile(path.join(appStorage, params.path))).toString(
-    "base64",
-  );
+  return path.join(storage, "apps", appId, "data");
 }
 
-async function files_write({ params }: SdkParams): Promise<any> {
-  const appStorage = (await getSystemSettings())?.storage;
+async function files_read({ appId, params }: SdkParams): Promise<any> {
+  const appStoragePath = await getAppStoragePath(appId);
+  const filePath = path.join(appStoragePath, params.path);
 
-  if (!appStorage) {
-    throw new Error("Storage is not configured");
-  }
+  return (await fs.readFile(filePath)).toString("base64");
+}
 
-  const filePath = path.join(appStorage, params.path);
+async function files_write({ appId, params }: SdkParams): Promise<any> {
+  const appStoragePath = await getAppStoragePath(appId);
+  const filePath = path.join(appStoragePath, params.path);
   const fileFolder = path.dirname(filePath);
 
   await fs.mkdir(fileFolder, { recursive: true });
@@ -171,26 +174,17 @@ async function files_write({ params }: SdkParams): Promise<any> {
   return true;
 }
 
-async function files_delete({ params }: SdkParams): Promise<any> {
-  const appStorage = (await getSystemSettings())?.storage;
+async function files_delete({ appId, params }: SdkParams): Promise<any> {
+  const appStoragePath = await getAppStoragePath(appId);
+  const filePath = path.join(appStoragePath, params.path);
 
-  if (!appStorage) {
-    throw new Error("Storage is not configured");
-  }
-
-  const filePath = path.join(appStorage, params.path);
   await fs.unlink(filePath);
   return true;
 }
 
-async function files_exists({ params }: SdkParams): Promise<any> {
-  const appStorage = (await getSystemSettings())?.storage;
-
-  if (!appStorage) {
-    throw new Error("Storage is not configured");
-  }
-
-  const filePath = path.join(appStorage, params.path);
+async function files_exists({ appId, params }: SdkParams): Promise<any> {
+  const appStoragePath = await getAppStoragePath(appId);
+  const filePath = path.join(appStoragePath, params.path);
 
   try {
     await fs.access(filePath);
@@ -200,37 +194,24 @@ async function files_exists({ params }: SdkParams): Promise<any> {
   }
 }
 
-async function files_mkdir({ params }: SdkParams): Promise<any> {
-  const appStorage = (await getSystemSettings())?.storage;
+async function files_mkdir({ appId, params }: SdkParams): Promise<any> {
+  const appStoragePath = await getAppStoragePath(appId);
+  const filePath = path.join(appStoragePath, params.path);
 
-  if (!appStorage) {
-    throw new Error("Storage is not configured");
-  }
-
-  const filePath = path.join(appStorage, params.path);
   await fs.mkdir(filePath, { recursive: true });
   return true;
 }
 
-async function files_list({ params }: SdkParams): Promise<any> {
-  const appStorage = (await getSystemSettings())?.storage;
+async function files_list({ appId, params }: SdkParams): Promise<any> {
+  const appStoragePath = await getAppStoragePath(appId);
+  const filePath = path.join(appStoragePath, params.path);
 
-  if (!appStorage) {
-    throw new Error("Storage is not configured");
-  }
-
-  const filePath = path.join(appStorage, params.path);
   return await fs.readdir(filePath);
 }
 
-async function files_stat({ params }: SdkParams): Promise<any> {
-  const appStorage = (await getSystemSettings())?.storage;
-
-  if (!appStorage) {
-    throw new Error("Storage is not configured");
-  }
-
-  const filePath = path.join(appStorage, params.path);
+async function files_stat({ appId, params }: SdkParams): Promise<any> {
+  const appStoragePath = await getAppStoragePath(appId);
+  const filePath = path.join(appStoragePath, params.path);
   const stats = await fs.stat(filePath);
 
   return {

@@ -167,6 +167,20 @@ export async function validateRequiredFields(
 }
 
 /**
+ * Check if a value is valid for a picklist/multipicklist field
+ * Handles both array options (["a", "b"]) and object options ({ a: "Label A" })
+ */
+function isValidOption(
+  options: string[] | { [id: string]: string },
+  value: string,
+): boolean {
+  if (Array.isArray(options)) {
+    return options.includes(value);
+  }
+  return value in options;
+}
+
+/**
  * Validates picklist fields for a record
  *
  * @param fields The table field definitions
@@ -184,7 +198,7 @@ export async function validatePicklistFields(
       const value = data[field.name];
 
       if (value !== undefined && value !== null && value !== "") {
-        if (!(value in field.options!)) {
+        if (!isValidOption(field.options!, value)) {
           results.push({
             field: field.name,
             valid: false,
@@ -226,7 +240,7 @@ export async function validateMultipicklistFields(
             error: `Field ${field.name} value must be an array`,
           });
           continue;
-        } else if ((value as any[]).some((v) => !(v in field.options!))) {
+        } else if ((value as string[]).some((v) => !isValidOption(field.options!, v))) {
           results.push({
             field: field.name,
             valid: false,

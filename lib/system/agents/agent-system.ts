@@ -156,12 +156,46 @@ class AgentSystem {
 
     for (const agentRecord of agentsToRestart) {
       try {
+        const agent = new Agent(agentRecord.data.app, agentRecord.data.name);
+
+        // Check if the agent script file exists before trying to start
+        const scriptPath = await agent.getScriptPath();
+        if (!scriptPath) {
+          await new LogManager().warn(
+            agentRecord.data.app,
+            `Cannot auto-restart agent '${agentRecord.data.name}': storage not configured`,
+          );
+          await agentManager.updateRecord(
+            await agentManager.getTable(),
+            agentRecord.id,
+            {
+              status: "stopped",
+              wasRunning: false,
+              lastError: "Storage not configured",
+            },
+          );
+          continue;
+        }
+
+        // Verify the script file exists (app may have been uninstalled)
+        const fs = await import("fs/promises");
+        try {
+          await fs.access(scriptPath);
+        } catch {
+          await new LogManager().warn(
+            agentRecord.data.app,
+            `Cannot auto-restart agent '${agentRecord.data.name}': script file not found (app may have been uninstalled)`,
+          );
+          // Clean up the orphaned agent record
+          await agentManager.deleteRecord(agentRecord.id);
+          continue;
+        }
+
         await new LogManager().info(
           agentRecord.data.app,
           `Auto-restarting agent '${agentRecord.data.name}'`,
         );
 
-        const agent = new Agent(agentRecord.data.app, agentRecord.data.name);
         await agent.start();
       } catch (error: any) {
         await new LogManager().error(

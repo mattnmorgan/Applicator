@@ -153,7 +153,21 @@ export default class Agent {
       }
 
       if (agentState.process) {
-        agentState.process.kill("SIGTERM");
+        // Send shutdown message via IPC (works on Windows where SIGTERM doesn't)
+        if (agentState.process.connected) {
+          agentState.process.send({ type: "shutdown" });
+        }
+
+        // Give the process a moment to shut down gracefully, then force kill
+        setTimeout(() => {
+          try {
+            if (agentState.process && !agentState.process.killed) {
+              agentState.process.kill("SIGKILL");
+            }
+          } catch {
+            // Process may already be gone
+          }
+        }, 3000);
       }
 
       Agent.runningAgents.delete(this.id);
@@ -415,24 +429,35 @@ export default class Agent {
       stdio: ["pipe", "pipe", "pipe", "ipc"],
     });
 
+    // Capture stderr for debugging
+    if (child.stderr) {
+      child.stderr.on("data", (data: Buffer) => {
+        const errorOutput = data.toString().trim();
+        if (errorOutput) {
+          new LogManager().error(
+            this.appId,
+            `Agent '${this.agentName}' stderr: ${errorOutput}`,
+          );
+        }
+      });
+    }
+
     child.on("message", async (message: AgentIPCRequest) => {
       if (message.id && message.method) {
         const { id, method, params } = message;
-        let result;
 
         try {
-          result = await executeMethod(
+          const result = await executeMethod(
             this.appId,
             this.agentName,
             this.logger,
             method,
             params,
           );
-        } catch (error) {
-          result = { id, error: error.message || String(error) };
+          child.send({ id, result });
+        } catch (error: any) {
+          child.send({ id, error: error.message || String(error) });
         }
-
-        child.send(result);
       }
     });
 
