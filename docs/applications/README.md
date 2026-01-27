@@ -26,6 +26,7 @@ my-app/
 │   │   └── my-route.ts
 │   ├── agents/           # Background agents
 │   │   └── my-agent.ts
+|   ├── components/       # Components used in applets
 │   ├── system/           # Lifecycle hooks
 │   │   ├── install.ts
 │   │   └── uninstall.ts

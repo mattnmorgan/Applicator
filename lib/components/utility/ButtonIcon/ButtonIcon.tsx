@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export interface ButtonIconProps {
   icon: React.ReactNode;
@@ -19,6 +20,34 @@ export default function ButtonIcon({
 }: ButtonIconProps) {
   const [isHovered, setIsHovered] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
+  const [tooltipCoords, setTooltipCoords] = useState<{ top: number; left: number; position: 'above' | 'below' } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (showTooltip && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const tooltipHeight = 32; // Approximate tooltip height
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const centerX = rect.left + rect.width / 2;
+
+      // If there's not enough space below, show tooltip above
+      if (spaceBelow < tooltipHeight + 10) {
+        setTooltipCoords({
+          top: rect.top - 8,
+          left: centerX,
+          position: 'above',
+        });
+      } else {
+        setTooltipCoords({
+          top: rect.bottom + 8,
+          left: centerX,
+          position: 'below',
+        });
+      }
+    } else {
+      setTooltipCoords(null);
+    }
+  }, [showTooltip]);
 
   const getHoverColor = () => {
     switch (subvariant) {
@@ -64,10 +93,11 @@ export default function ButtonIcon({
     fontSize: '16px',
   };
 
-  const tooltipStyle: React.CSSProperties = {
-    position: 'absolute',
-    bottom: '-32px',
-    left: '50%',
+  const tooltipStyle: React.CSSProperties = tooltipCoords ? {
+    position: 'fixed',
+    top: tooltipCoords.position === 'above' ? 'auto' : tooltipCoords.top,
+    bottom: tooltipCoords.position === 'above' ? window.innerHeight - tooltipCoords.top : 'auto',
+    left: tooltipCoords.left,
     transform: 'translateX(-50%)',
     background: '#1e293b',
     color: '#f1f5f9',
@@ -76,13 +106,14 @@ export default function ButtonIcon({
     fontSize: '12px',
     whiteSpace: 'nowrap',
     pointerEvents: 'none',
-    zIndex: 1000,
+    zIndex: 99999,
     border: '1px solid #334155',
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-  };
+  } : {};
 
   return (
     <button
+      ref={buttonRef}
       style={baseStyle}
       onClick={disabled ? undefined : onClick}
       onMouseEnter={() => {
@@ -97,11 +128,14 @@ export default function ButtonIcon({
       aria-label={label}
     >
       {icon}
-      {showTooltip && !disabled && (
-        <div style={tooltipStyle}>
-          {label}
-        </div>
-      )}
+      {showTooltip && !disabled && tooltipCoords && typeof document !== 'undefined' &&
+        createPortal(
+          <div style={tooltipStyle}>
+            {label}
+          </div>,
+          document.body
+        )
+      }
     </button>
   );
 }
