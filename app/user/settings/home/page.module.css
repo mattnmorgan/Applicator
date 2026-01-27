@@ -1,0 +1,339 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  width: 100%;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 600;
+  color: #f1f5f9;
+  margin: 0;
+}
+
+.section {
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  padding: 20px;
+}
+
+.sectionHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.sectionTitle {
+  font-size: 16px;
+  font-weight: 500;
+  color: #e2e8f0;
+  margin: 0;
+}
+
+.addButton {
+  background: #3b82f6;
+  border: none;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: white;
+  transition: background 0.2s;
+}
+
+.addButton:hover {
+  background: #2563eb;
+}
+
+.appletRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  margin-bottom: 8px;
+  cursor: grab;
+  transition: border-color 0.2s, box-shadow 0.2s;
+}
+
+.appletRow:last-child {
+  margin-bottom: 0;
+}
+
+.appletRow:hover {
+  border-color: #475569;
+}
+
+.appletRow:hover .removeButton {
+  opacity: 1;
+}
+
+.dragging {
+  box-shadow: 0 10px 20px rgba(0, 0, 0, 0.3);
+  border-color: #3b82f6;
+}
+
+.appletContent {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  gap: 16px;
+}
+
+.appletInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.appletTitle {
+  font-size: 14px;
+  font-weight: 500;
+  color: #f1f5f9;
+}
+
+.appletDescription {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.appletBadge {
+  background: #1e40af;
+  color: #93c5fd;
+  font-size: 11px;
+  font-weight: 500;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+}
+
+.removeButton {
+  background: none;
+  border: none;
+  color: #ef4444;
+  padding: 8px;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.2s, color 0.2s;
+  margin-left: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.removeButton:hover {
+  color: #dc2626;
+}
+
+.emptyState {
+  color: #94a3b8;
+  font-size: 14px;
+  text-align: center;
+  padding: 32px;
+}
+
+.actions {
+  display: flex;
+  justify-content: center;
+  padding-top: 12px;
+}
+
+.saveButton {
+  background: #3b82f6;
+  border: none;
+  border-radius: 6px;
+  padding: 10px 32px;
+  color: white;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.saveButton:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.saveButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+/* Modal Styles */
+.modalOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.7);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal {
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 12px;
+  width: 90%;
+  max-width: 500px;
+  max-height: 80vh;
+  display: flex;
+  flex-direction: column;
+}
+
+.modalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 20px 24px;
+  border-bottom: 1px solid #334155;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  color: #f1f5f9;
+}
+
+.closeButton {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.closeButton:hover {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.modalBody {
+  padding: 16px 24px;
+  overflow-y: auto;
+  flex: 1;
+}
+
+.modalFooter {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 16px 24px;
+  border-top: 1px solid #334155;
+}
+
+.checkboxRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.checkboxRow:hover {
+  background: #0f172a;
+}
+
+.checkboxRow input[type="checkbox"] {
+  margin-top: 4px;
+  accent-color: #3b82f6;
+}
+
+.checkboxContent {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.checkboxLabel {
+  font-size: 14px;
+  font-weight: 500;
+  color: #f1f5f9;
+}
+
+.checkboxDescription {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.cancelButton,
+.confirmButton {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  border: none;
+}
+
+.cancelButton {
+  background: transparent;
+  color: #94a3b8;
+  border: 1px solid #334155;
+}
+
+.cancelButton:hover {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.confirmButton {
+  background: #3b82f6;
+  color: #f1f5f9;
+}
+
+.confirmButton:hover:not(:disabled) {
+  background: #2563eb;
+}
+
+.confirmButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.error {
+  background: #7f1d1d;
+  border: 1px solid #991b1b;
+  border-radius: 6px;
+  padding: 12px;
+  color: #fecaca;
+  font-size: 14px;
+}
+
+.success {
+  background: #14532d;
+  border: 1px solid #166534;
+  border-radius: 6px;
+  padding: 12px;
+  color: #bbf7d0;
+  font-size: 14px;
+}

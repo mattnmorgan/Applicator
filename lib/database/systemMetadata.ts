@@ -4,7 +4,7 @@ export const SYSTEM_APP_METADATA = {
   version: {
     major: 1,
     minor: 5,
-    dev: 2,
+    dev: 3,
   },
   author: "Matthew Morgan",
   contactEmail: "matthew@morgantech.info",
@@ -22,6 +22,19 @@ export const SYSTEM_APP_METADATA = {
           description: "Value of the setting",
           type: "string",
           required: true,
+        },
+        {
+          name: "name",
+          description: "Name identifier for the setting",
+          type: "string",
+          required: false,
+        },
+        {
+          name: "user",
+          description: "User this setting belongs to",
+          type: "relationship",
+          relatedTo: "system:user",
+          required: false,
         },
       ],
     },

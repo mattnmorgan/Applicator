@@ -4,8 +4,10 @@ import { getSystemSettings } from "@/lib/database/managers/setting";
 import UserManager from "@/lib/database/managers/user";
 import AuthorityManager from "@/lib/database/managers/authority";
 import AppletManager from "@/lib/database/managers/applet";
+import SettingManager from "@/lib/database/managers/setting";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/utility/Tabset";
+import HomeApplets from "@/lib/components/HomeApplets";
 
 async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
   const homeMenuItems: TabsetItem[] = [
@@ -51,6 +53,64 @@ async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
   return homeMenuItems;
 }
 
+interface PinnedApplet {
+  id: string;
+  label: string;
+  description: string;
+  component: string;
+  app: string;
+}
+
+async function getUserPinnedApplets(userId: string): Promise<PinnedApplet[]> {
+  const settingManager = new SettingManager();
+  const appletManager = new AppletManager();
+
+  // Fetch user's pinned applets setting
+  const setting = await settingManager.readRecord(`${userId}:home:applets`);
+
+  if (!setting || !setting.data.value) {
+    return [];
+  }
+
+  try {
+    const appletIds = JSON.parse(setting.data.value);
+
+    if (!Array.isArray(appletIds) || appletIds.length === 0) {
+      return [];
+    }
+
+    // Fetch applet details, filtering out invalid ones
+    const pinnedApplets: PinnedApplet[] = [];
+    for (const id of appletIds) {
+      const applet = await appletManager.readRecord(id);
+      if (applet && applet.data.target === "home") {
+        pinnedApplets.push({
+          id: applet.id,
+          label: applet.data.label,
+          description: applet.data.description,
+          component: applet.data.component,
+          app: applet.data.app,
+        });
+      }
+    }
+
+    // Silently clean up invalid applets from saved settings
+    if (pinnedApplets.length !== appletIds.length) {
+      const validIds = pinnedApplets.map((a) => a.id);
+      const table = await settingManager.getTable();
+      await settingManager.upsertRecord(table, `${userId}:home:applets`, {
+        value: JSON.stringify(validIds),
+        name: "home:applets",
+        user: userId,
+      });
+    }
+
+    return pinnedApplets;
+  } catch {
+    return [];
+  }
+}
+
 export default async function HomePage() {
   // Check if first-time setup is needed
   const userManager = new UserManager();
@@ -85,6 +145,7 @@ export default async function HomePage() {
     .includes("system:admin");
 
   const homeMenuItems = await getHomeMenuItems(user.id);
+  const pinnedApplets = await getUserPinnedApplets(user.id);
 
   return (
     <>
@@ -118,45 +179,67 @@ export default async function HomePage() {
             overflow: "auto",
           }}
         >
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              height: "100%",
-            }}
-          >
+          {pinnedApplets.length > 0 ? (
+            <HomeApplets applets={pinnedApplets} />
+          ) : (
             <div
               style={{
-                background: "#1e293b",
-                padding: "60px 40px",
-                borderRadius: "10px",
-                boxShadow: "0 10px 25px rgba(0, 0, 0, 0.5)",
-                textAlign: "center",
-                maxWidth: "500px",
-                border: "1px solid #334155",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                height: "100%",
               }}
             >
-              <h1
+              <div
                 style={{
-                  fontSize: "32px",
-                  fontWeight: "bold",
-                  marginBottom: "20px",
-                  color: "#f1f5f9",
+                  background: "#1e293b",
+                  padding: "60px 40px",
+                  borderRadius: "10px",
+                  boxShadow: "0 10px 25px rgba(0, 0, 0, 0.5)",
+                  textAlign: "center",
+                  maxWidth: "500px",
+                  border: "1px solid #334155",
                 }}
               >
-                Hello, {user.data.displayName}
-              </h1>
-              <p
-                style={{
-                  color: "#94a3b8",
-                  fontSize: "16px",
-                }}
-              >
-                Welcome to Applicator
-              </p>
+                <h1
+                  style={{
+                    fontSize: "32px",
+                    fontWeight: "bold",
+                    marginBottom: "20px",
+                    color: "#f1f5f9",
+                  }}
+                >
+                  Hello, {user.data.displayName}
+                </h1>
+                <p
+                  style={{
+                    color: "#94a3b8",
+                    fontSize: "16px",
+                    marginBottom: "16px",
+                  }}
+                >
+                  Welcome to Applicator
+                </p>
+                <p
+                  style={{
+                    color: "#64748b",
+                    fontSize: "14px",
+                  }}
+                >
+                  Customize your homescreen applets in{" "}
+                  <a
+                    href="/user/settings/home"
+                    style={{
+                      color: "#3b82f6",
+                      textDecoration: "none",
+                    }}
+                  >
+                    User Settings
+                  </a>
+                </p>
+              </div>
             </div>
-          </div>
+          )}
         </main>
       </div>
     </>
