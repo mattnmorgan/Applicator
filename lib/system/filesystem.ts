@@ -57,13 +57,13 @@ export async function checkFsAccess(request: Request): Promise<{
       error: "App does not have filesystem access",
       status: 403,
     };
-  }
+  } else {
+    const hasAdmin = await userHasAuthorization(session.userId, "system:admin");
 
-  // User-based access - check session and admin authorization
-  const hasAdmin = await userHasAuthorization(session.userId, "system:admin");
-  if (!hasAdmin) {
-    return { authorized: false, error: "Forbidden", status: 403 };
+    if (hasAdmin) {
+      return { authorized: true };
+    } else {
+      return { authorized: false, error: "Forbidden", status: 403 };
+    }
   }
-
-  return { authorized: true };
 }
