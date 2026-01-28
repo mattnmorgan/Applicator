@@ -1,58 +1,11 @@
 import { NextResponse } from "next/server";
-import { getSession } from "@/lib/sdk";
-import { userHasAuthorization } from "@/lib/database/managers/user";
-import AuthorityManager from "@/lib/database/managers/authority";
+import { checkFsAccess } from "@/lib/system/filesystem";
 import fs from "fs";
 import path from "path";
 import os from "os";
 
-async function checkAccess(
-  request: Request,
-): Promise<{ authorized: boolean; error?: string; status?: number }> {
-  // Check user is logged in
-  const cookieHeader = request.headers.get("cookie");
-  const sessionId = cookieHeader?.match(/session=([^;]+)/)?.[1];
-  if (!sessionId) {
-    return { authorized: false, error: "Unauthorized", status: 401 };
-  }
-
-  const session = await getSession(sessionId);
-  if (!session) {
-    return { authorized: false, error: "Unauthorized", status: 401 };
-  }
-
-  // Check for app authorization header (for app API calls)
-  const appId = request.headers.get("X-App-Id");
-
-  if (appId) {
-    // App-based access - check if app has fs-access authorization
-    const authorityManager = new AuthorityManager();
-    const appAuthority = await authorityManager.readAppSpecificAuthority(appId);
-
-    if (
-      appAuthority &&
-      appAuthority.data.authorizations.includes("system:fs-access")
-    ) {
-      return { authorized: true };
-    }
-    return {
-      authorized: false,
-      error: "App does not have filesystem access",
-      status: 403,
-    };
-  }
-
-  // User-based access - check session and admin authorization
-  const hasAdmin = await userHasAuthorization(session.userId, "system:admin");
-  if (!hasAdmin) {
-    return { authorized: false, error: "Forbidden", status: 403 };
-  }
-
-  return { authorized: true };
-}
-
 export async function GET(request: Request) {
-  const access = await checkAccess(request);
+  const access = await checkFsAccess(request);
   if (!access.authorized) {
     return NextResponse.json(
       { error: access.error },
@@ -87,17 +40,45 @@ export async function GET(request: Request) {
       }
     }
 
-    // Read directory contents
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    const directories = entries
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => ({
-        name: entry.name,
-        path: path.join(dir, entry.name),
-      }))
-      .sort((a, b) => a.name.localeCompare(b.name));
+    // Check if directory exists
+    if (!fs.existsSync(dir)) {
+      return NextResponse.json({ files: [], currentPath: dir });
+    }
 
-    return NextResponse.json({ directories, currentPath: dir });
+    // Read directory contents with full metadata
+    const entries = fs.readdirSync(dir, { withFileTypes: true });
+    const files = entries.map((entry) => {
+      const fullPath = path.join(dir, entry.name);
+      const isDirectory = entry.isDirectory();
+
+      let size = 0;
+      let modifiedAt = new Date().toISOString();
+
+      try {
+        const stats = fs.statSync(fullPath);
+        size = stats.size;
+        modifiedAt = stats.mtime.toISOString();
+      } catch {
+        // Ignore stat errors
+      }
+
+      return {
+        name: entry.name,
+        path: fullPath.replace(/\\/g, "/"),
+        size: isDirectory ? 0 : size,
+        modifiedAt,
+        isDirectory,
+      };
+    });
+
+    // Sort: directories first, then by name
+    files.sort((a, b) => {
+      if (a.isDirectory && !b.isDirectory) return -1;
+      if (!a.isDirectory && b.isDirectory) return 1;
+      return a.name.localeCompare(b.name);
+    });
+
+    return NextResponse.json({ files, currentPath: dir });
   } catch (error) {
     console.error("Failed to read directory:", error);
     return NextResponse.json(
@@ -108,7 +89,7 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const access = await checkAccess(request);
+  const access = await checkFsAccess(request);
   if (!access.authorized) {
     return NextResponse.json(
       { error: access.error },
@@ -189,7 +170,7 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const access = await checkAccess(request);
+  const access = await checkFsAccess(request);
   if (!access.authorized) {
     return NextResponse.json(
       { error: access.error },
@@ -228,5 +209,166 @@ export async function DELETE(request: Request) {
       { error: "Failed to delete file or directory" },
       { status: 500 },
     );
+  }
+}
+
+// POST handler for rename, move, and copy operations
+export async function POST(request: Request) {
+  const access = await checkFsAccess(request);
+  if (!access.authorized) {
+    return NextResponse.json(
+      { error: access.error },
+      { status: access.status },
+    );
+  }
+
+  try {
+    const body = await request.json();
+    const { operation, sourcePath, destinationPath, newName } = body;
+
+    if (!operation) {
+      return NextResponse.json(
+        { error: "Operation is required" },
+        { status: 400 },
+      );
+    }
+
+    switch (operation) {
+      case "rename": {
+        if (!sourcePath || !newName) {
+          return NextResponse.json(
+            { error: "sourcePath and newName are required for rename" },
+            { status: 400 },
+          );
+        }
+
+        const parentDir = path.dirname(sourcePath);
+        const newPath = path.join(parentDir, newName);
+
+        if (fs.existsSync(newPath)) {
+          return NextResponse.json(
+            { error: "A file or directory with that name already exists" },
+            { status: 400 },
+          );
+        }
+
+        fs.renameSync(sourcePath, newPath);
+        return NextResponse.json({ success: true, path: newPath });
+      }
+
+      case "move": {
+        if (!sourcePath || !destinationPath) {
+          return NextResponse.json(
+            { error: "sourcePath and destinationPath are required for move" },
+            { status: 400 },
+          );
+        }
+
+        // Check if source is a directory and destination is inside it
+        const normalizedSource = path.resolve(sourcePath).replace(/\\/g, "/");
+        const normalizedDest = path.resolve(destinationPath).replace(/\\/g, "/");
+
+        if (fs.existsSync(sourcePath) && fs.statSync(sourcePath).isDirectory()) {
+          if (
+            normalizedDest === normalizedSource ||
+            normalizedDest.startsWith(normalizedSource + "/")
+          ) {
+            return NextResponse.json(
+              { error: "Cannot move a folder into itself" },
+              { status: 400 },
+            );
+          }
+        }
+
+        const fileName = path.basename(sourcePath);
+        const newPath = path.join(destinationPath, fileName);
+
+        if (fs.existsSync(newPath)) {
+          return NextResponse.json(
+            { error: "A file or directory with that name already exists at destination" },
+            { status: 400 },
+          );
+        }
+
+        // Ensure destination directory exists
+        if (!fs.existsSync(destinationPath)) {
+          fs.mkdirSync(destinationPath, { recursive: true });
+        }
+
+        fs.renameSync(sourcePath, newPath);
+        return NextResponse.json({ success: true, path: newPath });
+      }
+
+      case "copy": {
+        if (!sourcePath || !destinationPath) {
+          return NextResponse.json(
+            { error: "sourcePath and destinationPath are required for copy" },
+            { status: 400 },
+          );
+        }
+
+        // Check if source is a directory and destination is inside it
+        const normalizedCopySource = path.resolve(sourcePath).replace(/\\/g, "/");
+        const normalizedCopyDest = path.resolve(destinationPath).replace(/\\/g, "/");
+
+        if (fs.existsSync(sourcePath) && fs.statSync(sourcePath).isDirectory()) {
+          if (
+            normalizedCopyDest === normalizedCopySource ||
+            normalizedCopyDest.startsWith(normalizedCopySource + "/")
+          ) {
+            return NextResponse.json(
+              { error: "Cannot copy a folder into itself" },
+              { status: 400 },
+            );
+          }
+        }
+
+        const sourceFileName = path.basename(sourcePath);
+        const newPath = path.join(destinationPath, sourceFileName);
+
+        // Ensure destination directory exists
+        if (!fs.existsSync(destinationPath)) {
+          fs.mkdirSync(destinationPath, { recursive: true });
+        }
+
+        const stats = fs.statSync(sourcePath);
+        if (stats.isDirectory()) {
+          // Recursive copy for directories
+          copyDirectorySync(sourcePath, newPath);
+        } else {
+          fs.copyFileSync(sourcePath, newPath);
+        }
+
+        return NextResponse.json({ success: true, path: newPath });
+      }
+
+      default:
+        return NextResponse.json(
+          { error: `Unknown operation: ${operation}` },
+          { status: 400 },
+        );
+    }
+  } catch (error) {
+    console.error("Failed to perform operation:", error);
+    return NextResponse.json(
+      { error: "Failed to perform operation" },
+      { status: 500 },
+    );
+  }
+}
+
+function copyDirectorySync(src: string, dest: string) {
+  fs.mkdirSync(dest, { recursive: true });
+  const entries = fs.readdirSync(src, { withFileTypes: true });
+
+  for (const entry of entries) {
+    const srcPath = path.join(src, entry.name);
+    const destPath = path.join(dest, entry.name);
+
+    if (entry.isDirectory()) {
+      copyDirectorySync(srcPath, destPath);
+    } else {
+      fs.copyFileSync(srcPath, destPath);
+    }
   }
 }

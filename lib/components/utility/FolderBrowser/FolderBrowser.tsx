@@ -55,7 +55,11 @@ export default function FolderBrowser({ isOpen, onClose, onConfirm, initialPath 
     try {
       const response = await fetch(`/api/system/apps/fs?path=${encodeURIComponent(path)}`);
       const data = await response.json();
-      setDirectories(data.directories || []);
+      // Filter files to only include directories
+      const dirs = (data.files || [])
+        .filter((f: { isDirectory: boolean }) => f.isDirectory)
+        .map((f: { name: string; path: string }) => ({ name: f.name, path: f.path }));
+      setDirectories(dirs);
       setCurrentPath(data.currentPath || path);
       setDrives([]);
     } catch (error) {
@@ -66,7 +70,7 @@ export default function FolderBrowser({ isOpen, onClose, onConfirm, initialPath 
   };
 
   const handleSelectDrive = (drive: string) => {
-    const drivePath = platform === 'win32' ? `${drive}\\` : drive;
+    const drivePath = platform === 'win32' ? `${drive}/` : drive;
     loadDirectory(drivePath);
   };
 
@@ -83,11 +87,12 @@ export default function FolderBrowser({ isOpen, onClose, onConfirm, initialPath 
 
     if (!currentPath) return;
 
-    const pathParts = currentPath.split(platform === 'win32' ? '\\' : '/').filter(Boolean);
+    // API returns paths with forward slashes
+    const pathParts = currentPath.split('/').filter(Boolean);
 
     const newPathParts = pathParts.slice(0, index + 1);
     const newPath = platform === 'win32'
-      ? newPathParts.join('\\') + '\\'
+      ? newPathParts.join('/') + '/'
       : '/' + newPathParts.join('/');
 
     loadDirectory(newPath);
@@ -143,7 +148,8 @@ export default function FolderBrowser({ isOpen, onClose, onConfirm, initialPath 
 
   if (!isOpen) return null;
 
-  const pathParts = currentPath ? currentPath.split(platform === 'win32' ? '\\' : '/').filter(Boolean) : [];
+  // API returns paths with forward slashes
+  const pathParts = currentPath ? currentPath.split('/').filter(Boolean) : [];
 
   return (
     <div className={styles.overlay} onClick={onClose}>
