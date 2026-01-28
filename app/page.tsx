@@ -64,6 +64,8 @@ interface PinnedApplet {
 async function getUserPinnedApplets(userId: string): Promise<PinnedApplet[]> {
   const settingManager = new SettingManager();
   const appletManager = new AppletManager();
+  const authorityManager = new AuthorityManager();
+  const userManager = new UserManager();
 
   // Fetch user's pinned applets setting
   const setting = await settingManager.readRecord(`${userId}:home:applets`);
@@ -79,9 +81,31 @@ async function getUserPinnedApplets(userId: string): Promise<PinnedApplet[]> {
       return [];
     }
 
-    // Fetch applet details, filtering out invalid ones
+    // Get user's accessible applet IDs from their authorities
+    const userRecord = await userManager.readRecord(userId);
+    if (!userRecord) {
+      return [];
+    }
+
+    const mainAuthority = await authorityManager.readRecord(
+      userRecord.data.authority,
+    );
+    const userAuthority = await authorityManager.readUserAuthority(userId);
+
+    const accessibleAppletIds = [
+      ...(mainAuthority?.data.apps || []),
+      ...(userAuthority?.data.apps || []),
+    ];
+    const uniqueAccessibleIds = new Set(accessibleAppletIds);
+
+    // Fetch applet details, filtering out invalid ones and ones the user doesn't have access to
     const pinnedApplets: PinnedApplet[] = [];
     for (const id of appletIds) {
+      // Check if user has access to this applet
+      if (!uniqueAccessibleIds.has(id)) {
+        continue;
+      }
+
       const applet = await appletManager.readRecord(id);
       if (applet && applet.data.target === "home") {
         pinnedApplets.push({
