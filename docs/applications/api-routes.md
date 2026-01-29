@@ -63,102 +63,181 @@ export async function DELETE(req: NextRequest, context: { plugin: any }) {
 ### Handler Signature
 
 ```typescript
-(req: NextRequest, context: { plugin: PluginContext }) => Promise<NextResponse>
+(req: NextRequest, context: { plugin: any }) => Promise<NextResponse>
 ```
 
 - `req`: Next.js request object with query params, body, headers
-- `context.plugin`: SDK with file, record, and system utilities
+- `context.plugin`: Plugin context with file, record, and authorization utilities
 
 ---
 
-## Plugin SDK Reference
+## Plugin Context Reference
 
 The plugin context provides these utilities:
 
-### Files (`plugin.files`)
+### Files (`plugin.appFileManager`)
 
-All file operations are scoped to your app's data directory.
+A `Filesystem` instance scoped to your app's data directory. All paths are relative to the app's storage root.
 
 ```typescript
-// Write a file
-await plugin.files.writeFile('data/config.json', JSON.stringify(config));
-await plugin.files.writeFile('uploads/image.png', buffer);
+// Write a file (creates parent directories automatically)
+await plugin.appFileManager.writeFile('data/config.json', JSON.stringify(config));
+await plugin.appFileManager.writeFile('uploads/image.png', buffer);
 
-// Read a file
-const buffer = await plugin.files.readFile('uploads/image.png');
+// Read a file (returns Buffer)
+const buffer = await plugin.appFileManager.readFile('uploads/image.png');
 const text = buffer.toString('utf-8');
 
 // Delete a file
-await plugin.files.deleteFile('temp/old-file.txt');
+await plugin.appFileManager.deleteFile('temp/old-file.txt');
 
 // Delete a directory
-await plugin.files.deleteDirectory('temp', true); // recursive
+await plugin.appFileManager.deleteDirectory('temp', true); // recursive
 
 // Check existence
-const exists = await plugin.files.exists('data/config.json');
+const exists = await plugin.appFileManager.exists('data/config.json');
 
-// Create directory
-await plugin.files.mkdir('uploads/images');
-await plugin.files.createDirectory('uploads/images'); // alias
+// Create directory (throws if already exists)
+await plugin.appFileManager.createDirectory('uploads/images');
+
+// Ensure directory exists (creates if not, no error if exists)
+await plugin.appFileManager.ensureDirectory('uploads/images');
 
 // List directory contents
-const files = await plugin.files.readdir('uploads');
-const files = await plugin.files.listFiles('uploads'); // alias
+const entries = await plugin.appFileManager.listDirectory('uploads');
+// [{ name, isDirectory, size, modifiedAt }] — sorted: directories first, then by name
 
-// Get file stats
-const stats = await plugin.files.stat('uploads/image.png');
-// stats.size, stats.isDirectory(), stats.mtime, etc.
+// Get file/directory metadata
+const meta = await plugin.appFileManager.getMetadata('uploads/image.png');
+// { size: number, createdAt: Date, modifiedAt: Date, isDirectory: boolean }
 
-// Get metadata
-const meta = await plugin.files.getMetadata('uploads/image.png');
-// { size: number, modifiedAt: Date, isDirectory: boolean }
+// Rename a file or directory (returns new relative path)
+const newPath = await plugin.appFileManager.rename('old-name.txt', 'new-name.txt');
+
+// Move to a different directory (returns new relative path)
+const movedPath = await plugin.appFileManager.move('file.txt', 'archive');
+
+// Copy a file or directory (returns new relative path, handles name conflicts)
+const copiedPath = await plugin.appFileManager.copy('file.txt', 'backup');
 ```
 
-### Records (`plugin.records`)
+**Filesystem errors** have `name: "FilesystemError"`, a `code` property (`NOT_FOUND`, `ALREADY_EXISTS`, `INVALID_PATH`, `INVALID_OPERATION`, `PERMISSION_DENIED`), and a `statusCode` suitable for HTTP responses.
 
-CRUD operations for your app's tables.
+### System Files (`plugin.systemFileManager`)
+
+A `Filesystem` instance scoped to the system files directory. Only available if your app has the `system:fs-access` authorization — throws an error otherwise.
 
 ```typescript
-// Create a record
-const record = await plugin.records.create('my-table', {
-  title: 'New Item',
-  status: 'active'
-});
+// Access system files (requires system:fs-access permission)
+const systemEntries = await plugin.systemFileManager.listDirectory('');
 
-// List records with pagination
-const result = await plugin.records.list('my-table', {
+// Create a child filesystem scoped to a subdirectory
+const scopedFs = plugin.systemFileManager.scoped('some/subdir');
+```
+
+See [Authorities](./authorities.md#filesystem-access) for how to request `system:fs-access`.
+
+### Records (`plugin.recordManager`)
+
+Create a CRUD manager for a specific app table. The manager is scoped to the given app and table.
+
+```typescript
+// Get a record manager for a table
+const items = plugin.recordManager('my-app', 'items');
+
+// Read a single record by ID
+const record = await items.readRecord('record-id');
+// { id, data: T, createdAt, updatedAt }
+
+// Read records with filtering and pagination
+const result = await items.readRecords({
   limit: 50,
-  offset: 0
+  offset: 0,
+  fields: { status: 'active' },    // filter by field values
+  ids: ['id-1', 'id-2'],           // filter by specific IDs
+  includeRelated: ['author'],       // include related records
 });
-// result.records, result.total
+// { records: TableRecord[], total, limit, offset, related? }
 
-// Get a single record
-const record = await plugin.records.get('my-table', 'record-id');
+// Create a record (pass null for table to skip validation)
+const table = await items.getTable();
+const created = await items.createRecord(table, {
+  title: 'New Item',
+  status: 'active',
+});
 
-// Update a record
-const updated = await plugin.records.update('my-table', 'record-id', {
-  status: 'completed'
+// Update a record (partial update)
+const updated = await items.updateRecord(table, 'record-id', {
+  status: 'completed',
+});
+
+// Upsert a record (create or update)
+const upserted = await items.upsertRecord(table, 'record-id', {
+  title: 'Item',
+  status: 'active',
 });
 
 // Delete a record
-await plugin.records.delete('my-table', 'record-id');
+await items.deleteRecord('record-id');
+
+// Bulk operations
+const bulkCreated = await items.bulkCreateRecords(table, [
+  { title: 'Item 1' },
+  { title: 'Item 2' },
+]);
+// { success: TableRecord[], failures: { data, error }[] }
+
+const bulkUpdated = await items.bulkUpdateRecords(table, [
+  { id: 'id-1', data: { status: 'done' } },
+  { id: 'id-2', data: { status: 'done' } },
+]);
+
+await items.bulkDeleteRecords(['id-1', 'id-2']);
+
+// List all record keys
+const keys = await items.listRecords();
+
+// Delete all records in the table
+await items.deleteAll();
+
+// Get table definition and fields
+const tableDef = await items.getTable();
+const fields = await items.getTableFields();
 ```
 
-### System (`plugin.system`)
-
-User and authorization utilities.
+### User and App Info
 
 ```typescript
-// Check current user's authorization
-const canManage = await plugin.system.checkMyAuthorization('my-app:manage');
+// Get current user's info (cached after first call)
+const user = await plugin.user();
+// { id, displayName, username, email, authorities: { system, userSpecific } }
 
-// Get user details
-const user = await plugin.system.getUser('user-id');
-// { id, username, displayName, email, authorityName }
+// Get a specific user's info
+const otherUser = await plugin.user('user-id');
 
-// Get all users
-const users = await plugin.system.getUsers();
-const allUsers = await plugin.system.getUsers(true); // include inactive
+// Get current app's info (cached after first call)
+const app = await plugin.app();
+// { name, version, authority: { name, authorizations } }
+
+// Get another app's info
+const otherApp = await plugin.app('other-app-id');
+```
+
+### Authorization
+
+```typescript
+// Check if the current user has an authorization
+const canManage = await plugin.isUserAuthorizedFor('my-app:manage');
+
+// Check multiple authorizations (test: "some" or "all")
+const hasAny = await plugin.isUserAuthorized(['my-app:view', 'my-app:edit'], 'some');
+const hasAll = await plugin.isUserAuthorized(['my-app:view', 'my-app:edit'], 'all');
+
+// Check app-level authorization (for the current app)
+const appHasAccess = await plugin.isAppAuthorizedFor('system:fs-access');
+
+// Check another app's authorization
+const otherAppAccess = await plugin.isAppAuthorizedFor('files:fs-access', 'other-app-id');
 ```
 
 ### Logger (`plugin.logger`)
@@ -168,54 +247,8 @@ Log messages to the system log.
 ```typescript
 await plugin.logger.info('Processing request...');
 await plugin.logger.warn('Rate limit approaching');
+await plugin.logger.debug('Debug details here');
 await plugin.logger.error('Failed to process: ' + error.message);
-```
-
-### Helper Properties and Methods
-
-```typescript
-// App ID
-const appId = plugin.appId;
-
-// Current user ID (if authenticated)
-const userId = plugin.userId;
-
-// Get current user's data
-const user = await plugin.getUser();
-
-// Check authorization (alternative to system.checkMyAuthorization)
-const hasAuth = await plugin.hasAuthorization('my-app:admin');
-```
-
----
-
-## Authorization Helper
-
-Require specific authorization before processing:
-
-```typescript
-import { NextRequest, NextResponse } from 'next/server';
-import { requireAuthorization } from '@/lib/sdk';
-
-export async function POST(req: NextRequest, context: { plugin: any }) {
-  const { plugin } = context;
-
-  try {
-    // Throws if user lacks authorization
-    await requireAuthorization(plugin, 'my-app:manage');
-
-    // Authorized - proceed with operation
-    const body = await req.json();
-    const record = await plugin.records.create('items', body);
-    return NextResponse.json(record);
-
-  } catch (error: any) {
-    if (error.message.includes('Missing required authorization')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-}
 ```
 
 ---
@@ -233,17 +266,16 @@ export async function GET(req: NextRequest, context: { plugin: any }) {
   const offset = parseInt(searchParams.get('offset') || '0');
   const status = searchParams.get('status');
 
-  const result = await plugin.records.list('items', { limit, offset });
-
-  // Filter if status provided
-  let items = result.records;
-  if (status) {
-    items = items.filter(r => r.data.status === status);
-  }
+  const items = plugin.recordManager('my-app', 'items');
+  const result = await items.readRecords({
+    limit,
+    offset,
+    ...(status ? { fields: { status } } : {}),
+  });
 
   return NextResponse.json({
-    items: items.map(r => ({ id: r.id, ...r.data })),
-    total: result.total
+    items: result.records.map(r => ({ id: r.id, ...r.data })),
+    total: result.total,
   });
 }
 ```
@@ -257,7 +289,6 @@ export async function POST(req: NextRequest, context: { plugin: any }) {
   try {
     const body = await req.json();
 
-    // Validate required fields
     if (!body.title) {
       return NextResponse.json(
         { error: 'Title is required' },
@@ -265,11 +296,11 @@ export async function POST(req: NextRequest, context: { plugin: any }) {
       );
     }
 
-    // Create record
-    const record = await plugin.records.create('items', {
+    const items = plugin.recordManager('my-app', 'items');
+    const table = await items.getTable();
+    const record = await items.createRecord(table, {
       title: body.title,
       status: body.status || 'pending',
-      createdBy: plugin.userId
     });
 
     await plugin.logger.info(`Created item: ${record.id}`);
@@ -296,13 +327,15 @@ export async function PUT(req: NextRequest, context: { plugin: any }) {
 
   try {
     const body = await req.json();
-    const existing = await plugin.records.get('items', id);
+    const items = plugin.recordManager('my-app', 'items');
+    const table = await items.getTable();
+    const existing = await items.readRecord(id);
 
     if (!existing) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    const updated = await plugin.records.update('items', id, body);
+    const updated = await items.updateRecord(table, id, body);
     return NextResponse.json(updated);
 
   } catch (error: any) {
@@ -324,13 +357,14 @@ export async function DELETE(req: NextRequest, context: { plugin: any }) {
   }
 
   try {
-    const existing = await plugin.records.get('items', id);
+    const items = plugin.recordManager('my-app', 'items');
+    const existing = await items.readRecord(id);
 
     if (!existing) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
-    await plugin.records.delete('items', id);
+    await items.deleteRecord(id);
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
@@ -356,12 +390,12 @@ export async function POST(req: NextRequest, context: { plugin: any }) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const filename = `uploads/${Date.now()}-${file.name}`;
 
-    await plugin.files.writeFile(filename, buffer);
+    await plugin.appFileManager.writeFile(filename, buffer);
 
     return NextResponse.json({
       success: true,
       path: filename,
-      size: buffer.length
+      size: buffer.length,
     });
 
   } catch (error: any) {
@@ -383,24 +417,44 @@ export async function GET(req: NextRequest, context: { plugin: any }) {
   }
 
   try {
-    const exists = await plugin.files.exists(path);
+    const exists = await plugin.appFileManager.exists(path);
     if (!exists) {
       return NextResponse.json({ error: 'File not found' }, { status: 404 });
     }
 
-    const buffer = await plugin.files.readFile(path);
+    const buffer = await plugin.appFileManager.readFile(path);
     const filename = path.split('/').pop();
 
     return new NextResponse(buffer, {
       headers: {
         'Content-Type': 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="${filename}"`
-      }
+        'Content-Disposition': `attachment; filename="${filename}"`,
+      },
     });
 
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+}
+```
+
+### Authorization Check
+
+```typescript
+export async function POST(req: NextRequest, context: { plugin: any }) {
+  const { plugin } = context;
+
+  const canManage = await plugin.isUserAuthorizedFor('my-app:manage');
+  if (!canManage) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
+  // Authorized - proceed with operation
+  const body = await req.json();
+  const items = plugin.recordManager('my-app', 'items');
+  const table = await items.getTable();
+  const record = await items.createRecord(table, body);
+  return NextResponse.json(record);
 }
 ```
 

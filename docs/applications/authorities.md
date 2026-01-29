@@ -130,21 +130,18 @@ Your app's authority can be granted `system:fs-access` by an administrator:
 
 ### Using fs-access
 
-From API handlers, you can then call the filesystem API:
+From API handlers, apps with `system:fs-access` can access the system filesystem through the plugin context:
 
 ```typescript
 export async function GET(req: NextRequest, context: { plugin: any }) {
   const { plugin } = context;
 
-  // Check if app has fs-access
-  const appId = plugin.appId;
-  const hasAccess = await checkAppFsAccess(appId);
-
-  if (hasAccess) {
-    // Access filesystem
-    const response = await fetch('/api/system/apps/fs', {
-      headers: { 'X-App-Id': appId }
-    });
+  try {
+    // Access system files (throws if app lacks system:fs-access)
+    const entries = await plugin.systemFileManager.listDirectory('');
+    return NextResponse.json({ files: entries });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 403 });
   }
 }
 ```
@@ -156,21 +153,21 @@ export async function GET(req: NextRequest, context: { plugin: any }) {
 ### In API Handlers
 
 ```typescript
-import { requireAuthorization } from '@/lib/sdk';
-
 export async function POST(req: NextRequest, context: { plugin: any }) {
   const { plugin } = context;
 
-  // Method 1: Require authorization (throws if missing)
-  await requireAuthorization(plugin, 'my-app:manage');
-
-  // Method 2: Check authorization (returns boolean)
-  const canManage = await plugin.hasAuthorization('my-app:manage');
-  const canView = await plugin.system.checkMyAuthorization('my-app:view');
+  // Check a single authorization
+  const canManage = await plugin.isUserAuthorizedFor('my-app:manage');
 
   if (!canManage) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
+
+  // Check multiple authorizations ("some" = any one, "all" = every one)
+  const hasAny = await plugin.isUserAuthorized(
+    ['my-app:view', 'my-app:edit'],
+    'some',
+  );
 
   // Proceed with authorized operation
 }
@@ -315,7 +312,6 @@ Allow or deny request
 ```typescript
 // src/api/documents/delete.ts
 import { NextRequest, NextResponse } from 'next/server';
-import { requireAuthorization } from '@/lib/sdk';
 
 export async function DELETE(req: NextRequest, context: { plugin: any }) {
   const { plugin } = context;
@@ -326,26 +322,28 @@ export async function DELETE(req: NextRequest, context: { plugin: any }) {
     return NextResponse.json({ error: 'ID required' }, { status: 400 });
   }
 
+  // Check delete permission
+  const canDelete = await plugin.isUserAuthorizedFor('document-manager:delete');
+  if (!canDelete) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   try {
-    // Check delete permission
-    await requireAuthorization(plugin, 'document-manager:delete');
+    const docs = plugin.recordManager('document-manager', 'documents');
 
     // Get document
-    const doc = await plugin.records.get('documents', docId);
+    const doc = await docs.readRecord(docId);
     if (!doc) {
       return NextResponse.json({ error: 'Not found' }, { status: 404 });
     }
 
     // Delete document
-    await plugin.records.delete('documents', docId);
+    await docs.deleteRecord(docId);
     await plugin.logger.info(`Document deleted: ${docId}`);
 
     return NextResponse.json({ success: true });
 
   } catch (error: any) {
-    if (error.message.includes('Missing required authorization')) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
-    }
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -404,8 +402,10 @@ Don't use contextual for:
 
 ```typescript
 export async function POST(req: NextRequest, context: { plugin: any }) {
+  const { plugin } = context;
+
   // Check permissions FIRST
-  const canCreate = await context.plugin.hasAuthorization('app:create');
+  const canCreate = await plugin.isUserAuthorizedFor('app:create');
   if (!canCreate) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
@@ -420,7 +420,7 @@ export async function POST(req: NextRequest, context: { plugin: any }) {
 
 ```typescript
 if (!hasPermission) {
-  await plugin.logger.warn(`User ${plugin.userId} denied access to ${resource}`);
+  await plugin.logger.warn(`Access denied to ${resource}`);
   return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
 }
 ```
