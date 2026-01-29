@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { checkFsAccess } from "@/lib/system/filesystem";
+import { Filesystem } from "@/lib/system/filesystem";
 import fs from "fs";
 import path from "path";
 
@@ -32,7 +32,7 @@ function getMimeType(filePath: string): string {
 }
 
 export async function GET(request: Request) {
-  const access = await checkFsAccess(request);
+  const access = await Filesystem.checkFsAccess(request);
   if (!access.authorized) {
     return NextResponse.json(
       { error: access.error },

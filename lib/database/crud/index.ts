@@ -30,8 +30,8 @@ import RecordFilter from "@/lib/database/crud/types/record-filter";
 import Result from "@/lib/database/crud/types/read-result";
 
 export default abstract class CRUD<T = any> {
-  tableName!: string;
-  appId!: string;
+  protected tableName!: string;
+  protected appId!: string;
   table!: Table | null;
   fields!: Field[] | null;
 
@@ -41,7 +41,7 @@ export default abstract class CRUD<T = any> {
       this.appId,
       this.tableName,
       fields || [],
-      filter
+      filter,
     );
   }
 
@@ -75,7 +75,7 @@ export default abstract class CRUD<T = any> {
       const tableRecord = await readRecord<Table>(
         "system",
         "table",
-        this.tableName
+        this.tableName,
       );
       this.table = tableRecord?.data || null;
     }
@@ -88,7 +88,7 @@ export default abstract class CRUD<T = any> {
       // checking relationships, which we don't care about here
       this.fields =
         (await readRecords<Field>("system", "field", [], {}))?.records?.map(
-          (r) => r.data
+          (r) => r.data,
         ) || null;
     }
     return this.fields;
@@ -106,4 +106,15 @@ export default abstract class CRUD<T = any> {
   getKeyPrefix = getKeyPrefix;
   closeRedis = closeRedis;
   getRecordKey = getRecordKey;
+}
+
+/**
+ * Generic CRUD wrapper
+ */
+export class GenericCRUD<T = any> extends CRUD<T> {
+  public constructor(appId: string, tableId: string) {
+    super();
+    this.appId = appId;
+    this.tableName = tableId;
+  }
 }

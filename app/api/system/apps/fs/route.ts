@@ -1,11 +1,11 @@
 import { NextResponse } from "next/server";
-import { checkFsAccess } from "@/lib/system/filesystem";
+import { Filesystem } from "@/lib/system/filesystem";
 import fs from "fs";
 import path from "path";
 import os from "os";
 
 export async function GET(request: Request) {
-  const access = await checkFsAccess(request);
+  const access = await Filesystem.checkFsAccess(request);
   if (!access.authorized) {
     return NextResponse.json(
       { error: access.error },
@@ -89,7 +89,7 @@ export async function GET(request: Request) {
 }
 
 export async function PUT(request: Request) {
-  const access = await checkFsAccess(request);
+  const access = await Filesystem.checkFsAccess(request);
   if (!access.authorized) {
     return NextResponse.json(
       { error: access.error },
@@ -170,7 +170,7 @@ export async function PUT(request: Request) {
 }
 
 export async function DELETE(request: Request) {
-  const access = await checkFsAccess(request);
+  const access = await Filesystem.checkFsAccess(request);
   if (!access.authorized) {
     return NextResponse.json(
       { error: access.error },
@@ -214,7 +214,7 @@ export async function DELETE(request: Request) {
 
 // POST handler for rename, move, and copy operations
 export async function POST(request: Request) {
-  const access = await checkFsAccess(request);
+  const access = await Filesystem.checkFsAccess(request);
   if (!access.authorized) {
     return NextResponse.json(
       { error: access.error },

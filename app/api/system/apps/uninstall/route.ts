@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/sdk";
+import { getSession } from "@/lib/database/managers/session";
 import { userHasAuthorization } from "@/lib/database/managers/user";
 import AppManager from "@/lib/database/managers/app";
 import { formatVersion } from "@/lib/system/version";

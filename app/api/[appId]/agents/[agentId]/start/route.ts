@@ -1,5 +1,5 @@
 import { NextResponse, NextRequest } from "next/server";
-import { getSession } from "@/lib/sdk";
+import { getSession } from "@/lib/database/managers/session";
 import { userHasAuthorization } from "@/lib/database/managers/user";
 import AgentManager from "@/lib/database/managers/agent";
 import Agent from "@/lib/system/agents/agent";

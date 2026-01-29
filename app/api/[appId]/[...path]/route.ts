@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import ApiRouteManager from "@/lib/database/managers/apiRoute";
 import SettingManager from "@/lib/database/managers/setting";
-import { createPlugin, getSession } from "@/lib/sdk";
+import Context from "@/lib/sdk/plugin-context";
+import { getSession } from "@/lib/database/managers/session";
 import * as path from "path";
 import * as fs from "fs";
 import { loadModule } from "@/lib/system/source";
@@ -120,7 +121,7 @@ async function handleRequest(
     }
 
     // Create plugin context
-    const plugin = await createPlugin(appId, userId);
+    const plugin = await Context.create(appId, userId);
     const context = { plugin };
 
     // Execute the handler with context

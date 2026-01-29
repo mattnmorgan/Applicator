@@ -26,6 +26,7 @@ my-app/
 │   │   └── my-route.ts
 │   ├── agents/           # Background agents
 │   │   └── my-agent.ts
+|   ├── lib/              # Lib files for use in api, agents, components, apps, etc
 |   ├── components/       # Components used in applets
 │   ├── system/           # Lifecycle hooks
 │   │   ├── install.ts

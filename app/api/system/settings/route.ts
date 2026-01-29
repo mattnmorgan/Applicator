@@ -1,6 +1,6 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getSystemSettings } from "@/lib/database/managers/setting";
-import { getSession } from "@/lib/sdk";
+import { getSession } from "@/lib/database/managers/session";
 import { SYSTEM_APP_METADATA } from "@/lib/database/systemMetadata";
 import SettingManager from "@/lib/database/managers/setting";
 import AppManager from "@/lib/database/managers/app";

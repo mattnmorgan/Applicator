@@ -8,19 +8,17 @@ export interface LogMessage {
   metadata?: Record<string, unknown>;
 }
 
-export interface LoggerOptions {
-  filename: string;
-  threshold?: number;
-  append?: boolean;
-}
-
 export default class Logger {
   private messages: LogMessage[] = [];
   private filename: string;
   private threshold: number;
   private append: boolean;
 
-  constructor(options: LoggerOptions) {
+  constructor(options: {
+    filename: string;
+    threshold?: number;
+    append?: boolean;
+  }) {
     this.filename = options.filename;
     this.threshold = options.threshold ?? 100;
     this.append = options.append ?? true;
