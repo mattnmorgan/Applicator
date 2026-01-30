@@ -75,6 +75,11 @@ export default function AppList() {
     appId: string;
     appName: string;
   } | null>(null);
+  const [pendingInstall, setPendingInstall] = useState<{
+    file: File;
+    appName: string;
+    permissions: { id: string; name: string; description: string }[];
+  } | null>(null);
   const [upgradingSystem, setUpgradingSystem] = useState(false);
   const [systemNeedsUpgrade, setSystemNeedsUpgrade] = useState(false);
 
@@ -154,8 +159,66 @@ export default function AppList() {
 
     setInstalling(true);
     try {
+      // Preview the app to check for required permissions
+      const previewFormData = new FormData();
+      previewFormData.append("file", file);
+
+      const previewResponse = await fetch("/api/system/apps/preview", {
+        method: "POST",
+        body: previewFormData,
+      });
+
+      const previewData = await previewResponse.json();
+
+      if (!previewResponse.ok) {
+        setToast({
+          message: previewData.error || "Failed to preview app",
+          type: "error",
+        });
+        setInstalling(false);
+        if (fileInputRef.current) {
+          fileInputRef.current.value = "";
+        }
+        return;
+      }
+
+      // If the app requires permissions, show the confirmation modal
+      if (previewData.permissions && previewData.permissions.length > 0) {
+        setPendingInstall({
+          file,
+          appName: previewData.appName,
+          permissions: previewData.permissions,
+        });
+        setInstalling(false);
+        return;
+      }
+
+      // No permissions required — install directly
+      await performInstall(file);
+    } catch (error) {
+      console.error("Error installing app:", error);
+      setToast({ message: "Failed to install app", type: "error" });
+      setInstalling(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
+  };
+
+  const performInstall = async (
+    file: File,
+    approvedPermissions?: string[],
+  ) => {
+    setInstalling(true);
+    try {
       const formData = new FormData();
       formData.append("file", file);
+      if (approvedPermissions && approvedPermissions.length > 0) {
+        formData.append(
+          "approvedPermissions",
+          JSON.stringify(approvedPermissions),
+        );
+      }
 
       const response = await fetch("/api/system/apps/install", {
         method: "POST",
@@ -181,9 +244,24 @@ export default function AppList() {
       setToast({ message: "Failed to install app", type: "error" });
     } finally {
       setInstalling(false);
+      setPendingInstall(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
+    }
+  };
+
+  const handlePermissionsConfirm = () => {
+    if (!pendingInstall) return;
+    const permissionIds = pendingInstall.permissions.map((p) => p.id);
+    performInstall(pendingInstall.file, permissionIds);
+  };
+
+  const handlePermissionsCancel = () => {
+    setPendingInstall(null);
+    setToast({ message: "Installation cancelled", type: "error" });
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -342,6 +420,176 @@ export default function AppList() {
           onCancel={() => setConfirmUninstall(null)}
           danger
         />
+      )}
+
+      {pendingInstall && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0, 0, 0, 0.7)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+            animation: "fadeIn 0.2s ease-in-out",
+          }}
+          onClick={handlePermissionsCancel}
+        >
+          <div
+            style={{
+              background: "#1e293b",
+              border: "1px solid #334155",
+              borderRadius: "12px",
+              width: "90%",
+              maxWidth: "500px",
+              boxShadow:
+                "0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2)",
+            }}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                padding: "20px 24px",
+                borderBottom: "1px solid #334155",
+              }}
+            >
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: "18px",
+                  fontWeight: 600,
+                  color: "#f1f5f9",
+                }}
+              >
+                App Permissions
+              </h2>
+              <button
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: "#94a3b8",
+                  cursor: "pointer",
+                  padding: "4px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  borderRadius: "4px",
+                }}
+                onClick={handlePermissionsCancel}
+              >
+                <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+                  <path
+                    d="M15 5L5 15M5 5L15 15"
+                    stroke="currentColor"
+                    strokeWidth="1.5"
+                    strokeLinecap="round"
+                  />
+                </svg>
+              </button>
+            </div>
+            <div style={{ padding: "24px" }}>
+              <p
+                style={{
+                  margin: "0 0 16px 0",
+                  color: "#e2e8f0",
+                  fontSize: "14px",
+                  lineHeight: 1.6,
+                }}
+              >
+                <strong>{pendingInstall.appName}</strong> requires the following
+                permissions:
+              </p>
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                }}
+              >
+                {pendingInstall.permissions.map((perm) => (
+                  <div
+                    key={perm.id}
+                    style={{
+                      background: "#0f172a",
+                      border: "1px solid #334155",
+                      borderRadius: "8px",
+                      padding: "12px 16px",
+                    }}
+                  >
+                    <div
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: 500,
+                        color: "#f1f5f9",
+                        marginBottom: "4px",
+                      }}
+                    >
+                      {perm.name}
+                    </div>
+                    <div
+                      style={{
+                        fontSize: "12px",
+                        color: "#94a3b8",
+                      }}
+                    >
+                      {perm.description}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "flex-end",
+                gap: "12px",
+                padding: "16px 24px",
+                borderTop: "1px solid #334155",
+              }}
+            >
+              <button
+                onClick={handlePermissionsCancel}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  background: "transparent",
+                  color: "#94a3b8",
+                  border: "1px solid #334155",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handlePermissionsConfirm}
+                style={{
+                  padding: "8px 16px",
+                  borderRadius: "6px",
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  cursor: "pointer",
+                  background: "#3b82f6",
+                  color: "#f1f5f9",
+                  border: "none",
+                  transition: "all 0.15s ease",
+                }}
+              >
+                Install
+              </button>
+            </div>
+          </div>
+        </div>
       )}
 
       <div className={styles.toolbar}>

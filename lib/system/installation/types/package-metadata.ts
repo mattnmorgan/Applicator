@@ -60,4 +60,9 @@ export default interface AppMetadata {
     description: string;
     cron?: string;
   }[];
+  /**
+   * List of existing authorization IDs (e.g. "system:fs-access") the app requires to function.
+   * These are resolved and presented to the admin for confirmation before installation.
+   */
+  requiredPermissions?: string[];
 }

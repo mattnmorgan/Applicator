@@ -42,8 +42,22 @@ export async function POST(request: NextRequest) {
     // Read file as buffer
     const fileBuffer = Buffer.from(await file.arrayBuffer());
 
+    // Read approved permissions if provided
+    const approvedPermissionsRaw = formData.get("approvedPermissions") as string | null;
+    let approvedPermissions: string[] | undefined;
+    if (approvedPermissionsRaw) {
+      try {
+        approvedPermissions = JSON.parse(approvedPermissionsRaw);
+      } catch {
+        return NextResponse.json(
+          { error: "Invalid approvedPermissions format" },
+          { status: 400 }
+        );
+      }
+    }
+
     // Use the installApp helper to handle the installation
-    const result = await installApp(fileBuffer);
+    const result = await installApp(fileBuffer, approvedPermissions);
 
     return NextResponse.json({
       success: true,

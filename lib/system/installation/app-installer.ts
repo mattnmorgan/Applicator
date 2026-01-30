@@ -490,6 +490,7 @@ export async function executeInstallHook(
  */
 export async function installApp(
   fileBuffer: Buffer,
+  approvedPermissions?: string[],
 ): Promise<{ appId: string; name: string }> {
   // Extract package
   const packageData = await extractAppPackage(fileBuffer);
@@ -535,6 +536,23 @@ export async function installApp(
 
   // Install components
   await installAppComponents(appAttributes.id, appAttributes);
+
+  // Assign approved permissions to the app-specific authority
+  if (approvedPermissions && approvedPermissions.length > 0) {
+    const authorityManager = new AuthorityManager();
+    const appAuthority = await authorityManager.readAppSpecificAuthority(
+      appAttributes.id,
+    );
+    if (appAuthority) {
+      await authorityManager.updateAppSpecificAuthority(appAttributes.id, {
+        ...appAuthority.data,
+        authorizations: [
+          ...appAuthority.data.authorizations,
+          ...approvedPermissions,
+        ],
+      });
+    }
+  }
 
   // Execute installation hook
   try {
