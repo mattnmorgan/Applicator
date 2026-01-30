@@ -147,8 +147,115 @@ export default async function HomePage() {
 
   // Check if user is authenticated
   const currentUserResult = await getCurrentUser();
+
   if (!currentUserResult) {
-    redirect("/system/login");
+    const settings = await getSystemSettings();
+    const selfregistrationEnabled = settings.selfregistrationEnabled === "true";
+    const brandName = settings.brandName || "Applicator";
+    const brandIcon = settings.brandIcon
+      ? `/api/system/assets/brand?t=${Date.now()}`
+      : undefined;
+
+    return (
+      <div
+        style={{
+          minHeight: "100vh",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          background: "#0f172a",
+          padding: "20px",
+        }}
+      >
+        <div
+          style={{
+            background: "#1e293b",
+            padding: "60px 40px",
+            borderRadius: "10px",
+            boxShadow: "0 10px 25px rgba(0, 0, 0, 0.5)",
+            textAlign: "center",
+            maxWidth: "500px",
+            border: "1px solid #334155",
+          }}
+        >
+          {brandIcon && (
+            <img
+              src={brandIcon}
+              alt={brandName}
+              style={{
+                width: "64px",
+                height: "64px",
+                objectFit: "contain",
+                marginBottom: "20px",
+              }}
+            />
+          )}
+          <h1
+            style={{
+              fontSize: "32px",
+              fontWeight: "bold",
+              marginBottom: "12px",
+              color: "#f1f5f9",
+            }}
+          >
+            {brandName}
+          </h1>
+          <p
+            style={{
+              color: "#94a3b8",
+              fontSize: "16px",
+              marginBottom: "32px",
+            }}
+          >
+            Sign in to continue
+          </p>
+          <div
+            style={{
+              display: "flex",
+              flexDirection: "column",
+              gap: "12px",
+            }}
+          >
+            <a
+              href="/system/login"
+              style={{
+                display: "block",
+                padding: "12px",
+                background: "#3b82f6",
+                color: "white",
+                border: "none",
+                borderRadius: "5px",
+                fontSize: "16px",
+                fontWeight: "600",
+                textDecoration: "none",
+                transition: "background 0.2s",
+              }}
+            >
+              Login
+            </a>
+            {selfregistrationEnabled && (
+              <a
+                href="/system/register"
+                style={{
+                  display: "block",
+                  padding: "12px",
+                  background: "transparent",
+                  color: "#3b82f6",
+                  border: "1px solid #3b82f6",
+                  borderRadius: "5px",
+                  fontSize: "16px",
+                  fontWeight: "600",
+                  textDecoration: "none",
+                  transition: "background 0.2s",
+                }}
+              >
+                Register
+              </a>
+            )}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   const user = currentUserResult.user;

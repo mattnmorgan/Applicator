@@ -15,6 +15,8 @@ export default function SettingsPage() {
   const [clearBrandIcon, setClearBrandIcon] = useState(false);
   const [loggingEnabled, setLoggingEnabled] = useState(false);
   const [originalLoggingEnabled, setOriginalLoggingEnabled] = useState(false);
+  const [selfregistrationEnabled, setSelfregistrationEnabled] = useState(false);
+  const [originalSelfregistrationEnabled, setOriginalSelfregistrationEnabled] = useState(false);
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState<{
@@ -43,6 +45,9 @@ export default function SettingsPage() {
 
       setLoggingEnabled(settings.loggingEnabled === "true");
       setOriginalLoggingEnabled(settings.loggingEnabled === "true");
+
+      setSelfregistrationEnabled(settings.selfregistrationEnabled === "true");
+      setOriginalSelfregistrationEnabled(settings.selfregistrationEnabled === "true");
     } catch (error) {
       console.error("Failed to fetch settings:", error);
     }
@@ -101,6 +106,7 @@ export default function SettingsPage() {
         body: JSON.stringify({
           storage,
           loggingEnabled,
+          selfregistrationEnabled,
           ...(!brandIcon && !clearBrandIcon && { brandName }),
         }),
       });
@@ -109,6 +115,7 @@ export default function SettingsPage() {
         setOriginalStorage(storage);
         setOriginalBrandName(brandName);
         setOriginalLoggingEnabled(loggingEnabled);
+        setOriginalSelfregistrationEnabled(selfregistrationEnabled);
         setBrandIcon(null);
         setClearBrandIcon(false);
         setToast({ message: "Settings saved successfully", type: "success" });
@@ -136,7 +143,8 @@ export default function SettingsPage() {
     brandName !== originalBrandName ||
     brandIcon !== null ||
     clearBrandIcon ||
-    loggingEnabled !== originalLoggingEnabled;
+    loggingEnabled !== originalLoggingEnabled ||
+    selfregistrationEnabled !== originalSelfregistrationEnabled;
 
   return (
     <div>
@@ -481,6 +489,50 @@ export default function SettingsPage() {
           >
             When enabled, system and application logs will be captured for
             debugging. Disabling will clear all existing logs.
+          </p>
+        </div>
+
+        <div
+          style={{
+            display: "flex",
+            flexDirection: "column",
+            gap: "8px",
+          }}
+        >
+          <label
+            style={{
+              fontSize: "14px",
+              fontWeight: 500,
+              color: "#f1f5f9",
+              display: "flex",
+              alignItems: "center",
+              gap: "10px",
+              cursor: "pointer",
+              userSelect: "none",
+            }}
+          >
+            <input
+              type="checkbox"
+              checked={selfregistrationEnabled}
+              onChange={(e) => setSelfregistrationEnabled(e.target.checked)}
+              style={{
+                width: "18px",
+                height: "18px",
+                cursor: "pointer",
+                accentColor: "#3b82f6",
+              }}
+            />
+            Enable Self-registration
+          </label>
+          <p
+            style={{
+              fontSize: "12px",
+              color: "#64748b",
+              margin: 0,
+            }}
+          >
+            When enabled, users can create their own account from the login
+            page.
           </p>
         </div>
       </div>
