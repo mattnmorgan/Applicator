@@ -67,9 +67,7 @@ export class Filesystem {
    * Converts an absolute path back to a relative path from the root.
    */
   private toRelative(absolutePath: string): string {
-    return absolutePath
-      .replace(this.rootPath, "")
-      .replace(/^[\/\\]/, "");
+    return absolutePath.replace(this.rootPath, "").replace(/^[\/\\]/, "");
   }
 
   // ============================================
@@ -454,48 +452,40 @@ export class Filesystem {
     }
   }
 
+  /**
+   * @param fileName Filename to get content type for
+   * @returns Content type for the file name
+   */
+  public getContentType(fileName: string): string {
+    return Filesystem.getContentType(fileName);
+  }
+
   // ============================================
   // Static Utility Methods
   // ============================================
 
   /**
-   * Get file type category based on extension
-   */
-  public static getFileType(fileName: string): string {
-    const ext = fileName.split(".").pop()?.toLowerCase();
-
-    const typeMap: { [key: string]: string } = {
-      jpg: "image", jpeg: "image", png: "image", gif: "image",
-      svg: "image", webp: "image", bmp: "image",
-      pdf: "document", doc: "document", docx: "document",
-      txt: "document", rtf: "document",
-      xls: "spreadsheet", xlsx: "spreadsheet", csv: "spreadsheet",
-      zip: "archive", rar: "archive", "7z": "archive",
-      tar: "archive", gz: "archive",
-      js: "code", ts: "code", tsx: "code", jsx: "code",
-      json: "code", html: "code", css: "code", py: "code",
-      mp4: "video", avi: "video", mov: "video", mkv: "video",
-      mp3: "audio", wav: "audio", flac: "audio", m4a: "audio",
-    };
-
-    return ext ? typeMap[ext] || "file" : "file";
-  }
-
-  /**
-   * Get MIME content type based on extension
+   * @param fileName Filename to get content type for
+   * @returns Content type for the file name
    */
   public static getContentType(fileName: string): string {
     const ext = fileName.split(".").pop()?.toLowerCase() || "";
 
     const contentTypeMap: { [key: string]: string } = {
       pdf: "application/pdf",
-      jpg: "image/jpeg", jpeg: "image/jpeg",
-      png: "image/png", gif: "image/gif",
-      bmp: "image/bmp", webp: "image/webp",
+      jpg: "image/jpeg",
+      jpeg: "image/jpeg",
+      png: "image/png",
+      gif: "image/gif",
+      bmp: "image/bmp",
+      webp: "image/webp",
       svg: "image/svg+xml",
-      txt: "text/plain", html: "text/html",
-      css: "text/css", js: "text/javascript",
-      json: "application/json", xml: "application/xml",
+      txt: "text/plain",
+      html: "text/html",
+      css: "text/css",
+      js: "text/javascript",
+      json: "application/json",
+      xml: "application/xml",
     };
 
     return contentTypeMap[ext] || "application/octet-stream";

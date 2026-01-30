@@ -331,7 +331,7 @@ export default function AuthorityCreate({
     .filter((auth) => {
       // For app-specific authorities, only show app-target authorizations
       if (isAppSpecificAuthority) {
-        return auth.target === "app";
+        return auth.target === "app" && auth.app !== editAuthority?.appId;
       }
       // For normal authorities, exclude contextual and app-target authorizations
       return !auth.contextual && auth.target !== "app";
@@ -449,14 +449,15 @@ export default function AuthorityCreate({
                     {authorization.target === "app" ? (
                       <Badge variant="green">App</Badge>
                     ) : (
-                      <Badge
-                        variant={
-                          authorization.app === "system" ? "purple" : "blue"
-                        }
-                      >
-                        {authorization.appLabel}
-                      </Badge>
+                      ""
                     )}
+                    <Badge
+                      variant={
+                        authorization.app === "system" ? "purple" : "blue"
+                      }
+                    >
+                      {authorization.appLabel}
+                    </Badge>
                     {authorization.name}
                   </div>
                   <div className={styles.authorizationDescription}>
