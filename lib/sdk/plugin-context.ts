@@ -18,6 +18,7 @@ export default class Context {
   private contextApp: ContextApp | null;
   private _files: Filesystem;
   private _systemFiles?: Filesystem;
+  private _context: { id: string; data: any; password?: string } | null = null;
 
   private constructor(
     appId: string,
@@ -33,6 +34,29 @@ export default class Context {
     this.contextApp = null;
     this._files = files;
     this._systemFiles = systemFiles;
+  }
+
+  /**
+   * Guest context information. Throws error if not in a guest user context.
+   *
+   * @returns Guest context information
+   */
+  public get contextGuest() {
+    if (this.isGuest) {
+      return {
+        ...this._context,
+        data: JSON.parse(JSON.stringify(this._context.data)),
+      };
+    }
+
+    throw new Error("Cannot access guest context info for non-guest context");
+  }
+
+  /**
+   * @returns True if this context is for a guest (unauthenticated) user.
+   */
+  public get isGuest(): boolean {
+    return this._context !== null && this.userId === null;
   }
 
   /**
@@ -56,13 +80,17 @@ export default class Context {
   }
 
   /**
-   * Create a new Context instance for an app.
-   * Fetches storage settings, ensures the app data directory exists,
-   * and checks for system:fs-access to provide systemFiles.
+   * Create a new context instance.
+   *
+   * @param appId The app identifier to contextualize for
+   * @param userId The user identifier to contextualize for (for authenticated sessions)
+   * @param context Guest context information (for unauthenticated contexts)
+   * @returns Context instance
    */
   public static async create(
     appId: string,
     userId: string | null = null,
+    context?: { id: string; data: any; password?: string },
   ): Promise<Context> {
     const settingManager = new SettingManager();
     const storageRecord = await settingManager.readRecord("storage");
@@ -93,7 +121,11 @@ export default class Context {
       await systemFiles.ensureRoot();
     }
 
-    return new Context(appId, userId, logManager, files, systemFiles);
+    const instance = new Context(appId, userId, logManager, files, systemFiles);
+    if (context) {
+      instance._context = context;
+    }
+    return instance;
   }
 
   /**
@@ -123,6 +155,10 @@ export default class Context {
    * @returns Information about a user
    */
   public async user(userId: string | null = null): Promise<ContextUser | null> {
+    if (this.isGuest && !userId) {
+      return null;
+    }
+
     const targetUserId = userId || this.userId;
     let userInfo: ContextUser | undefined;
 

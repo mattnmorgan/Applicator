@@ -4,7 +4,7 @@ export const SYSTEM_APP_METADATA = {
   version: {
     major: 0,
     minor: 0,
-    dev: 1,
+    dev: 2,
   },
   author: "Matthew Morgan",
   contactEmail: "matthew@morgantech.info",
@@ -202,7 +202,7 @@ export const SYSTEM_APP_METADATA = {
         {
           name: "password",
           description: "Hashed password for password-protected access",
-          type: "string",
+          type: "password",
         },
         {
           name: "app",
@@ -221,6 +221,12 @@ export const SYSTEM_APP_METADATA = {
           description: "User ID or app that created this authority",
           type: "string",
           required: true,
+        },
+        {
+          name: "context",
+          description:
+            "JSON string containing app-specific context data",
+          type: "string",
         },
       ],
     },
@@ -476,7 +482,7 @@ export const SYSTEM_APP_METADATA = {
             "Where the applet should be displayed (app, home, user-settings, system-settings)",
           type: "picklist",
           required: true,
-          options: ["home", "app", "user-settings", "system-settings"],
+          options: ["home", "app", "user-settings", "system-settings", "guest"],
         },
       ],
     },
@@ -667,6 +673,15 @@ export const SYSTEM_APP_METADATA = {
       name: "Filesystem Access",
       description:
         "Permits access to the filesystem API for reading and writing files",
+      app: "system",
+      contextual: false,
+      target: "app",
+    },
+    {
+      id: "guest-accessible",
+      name: "Guest Accessible",
+      description:
+        "Permits guest (unauthenticated) access to the application via shared links",
       app: "system",
       contextual: false,
       target: "app",

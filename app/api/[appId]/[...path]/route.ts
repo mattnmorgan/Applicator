@@ -1,11 +1,14 @@
 import { NextRequest, NextResponse } from "next/server";
 import ApiRouteManager from "@/lib/database/managers/apiRoute";
 import SettingManager from "@/lib/database/managers/setting";
+import AuthorityManager from "@/lib/database/managers/authority";
+import ContextualAuthorityManager from "@/lib/database/managers/contextualAuthority";
 import Context from "@/lib/sdk/plugin-context";
 import { getSession } from "@/lib/database/managers/session";
 import * as path from "path";
 import * as fs from "fs";
 import { loadModule } from "@/lib/system/source";
+import bcrypt from "bcryptjs";
 
 export async function GET(
   request: NextRequest,
@@ -109,19 +112,81 @@ async function handleRequest(
       );
     }
 
-    // Get session for user context (optional)
-    const sessionId = request.cookies.get("session")?.value;
-    let userId: string | undefined;
+    // Determine context: guest or authenticated
+    const guestContextId = request.headers.get("X-Guest-Context");
+    let plugin;
 
-    if (sessionId) {
-      const session = await getSession(sessionId);
-      if (session) {
-        userId = session.userId;
+    if (guestContextId) {
+      // Guest access path
+      const caManager = new ContextualAuthorityManager();
+      const caRecord = await caManager.readRecord(guestContextId);
+      if (!caRecord || caRecord.data.app !== appId) {
+        return NextResponse.json(
+          { error: "Invalid or expired guest link" },
+          { status: 403 },
+        );
       }
+
+      const ca = caRecord.data;
+
+      // Validate password if required
+      if (ca.password) {
+        const guestPassword = request.headers.get("X-Guest-Password");
+        if (!guestPassword) {
+          return NextResponse.json(
+            { error: "Password required" },
+            { status: 401 },
+          );
+        }
+        const passwordMatch = await bcrypt.compare(guestPassword, ca.password);
+        if (!passwordMatch) {
+          return NextResponse.json(
+            { error: "Incorrect password" },
+            { status: 403 },
+          );
+        }
+      }
+
+      // Check app has guest-accessible permission
+      const authorityManager = new AuthorityManager();
+      const appAuthority =
+        await authorityManager.readAppSpecificAuthority(appId);
+      if (
+        !appAuthority ||
+        !appAuthority.data.authorizations.includes("system:guest-accessible")
+      ) {
+        return NextResponse.json(
+          { error: "App does not support guest access" },
+          { status: 403 },
+        );
+      }
+
+      // Parse context data
+      let contextData = null;
+      if (ca.context) {
+        try {
+          contextData = JSON.parse(ca.context);
+        } catch {
+          contextData = null;
+        }
+      }
+
+      plugin = await Context.create(appId, null, { id: guestContextId, data: contextData });
+    } else {
+      // Authenticated access path
+      const sessionId = request.cookies.get("session")?.value;
+      let userId: string | undefined;
+
+      if (sessionId) {
+        const session = await getSession(sessionId);
+        if (session) {
+          userId = session.userId;
+        }
+      }
+
+      plugin = await Context.create(appId, userId);
     }
 
-    // Create plugin context
-    const plugin = await Context.create(appId, userId);
     const context = { plugin };
 
     // Execute the handler with context
