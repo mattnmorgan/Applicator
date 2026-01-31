@@ -17,7 +17,7 @@ interface Widget {
   id: string;
   name: string;
   description: string;
-  target: "home" | "user-settings" | "system-settings";
+  target: "home" | "user-settings" | "system-settings" | "app" | "guest";
   component: string;
   appId: string;
 }
@@ -81,6 +81,10 @@ function getTargetBadgeVariant(
       return "green";
     case "system-settings":
       return "purple";
+    case "app":
+      return "yellow";
+    case "guest":
+      return "red";
     default:
       return "gray";
   }
@@ -380,6 +384,8 @@ export default function AppView({ appId, onBack }: AppViewProps) {
                                   "User Settings"}
                                 {widget.target === "system-settings" &&
                                   "System Settings"}
+                                {widget.target === "app" && "App"}
+                                {widget.target === "guest" && "Guest App"}
                               </Badge>
                             </div>
                             <div style={{ color: "#94a3b8", fontSize: "13px" }}>

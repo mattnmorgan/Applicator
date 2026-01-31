@@ -3,5 +3,5 @@ export default interface Applet {
   description: string;
   component: string;
   app: string;
-  target: "app" | "home" | "user-settings" | "system-settings";
+  target: "app" | "home" | "user-settings" | "system-settings" | "guest";
 }
