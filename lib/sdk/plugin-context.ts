@@ -2,6 +2,7 @@ import { GenericCRUD as CRUD } from "@/lib/database/crud/";
 import LogManager from "@/lib/database/managers/log";
 import SettingManager from "@/lib/database/managers/setting";
 import AuthorityManager from "@/lib/database/managers/authority";
+import ContextualAuthorityManager from "@/lib/database/managers/contextualAuthority";
 import ContextUser from "@/lib/sdk/types/context-user";
 import ContextApp from "@/lib/sdk/types/context-app";
 import User from "@/lib/database/types/user";
@@ -19,6 +20,7 @@ export default class Context {
   private _files: Filesystem;
   private _systemFiles?: Filesystem;
   private _context: { id: string; data: any; password?: string } | null = null;
+  private _contextualAuthorityManager: ContextualAuthorityManager | null = null;
 
   private constructor(
     appId: string,
@@ -77,6 +79,16 @@ export default class Context {
       );
     }
     return this._systemFiles;
+  }
+
+  /**
+   * @returns Memoized contextual authority manager instance
+   */
+  public get contextualAuthorityManager(): ContextualAuthorityManager {
+    if (!this._contextualAuthorityManager) {
+      this._contextualAuthorityManager = new ContextualAuthorityManager();
+    }
+    return this._contextualAuthorityManager;
   }
 
   /**
