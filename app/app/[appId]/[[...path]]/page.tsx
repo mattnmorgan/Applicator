@@ -136,6 +136,13 @@ export default function AppPage() {
         }
 
         const appletRecord = appletData.records[0].data;
+
+        if (appletRecord.target !== "app") {
+          setError(`Invalid applet: "${fullAppId}" is not an app applet`);
+          setLoading(false);
+          return;
+        }
+
         setAppletComponent(appletRecord.component);
 
         // Fetch the main app to get the version
