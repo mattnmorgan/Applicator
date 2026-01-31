@@ -325,7 +325,10 @@ export default function UserCreate({
     );
 
   const filteredApplets = availableApplets
-    .filter((applet) => !applet.id.startsWith("system:"))
+    .filter(
+      (applet) =>
+        !applet.id.startsWith("system:") && !["guest"].includes(applet.target),
+    )
     .filter((applet) =>
       appSearch
         ? applet.label.toLowerCase().includes(appSearch.toLowerCase()) ||

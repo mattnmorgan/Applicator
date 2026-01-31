@@ -345,7 +345,10 @@ export default function AuthorityCreate({
     );
 
   const filteredApplets = applets
-    .filter((applet) => !applet.id.startsWith("system:")) // Exclude system applets
+    .filter(
+      (applet) =>
+        !applet.id.startsWith("system:") && !["guest"].includes(applet.target),
+    )
     .filter(
       (applet) =>
         applet.label.toLowerCase().includes(appletSearch.toLowerCase()) ||
