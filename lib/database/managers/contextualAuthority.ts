@@ -146,8 +146,23 @@ export default class ContextualAuthorityManager extends CRUD<ContextualAuthority
     appId: string,
     recordId: string,
   ): Promise<TableRecord<ContextualAuthority>[]> {
-    const keyPrefix = `${appId}:${recordId}:`;
-    const result = await this.readRecords();
-    return result.records.filter((record) => record.id.startsWith(keyPrefix));
+    const redis = this.getRedisClient();
+    const tablePrefix = this.getKeyPrefix(this.appId, this.tableName);
+    const keys = await redis.keys(`${tablePrefix}${appId}:${recordId}:*`);
+
+    if (keys.length === 0) {
+      return [];
+    }
+
+    const values = await redis.mget(...keys);
+    const records: TableRecord<ContextualAuthority>[] = [];
+
+    for (const value of values) {
+      if (value) {
+        records.push(JSON.parse(value) as TableRecord<ContextualAuthority>);
+      }
+    }
+
+    return records;
   }
 }
