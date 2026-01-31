@@ -2,6 +2,7 @@ import AdmZip from "adm-zip";
 import AppManager from "@/lib/database/managers/app";
 import type AppVersion from "@/lib/database/types/appVersion";
 import AppMetadata from "@/lib/system/installation/types/package-metadata";
+import SettingManager from "@/lib/database/managers/setting";
 import TableManager from "@/lib/database/managers/table";
 import { isValidCronString } from "@/lib/system/cron";
 import { formatVersion, isVersionGreaterOrEqual } from "@/lib/system/version";
@@ -72,11 +73,17 @@ export async function validateAppPackage(
       newV.major - oldV.major || newV.minor - oldV.minor || newV.dev - oldV.dev;
 
     if (versionComparison === 0) {
-      throw new Error(
-        `Cannot upgrade to the same version ${formatVersion(
-          appAttributes.version
-        )}`
-      );
+      const settingManager = new SettingManager();
+      const inplaceRecord = await settingManager.readRecord("appInplaceEnabled");
+      const inplaceEnabled = inplaceRecord?.data.value === "true";
+
+      if (!inplaceEnabled) {
+        throw new Error(
+          `Cannot upgrade to the same version ${formatVersion(
+            appAttributes.version
+          )}`
+        );
+      }
     }
   }
 

@@ -12,6 +12,7 @@ export type SystemSettings = {
   brandIcon?: string;
   loggingEnabled?: string;
   selfregistrationEnabled?: string;
+  appInplaceEnabled?: string;
   storage?: string;
   version?: { major: number; minor: number; dev: number };
 };
@@ -27,6 +28,7 @@ export async function getSystemSettings(): Promise<SystemSettings> {
     "brandIcon",
     "loggingEnabled",
     "selfregistrationEnabled",
+    "appInplaceEnabled",
     "storage",
   ] as const) {
     const record = await manager.readRecord(setting);

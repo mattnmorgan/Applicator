@@ -160,23 +160,15 @@ async function getSettingsMenuItems(
     children: appManagementChildren,
   });
 
-  // Only add Debug menu if user has developer authorization
+  // Only add Development menu if user has developer authorization
   if (hasDeveloperAuth) {
     unsortedSettingsMenuItems.push({
-      label: "Debug",
+      label: "Development",
       clickable: false,
       children: [
         {
-          label: "Api Endpoints",
-          path: "/system/settings/debug/api-endpoints",
-        },
-        {
-          label: "Database",
-          path: "/system/settings/debug/database",
-        },
-        {
-          label: "Logs",
-          path: "/system/settings/debug/logs",
+          label: "Settings",
+          path: "/system/settings/debug/settings",
         },
         {
           label: "Test",
@@ -189,6 +181,24 @@ async function getSettingsMenuItems(
             {
               label: "Notifications",
               path: "/system/settings/debug/test/notifications",
+            },
+          ],
+        },
+        {
+          label: "Utilities",
+          clickable: false,
+          children: [
+            {
+              label: "Api Endpoints",
+              path: "/system/settings/debug/api-endpoints",
+            },
+            {
+              label: "Database",
+              path: "/system/settings/debug/database",
+            },
+            {
+              label: "Logs",
+              path: "/system/settings/debug/logs",
             },
           ],
         },

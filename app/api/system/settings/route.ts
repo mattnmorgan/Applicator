@@ -161,6 +161,8 @@ export async function POST(request: NextRequest) {
           await setSetting("loggingEnabled", String(value));
         } else if (key === "selfregistrationEnabled" && typeof value === "boolean") {
           await setSetting("selfregistrationEnabled", String(value));
+        } else if (key === "appInplaceEnabled" && typeof value === "boolean") {
+          await setSetting("appInplaceEnabled", String(value));
         } else if (key === "brandName" && typeof value === "string") {
           await setSetting("brandName", value);
         }
