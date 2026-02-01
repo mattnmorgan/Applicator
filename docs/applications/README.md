@@ -11,6 +11,10 @@ This documentation covers how to build applications for the Applicator framework
 5. [Agents](./agents.md) - Background tasks and scheduled jobs
 6. [App Bundle (app.js)](./app-bundle.md) - Frontend components and exports
 7. [Authorities and Permissions](./authorities.md) - Access control system
+8. [Contextual Authorities](./contextual-authorities.md) - Resource-level access control via the plugin SDK
+9. [Guest Access](./guest-access.md) - Unauthenticated access and guest applet context
+10. [Required Permissions](./required-permissions.md) - Declaring mandatory app permissions
+11. [Reusable Components](./components.md) - Platform UI components for app frontends
 
 ## Quick Start
 
