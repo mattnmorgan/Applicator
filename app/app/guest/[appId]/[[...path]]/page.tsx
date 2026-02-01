@@ -259,8 +259,9 @@ export default function GuestPage() {
     return (
       <div
         style={{
-          minHeight: "100vh",
+          height: "100vh",
           background: "#0f172a",
+          overflow: "hidden",
         }}
       >
         <DynamicAppLoader
