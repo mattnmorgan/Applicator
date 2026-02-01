@@ -530,6 +530,7 @@ export async function installApp(
       contactEmail: appAttributes.contactEmail || "",
       description: appAttributes.description,
       dependencies: appAttributes.dependencies || {},
+      requiredPermissions: appAttributes.requiredPermissions || [],
     },
     { id: appAttributes.id },
   );
@@ -928,6 +929,7 @@ export async function upgradeApp(
       contactEmail: appAttributes.contactEmail || "",
       description: appAttributes.description,
       dependencies: appAttributes.dependencies || {},
+      requiredPermissions: appAttributes.requiredPermissions || [],
     });
 
     // Update components
@@ -1062,6 +1064,7 @@ export async function setupSystem(adminUser: {
       contactEmail: SYSTEM_APP_METADATA.contactEmail,
       description: SYSTEM_APP_METADATA.description,
       dependencies: SYSTEM_APP_METADATA.dependencies,
+      requiredPermissions: [],
     },
     { id: "system" },
   );

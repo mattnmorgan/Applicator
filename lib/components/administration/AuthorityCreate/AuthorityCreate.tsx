@@ -68,6 +68,9 @@ export default function AuthorityCreate({
     message: string;
     type: "success" | "error";
   } | null>(null);
+  const [requiredPermissions, setRequiredPermissions] = useState<Set<string>>(
+    new Set(),
+  );
 
   const isEditMode = !!editAuthority;
   const isSystemAuthority =
@@ -108,6 +111,21 @@ export default function AuthorityCreate({
           target: record.data.target,
         }));
         setAuthorizations(authorizationsList);
+
+        // Load required permissions for app-specific authorities
+        if (isAppSpecificAuthority && editAuthority) {
+          const appId =
+            editAuthority.appId ||
+            editAuthority.id.replace("app-specific:", "");
+          const appRecord = appsData.records.find(
+            (record) => record.id === appId,
+          );
+          if (appRecord && appRecord.data.requiredPermissions) {
+            setRequiredPermissions(
+              new Set(appRecord.data.requiredPermissions as string[]),
+            );
+          }
+        }
 
         // Transform applet records into expected format
         const appletsList: Applet[] = appletsData.records.map((record) => ({
@@ -162,6 +180,19 @@ export default function AuthorityCreate({
       setToast({
         message:
           "Cannot remove Administrator authorization from admin authority",
+        type: "error",
+      });
+      return;
+    }
+
+    // Prevent deselection of required permissions for app-specific authorities
+    if (
+      requiredPermissions.has(authorizationId) &&
+      selectedAuthorizations.has(authorizationId)
+    ) {
+      setToast({
+        message:
+          "This permission is required by the application and cannot be removed",
         type: "error",
       });
       return;
@@ -435,40 +466,50 @@ export default function AuthorityCreate({
             style={{ marginBottom: "12px" }}
           />
           <div className={styles.authorizationList}>
-            {filteredAuthorizations.map((authorization) => (
-              <div key={authorization.id} className={styles.authorizationItem}>
-                <input
-                  type="checkbox"
-                  id={`auth-${authorization.id}`}
-                  className={styles.checkbox}
-                  checked={selectedAuthorizations.has(authorization.id)}
-                  onChange={() => handleToggleAuthorization(authorization.id)}
-                />
-                <label
-                  htmlFor={`auth-${authorization.id}`}
-                  className={styles.authorizationLabel}
+            {filteredAuthorizations.map((authorization) => {
+              const isRequired = requiredPermissions.has(authorization.id);
+              return (
+                <div
+                  key={authorization.id}
+                  className={styles.authorizationItem}
                 >
-                  <div className={styles.authorizationName}>
-                    {authorization.target === "app" ? (
-                      <Badge variant="green">App</Badge>
-                    ) : (
-                      ""
-                    )}
-                    <Badge
-                      variant={
-                        authorization.app === "system" ? "purple" : "blue"
-                      }
-                    >
-                      {authorization.appLabel}
-                    </Badge>
-                    {authorization.name}
-                  </div>
-                  <div className={styles.authorizationDescription}>
-                    {authorization.description}
-                  </div>
-                </label>
-              </div>
-            ))}
+                  <input
+                    type="checkbox"
+                    id={`auth-${authorization.id}`}
+                    className={styles.checkbox}
+                    checked={selectedAuthorizations.has(authorization.id)}
+                    onChange={() => handleToggleAuthorization(authorization.id)}
+                    disabled={
+                      isRequired && selectedAuthorizations.has(authorization.id)
+                    }
+                  />
+                  <label
+                    htmlFor={`auth-${authorization.id}`}
+                    className={styles.authorizationLabel}
+                  >
+                    <div className={styles.authorizationName}>
+                      {authorization.target === "app" ? (
+                        <Badge variant="green">App</Badge>
+                      ) : (
+                        ""
+                      )}
+                      <Badge
+                        variant={
+                          authorization.app === "system" ? "purple" : "blue"
+                        }
+                      >
+                        {authorization.appLabel}
+                      </Badge>
+                      {isRequired && <Badge variant="red">Required</Badge>}
+                      {authorization.name}
+                    </div>
+                    <div className={styles.authorizationDescription}>
+                      {authorization.description}
+                    </div>
+                  </label>
+                </div>
+              );
+            })}
             {filteredAuthorizations.length === 0 && (
               <div className={styles.emptyState}>No authorizations found</div>
             )}

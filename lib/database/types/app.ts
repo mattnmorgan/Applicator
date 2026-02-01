@@ -7,4 +7,5 @@ export default interface App {
   contactEmail: string;
   description: string;
   dependencies?: Record<string, AppVersion>;
+  requiredPermissions: string[];
 }

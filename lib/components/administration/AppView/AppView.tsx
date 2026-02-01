@@ -47,6 +47,7 @@ interface App {
   widgets?: Widget[];
   subApps?: SubApp[];
   dependencies?: Record<string, AppVersion>;
+  requiredPermissions: string[];
 }
 
 function formatVersion(version: AppVersion): string {
@@ -144,6 +145,7 @@ export default function AppView({ appId, onBack }: AppViewProps) {
           description: record.data.description,
           dependencies: record.data.dependencies,
           apiRoutes: apiRoutesByApp[record.id] || [],
+          requiredPermissions: record.data.requiredPermissions,
         }));
 
         setAllApps(transformedApps);

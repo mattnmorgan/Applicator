@@ -15,6 +15,7 @@ import {
 import { upsertRecord } from "@/lib/database/crud/upsert";
 import FieldManager from "@/lib/database/managers/field";
 import { createRecords } from "@/lib/database/client/crud/create";
+import AppManager from "@/lib/database/managers/app";
 
 /**
  * POST /api/[appId]/tables/[tableId]
@@ -183,6 +184,41 @@ export async function PATCH(
         },
         { status: 400 }
       );
+    }
+
+    // Validate required permissions for app-specific authority updates
+    if (appId === "system" && tableId === "authority") {
+      const updates = body.updates
+        ? body.updates
+        : [{ id: body.id, data: body.data }];
+
+      for (const update of updates) {
+        if (
+          typeof update.id === "string" &&
+          update.id.startsWith("app-specific:") &&
+          update.data.authorizations
+        ) {
+          const targetAppId = update.id.replace("app-specific:", "");
+          const appManager = new AppManager();
+          const appRecord = await appManager.readRecord(targetAppId);
+
+          if (appRecord?.data.requiredPermissions?.length) {
+            const updatedAuthorizations: string[] = update.data.authorizations;
+            const missing = appRecord.data.requiredPermissions.filter(
+              (perm: string) => !updatedAuthorizations.includes(perm),
+            );
+
+            if (missing.length > 0) {
+              return NextResponse.json(
+                {
+                  error: `Cannot remove required permissions: ${missing.join(", ")}`,
+                },
+                { status: 400 },
+              );
+            }
+          }
+        }
+      }
     }
 
     return NextResponse.json(

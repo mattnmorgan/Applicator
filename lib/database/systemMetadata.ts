@@ -224,8 +224,7 @@ export const SYSTEM_APP_METADATA = {
         },
         {
           name: "context",
-          description:
-            "JSON string containing app-specific context data",
+          description: "JSON string containing app-specific context data",
           type: "string",
         },
       ],
@@ -384,6 +383,12 @@ export const SYSTEM_APP_METADATA = {
           description: "App dependencies (app ID -> version)",
           type: "json",
           defaultValue: {},
+        },
+        {
+          name: "requiredPermissions",
+          description: "Permissions required for the application to function",
+          type: "json",
+          defaultValue: [],
         },
       ],
     },
