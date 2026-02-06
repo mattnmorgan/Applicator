@@ -79,9 +79,7 @@ export default function GuestPage() {
       setContextData(data.contextData);
       setAppletComponent(data.appletComponent);
       setAppVersion(data.appVersion);
-      setModuleUrl(
-        `/api/${appId}/assets/source?v=${data.appVersion}`,
-      );
+      setModuleUrl(`/api/${appId}/assets/source?v=${data.appVersion}`);
       if (pw) {
         setValidatedPassword(pw);
       }
@@ -268,11 +266,15 @@ export default function GuestPage() {
           moduleUrl={moduleUrl}
           componentName={appletComponent}
           componentProps={{
-            appId,
-            contextId,
-            contextData,
-            path,
-            guestPassword: validatedPassword,
+            context: {
+              appId,
+              path,
+              guest: {
+                id: contextId,
+                data: JSON.stringify(contextData),
+                password: validatedPassword || "",
+              },
+            },
           }}
           onError={(errorMessage) => setError(errorMessage)}
         />
