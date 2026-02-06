@@ -187,10 +187,8 @@ async function handleRequest(
       plugin = await Context.create(appId, userId);
     }
 
-    const context = { plugin };
-
     // Execute the handler with context
-    return await handler(request, context);
+    return await handler(request, plugin);
   } catch (error) {
     console.error("Error handling app API request:", error);
     console.error(

@@ -1,6 +1,6 @@
 # API Routes and SDK
 
-API routes allow your app to expose HTTP endpoints. Each route is implemented as a handler function that receives a request and a plugin context with SDK utilities.
+API routes allow your app to expose HTTP endpoints. Each route is implemented as a handler function that receives a request and a context object with SDK utilities.
 
 ## Route Structure
 
@@ -31,31 +31,30 @@ Routes must be declared in `app.json`:
 
 ## Handler Export Convention
 
-Handlers export named functions matching HTTP methods:
+Handlers export named functions matching HTTP methods. Import the `Context` type from `@applicator/lib` for autocompletion:
 
 ```typescript
 import { NextRequest, NextResponse } from 'next/server';
+import type Context from '@/lib/sdk/plugin-context';
 
 // GET /api/{appId}/my-route
-export async function GET(req: NextRequest, context: { plugin: any }) {
-  const { plugin } = context;
+export async function GET(req: NextRequest, context: Context) {
   return NextResponse.json({ message: 'Hello' });
 }
 
 // POST /api/{appId}/my-route
-export async function POST(req: NextRequest, context: { plugin: any }) {
-  const { plugin } = context;
+export async function POST(req: NextRequest, context: Context) {
   const body = await req.json();
   return NextResponse.json({ received: body });
 }
 
 // PUT /api/{appId}/my-route
-export async function PUT(req: NextRequest, context: { plugin: any }) {
+export async function PUT(req: NextRequest, context: Context) {
   // Update logic
 }
 
 // DELETE /api/{appId}/my-route
-export async function DELETE(req: NextRequest, context: { plugin: any }) {
+export async function DELETE(req: NextRequest, context: Context) {
   // Delete logic
 }
 ```
@@ -63,87 +62,89 @@ export async function DELETE(req: NextRequest, context: { plugin: any }) {
 ### Handler Signature
 
 ```typescript
-(req: NextRequest, context: { plugin: any }) => Promise<NextResponse>
+import type Context from '@/lib/sdk/plugin-context';
+
+(req: NextRequest, context: Context) => Promise<NextResponse>
 ```
 
 - `req`: Next.js request object with query params, body, headers
-- `context.plugin`: Plugin context with file, record, and authorization utilities
+- `context`: Context instance with file, record, and authorization utilities
 
 ---
 
-## Plugin Context Reference
+## Context Reference
 
-The plugin context provides these utilities:
+The context object provides these utilities:
 
-### Files (`plugin.appFileManager`)
+### Files (`context.appFileManager`)
 
 A `Filesystem` instance scoped to your app's data directory. All paths are relative to the app's storage root.
 
 ```typescript
 // Write a file (creates parent directories automatically)
-await plugin.appFileManager.writeFile('data/config.json', JSON.stringify(config));
-await plugin.appFileManager.writeFile('uploads/image.png', buffer);
+await context.appFileManager.writeFile('data/config.json', JSON.stringify(config));
+await context.appFileManager.writeFile('uploads/image.png', buffer);
 
 // Read a file (returns Buffer)
-const buffer = await plugin.appFileManager.readFile('uploads/image.png');
+const buffer = await context.appFileManager.readFile('uploads/image.png');
 const text = buffer.toString('utf-8');
 
 // Delete a file
-await plugin.appFileManager.deleteFile('temp/old-file.txt');
+await context.appFileManager.deleteFile('temp/old-file.txt');
 
 // Delete a directory
-await plugin.appFileManager.deleteDirectory('temp', true); // recursive
+await context.appFileManager.deleteDirectory('temp', true); // recursive
 
 // Check existence
-const exists = await plugin.appFileManager.exists('data/config.json');
+const exists = await context.appFileManager.exists('data/config.json');
 
 // Create directory (throws if already exists)
-await plugin.appFileManager.createDirectory('uploads/images');
+await context.appFileManager.createDirectory('uploads/images');
 
 // Ensure directory exists (creates if not, no error if exists)
-await plugin.appFileManager.ensureDirectory('uploads/images');
+await context.appFileManager.ensureDirectory('uploads/images');
 
 // List directory contents
-const entries = await plugin.appFileManager.listDirectory('uploads');
+const entries = await context.appFileManager.listDirectory('uploads');
 // [{ name, isDirectory, size, modifiedAt }] — sorted: directories first, then by name
 
 // Get file/directory metadata
-const meta = await plugin.appFileManager.getMetadata('uploads/image.png');
+const meta = await context.appFileManager.getMetadata('uploads/image.png');
 // { size: number, createdAt: Date, modifiedAt: Date, isDirectory: boolean }
 
 // Rename a file or directory (returns new relative path)
-const newPath = await plugin.appFileManager.rename('old-name.txt', 'new-name.txt');
+const newPath = await context.appFileManager.rename('old-name.txt', 'new-name.txt');
 
 // Move to a different directory (returns new relative path)
-const movedPath = await plugin.appFileManager.move('file.txt', 'archive');
+const movedPath = await context.appFileManager.move('file.txt', 'archive');
 
 // Copy a file or directory (returns new relative path, handles name conflicts)
-const copiedPath = await plugin.appFileManager.copy('file.txt', 'backup');
+const copiedPath = await context.appFileManager.copy('file.txt', 'backup');
 ```
 
 **Filesystem errors** have `name: "FilesystemError"`, a `code` property (`NOT_FOUND`, `ALREADY_EXISTS`, `INVALID_PATH`, `INVALID_OPERATION`, `PERMISSION_DENIED`), and a `statusCode` suitable for HTTP responses.
 
-### System Files (`plugin.systemFileManager`)
+### System Files (`context.systemFileManager`)
 
 A `Filesystem` instance scoped to the system files directory. Only available if your app has the `system:fs-access` authorization — throws an error otherwise.
 
 ```typescript
 // Access system files (requires system:fs-access permission)
-const systemEntries = await plugin.systemFileManager.listDirectory('');
+const systemEntries = await context.systemFileManager.listDirectory('');
 
 // Create a child filesystem scoped to a subdirectory
-const scopedFs = plugin.systemFileManager.scoped('some/subdir');
+const scopedFs = context.systemFileManager.scoped('some/subdir');
 ```
 
 See [Authorities](./authorities.md#filesystem-access) for how to request `system:fs-access`.
 
-### Records (`plugin.recordManager`)
+### Records (`context.recordManager`)
 
 Create a CRUD manager for a specific app table. The manager is scoped to the given app and table.
 
 ```typescript
 // Get a record manager for a table
-const items = plugin.recordManager('my-app', 'items');
+const items = context.recordManager('my-app', 'items');
 
 // Read a single record by ID
 const record = await items.readRecord('record-id');
@@ -209,46 +210,46 @@ const fields = await items.getTableFields();
 
 ```typescript
 // Get current user's info (cached after first call)
-const user = await plugin.user();
+const user = await context.user();
 // { id, displayName, username, email, authorities: { system, userSpecific } }
 
 // Get a specific user's info
-const otherUser = await plugin.user('user-id');
+const otherUser = await context.user('user-id');
 
 // Get current app's info (cached after first call)
-const app = await plugin.app();
+const app = await context.app();
 // { name, version, authority: { name, authorizations } }
 
 // Get another app's info
-const otherApp = await plugin.app('other-app-id');
+const otherApp = await context.app('other-app-id');
 ```
 
 ### Authorization
 
 ```typescript
 // Check if the current user has an authorization
-const canManage = await plugin.isUserAuthorizedFor('my-app:manage');
+const canManage = await context.isUserAuthorizedFor('my-app:manage');
 
 // Check multiple authorizations (test: "some" or "all")
-const hasAny = await plugin.isUserAuthorized(['my-app:view', 'my-app:edit'], 'some');
-const hasAll = await plugin.isUserAuthorized(['my-app:view', 'my-app:edit'], 'all');
+const hasAny = await context.isUserAuthorized(['my-app:view', 'my-app:edit'], 'some');
+const hasAll = await context.isUserAuthorized(['my-app:view', 'my-app:edit'], 'all');
 
 // Check app-level authorization (for the current app)
-const appHasAccess = await plugin.isAppAuthorizedFor('system:fs-access');
+const appHasAccess = await context.isAppAuthorizedFor('system:fs-access');
 
 // Check another app's authorization
-const otherAppAccess = await plugin.isAppAuthorizedFor('files:fs-access', 'other-app-id');
+const otherAppAccess = await context.isAppAuthorizedFor('files:fs-access', 'other-app-id');
 ```
 
-### Logger (`plugin.logger`)
+### Logger (`context.logger`)
 
 Log messages to the system log.
 
 ```typescript
-await plugin.logger.info('Processing request...');
-await plugin.logger.warn('Rate limit approaching');
-await plugin.logger.debug('Debug details here');
-await plugin.logger.error('Failed to process: ' + error.message);
+await context.logger.info('Processing request...');
+await context.logger.warn('Rate limit approaching');
+await context.logger.debug('Debug details here');
+await context.logger.error('Failed to process: ' + error.message);
 ```
 
 ---
@@ -258,15 +259,14 @@ await plugin.logger.error('Failed to process: ' + error.message);
 ### GET - List with Query Parameters
 
 ```typescript
-export async function GET(req: NextRequest, context: { plugin: any }) {
-  const { plugin } = context;
+export async function GET(req: NextRequest, context: Context) {
   const { searchParams } = new URL(req.url);
 
   const limit = parseInt(searchParams.get('limit') || '50');
   const offset = parseInt(searchParams.get('offset') || '0');
   const status = searchParams.get('status');
 
-  const items = plugin.recordManager('my-app', 'items');
+  const items = context.recordManager('my-app', 'items');
   const result = await items.readRecords({
     limit,
     offset,
@@ -283,9 +283,7 @@ export async function GET(req: NextRequest, context: { plugin: any }) {
 ### POST - Create with Validation
 
 ```typescript
-export async function POST(req: NextRequest, context: { plugin: any }) {
-  const { plugin } = context;
-
+export async function POST(req: NextRequest, context: Context) {
   try {
     const body = await req.json();
 
@@ -296,18 +294,18 @@ export async function POST(req: NextRequest, context: { plugin: any }) {
       );
     }
 
-    const items = plugin.recordManager('my-app', 'items');
+    const items = context.recordManager('my-app', 'items');
     const table = await items.getTable();
     const record = await items.createRecord(table, {
       title: body.title,
       status: body.status || 'pending',
     });
 
-    await plugin.logger.info(`Created item: ${record.id}`);
+    await context.logger.info(`Created item: ${record.id}`);
     return NextResponse.json(record, { status: 201 });
 
   } catch (error: any) {
-    await plugin.logger.error(`Create failed: ${error.message}`);
+    await context.logger.error(`Create failed: ${error.message}`);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
@@ -316,8 +314,7 @@ export async function POST(req: NextRequest, context: { plugin: any }) {
 ### PUT - Update Existing
 
 ```typescript
-export async function PUT(req: NextRequest, context: { plugin: any }) {
-  const { plugin } = context;
+export async function PUT(req: NextRequest, context: Context) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get('id');
 
@@ -327,7 +324,7 @@ export async function PUT(req: NextRequest, context: { plugin: any }) {
 
   try {
     const body = await req.json();
-    const items = plugin.recordManager('my-app', 'items');
+    const items = context.recordManager('my-app', 'items');
     const table = await items.getTable();
     const existing = await items.readRecord(id);
 
@@ -347,8 +344,7 @@ export async function PUT(req: NextRequest, context: { plugin: any }) {
 ### DELETE - Remove Record
 
 ```typescript
-export async function DELETE(req: NextRequest, context: { plugin: any }) {
-  const { plugin } = context;
+export async function DELETE(req: NextRequest, context: Context) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get('id');
 
@@ -357,7 +353,7 @@ export async function DELETE(req: NextRequest, context: { plugin: any }) {
   }
 
   try {
-    const items = plugin.recordManager('my-app', 'items');
+    const items = context.recordManager('my-app', 'items');
     const existing = await items.readRecord(id);
 
     if (!existing) {
@@ -376,9 +372,7 @@ export async function DELETE(req: NextRequest, context: { plugin: any }) {
 ### File Upload
 
 ```typescript
-export async function POST(req: NextRequest, context: { plugin: any }) {
-  const { plugin } = context;
-
+export async function POST(req: NextRequest, context: Context) {
   try {
     const formData = await req.formData();
     const file = formData.get('file') as File;
@@ -390,7 +384,7 @@ export async function POST(req: NextRequest, context: { plugin: any }) {
     const buffer = Buffer.from(await file.arrayBuffer());
     const filename = `uploads/${Date.now()}-${file.name}`;
 
-    await plugin.appFileManager.writeFile(filename, buffer);
+    await context.appFileManager.writeFile(filename, buffer);
 
     return NextResponse.json({
       success: true,
@@ -407,8 +401,7 @@ export async function POST(req: NextRequest, context: { plugin: any }) {
 ### File Download
 
 ```typescript
-export async function GET(req: NextRequest, context: { plugin: any }) {
-  const { plugin } = context;
+export async function GET(req: NextRequest, context: Context) {
   const { searchParams } = new URL(req.url);
   const path = searchParams.get('path');
 
@@ -417,12 +410,12 @@ export async function GET(req: NextRequest, context: { plugin: any }) {
   }
 
   try {
-    const exists = await plugin.appFileManager.exists(path);
+    const exists = await context.appFileManager.exists(path);
     if (!exists) {
       return NextResponse.json({ error: 'File not found' }, { status: 404 });
     }
 
-    const buffer = await plugin.appFileManager.readFile(path);
+    const buffer = await context.appFileManager.readFile(path);
     const filename = path.split('/').pop();
 
     return new NextResponse(buffer, {
@@ -441,17 +434,15 @@ export async function GET(req: NextRequest, context: { plugin: any }) {
 ### Authorization Check
 
 ```typescript
-export async function POST(req: NextRequest, context: { plugin: any }) {
-  const { plugin } = context;
-
-  const canManage = await plugin.isUserAuthorizedFor('my-app:manage');
+export async function POST(req: NextRequest, context: Context) {
+  const canManage = await context.isUserAuthorizedFor('my-app:manage');
   if (!canManage) {
     return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
   }
 
   // Authorized - proceed with operation
   const body = await req.json();
-  const items = plugin.recordManager('my-app', 'items');
+  const items = context.recordManager('my-app', 'items');
   const table = await items.getTable();
   const record = await items.createRecord(table, body);
   return NextResponse.json(record);

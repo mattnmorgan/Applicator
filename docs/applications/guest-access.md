@@ -49,10 +49,11 @@ Only one guest applet per app is used. If multiple exist, the first one found is
 Your app creates a contextual authority that encodes what the guest can access:
 
 ```typescript
-export async function POST(req: NextRequest, context: { plugin: any }) {
-  const { plugin } = context;
-  const user = await plugin.user();
-  const caManager = plugin.contextualAuthorityManager;
+import type Context from '@/lib/sdk/plugin-context';
+
+export async function POST(req: NextRequest, context: Context) {
+  const user = await context.user();
+  const caManager = context.contextualAuthorityManager;
   const body = await req.json();
 
   const ca = await caManager.createPasswordContextualAuthority({
@@ -87,34 +88,44 @@ The platform handles the entire validation flow:
 2. Verifies the app has `system:guest-accessible` permission
 3. Prompts for a password if the contextual authority is password-protected
 4. Resolves the guest applet component
-5. Loads and renders the app with guest context
+5. Loads and renders the app with a `context` prop containing guest data
 
 ### 3. Guest Applet Receives Context
 
-Your guest component receives these props from the platform:
+Your guest component receives a single `context` prop from the platform, typed as `UIContext` from `@applicator/lib`:
 
 ```typescript
-interface GuestComponentProps {
-  appId: string;           // Your app's ID
-  contextId: string;       // The contextual authority ID
-  contextData: any;        // Parsed context data from the contextual authority
-  path: string[];          // URL path segments after the appId
-  guestPassword?: string;  // The password used to authenticate (if applicable)
+import type UIContext from '@/lib/sdk/types/ui-context';
+```
+
+The `UIContext` interface is generic and defined as:
+
+```typescript
+interface UIContext<T = any> {
+  appId: string;       // App identifier being accessed
+  path: string[];      // URL path segments after the appId
+  guest?: {            // Present for guest applets
+    id: string;        // Contextual authority record ID
+    data: T;           // Data stored by the contextual authority (JSON-stringified)
+    password: string;  // Password used to access (empty string if none)
+  };
 }
 ```
 
 ```typescript
 // src/apps/GuestViewer.tsx
-export default function GuestViewer({
-  appId,
-  contextId,
-  contextData,
-  path,
-  guestPassword,
-}: GuestComponentProps) {
-  // contextData contains whatever you stored in the contextual authority's context field
-  const { documentId, viewMode } = contextData;
+import type UIContext from '@/lib/sdk/types/ui-context';
 
+interface GuestViewerProps {
+  context?: UIContext<{ documentId: string; viewMode: string }>;
+}
+
+export default function GuestViewer({ context }: GuestViewerProps) {
+  const contextId = context?.guest?.id;
+  const contextData = context?.guest?.data;
+  const guestPassword = context?.guest?.password;
+
+  // contextData contains whatever you stored in the contextual authority's context field
   // Use contextId and guestPassword for authenticated API calls
   // ...
 }
@@ -128,13 +139,18 @@ Guest applets can call your app's API routes. The platform automatically routes 
 
 ### How Guest API Routing Works
 
-When a guest makes an API call, the request must include the context ID and optionally the password as query parameters:
+When a guest makes an API call, the request must include the context ID and optionally the password as headers:
 
 ```typescript
 // From your guest component
-const response = await fetch(
-  `/api/${appId}/my-route?guestContext=${contextId}&guestPassword=${guestPassword}`
-);
+const headers: Record<string, string> = {
+  'X-Guest-Context': contextId,
+};
+if (guestPassword) {
+  headers['X-Guest-Password'] = guestPassword;
+}
+
+const response = await fetch(`/api/${appId}/my-route`, { headers });
 ```
 
 ### Detecting Guest Context in API Handlers
@@ -142,12 +158,12 @@ const response = await fetch(
 Your API handlers can check if the request is from a guest:
 
 ```typescript
-export async function GET(req: NextRequest, context: { plugin: any }) {
-  const { plugin } = context;
+import type Context from '@/lib/sdk/plugin-context';
 
-  if (plugin.isGuest) {
+export async function GET(req: NextRequest, context: Context) {
+  if (context.isGuest) {
     // Guest request — access is limited
-    const guestContext = plugin.contextGuest;
+    const guestContext = context.contextGuest;
     // guestContext.id    — contextual authority ID
     // guestContext.data  — parsed context data
     // guestContext.password — password used (if any)
@@ -156,7 +172,7 @@ export async function GET(req: NextRequest, context: { plugin: any }) {
   }
 
   // Authenticated request
-  const user = await plugin.user();
+  const user = await context.user();
   return NextResponse.json({ mode: 'authenticated', userId: user.id });
 }
 ```
@@ -172,7 +188,7 @@ When a contextual authority has a password, the platform automatically shows a p
 3. Password form is displayed
 4. Guest enters password
 5. Password is validated against the stored bcrypt hash
-6. On success, the app loads with the validated password available in props
+6. On success, the app loads with the validated password available in `context.guest.password`
 
 The password is also passed to API handlers when the guest makes requests, so your handlers can verify it if needed.
 
@@ -235,25 +251,32 @@ POST /api/guest/{appId}/validate
 ```typescript
 // src/apps/GuestViewer.tsx
 import React, { useState, useEffect } from 'react';
+import type UIContext from '@/lib/sdk/types/ui-context';
 
 interface Props {
-  appId: string;
-  contextId: string;
-  contextData: { documentId: string };
-  guestPassword?: string;
+  context?: UIContext<{ documentId: string }>;
 }
 
-export default function GuestViewer({ appId, contextId, contextData, guestPassword }: Props) {
+export default function GuestViewer({ context }: Props) {
+  const appId = context?.appId;
+  const contextId = context?.guest?.id;
+  const contextData = context?.guest?.data;
+  const guestPassword = context?.guest?.password;
+
   const [document, setDocument] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    const params = new URLSearchParams();
-    params.set('guestContext', contextId);
-    if (guestPassword) params.set('guestPassword', guestPassword);
-    params.set('id', contextData.documentId);
+  const guestHeaders: Record<string, string> = {
+    'X-Guest-Context': contextId!,
+  };
+  if (guestPassword) {
+    guestHeaders['X-Guest-Password'] = guestPassword;
+  }
 
-    fetch(`/api/${appId}/document/view?${params}`)
+  useEffect(() => {
+    fetch(`/api/${appId}/document/view?id=${contextData?.documentId}`, {
+      headers: guestHeaders,
+    })
       .then(res => res.json())
       .then(data => {
         setDocument(data);
