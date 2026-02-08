@@ -4,6 +4,7 @@ import BulkResult from "@/lib/database/crud/types/bulk-result";
 import { getRedisClient, getRecordKey } from "@/lib/database/crud/redis";
 import { readRecord } from "@/lib/database/crud/read";
 import { validateAndProcessRecord } from "@/lib/database/crud/validation";
+import type PendingOperation from "@/lib/database/crud/validation/types/pending-operation";
 
 export interface Options {
   skipValidation?: boolean;
@@ -11,18 +12,22 @@ export interface Options {
 }
 
 export function updateRecordWrapper<T = any>(appId: string, tableName: string) {
-  return (table: Table | null, id: string, data: Partial<T>, options: Options = {}) =>
-    updateRecord(appId, tableName, table, id, data, options);
+  return (
+    table: Table | null,
+    id: string,
+    data: Partial<T>,
+    options: Options = {},
+  ) => updateRecord(appId, tableName, table, id, data, options);
 }
 
 export function bulkUpdateRecordsWrapper<T = any>(
   appId: string,
-  tableName: string
+  tableName: string,
 ) {
   return (
     table: Table | null,
     updates: { id: string; data: Partial<T> }[],
-    options: Options = {}
+    options: Options = {},
   ) => bulkUpdateRecords(appId, tableName, table, updates, options);
 }
 
@@ -32,7 +37,7 @@ export async function updateRecord<T = any>(
   table: Table | null,
   recordId: string,
   data: Partial<T>,
-  options: Options = {}
+  options: Options = {},
 ): Promise<TableRecord<T> | null> {
   const redis = getRedisClient();
   const existing = await readRecord<T>(appId, tableName, recordId);
@@ -51,7 +56,8 @@ export async function updateRecord<T = any>(
     tableName,
     table,
     updatedData as Record<string, any>,
-    options.skipValidation || !table
+    options.skipValidation || !table,
+    recordId,
   );
 
   const updatedRecord: TableRecord<T> = {
@@ -60,8 +66,33 @@ export async function updateRecord<T = any>(
     updatedAt: Date.now(),
   };
 
+  // Save primary record first so cascade formulas see the updated data
   const key = getRecordKey(appId, tableName, recordId);
   await redis.set(key, JSON.stringify(updatedRecord));
+
+  // Collect and commit cascade operations
+  if (table) {
+    const { cascadeCollect } =
+      await import("@/lib/database/crud/validation/cascade");
+    const cascadeOps = await cascadeCollect(
+      appId,
+      tableName,
+      recordId,
+      processedData as Record<string, any>,
+    );
+
+    if (cascadeOps.length > 0) {
+      const pipeline = redis.pipeline();
+      for (const op of cascadeOps) {
+        if (op.type === "del") {
+          pipeline.del(op.key);
+        } else {
+          pipeline.set(op.key, op.value!);
+        }
+      }
+      await pipeline.exec();
+    }
+  }
 
   return updatedRecord;
 }
@@ -71,7 +102,7 @@ export async function bulkUpdateRecords<T = any>(
   tableName: string,
   table: Table | null,
   updates: Array<{ id: string; data: Partial<T> }>,
-  options: Options = {}
+  options: Options = {},
 ): Promise<BulkResult<T>> {
   const redis = getRedisClient();
   const updatedRecords: TableRecord<T>[] = [];
@@ -113,7 +144,8 @@ export async function bulkUpdateRecords<T = any>(
         tableName,
         table,
         updatedData as Record<string, any>,
-        options.skipValidation || !table
+        options.skipValidation || !table,
+        update.id,
       );
 
       updatedRecords.push({
@@ -138,14 +170,41 @@ export async function bulkUpdateRecords<T = any>(
     };
   }
 
-  // All validations passed, commit to database using pipeline
-  const pipeline = redis.pipeline();
+  // Save all primary records first so cascade formulas see the updated data
+  const primaryPipeline = redis.pipeline();
   for (const record of updatedRecords) {
     const key = getRecordKey(appId, tableName, record.id);
-    pipeline.set(key, JSON.stringify(record));
+    primaryPipeline.set(key, JSON.stringify(record));
   }
+  await primaryPipeline.exec();
 
-  await pipeline.exec();
+  // Collect and commit cascade operations
+  if (table) {
+    const cascadeOps: PendingOperation[] = [];
+    const { cascadeCollect } =
+      await import("@/lib/database/crud/validation/cascade");
+    for (const record of updatedRecords) {
+      const ops = await cascadeCollect(
+        appId,
+        tableName,
+        record.id,
+        record.data as Record<string, any>,
+      );
+      cascadeOps.push(...ops);
+    }
+
+    if (cascadeOps.length > 0) {
+      const cascadePipeline = redis.pipeline();
+      for (const op of cascadeOps) {
+        if (op.type === "del") {
+          cascadePipeline.del(op.key);
+        } else {
+          cascadePipeline.set(op.key, op.value!);
+        }
+      }
+      await cascadePipeline.exec();
+    }
+  }
 
   return {
     success: updatedRecords,

@@ -16,6 +16,7 @@ import { hashPasswordFields } from "@/lib/database/crud/validation/password";
  * @param table The table definition (null during bootstrap - will be ignored)
  * @param data The record data
  * @param skipValidation Whether to skip validation
+ * @param recordId Id of the record being validated/processed
  * @returns Processed record data
  * @throws Error if validation fails
  */
@@ -24,7 +25,8 @@ export async function validateAndProcessRecord(
   tableName: string,
   table: Table | null,
   data: Record<string, any>,
-  skipValidation: boolean = false
+  skipValidation: boolean = false,
+  recordId: string = "",
 ): Promise<Record<string, any>> {
   let processedData = { ...data };
 
@@ -62,7 +64,7 @@ export async function validateAndProcessRecord(
   // Validate multipicklist fields
   const multipicklistResults = await validateMultipicklistFields(
     fields,
-    processedData
+    processedData,
   );
   const multipicklistFailures = multipicklistResults.filter((r) => !r.valid);
 
@@ -76,7 +78,8 @@ export async function validateAndProcessRecord(
     appId,
     tableName,
     fields,
-    processedData
+    processedData,
+    recordId,
   );
 
   // Execute validator scripts
@@ -84,7 +87,7 @@ export async function validateAndProcessRecord(
     appId,
     tableName,
     fields,
-    processedData
+    processedData,
   );
   const validationFailures = validationResults.filter((r) => !r.valid);
 

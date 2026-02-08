@@ -10,13 +10,15 @@ import vm from "vm";
  * @param tableName The table name
  * @param field The field definition
  * @param record The full record for formula calculation
+ * @param recordId The record's ID
  * @returns Calculated value
  */
 export async function executeFormula(
   appId: string,
   tableName: string,
   field: Field,
-  record: Record<string, any>
+  record: Record<string, any>,
+  recordId: string = ""
 ): Promise<any> {
   try {
     // Get system storage path (lazy import to avoid circular dependency)
@@ -47,10 +49,26 @@ export async function executeFormula(
     // Read and execute the formula script using vm
     const scriptCode = fs.readFileSync(formulaPath, "utf8");
 
+    // Build the query function for cross-table lookups
+    const { readRecords } = await import("@/lib/database/crud/read");
+    const { default: FieldManager } = await import("@/lib/database/managers/field");
+    const fieldManager = new FieldManager();
+
+    const queryFn = async (
+      queryAppId: string,
+      queryTableName: string,
+      filter: { fields?: Record<string, any>; limit?: number; offset?: number } = {}
+    ) => {
+      const tableFields = await fieldManager.loadTableFields(queryAppId, queryTableName);
+      return readRecords(queryAppId, queryTableName, tableFields, filter);
+    };
+
     // Create a sandbox context with the formula context
     const context: Context = {
+      id: recordId,
       record,
       field,
+      query: queryFn,
     };
 
     const sandbox: any = {
@@ -92,19 +110,21 @@ export async function executeFormula(
  * @param tableName The table name
  * @param fields The table field definitions
  * @param data The record data
+ * @param recordId The record's ID
  * @returns Updated record data with calculated formula values
  */
 export async function calculateFormulas(
   appId: string,
   tableName: string,
   fields: Field[],
-  data: Record<string, any>
+  data: Record<string, any>,
+  recordId: string = ""
 ): Promise<Record<string, any>> {
   const updatedData = { ...data };
 
   for (const field of fields) {
     if (field.type === "formula") {
-      const value = await executeFormula(appId, tableName, field, updatedData);
+      const value = await executeFormula(appId, tableName, field, updatedData, recordId);
       updatedData[field.name] = value;
     }
   }

@@ -75,7 +75,7 @@ export default abstract class CRUD<T = any> {
       const tableRecord = await readRecord<Table>(
         "system",
         "table",
-        this.tableName,
+        `${this.appId}:${this.tableName}`,
       );
       this.table = tableRecord?.data || null;
     }
