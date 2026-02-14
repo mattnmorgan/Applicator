@@ -5,6 +5,7 @@ import { withTransaction } from "@/lib/database/connections/postgresql";
 
 export interface DeleteOptions {
   cascade?: boolean;
+  client?: PoolClient;
 }
 
 /**
@@ -68,7 +69,7 @@ export async function deleteRecord(
   recordId: string,
   options: DeleteOptions = {},
 ): Promise<boolean> {
-  return withTransaction(async (client) => {
+  const doWork = async (client: PoolClient) => {
     // Read the record before deletion for cascade processing
     const existing = await readRecord(appId, tableName, recordId, client);
     if (!existing) return false;
@@ -115,7 +116,12 @@ export async function deleteRecord(
     await cascadeCollect(appId, tableName, recordId, recordData, client);
 
     return true;
-  });
+  };
+
+  if (options.client) {
+    return doWork(options.client);
+  }
+  return withTransaction(doWork);
 }
 
 export async function bulkDeleteRecords(
@@ -128,7 +134,7 @@ export async function bulkDeleteRecords(
     return { success: [], failures: [] };
   }
 
-  return withTransaction(async (client) => {
+  const doWork = async (client: PoolClient) => {
     // Read all records before deletion
     const existingRecords: Array<{ id: string; data: Record<string, any> }> =
       [];
@@ -196,11 +202,23 @@ export async function bulkDeleteRecords(
       })),
       failures: [],
     };
-  });
+  };
+
+  if (options.client) {
+    return doWork(options.client);
+  }
+  return withTransaction(doWork);
 }
 
-export async function deleteAll(appId: string, tableName: string) {
-  return withTransaction(async (client) => {
-    await sqlDeleteAll(client, appId, tableName);
+export async function deleteAll(
+  appId: string,
+  tableName: string,
+  client?: PoolClient,
+) {
+  if (client) {
+    return sqlDeleteAll(client, appId, tableName);
+  }
+  return withTransaction(async (txClient) => {
+    await sqlDeleteAll(txClient, appId, tableName);
   });
 }

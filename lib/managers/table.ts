@@ -1,3 +1,4 @@
+import { PoolClient } from "pg";
 import CRUD from "@/lib/database/crud";
 import Table from "@/lib/database/types/table";
 
@@ -21,11 +22,18 @@ export default class TableManager extends CRUD<Table> {
    * @param appId The app ID
    * @param tableName The table name
    * @param tableData The table definition
+   * @param client Optional transaction client
    * @returns The created table record
    */
-  async createTable(appId: string, tableName: string, tableData: Table) {
+  async createTable(
+    appId: string,
+    tableName: string,
+    tableData: Table,
+    client?: PoolClient,
+  ) {
     return await this.createRecord(await this.getTable(), tableData, {
       id: `${appId}:${tableName}`,
+      client,
     });
   }
 
@@ -33,8 +41,9 @@ export default class TableManager extends CRUD<Table> {
    * Delete a table record
    * @param appId The app ID
    * @param tableName The table name
+   * @param client Optional transaction client
    */
-  async deleteTable(appId: string, tableName: string) {
-    await this.deleteRecord(`${appId}:${tableName}`);
+  async deleteTable(appId: string, tableName: string, client?: PoolClient) {
+    await this.deleteRecord(`${appId}:${tableName}`, { client });
   }
 }

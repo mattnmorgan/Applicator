@@ -1,7 +1,9 @@
+import { PoolClient } from "pg";
 import CRUD from "@/lib/database/crud";
 import Authority from "@/lib/database/types/authority";
 import { Options as CreateOptions } from "@/lib/database/crud/create";
 import { Options as UpdateOptions } from "@/lib/database/crud/update";
+import { DeleteOptions } from "@/lib/database/crud/delete";
 
 export default class AuthorityManager extends CRUD<Authority> {
   tableName = "authorities";
@@ -70,7 +72,10 @@ export default class AuthorityManager extends CRUD<Authority> {
     );
   }
 
-  async deleteAppSpecificAuthority(appId: string) {
-    return await this.deleteRecord(`app-specific:${appId}`);
+  async deleteAppSpecificAuthority(
+    appId: string,
+    options: DeleteOptions = {},
+  ) {
+    return await this.deleteRecord(`app-specific:${appId}`, options);
   }
 }

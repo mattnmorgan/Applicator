@@ -14,6 +14,7 @@ import AppletManager from "@/lib/managers/applet";
 import AgentManager from "@/lib/managers/agent";
 import Agent from "@/lib/system/agents/agent";
 import { deleteAll } from "@/lib/database/crud/delete";
+import { withTransaction } from "@/lib/database/connections/postgresql";
 import path from "path";
 import fs from "fs/promises";
 import { loadModule } from "@/lib/system/source";
@@ -140,7 +141,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Stop and delete all agents for this app
+    // Stop all agents for this app (process management, outside transaction)
     const agentManager = new AgentManager();
     const allAgentsResult = await agentManager.readRecords();
     const appAgents = allAgentsResult.records.filter(
@@ -148,14 +149,153 @@ export async function POST(request: NextRequest) {
     );
 
     for (const agentRecord of appAgents) {
-      // Stop agent if running
       try {
         const [agentAppId, agentName] = agentRecord.id.split(":");
         await new Agent(agentAppId, agentName).stop();
       } catch {
         // Agent may not be running, ignore errors
       }
-      await agentManager.deleteRecord(agentRecord.id);
+    }
+
+    // All DB cleanup in a single transaction
+    await withTransaction(async (client) => {
+      // Delete agent records
+      for (const agentRecord of appAgents) {
+        await agentManager.deleteRecord(agentRecord.id, { client });
+      }
+
+      // Delete all app tables and their records
+      const tableManager = new TableManager();
+      const fieldManager = new FieldManager();
+      const allTablesResult = await tableManager.readRecords({}, client);
+      const appTables = allTablesResult.records.filter(
+        (table) => table.data.app === appId,
+      );
+
+      for (const table of appTables) {
+        // Delete all records in this table
+        await deleteAll(appId, table.data.table_name, client);
+
+        // Delete the field definitions for this table
+        await fieldManager.deleteTableFields(appId, table.data.table_name, client);
+
+        // Delete the table definition
+        await tableManager.deleteTable(appId, table.data.table_name, client);
+      }
+
+      // Delete all API routes for this app
+      const apiRouteManager = new ApiRouteManager();
+      const allApiRoutesResult = await apiRouteManager.readRecords({}, client);
+      const appApiRoutes = allApiRoutesResult.records.filter(
+        (route) => route.data.app === appId,
+      );
+
+      for (const route of appApiRoutes) {
+        await apiRouteManager.deleteRecord(route.id, { client });
+      }
+
+      // Delete all applets for this app
+      const appletManager = new AppletManager();
+      const allAppletsResult = await appletManager.readRecords({}, client);
+      const appApplets = allAppletsResult.records.filter(
+        (applet) => applet.data.app === appId,
+      );
+
+      for (const applet of appApplets) {
+        await appletManager.deleteRecord(applet.id, { client });
+      }
+
+      // Delete all authorizations for this app
+      const authorizationManager = new AuthorizationManager();
+      const allAuthorizationsResult = await authorizationManager.readRecords({}, client);
+      const appAuthorizations = allAuthorizationsResult.records.filter(
+        (auth) => auth.data.app === appId,
+      );
+
+      for (const auth of appAuthorizations) {
+        await authorizationManager.deleteRecord(auth.id, { client });
+      }
+
+      // Delete all contextual authorities for this app
+      const ContextualAuthorityManager = (
+        await import("@/lib/managers/contextualAuthority")
+      ).default;
+      const contextualAuthorityManager = new ContextualAuthorityManager();
+      const contextualAuthoritiesResult =
+        await contextualAuthorityManager.readRecords({}, client);
+      for (const auth of contextualAuthoritiesResult.records) {
+        if (auth.data.app === appId) {
+          await contextualAuthorityManager.deleteRecord(auth.id, { client });
+        }
+      }
+
+      // Delete contextual authorities created by this app
+      const authorityManager = new AuthorityManager();
+
+      // Delete app-specific authority
+      await authorityManager.deleteAppSpecificAuthority(appId, { client });
+
+      const authoritiesResult = await authorityManager.readRecords({}, client);
+      for (const authority of authoritiesResult.records) {
+        // Delete contextual authorities created by this app
+        if (authority.data.contextual && authority.data.app === appId) {
+          await authorityManager.deleteRecord(authority.id, { client });
+          continue;
+        }
+
+        // Remove main app and all subApps from non-contextual authorities
+        // Also remove app's authorizations
+        const updatedApps = authority.data.apps
+          ? authority.data.apps.filter(
+              (id) => id !== appId && !id.startsWith(`${appId}:`),
+            )
+          : [];
+
+        const updatedAuthorizations = authority.data.authorizations
+          ? authority.data.authorizations.filter(
+              (authId) => !authId.startsWith(`${appId}:`),
+            )
+          : [];
+
+        const appsChanged =
+          authority.data.apps &&
+          updatedApps.length !== authority.data.apps.length;
+        const authorizationsChanged =
+          authority.data.authorizations &&
+          updatedAuthorizations.length !== authority.data.authorizations.length;
+
+        // Only update if something changed
+        if (appsChanged || authorizationsChanged) {
+          await authorityManager.updateRecord(
+            await authorityManager.getTable(),
+            authority.data.user_id
+              ? `user-specific:${authority.id}`
+              : authority.id,
+            {
+              ...authority.data,
+              apps: updatedApps,
+              authorizations: updatedAuthorizations,
+            },
+            { client },
+          );
+        }
+      }
+
+      // Delete app from database
+      await appManager.deleteRecord(appId, { client });
+    });
+
+    // Delete app files from storage (filesystem, outside transaction)
+    try {
+      const storageRecord2 = await settingManager.readRecord("storage");
+      const storagePath2 = storageRecord2?.data.value;
+      if (storagePath2) {
+        const appDir = path.join(storagePath2, "apps", appId);
+        await fs.rm(appDir, { recursive: true, force: true });
+      }
+    } catch (error) {
+      console.error("Error deleting app files:", error);
+      // Continue even if file deletion fails
     }
 
     // Clean up agent log files
@@ -168,138 +308,6 @@ export async function POST(request: NextRequest) {
       }
     } catch (error) {
       // Ignore errors cleaning up log files
-    }
-
-    // Delete all app tables and their records
-    const tableManager = new TableManager();
-    const fieldManager = new FieldManager();
-    const allTablesResult = await tableManager.readRecords();
-    const appTables = allTablesResult.records.filter(
-      (table) => table.data.app === appId,
-    );
-
-    for (const table of appTables) {
-      // Delete all records in this table
-      await deleteAll(appId, table.data.table_name);
-
-      // Delete the field definitions for this table
-      await fieldManager.deleteTableFields(appId, table.data.table_name);
-
-      // Delete the table definition
-      await tableManager.deleteTable(appId, table.data.table_name);
-    }
-
-    // Delete all API routes for this app
-    const apiRouteManager = new ApiRouteManager();
-    const allApiRoutesResult = await apiRouteManager.readRecords();
-    const appApiRoutes = allApiRoutesResult.records.filter(
-      (route) => route.data.app === appId,
-    );
-
-    for (const route of appApiRoutes) {
-      await apiRouteManager.deleteRecord(route.id);
-    }
-
-    // Delete all applets for this app
-    const appletManager = new AppletManager();
-    const allAppletsResult = await appletManager.readRecords();
-    const appApplets = allAppletsResult.records.filter(
-      (applet) => applet.data.app === appId,
-    );
-
-    for (const applet of appApplets) {
-      await appletManager.deleteRecord(applet.id);
-    }
-
-    // Delete all authorizations for this app
-    const authorizationManager = new AuthorizationManager();
-    const allAuthorizationsResult = await authorizationManager.readRecords();
-    const appAuthorizations = allAuthorizationsResult.records.filter(
-      (auth) => auth.data.app === appId,
-    );
-
-    for (const auth of appAuthorizations) {
-      await authorizationManager.deleteRecord(auth.id);
-    }
-
-    // Delete all contextual authorities for this app
-    const ContextualAuthorityManager = (
-      await import("@/lib/managers/contextualAuthority")
-    ).default;
-    const contextualAuthorityManager = new ContextualAuthorityManager();
-    const contextualAuthoritiesResult =
-      await contextualAuthorityManager.readRecords();
-    for (const auth of contextualAuthoritiesResult.records) {
-      if (auth.data.app === appId) {
-        await contextualAuthorityManager.deleteRecord(auth.id);
-      }
-    }
-
-    // Delete contextual authorities created by this app
-    const authorityManager = new AuthorityManager();
-
-    // Delete app-specific authority
-    await authorityManager.deleteAppSpecificAuthority(appId);
-
-    const authoritiesResult = await authorityManager.readRecords();
-    for (const authority of authoritiesResult.records) {
-      // Delete contextual authorities created by this app
-      if (authority.data.contextual && authority.data.app === appId) {
-        await authorityManager.deleteRecord(authority.id);
-        continue;
-      }
-
-      // Remove main app and all subApps from non-contextual authorities
-      // Also remove app's authorizations
-      const updatedApps = authority.data.apps
-        ? authority.data.apps.filter(
-            (id) => id !== appId && !id.startsWith(`${appId}:`),
-          )
-        : [];
-
-      const updatedAuthorizations = authority.data.authorizations
-        ? authority.data.authorizations.filter(
-            (authId) => !authId.startsWith(`${appId}:`),
-          )
-        : [];
-
-      const appsChanged =
-        authority.data.apps &&
-        updatedApps.length !== authority.data.apps.length;
-      const authorizationsChanged =
-        authority.data.authorizations &&
-        updatedAuthorizations.length !== authority.data.authorizations.length;
-
-      // Only update if something changed
-      if (appsChanged || authorizationsChanged) {
-        await authorityManager.updateRecord(
-          await authorityManager.getTable(),
-          authority.data.user_id
-            ? `user-specific:${authority.id}`
-            : authority.id,
-          {
-            ...authority.data,
-            apps: updatedApps,
-            authorizations: updatedAuthorizations,
-          },
-        );
-      }
-    }
-
-    // Delete app from database
-    await appManager.deleteRecord(appId);
-
-    // Delete app directory from storage (includes icon, bundle, and API handlers)
-    try {
-      const storageRecord2 = await settingManager.readRecord("storage");
-      const storagePath2 = storageRecord2?.data.value;
-      if (storagePath2) {
-        const appDir = path.join(storagePath2, "apps", appId);
-        await fs.rm(appDir, { recursive: true, force: true });
-      }
-    } catch (error) {
-      console.error("Error deleting app files:", error);
-      // Continue even if file deletion fails
     }
 
     // Log app uninstallation

@@ -21,11 +21,15 @@ async function sqlListIds(
 export async function listRecords(
   table: string,
   appId: string,
+  client?: PoolClient,
 ): Promise<string[]> {
-  const client = await getClient();
+  if (client) {
+    return sqlListIds(client, appId, table);
+  }
+  const ownClient = await getClient();
   try {
-    return await sqlListIds(client, appId, table);
+    return await sqlListIds(ownClient, appId, table);
   } finally {
-    client.release();
+    ownClient.release();
   }
 }

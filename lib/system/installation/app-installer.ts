@@ -1,6 +1,8 @@
 import path from "path";
 import fs from "fs/promises";
 import bcrypt from "bcryptjs";
+import { PoolClient } from "pg";
+import { withTransaction } from "@/lib/database/connections/postgresql";
 import { loadModule } from "@/lib/system/source";
 import { formatVersion } from "@/lib/system/version";
 import AppManager from "@/lib/managers/app";
@@ -90,10 +92,12 @@ export async function saveAppFiles(
  * Install app components (API routes, applets, tables, fields, authorizations, authorities)
  * @param appId The app ID
  * @param appAttributes The app.json attributes
+ * @param client Optional transaction client
  */
 export async function installAppComponents(
   appId: string,
   appAttributes: any,
+  client?: PoolClient,
 ): Promise<void> {
   // Install API routes
   if (appAttributes.apiRoutes && Array.isArray(appAttributes.apiRoutes)) {
@@ -109,7 +113,7 @@ export async function installAppComponents(
           method: apiRoute.method,
           description: apiRoute.description || "",
         },
-        { id: `${appId}:${apiRoute.path}:${apiRoute.method}` },
+        { id: `${appId}:${apiRoute.path}:${apiRoute.method}`, client },
       );
     }
   }
@@ -129,7 +133,7 @@ export async function installAppComponents(
           app: appId,
           target: applet.target,
         },
-        { id: `${appId}:${applet.id}` },
+        { id: `${appId}:${applet.id}`, client },
       );
     }
   }
@@ -145,12 +149,12 @@ export async function installAppComponents(
         table_name: table.name,
         app: appId,
         description: table.description || "",
-      });
+      }, client);
 
       // Create field records
       if (table.fields && Array.isArray(table.fields)) {
         for (const field of table.fields) {
-          await fieldManager.createField(appId, table.name, field);
+          await fieldManager.createField(appId, table.name, field, client);
         }
       }
     }
@@ -176,7 +180,7 @@ export async function installAppComponents(
           contextual: auth.contextual || false,
           target: auth.target || "user",
         },
-        { id: authId },
+        { id: authId, client },
       );
     }
   }
@@ -189,7 +193,7 @@ export async function installAppComponents(
     apps: [],
     contextual: true,
     app: appId,
-  });
+  }, { client });
 
   // Install contextual authorities
   if (
@@ -197,7 +201,6 @@ export async function installAppComponents(
     Array.isArray(appAttributes.authorities) &&
     appAttributes.authorities.length > 0
   ) {
-    const authorityManager = new AuthorityManager();
     const authorityTable = await authorityManager.getTable();
 
     for (const authority of appAttributes.authorities) {
@@ -215,7 +218,7 @@ export async function installAppComponents(
           contextual: true,
           app: appId,
         },
-        { id: `${appId}:${authority.id}` },
+        { id: `${appId}:${authority.id}`, client },
       );
     }
   }
@@ -236,7 +239,7 @@ export async function installAppComponents(
           status: "stopped",
           was_running: false,
         },
-        { id: `${appId}:${agent.name}` },
+        { id: `${appId}:${agent.name}`, client },
       );
     }
   }
@@ -246,14 +249,16 @@ export async function installAppComponents(
  * Update app components by deleting old and creating new
  * @param appId The app ID
  * @param appAttributes The app.json attributes
+ * @param client Optional transaction client
  */
 export async function updateAppComponents(
   appId: string,
   appAttributes: any,
+  client?: PoolClient,
 ): Promise<void> {
   // Update API routes
   const apiRouteManager = new ApiRouteManager();
-  const allApiRoutes = await apiRouteManager.readRecords();
+  const allApiRoutes = await apiRouteManager.readRecords({}, client);
   const existingApiRoutes = allApiRoutes.records.filter(
     (route) => route.data.app === appId,
   );
@@ -270,6 +275,7 @@ export async function updateAppComponents(
       if (existingApiRouteKeys.has(routeKey)) {
         await apiRouteManager.deleteRecord(
           `${appId}:${apiRoute.path}:${apiRoute.method}`,
+          { client },
         );
       }
 
@@ -281,7 +287,7 @@ export async function updateAppComponents(
           method: apiRoute.method,
           description: apiRoute.description || "",
         },
-        { id: `${appId}:${apiRoute.path}:${apiRoute.method}` },
+        { id: `${appId}:${apiRoute.path}:${apiRoute.method}`, client },
       );
 
       existingApiRouteKeys.delete(routeKey);
@@ -292,13 +298,13 @@ export async function updateAppComponents(
   for (const route of existingApiRoutes) {
     const routeKey = `${route.data.path}:${route.data.method}`;
     if (existingApiRouteKeys.has(routeKey)) {
-      await apiRouteManager.deleteRecord(route.id);
+      await apiRouteManager.deleteRecord(route.id, { client });
     }
   }
 
   // Update applets
   const appletManager = new AppletManager();
-  const allApplets = await appletManager.readRecords();
+  const allApplets = await appletManager.readRecords({}, client);
   const existingApplets = allApplets.records.filter(
     (applet) => applet.data.app === appId,
   );
@@ -311,7 +317,7 @@ export async function updateAppComponents(
 
     for (const applet of appAttributes.applets) {
       if (existingAppletIds.has(applet.id)) {
-        await appletManager.deleteRecord(`${appId}:${applet.id}`);
+        await appletManager.deleteRecord(`${appId}:${applet.id}`, { client });
       }
 
       await appletManager.createRecord(
@@ -323,7 +329,7 @@ export async function updateAppComponents(
           app: appId,
           target: applet.target,
         },
-        { id: `${appId}:${applet.id}` },
+        { id: `${appId}:${applet.id}`, client },
       );
 
       existingAppletIds.delete(applet.id);
@@ -334,7 +340,7 @@ export async function updateAppComponents(
   for (const applet of existingApplets) {
     const appletId = applet.id.split(":").pop() || "";
     if (existingAppletIds.has(appletId)) {
-      await appletManager.deleteRecord(applet.id);
+      await appletManager.deleteRecord(applet.id, { client });
     }
   }
 
@@ -343,7 +349,7 @@ export async function updateAppComponents(
     const tableManager = new TableManager();
     const fieldManager = new FieldManager();
 
-    const allTables = await tableManager.listRecords();
+    const allTables = await tableManager.listRecords(client);
     const existingTables = allTables.filter((t: any) =>
       t && typeof t === "string"
         ? t.startsWith(`${appId}:`)
@@ -358,8 +364,8 @@ export async function updateAppComponents(
     for (const table of appAttributes.tables) {
       if (existingTableNames.has(table.name)) {
         // Delete old table and fields
-        await fieldManager.deleteTableFields(appId, table.name);
-        await tableManager.deleteTable(appId, table.name);
+        await fieldManager.deleteTableFields(appId, table.name, client);
+        await tableManager.deleteTable(appId, table.name, client);
       }
 
       // Create table record
@@ -367,12 +373,12 @@ export async function updateAppComponents(
         table_name: table.name,
         app: appId,
         description: table.description || "",
-      });
+      }, client);
 
       // Create field records
       if (table.fields && Array.isArray(table.fields)) {
         for (const field of table.fields) {
-          await fieldManager.createField(appId, table.name, field);
+          await fieldManager.createField(appId, table.name, field, client);
         }
       }
 
@@ -381,13 +387,13 @@ export async function updateAppComponents(
 
     // Delete tables that no longer exist
     for (const tableName of existingTableNames) {
-      await tableManager.deleteTable(appId, tableName);
+      await tableManager.deleteTable(appId, tableName, client);
     }
   }
 
   // Update agents
   const agentManager = new AgentManager();
-  const allAgents = await agentManager.readRecords();
+  const allAgents = await agentManager.readRecords({}, client);
   const existingAgents = allAgents.records.filter(
     (agent) => agent.data.app === appId,
   );
@@ -409,7 +415,7 @@ export async function updateAppComponents(
           app: appId,
           cron: agent.cron,
           // Preserve: status, pid, last_run, last_error, was_running
-        });
+        }, { client });
       } else {
         // Create new agent
         await agentManager.createRecord(
@@ -422,7 +428,7 @@ export async function updateAppComponents(
             status: "stopped",
             was_running: false,
           },
-          { id: `${appId}:${agent.name}` },
+          { id: `${appId}:${agent.name}`, client },
         );
       }
 
@@ -433,7 +439,7 @@ export async function updateAppComponents(
   // Delete agents that no longer exist
   for (const agent of existingAgents) {
     if (existingAgentNames.has(agent.data.name)) {
-      await agentManager.deleteRecord(agent.id);
+      await agentManager.deleteRecord(agent.id, { client });
     }
   }
 }
@@ -516,46 +522,49 @@ export async function installApp(
     throw new Error("System storage not configured");
   }
 
-  // Save files
+  // Save files (filesystem, outside transaction)
   await saveAppFiles(appAttributes.id, storagePath, packageData);
 
-  // Create app record
+  // All DB operations in a single transaction
   const appManager = new AppManager();
-  await appManager.createRecord(
-    await appManager.getTable(),
-    {
-      label: appAttributes.name,
-      version: appAttributes.version,
-      author: appAttributes.author,
-      contact_email: appAttributes.contactEmail || "",
-      description: appAttributes.description,
-      dependencies: appAttributes.dependencies || {},
-      required_permissions: appAttributes.requiredPermissions || [],
-    },
-    { id: appAttributes.id },
-  );
-
-  // Install components
-  await installAppComponents(appAttributes.id, appAttributes);
-
-  // Assign approved permissions to the app-specific authority
-  if (approvedPermissions && approvedPermissions.length > 0) {
-    const authorityManager = new AuthorityManager();
-    const appAuthority = await authorityManager.readAppSpecificAuthority(
-      appAttributes.id,
+  await withTransaction(async (client) => {
+    // Create app record
+    await appManager.createRecord(
+      await appManager.getTable(),
+      {
+        label: appAttributes.name,
+        version: appAttributes.version,
+        author: appAttributes.author,
+        contact_email: appAttributes.contactEmail || "",
+        description: appAttributes.description,
+        dependencies: appAttributes.dependencies || {},
+        required_permissions: appAttributes.requiredPermissions || [],
+      },
+      { id: appAttributes.id, client },
     );
-    if (appAuthority) {
-      await authorityManager.updateAppSpecificAuthority(appAttributes.id, {
-        ...appAuthority.data,
-        authorizations: [
-          ...appAuthority.data.authorizations,
-          ...approvedPermissions,
-        ],
-      });
-    }
-  }
 
-  // Execute installation hook
+    // Install components
+    await installAppComponents(appAttributes.id, appAttributes, client);
+
+    // Assign approved permissions to the app-specific authority
+    if (approvedPermissions && approvedPermissions.length > 0) {
+      const authorityManager = new AuthorityManager();
+      const appAuthority = await authorityManager.readAppSpecificAuthority(
+        appAttributes.id,
+      );
+      if (appAuthority) {
+        await authorityManager.updateAppSpecificAuthority(appAttributes.id, {
+          ...appAuthority.data,
+          authorizations: [
+            ...appAuthority.data.authorizations,
+            ...approvedPermissions,
+          ],
+        }, { client });
+      }
+    }
+  });
+
+  // Execute installation hook (outside transaction — needs committed data)
   try {
     await executeInstallHook(appAttributes.id, storagePath, {
       priorVersion: undefined,
@@ -565,7 +574,7 @@ export async function installApp(
   } catch (error: any) {
     // Clean up on hook failure
     const appDir = path.join(storagePath, "apps", appAttributes.id);
-    await appManager.deleteRecord(appAttributes.id);
+    await appManager.deleteRecord(appAttributes.id, { cascade: true });
     await fs.rm(appDir, { recursive: true, force: true });
     throw new Error(`Installation hook failed: ${error.message}`);
   }
@@ -616,197 +625,199 @@ export async function upgradeSystemApp(): Promise<{
     throw new Error("System is already up to date");
   }
 
-  // Update system app record
-  await appManager.updateRecord(await appManager.getTable(), "system", {
-    label: SYSTEM_APP_METADATA.name,
-    version: SYSTEM_APP_METADATA.version,
-    author: SYSTEM_APP_METADATA.author,
-    contact_email: SYSTEM_APP_METADATA.contact_email,
-    description: SYSTEM_APP_METADATA.description,
-    dependencies: SYSTEM_APP_METADATA.dependencies,
-  });
+  await withTransaction(async (client) => {
+    // Update system app record
+    await appManager.updateRecord(await appManager.getTable(), "system", {
+      label: SYSTEM_APP_METADATA.name,
+      version: SYSTEM_APP_METADATA.version,
+      author: SYSTEM_APP_METADATA.author,
+      contact_email: SYSTEM_APP_METADATA.contact_email,
+      description: SYSTEM_APP_METADATA.description,
+      dependencies: SYSTEM_APP_METADATA.dependencies,
+    }, { client });
 
-  // Update API routes
-  const apiRouteManager = new ApiRouteManager();
-  const allApiRoutes = await apiRouteManager.readRecords();
-  const existingSystemApiRoutes = allApiRoutes.records.filter(
-    (route) => route.data.app === "system",
-  );
+    // Update API routes
+    const apiRouteManager = new ApiRouteManager();
+    const allApiRoutes = await apiRouteManager.readRecords({}, client);
+    const existingSystemApiRoutes = allApiRoutes.records.filter(
+      (route) => route.data.app === "system",
+    );
 
-  for (const route of existingSystemApiRoutes) {
-    await apiRouteManager.deleteRecord(route.id);
-  }
-
-  if (
-    SYSTEM_APP_METADATA.apiRoutes &&
-    Array.isArray(SYSTEM_APP_METADATA.apiRoutes)
-  ) {
-    const apiRouteTable = await apiRouteManager.getTable();
-    for (const apiRoute of SYSTEM_APP_METADATA.apiRoutes) {
-      await apiRouteManager.createRecord(
-        apiRouteTable,
-        {
-          app: "system",
-          path: apiRoute.path,
-          method: apiRoute.method,
-          description: apiRoute.description || "",
-        },
-        { id: `system:${apiRoute.path}:${apiRoute.method}` },
-      );
+    for (const route of existingSystemApiRoutes) {
+      await apiRouteManager.deleteRecord(route.id, { client });
     }
-  }
 
-  // Update applets
-  const appletManager = new AppletManager();
-  const allApplets = await appletManager.readRecords();
-  const existingSystemApplets = allApplets.records.filter(
-    (applet) => applet.data.app === "system",
-  );
-
-  for (const applet of existingSystemApplets) {
-    await appletManager.deleteRecord(applet.id);
-  }
-
-  if (
-    SYSTEM_APP_METADATA.applets &&
-    Array.isArray(SYSTEM_APP_METADATA.applets)
-  ) {
-    const appletTable = await appletManager.getTable();
-    for (const applet of SYSTEM_APP_METADATA.applets) {
-      await appletManager.createRecord(
-        appletTable,
-        {
-          label: applet.label,
-          description: applet.description || "",
-          component: applet.component,
-          app: "system",
-          target: applet.target,
-        },
-        { id: `system:${applet.id}` },
-      );
+    if (
+      SYSTEM_APP_METADATA.apiRoutes &&
+      Array.isArray(SYSTEM_APP_METADATA.apiRoutes)
+    ) {
+      const apiRouteTable = await apiRouteManager.getTable();
+      for (const apiRoute of SYSTEM_APP_METADATA.apiRoutes) {
+        await apiRouteManager.createRecord(
+          apiRouteTable,
+          {
+            app: "system",
+            path: apiRoute.path,
+            method: apiRoute.method,
+            description: apiRoute.description || "",
+          },
+          { id: `system:${apiRoute.path}:${apiRoute.method}`, client },
+        );
+      }
     }
-  }
 
-  // Update tables and fields
-  if (SYSTEM_APP_METADATA.tables && Array.isArray(SYSTEM_APP_METADATA.tables)) {
-    const tableManager = new TableManager();
-    const fieldManager = new FieldManager();
+    // Update applets
+    const appletManager = new AppletManager();
+    const allApplets = await appletManager.readRecords({}, client);
+    const existingSystemApplets = allApplets.records.filter(
+      (applet) => applet.data.app === "system",
+    );
 
-    // MIGRATION: Check if fields table exists, if not this is the first upgrade with the new field system
-    const fieldsTableExists = await tableManager.loadTable("system", "fields");
-    if (!fieldsTableExists) {
-      await new LogManager().info(
-        "system",
-        "Migrating table fields to separate field records...",
-      );
+    for (const applet of existingSystemApplets) {
+      await appletManager.deleteRecord(applet.id, { client });
+    }
 
-      // Migrate existing table fields to field records
-      const allTablesResult = await tableManager.readRecords({});
-      for (const tableRecord of allTablesResult.records) {
-        const tableData = tableRecord.data as any;
-        if (tableData.fields && Array.isArray(tableData.fields)) {
-          const [appId, tableName] = tableRecord.id.split(":");
+    if (
+      SYSTEM_APP_METADATA.applets &&
+      Array.isArray(SYSTEM_APP_METADATA.applets)
+    ) {
+      const appletTable = await appletManager.getTable();
+      for (const applet of SYSTEM_APP_METADATA.applets) {
+        await appletManager.createRecord(
+          appletTable,
+          {
+            label: applet.label,
+            description: applet.description || "",
+            component: applet.component,
+            app: "system",
+            target: applet.target,
+          },
+          { id: `system:${applet.id}`, client },
+        );
+      }
+    }
 
-          for (const field of tableData.fields) {
-            await fieldManager.createField(appId, tableName, field);
+    // Update tables and fields
+    if (SYSTEM_APP_METADATA.tables && Array.isArray(SYSTEM_APP_METADATA.tables)) {
+      const tableManager = new TableManager();
+      const fieldManager = new FieldManager();
+
+      // MIGRATION: Check if fields table exists, if not this is the first upgrade with the new field system
+      const fieldsTableExists = await tableManager.loadTable("system", "fields");
+      if (!fieldsTableExists) {
+        await new LogManager().info(
+          "system",
+          "Migrating table fields to separate field records...",
+        );
+
+        // Migrate existing table fields to field records
+        const allTablesResult = await tableManager.readRecords({}, client);
+        for (const tableRecord of allTablesResult.records) {
+          const tableData = tableRecord.data as any;
+          if (tableData.fields && Array.isArray(tableData.fields)) {
+            const [appId, tableName] = tableRecord.id.split(":");
+
+            for (const field of tableData.fields) {
+              await fieldManager.createField(appId, tableName, field, client);
+            }
+
+            await new LogManager().debug(
+              "system",
+              `Migrated ${tableData.fields.length} fields for table ${appId}:${tableName}`,
+            );
           }
-
-          await new LogManager().debug(
-            "system",
-            `Migrated ${tableData.fields.length} fields for table ${appId}:${tableName}`,
-          );
         }
+
+        await new LogManager().info(
+          "system",
+          "Field migration completed successfully",
+        );
       }
 
-      await new LogManager().info(
-        "system",
-        "Field migration completed successfully",
+      const allTables = await tableManager.listRecords(client);
+      const existingTables = allTables.filter((t) => t.startsWith("system:"));
+      const existingTableNames = new Set(
+        existingTables.map((t: any) =>
+          typeof t === "string" ? t.split(":")[1] : t.data.table_name,
+        ),
+      );
+
+      for (const table of SYSTEM_APP_METADATA.tables) {
+        if (existingTableNames.has(table.name)) {
+          await fieldManager.deleteTableFields("system", table.name, client);
+          await tableManager.deleteTable("system", table.name, client);
+        }
+
+        await tableManager.createTable("system", table.name, {
+          table_name: table.name,
+          app: "system",
+          description: table.description || "",
+        }, client);
+
+        if (table.fields && Array.isArray(table.fields)) {
+          for (const field of table.fields) {
+            await fieldManager.createField("system", table.name, field as any, client);
+          }
+        }
+
+        existingTableNames.delete(table.name);
+      }
+
+      for (const tableName of existingTableNames) {
+        await tableManager.deleteTable("system", tableName, client);
+      }
+    }
+
+    // Update authorizations and authorities
+    const authorizationManager = new AuthorizationManager();
+    const authorityManager = new AuthorityManager();
+
+    // Delete existing system authorizations
+    const authorizationsResult = await authorizationManager.readRecords({}, client);
+    for (const auth of authorizationsResult.records) {
+      if (auth.data.app === "system") {
+        await authorizationManager.deleteRecord(auth.id, { client });
+      }
+    }
+
+    // Delete existing system authorities (identified by system: prefix or app === "system")
+    const authoritiesResult = await authorityManager.readRecords({}, client);
+    for (const authority of authoritiesResult.records) {
+      if (authority.id.startsWith("system:") || authority.data.app === "system") {
+        await authorityManager.deleteRecord(authority.id, { client });
+      }
+    }
+
+    // Create system authorizations
+    for (const auth of SYSTEM_APP_METADATA.authorizations) {
+      await authorizationManager.createRecord(
+        await authorizationManager.getTable(),
+        {
+          app: "system",
+          name: auth.name,
+          description: auth.description,
+          contextual: auth.contextual,
+          target: (auth as any).target || "user",
+        },
+        { id: "system:" + auth.id, client },
       );
     }
 
-    const allTables = await tableManager.listRecords();
-    const existingTables = allTables.filter((t) => t.startsWith("system:"));
-    const existingTableNames = new Set(
-      existingTables.map((t: any) =>
-        typeof t === "string" ? t.split(":")[1] : t.data.table_name,
-      ),
-    );
-
-    for (const table of SYSTEM_APP_METADATA.tables) {
-      if (existingTableNames.has(table.name)) {
-        await fieldManager.deleteTableFields("system", table.name);
-        await tableManager.deleteTable("system", table.name);
-      }
-
-      await tableManager.createTable("system", table.name, {
-        table_name: table.name,
-        app: "system",
-        description: table.description || "",
-      });
-
-      if (table.fields && Array.isArray(table.fields)) {
-        for (const field of table.fields) {
-          await fieldManager.createField("system", table.name, field as any);
-        }
-      }
-
-      existingTableNames.delete(table.name);
+    // Create system authorities
+    for (const auth of SYSTEM_APP_METADATA.authorities) {
+      await authorityManager.createRecord(
+        await authorityManager.getTable(),
+        {
+          name: auth.name,
+          authorizations: auth.authorizations,
+          apps: auth.apps,
+          contextual: auth.contextual || false,
+          app: auth.contextual ? "system" : undefined,
+        },
+        { id: "system:" + auth.id, client },
+      );
     }
-
-    for (const tableName of existingTableNames) {
-      await tableManager.deleteTable("system", tableName);
-    }
-  }
-
-  // Update authorizations and authorities
-  const authorizationManager = new AuthorizationManager();
-  const authorityManager = new AuthorityManager();
-
-  // Delete existing system authorizations
-  const authorizationsResult = await authorizationManager.readRecords();
-  for (const auth of authorizationsResult.records) {
-    if (auth.data.app === "system") {
-      await authorizationManager.deleteRecord(auth.id);
-    }
-  }
-
-  // Delete existing system authorities (identified by system: prefix or app === "system")
-  const authoritiesResult = await authorityManager.readRecords();
-  for (const authority of authoritiesResult.records) {
-    if (authority.id.startsWith("system:") || authority.data.app === "system") {
-      await authorityManager.deleteRecord(authority.id);
-    }
-  }
-
-  // Create system authorizations
-  for (const auth of SYSTEM_APP_METADATA.authorizations) {
-    await authorizationManager.createRecord(
-      await authorizationManager.getTable(),
-      {
-        app: "system",
-        name: auth.name,
-        description: auth.description,
-        contextual: auth.contextual,
-        target: (auth as any).target || "user",
-      },
-      { id: "system:" + auth.id },
-    );
-  }
-
-  // Create system authorities
-  for (const auth of SYSTEM_APP_METADATA.authorities) {
-    await authorityManager.createRecord(
-      await authorityManager.getTable(),
-      {
-        name: auth.name,
-        authorizations: auth.authorizations,
-        apps: auth.apps,
-        contextual: auth.contextual || false,
-        app: auth.contextual ? "system" : undefined,
-      },
-      { id: "system:" + auth.id },
-    );
-  }
+  });
 
   await new LogManager().info(
     "system",
@@ -918,22 +929,25 @@ export async function upgradeApp(
   await fs.mkdir(tablesDir, { recursive: true });
 
   try {
-    // Save files
+    // Save files (filesystem, outside transaction)
     await saveAppFiles(appId, storagePath, packageData);
 
-    // Update app record
-    await appManager.updateRecord(await appManager.getTable(), appId, {
-      label: appAttributes.name,
-      version: appAttributes.version,
-      author: appAttributes.author,
-      contact_email: appAttributes.contactEmail || "",
-      description: appAttributes.description,
-      dependencies: appAttributes.dependencies || {},
-      required_permissions: appAttributes.requiredPermissions || [],
-    });
+    // All DB operations in a single transaction
+    await withTransaction(async (client) => {
+      // Update app record
+      await appManager.updateRecord(await appManager.getTable(), appId, {
+        label: appAttributes.name,
+        version: appAttributes.version,
+        author: appAttributes.author,
+        contact_email: appAttributes.contactEmail || "",
+        description: appAttributes.description,
+        dependencies: appAttributes.dependencies || {},
+        required_permissions: appAttributes.requiredPermissions || [],
+      }, { client });
 
-    // Update components
-    await updateAppComponents(appId, appAttributes);
+      // Update components
+      await updateAppComponents(appId, appAttributes, client);
+    });
 
     // Delete backups after successful upgrade
     try {
@@ -1053,136 +1067,140 @@ export async function setupSystem(adminUser: {
     throw new Error("Setup already completed");
   }
 
-  // Create the system app
-  const appManager = new AppManager();
-  await appManager.createRecord(
-    await appManager.getTable(),
-    {
-      label: SYSTEM_APP_METADATA.name,
-      version: SYSTEM_APP_METADATA.version,
-      author: SYSTEM_APP_METADATA.author,
-      contact_email: SYSTEM_APP_METADATA.contact_email,
-      description: SYSTEM_APP_METADATA.description,
-      dependencies: SYSTEM_APP_METADATA.dependencies,
-      required_permissions: [],
-    },
-    { id: "system" },
-  );
+  // Hash password outside transaction (CPU-bound)
+  const passwordHash = await bcrypt.hash(adminUser.password, 10);
 
-  // Create API routes for system app
-  if (
-    SYSTEM_APP_METADATA.apiRoutes &&
-    Array.isArray(SYSTEM_APP_METADATA.apiRoutes)
-  ) {
-    const apiRouteManager = new ApiRouteManager();
-    const apiRouteTable = await apiRouteManager.getTable();
+  await withTransaction(async (client) => {
+    // Create the system app
+    const appManager = new AppManager();
+    await appManager.createRecord(
+      await appManager.getTable(),
+      {
+        label: SYSTEM_APP_METADATA.name,
+        version: SYSTEM_APP_METADATA.version,
+        author: SYSTEM_APP_METADATA.author,
+        contact_email: SYSTEM_APP_METADATA.contact_email,
+        description: SYSTEM_APP_METADATA.description,
+        dependencies: SYSTEM_APP_METADATA.dependencies,
+        required_permissions: [],
+      },
+      { id: "system", client },
+    );
 
-    for (const apiRoute of SYSTEM_APP_METADATA.apiRoutes) {
-      await apiRouteManager.createRecord(
-        apiRouteTable,
-        {
-          app: "system",
-          path: apiRoute.path,
-          method: apiRoute.method,
-          description: apiRoute.description || "",
-        },
-        { id: `system:${apiRoute.path}:${apiRoute.method}` },
-      );
-    }
-  }
+    // Create API routes for system app
+    if (
+      SYSTEM_APP_METADATA.apiRoutes &&
+      Array.isArray(SYSTEM_APP_METADATA.apiRoutes)
+    ) {
+      const apiRouteManager = new ApiRouteManager();
+      const apiRouteTable = await apiRouteManager.getTable();
 
-  // Create applets for system app
-  if (
-    SYSTEM_APP_METADATA.applets &&
-    Array.isArray(SYSTEM_APP_METADATA.applets)
-  ) {
-    const appletManager = new AppletManager();
-    const appletTable = await appletManager.getTable();
-
-    for (const applet of SYSTEM_APP_METADATA.applets) {
-      await appletManager.createRecord(
-        appletTable,
-        {
-          label: applet.label,
-          description: applet.description || "",
-          component: applet.component,
-          app: "system",
-          target: applet.target,
-        },
-        { id: `system:${applet.id}` },
-      );
-    }
-  }
-
-  // Create all table definitions
-  const tableManager = new TableManager();
-  const fieldManager = new FieldManager();
-
-  for (const table of SYSTEM_APP_METADATA.tables) {
-    // Create the table definition (without fields)
-    await tableManager.createTable("system", table.name, {
-      table_name: table.name,
-      app: "system",
-      description: table.description,
-    });
-
-    // Create each field definition separately
-    if (table.fields && Array.isArray(table.fields)) {
-      for (const field of table.fields) {
-        await fieldManager.createField("system", table.name, field as any);
+      for (const apiRoute of SYSTEM_APP_METADATA.apiRoutes) {
+        await apiRouteManager.createRecord(
+          apiRouteTable,
+          {
+            app: "system",
+            path: apiRoute.path,
+            method: apiRoute.method,
+            description: apiRoute.description || "",
+          },
+          { id: `system:${apiRoute.path}:${apiRoute.method}`, client },
+        );
       }
     }
-  }
 
-  // Initialize authorities
-  const authorityManager = new AuthorityManager();
-  const authorizationManager = new AuthorizationManager();
+    // Create applets for system app
+    if (
+      SYSTEM_APP_METADATA.applets &&
+      Array.isArray(SYSTEM_APP_METADATA.applets)
+    ) {
+      const appletManager = new AppletManager();
+      const appletTable = await appletManager.getTable();
 
-  // Create authorizations from system metadata
-  for (const authorization of SYSTEM_APP_METADATA.authorizations) {
-    await authorizationManager.createRecord(
-      await authorizationManager.getTable(),
-      {
-        name: authorization.name,
-        description: authorization.description,
-        app: authorization.app,
-        contextual: authorization.contextual,
-        target: (authorization as any).target || "user",
-      },
-      { id: "system:" + authorization.id },
+      for (const applet of SYSTEM_APP_METADATA.applets) {
+        await appletManager.createRecord(
+          appletTable,
+          {
+            label: applet.label,
+            description: applet.description || "",
+            component: applet.component,
+            app: "system",
+            target: applet.target,
+          },
+          { id: `system:${applet.id}`, client },
+        );
+      }
+    }
+
+    // Create all table definitions
+    const tableManager = new TableManager();
+    const fieldManager = new FieldManager();
+
+    for (const table of SYSTEM_APP_METADATA.tables) {
+      // Create the table definition (without fields)
+      await tableManager.createTable("system", table.name, {
+        table_name: table.name,
+        app: "system",
+        description: table.description,
+      }, client);
+
+      // Create each field definition separately
+      if (table.fields && Array.isArray(table.fields)) {
+        for (const field of table.fields) {
+          await fieldManager.createField("system", table.name, field as any, client);
+        }
+      }
+    }
+
+    // Initialize authorities
+    const authorityManager = new AuthorityManager();
+    const authorizationManager = new AuthorizationManager();
+
+    // Create authorizations from system metadata
+    for (const authorization of SYSTEM_APP_METADATA.authorizations) {
+      await authorizationManager.createRecord(
+        await authorizationManager.getTable(),
+        {
+          name: authorization.name,
+          description: authorization.description,
+          app: authorization.app,
+          contextual: authorization.contextual,
+          target: (authorization as any).target || "user",
+        },
+        { id: "system:" + authorization.id, client },
+      );
+    }
+
+    // Create authorities from system metadata
+    for (const authority of SYSTEM_APP_METADATA.authorities) {
+      await authorityManager.createRecord(
+        await authorityManager.getTable(),
+        {
+          name: authority.name,
+          authorizations: authority.authorizations,
+          apps: authority.apps,
+          contextual: authority.contextual,
+        },
+        { id: "system:" + authority.id, client },
+      );
+    }
+
+    // Create the administrative user with 'system:admin' authority
+    const user = await userManager.createRecord(await userManager.getTable(), {
+      username: adminUser.username,
+      email: adminUser.email,
+      display_name: adminUser.displayName,
+      password_hash: passwordHash,
+      authority_id: "system:admin",
+      is_active: true,
+    }, { client });
+
+    // Mark setup as complete
+    const settingManager = new SettingManager();
+    await settingManager.createRecord(
+      await settingManager.getTable(),
+      { value: user.id },
+      { id: "administratorUserId", client },
     );
-  }
-
-  // Create authorities from system metadata
-  for (const authority of SYSTEM_APP_METADATA.authorities) {
-    await authorityManager.createRecord(
-      await authorityManager.getTable(),
-      {
-        name: authority.name,
-        authorizations: authority.authorizations,
-        apps: authority.apps,
-        contextual: authority.contextual,
-      },
-      { id: "system:" + authority.id },
-    );
-  }
-
-  // Create the administrative user with 'system:admin' authority
-  const passwordHash = await bcrypt.hash(adminUser.password, 10);
-  const user = await userManager.createRecord(await userManager.getTable(), {
-    username: adminUser.username,
-    email: adminUser.email,
-    display_name: adminUser.displayName,
-    password_hash: passwordHash,
-    authority_id: "system:admin",
-    is_active: true,
   });
-
-  // Mark setup as complete
-  const settingManager = new SettingManager();
-  await settingManager.createRecord(
-    await settingManager.getTable(),
-    { value: user.id },
-    { id: "administratorUserId" },
-  );
 }

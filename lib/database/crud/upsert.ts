@@ -29,8 +29,8 @@ export async function upsertRecord<T = any>(
   data: T,
   options: Options = {}
 ): Promise<TableRecord<T>> {
-  // Check if record exists
-  const existing = await readRecord<T>(appId, tableName, id);
+  // Check if record exists (pass client for transactional reads)
+  const existing = await readRecord<T>(appId, tableName, id, options.client);
 
   if (existing) {
     // Update existing record

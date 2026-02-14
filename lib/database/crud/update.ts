@@ -10,6 +10,7 @@ import { quoteIfReserved } from "@/lib/database/schema/reserved";
 export interface Options {
   skipValidation?: boolean;
   replace?: boolean;
+  client?: PoolClient;
 }
 
 function needsJsonStringify(value: any): boolean {
@@ -84,7 +85,7 @@ export async function updateRecord<T = any>(
   data: Partial<T>,
   options: Options = {},
 ): Promise<TableRecord<T> | null> {
-  return withTransaction(async (client) => {
+  const doWork = async (client: PoolClient) => {
     const existing = await readRecord<T>(appId, tableName, recordId, client);
 
     if (!existing) {
@@ -130,7 +131,12 @@ export async function updateRecord<T = any>(
     }
 
     return updatedRecord;
-  });
+  };
+
+  if (options.client) {
+    return doWork(options.client);
+  }
+  return withTransaction(doWork);
 }
 
 export async function bulkUpdateRecords<T = any>(
@@ -140,7 +146,7 @@ export async function bulkUpdateRecords<T = any>(
   updates: Array<{ id: string; data: Partial<T> }>,
   options: Options = {},
 ): Promise<BulkResult<T>> {
-  return withTransaction(async (client) => {
+  const doWork = async (client: PoolClient) => {
     const updatedRecords: TableRecord<T>[] = [];
     const failures: Array<{ id: string; data: any; error: string }> = [];
 
@@ -239,5 +245,10 @@ export async function bulkUpdateRecords<T = any>(
       success: updatedRecords,
       failures: [],
     };
-  });
+  };
+
+  if (options.client) {
+    return doWork(options.client);
+  }
+  return withTransaction(doWork);
 }

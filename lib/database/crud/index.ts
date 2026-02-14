@@ -1,3 +1,4 @@
+import { PoolClient } from "pg";
 import {
   updateRecordWrapper,
   bulkUpdateRecordsWrapper,
@@ -30,13 +31,17 @@ export default abstract class CRUD<T = any> {
   table!: Table | null;
   fields!: Field[] | null;
 
-  async readRecords(filter: RecordFilter<T> = {}): Promise<Result<T>> {
+  async readRecords(
+    filter: RecordFilter<T> = {},
+    client?: PoolClient,
+  ): Promise<Result<T>> {
     const fields = await this.getTableFields();
     return await readRecords<T>(
       this.appId,
       this.tableName,
       fields || [],
       filter,
+      client,
     );
   }
 
@@ -89,12 +94,12 @@ export default abstract class CRUD<T = any> {
     return this.fields;
   }
 
-  async listRecords() {
-    return await listRecords(this.tableName, this.appId);
+  async listRecords(client?: PoolClient) {
+    return await listRecords(this.tableName, this.appId, client);
   }
 
-  async deleteAll() {
-    await deleteAll(this.appId, this.tableName);
+  async deleteAll(client?: PoolClient) {
+    await deleteAll(this.appId, this.tableName, client);
   }
 
   closePool = closePool;

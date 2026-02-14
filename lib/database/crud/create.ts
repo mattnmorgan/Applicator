@@ -10,6 +10,7 @@ import { quoteIfReserved } from "@/lib/database/schema/reserved";
 export type Options = {
   id?: string;
   skipValidation?: boolean;
+  client?: PoolClient;
 };
 
 function needsJsonStringify(value: any): boolean {
@@ -78,7 +79,7 @@ export async function createRecord<T = any>(
   data: T,
   options: Options = {},
 ): Promise<TableRecord<T>> {
-  return withTransaction(async (client) => {
+  const doWork = async (client: PoolClient) => {
     const id = options.id || uuidv4();
     const now = Date.now();
 
@@ -115,7 +116,12 @@ export async function createRecord<T = any>(
       created_at: now,
       updated_at: now,
     };
-  });
+  };
+
+  if (options.client) {
+    return doWork(options.client);
+  }
+  return withTransaction(doWork);
 }
 
 export async function bulkCreateRecords<T = any>(
@@ -125,7 +131,7 @@ export async function bulkCreateRecords<T = any>(
   dataArray: T[],
   options: Options = {},
 ): Promise<BulkResult<T>> {
-  return withTransaction(async (client) => {
+  const doWork = async (client: PoolClient) => {
     const now = Date.now();
     const records: TableRecord<T>[] = [];
     const failures: Array<{ data: any; error: string }> = [];
@@ -200,5 +206,10 @@ export async function bulkCreateRecords<T = any>(
       success: records,
       failures: [],
     };
-  });
+  };
+
+  if (options.client) {
+    return doWork(options.client);
+  }
+  return withTransaction(doWork);
 }
