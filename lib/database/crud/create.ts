@@ -5,19 +5,13 @@ import TableRecord from "@/lib/database/crud/types/record";
 import { validateAndProcessRecord } from "@/lib/database/validation";
 import BulkResult from "@/lib/database/crud/types/bulk-result";
 import { withTransaction } from "@/lib/database/connections/postgresql";
-import { quoteIfReserved } from "@/lib/database/schema/reserved";
+import { quoteIfReserved, getJsonbColumns, serializeValue } from "@/lib/database/utility/postgresql";
 
 export type Options = {
   id?: string;
   skipValidation?: boolean;
   client?: PoolClient;
 };
-
-function needsJsonStringify(value: any): boolean {
-  return (
-    value !== null && typeof value === "object" && !(value instanceof Date)
-  );
-}
 
 /**
  * Low-level SQL insert for both system tables and the records table.
@@ -32,15 +26,14 @@ export async function sqlCreate(
   updatedAt: number,
 ): Promise<void> {
   if (appId === "system") {
+    const jsonbCols = getJsonbColumns(tableName);
     const sqlColumns: string[] = ["id", "created_at", "updated_at"];
     const sqlValues: any[] = [id, createdAt, updatedAt];
 
     for (const [col, value] of Object.entries(data)) {
       if (value !== undefined) {
         sqlColumns.push(col);
-        sqlValues.push(
-          needsJsonStringify(value) ? JSON.stringify(value) : value,
-        );
+        sqlValues.push(serializeValue(value, jsonbCols.has(col)));
       }
     }
 

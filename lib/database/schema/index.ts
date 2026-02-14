@@ -1,4 +1,4 @@
-import { quoteIfReserved } from "@/lib/database/schema/reserved";
+import { quoteIfReserved } from "@/lib/database/utility/postgresql";
 
 export default class Index {
   public createNonexisting: boolean;

@@ -4,7 +4,7 @@ import RecordFilter from "@/lib/database/crud/types/record-filter";
 import TableRecord from "@/lib/database/crud/types/record";
 import Field from "@/lib/database/types/field";
 import { getClient } from "@/lib/database/connections/postgresql";
-import { quoteIfReserved } from "@/lib/database/schema/reserved";
+import { quoteIfReserved } from "@/lib/database/utility/postgresql";
 
 export function readRecordWrapper<T = any>(appId: string, tableName: string) {
   return (id: string) => readRecord<T>(appId, tableName, id);

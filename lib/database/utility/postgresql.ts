@@ -119,3 +119,36 @@ export function isReserved(name: string): boolean {
 export function quoteIfReserved(name: string): string {
   return isReserved(name) ? `"${name}"` : name;
 }
+
+function needsJsonStringify(value: any): boolean {
+  return (
+    value !== null && typeof value === "object" && !(value instanceof Date)
+  );
+}
+
+let _jsonbCache: Map<string, Set<string>> | null = null;
+export function getJsonbColumns(tableName: string): Set<string> {
+  if (!_jsonbCache) {
+    // Lazy require to avoid circular dependency with schema classes
+    // that also import from this module
+    const schema = require("@/lib/database/schema").default;
+    _jsonbCache = new Map();
+    for (const table of schema.tables) {
+      const cols = new Set<string>();
+      for (const field of table.fields) {
+        if (field.type === "jsonb") cols.add(field.name);
+      }
+      _jsonbCache.set(table.name, cols);
+    }
+  }
+  return _jsonbCache.get(tableName) || new Set();
+}
+
+export function serializeValue(
+  value: any,
+  isJsonbColumn: boolean,
+): any {
+  if (value === null) return null;
+  if (isJsonbColumn || needsJsonStringify(value)) return JSON.stringify(value);
+  return value;
+}

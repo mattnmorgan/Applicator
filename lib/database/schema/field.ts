@@ -1,5 +1,5 @@
 import type FieldType from "@/lib/database/schema/types/field-type";
-import { quoteIfReserved } from "@/lib/database/schema/reserved";
+import { quoteIfReserved } from "@/lib/database/utility/postgresql";
 
 export default class Field {
   public name: string;

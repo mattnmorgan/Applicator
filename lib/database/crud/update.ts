@@ -5,18 +5,12 @@ import BulkResult from "@/lib/database/crud/types/bulk-result";
 import { readRecord } from "@/lib/database/crud/read";
 import { validateAndProcessRecord } from "@/lib/database/validation";
 import { withTransaction } from "@/lib/database/connections/postgresql";
-import { quoteIfReserved } from "@/lib/database/schema/reserved";
+import { quoteIfReserved, getJsonbColumns, serializeValue } from "@/lib/database/utility/postgresql";
 
 export interface Options {
   skipValidation?: boolean;
   replace?: boolean;
   client?: PoolClient;
-}
-
-function needsJsonStringify(value: any): boolean {
-  return (
-    value !== null && typeof value === "object" && !(value instanceof Date)
-  );
 }
 
 /**
@@ -31,6 +25,7 @@ export async function sqlUpdate(
   updatedAt: number,
 ): Promise<boolean> {
   if (appId === "system") {
+    const jsonbCols = getJsonbColumns(tableName);
     const setClauses: string[] = [`updated_at = $2`];
     const params: any[] = [id, updatedAt];
     let paramIdx = 3;
@@ -38,7 +33,7 @@ export async function sqlUpdate(
     for (const [col, value] of Object.entries(data)) {
       if (value !== undefined) {
         setClauses.push(`${quoteIfReserved(col)} = $${paramIdx}`);
-        params.push(needsJsonStringify(value) ? JSON.stringify(value) : value);
+        params.push(serializeValue(value, jsonbCols.has(col)));
         paramIdx++;
       }
     }
