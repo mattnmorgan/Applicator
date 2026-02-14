@@ -33,6 +33,6 @@ export default class Index {
     const usingClause = this.using ? ` USING ${this.using}` : "";
     const fieldsClause = `(${this.fields.map(quoteIfReserved).join(", ")})`;
 
-    return `CREATE INDEX ${ifNonexistClause} ${this.name} ON ${tableName}${usingClause}${fieldsClause}`;
+    return `CREATE INDEX ${ifNonexistClause} ${this.name} ON ${tableName}${usingClause}${fieldsClause};`;
   }
 }

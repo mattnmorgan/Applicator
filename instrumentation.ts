@@ -1,9 +1,14 @@
+import { initializeSchema } from "@/lib/database/schema";
+
 /**
  * Called automatically by NextJS on server startup.
  */
 export async function register() {
   // Only run on the server
   if (process.env.NEXT_RUNTIME === "nodejs") {
+    // Initialize database
+    await initializeSchema();
+
     // Dynamically import to avoid client-side issues
     const { default: AgentSystem } =
       await import("@/lib/system/agents/agent-system");
