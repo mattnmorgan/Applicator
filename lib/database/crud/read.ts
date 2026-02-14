@@ -3,7 +3,7 @@ import ReadResult from "@/lib/database/crud/types/read-result";
 import RecordFilter from "@/lib/database/crud/types/record-filter";
 import TableRecord from "@/lib/database/crud/types/record";
 import Field from "@/lib/database/types/field";
-import { getClient } from "@/lib/database/pg/transaction";
+import { getClient } from "@/lib/database/connections/postgresql";
 import { quoteIfReserved } from "@/lib/database/schema/reserved";
 
 export function readRecordWrapper<T = any>(appId: string, tableName: string) {
@@ -29,7 +29,8 @@ export async function sqlRead<T = any>(
     const row = result.rows[0];
     const data: Record<string, any> = {};
     for (const [col, value] of Object.entries(row)) {
-      if (col === "id" || col === "created_at" || col === "updated_at") continue;
+      if (col === "id" || col === "created_at" || col === "updated_at")
+        continue;
       data[col] = value;
     }
 
@@ -76,7 +77,9 @@ export async function sqlReadAll<T = any>(
     let paramIdx = 1;
 
     if (filter?.ids && filter.ids.length > 0) {
-      const placeholders = filter.ids.map((_, i) => `$${paramIdx + i}`).join(", ");
+      const placeholders = filter.ids
+        .map((_, i) => `$${paramIdx + i}`)
+        .join(", ");
       conditions.push(`id IN (${placeholders})`);
       params.push(...filter.ids);
       paramIdx += filter.ids.length;
@@ -90,9 +93,8 @@ export async function sqlReadAll<T = any>(
       }
     }
 
-    const whereClause = conditions.length > 0
-      ? `WHERE ${conditions.join(" AND ")}`
-      : "";
+    const whereClause =
+      conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
 
     const countResult = await client.query(
       `SELECT COUNT(*) as count FROM ${tableName} ${whereClause}`,
@@ -119,7 +121,8 @@ export async function sqlReadAll<T = any>(
     const records = result.rows.map((row) => {
       const data: Record<string, any> = {};
       for (const [col, value] of Object.entries(row)) {
-        if (col === "id" || col === "created_at" || col === "updated_at") continue;
+        if (col === "id" || col === "created_at" || col === "updated_at")
+          continue;
         data[col] = value;
       }
       return {
@@ -137,7 +140,9 @@ export async function sqlReadAll<T = any>(
     let paramIdx = 3;
 
     if (filter?.ids && filter.ids.length > 0) {
-      const placeholders = filter.ids.map((_, i) => `$${paramIdx + i}`).join(", ");
+      const placeholders = filter.ids
+        .map((_, i) => `$${paramIdx + i}`)
+        .join(", ");
       conditions.push(`id IN (${placeholders})`);
       params.push(...filter.ids);
       paramIdx += filter.ids.length;
@@ -278,7 +283,9 @@ export async function readRecords<T = any>(
               [targetAppId, targetTableName] = relatedTo.split(":");
             }
 
-            const relationshipValue = (record.data as any)[relationshipFieldName];
+            const relationshipValue = (record.data as any)[
+              relationshipFieldName
+            ];
 
             if (relationshipValue) {
               const relatedIds = Array.isArray(relationshipValue)

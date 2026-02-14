@@ -1,8 +1,8 @@
 import { PoolClient } from "pg";
 import { readRecord, readRecords } from "@/lib/database/crud/read";
-import { validateAndProcessRecord } from "@/lib/database/crud/validation";
+import { validateAndProcessRecord } from "@/lib/database/validation";
 import Field from "@/lib/database/types/field";
-import DependentRecord from "@/lib/database/crud/validation/types/dependent-record";
+import DependentRecord from "@/lib/database/validation/types/dependent-record";
 import { sqlUpdate } from "@/lib/database/crud/update";
 import { sqlDelete } from "@/lib/database/crud/delete";
 
@@ -35,8 +35,7 @@ export async function cascadeCollect(
 ): Promise<void> {
   if (depth >= MAX_CASCADE_DEPTH) return;
 
-  const { default: FieldManager } =
-    await import("@/lib/database/managers/field");
+  const { default: FieldManager } = await import("@/lib/managers/field");
   const fieldManager = new FieldManager();
   const fields = await fieldManager.loadTableFields(appId, tableName);
 
@@ -91,9 +90,15 @@ export async function cascadeCollect(
         field.app,
         field.table_name,
       );
-      const result = await readRecords(field.app, field.table_name, tableFields, {
-        fields: { [field.name]: recordId },
-      }, client);
+      const result = await readRecords(
+        field.app,
+        field.table_name,
+        tableFields,
+        {
+          fields: { [field.name]: recordId },
+        },
+        client,
+      );
 
       for (const record of result.records) {
         await reprocessRecord(
@@ -133,8 +138,7 @@ async function reprocessRecord(
   );
   if (!targetRecord) return;
 
-  const { default: TableManager } =
-    await import("@/lib/database/managers/table");
+  const { default: TableManager } = await import("@/lib/managers/table");
   const tableManager = new TableManager();
   const targetTable = await tableManager.loadTable(
     targetAppId,
@@ -159,7 +163,14 @@ async function reprocessRecord(
     const now = Date.now();
 
     // Write directly within the transaction — next cascade level sees updated data
-    await sqlUpdate(client, targetAppId, targetTableName, targetRecordId, reprocessedData, now);
+    await sqlUpdate(
+      client,
+      targetAppId,
+      targetTableName,
+      targetRecordId,
+      reprocessedData,
+      now,
+    );
 
     await cascadeCollect(
       targetAppId,
@@ -190,8 +201,7 @@ export async function checkDependents(
   recordId: string,
   client: PoolClient,
 ): Promise<DependentRecord[]> {
-  const { default: FieldManager } =
-    await import("@/lib/database/managers/field");
+  const { default: FieldManager } = await import("@/lib/managers/field");
   const fieldManager = new FieldManager();
 
   // Load all field definitions in the system
@@ -219,9 +229,15 @@ export async function checkDependents(
       field.app,
       field.table_name,
     );
-    const result = await readRecords(field.app, field.table_name, tableFields, {
-      fields: { [field.name]: recordId },
-    }, client);
+    const result = await readRecords(
+      field.app,
+      field.table_name,
+      tableFields,
+      {
+        fields: { [field.name]: recordId },
+      },
+      client,
+    );
 
     for (const record of result.records) {
       dependents.push({

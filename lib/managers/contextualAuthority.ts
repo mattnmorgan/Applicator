@@ -20,7 +20,7 @@ export default class ContextualAuthorityManager extends CRUD<ContextualAuthority
     appId: string,
     recordId: string,
     type: "user" | "password" | "authority",
-    suffix: string
+    suffix: string,
   ) {
     return `${appId}:${recordId}:${type}:${suffix}`;
   }
@@ -46,18 +46,27 @@ export default class ContextualAuthorityManager extends CRUD<ContextualAuthority
     context?: string;
   }): Promise<TableRecord<ContextualAuthority>> {
     const timestamp = Date.now();
-    const key = this.generateKey(params.app, params.recordId, "password", String(timestamp));
+    const key = this.generateKey(
+      params.app,
+      params.recordId,
+      "password",
+      String(timestamp),
+    );
     const hashedPassword = await bcrypt.hash(params.password, 10);
 
     const table = await this.getTable();
-    return this.createRecord(table, {
-      permission: params.permission,
-      app: params.app,
-      password: hashedPassword,
-      created_at: timestamp,
-      created_by: params.createdBy,
-      ...(params.context !== undefined ? { context: params.context } : {}),
-    }, { id: key });
+    return this.createRecord(
+      table,
+      {
+        permission: params.permission,
+        app: params.app,
+        password: hashedPassword,
+        created_at: timestamp,
+        created_by: params.createdBy,
+        ...(params.context !== undefined ? { context: params.context } : {}),
+      },
+      { id: key },
+    );
   }
 
   /**
@@ -79,17 +88,26 @@ export default class ContextualAuthorityManager extends CRUD<ContextualAuthority
     createdBy: string;
     context?: string;
   }): Promise<TableRecord<ContextualAuthority>> {
-    const key = this.generateKey(params.app, params.recordId, "user", params.user);
+    const key = this.generateKey(
+      params.app,
+      params.recordId,
+      "user",
+      params.user,
+    );
 
     const table = await this.getTable();
-    return this.createRecord(table, {
-      permission: params.permission,
-      app: params.app,
-      user: params.user,
-      created_at: Date.now(),
-      created_by: params.createdBy,
-      ...(params.context !== undefined ? { context: params.context } : {}),
-    }, { id: key });
+    return this.createRecord(
+      table,
+      {
+        permission: params.permission,
+        app: params.app,
+        user: params.user,
+        created_at: Date.now(),
+        created_by: params.createdBy,
+        ...(params.context !== undefined ? { context: params.context } : {}),
+      },
+      { id: key },
+    );
   }
 
   /**
@@ -111,17 +129,26 @@ export default class ContextualAuthorityManager extends CRUD<ContextualAuthority
     createdBy: string;
     context?: string;
   }): Promise<TableRecord<ContextualAuthority>> {
-    const key = this.generateKey(params.app, params.recordId, "authority", params.authority);
+    const key = this.generateKey(
+      params.app,
+      params.recordId,
+      "authority",
+      params.authority,
+    );
 
     const table = await this.getTable();
-    return this.createRecord(table, {
-      permission: params.permission,
-      app: params.app,
-      authority: params.authority,
-      created_at: Date.now(),
-      created_by: params.createdBy,
-      ...(params.context !== undefined ? { context: params.context } : {}),
-    }, { id: key });
+    return this.createRecord(
+      table,
+      {
+        permission: params.permission,
+        app: params.app,
+        authority: params.authority,
+        created_at: Date.now(),
+        created_by: params.createdBy,
+        ...(params.context !== undefined ? { context: params.context } : {}),
+      },
+      { id: key },
+    );
   }
 
   /**
@@ -148,7 +175,7 @@ export default class ContextualAuthorityManager extends CRUD<ContextualAuthority
   ): Promise<TableRecord<ContextualAuthority>[]> {
     // Use readRecords with no filter and manually filter by ID prefix,
     // or use the underlying storage directly for efficiency
-    const { getClient } = await import("@/lib/database/pg/transaction");
+    const { getClient } = await import("@/lib/database/connections/postgresql");
 
     const sqlTable = "contextual_authorities";
 

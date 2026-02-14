@@ -1,10 +1,10 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser } from "@/lib/database/managers/user";
-import { getSystemSettings } from "@/lib/database/managers/setting";
-import UserManager from "@/lib/database/managers/user";
-import AuthorityManager from "@/lib/database/managers/authority";
-import AppletManager from "@/lib/database/managers/applet";
-import SettingManager from "@/lib/database/managers/setting";
+import { getCurrentUser } from "@/lib/managers/user";
+import { getSystemSettings } from "@/lib/managers/setting";
+import UserManager from "@/lib/managers/user";
+import AuthorityManager from "@/lib/managers/authority";
+import AppletManager from "@/lib/managers/applet";
+import SettingManager from "@/lib/managers/setting";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/utility/Tabset";
 import HomeApplets from "@/lib/components/HomeApplets";

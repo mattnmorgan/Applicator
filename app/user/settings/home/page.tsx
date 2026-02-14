@@ -7,7 +7,7 @@ import {
   Draggable,
   DropResult,
 } from "@hello-pangea/dnd";
-import SettingManager from "@/lib/database/client/managers/setting";
+import SettingManager from "@/lib/client/managers/setting";
 import styles from "./page.module.css";
 
 interface AppletInfo {
@@ -95,7 +95,7 @@ export default function HomeSettingsPage() {
   const [userId, setUserId] = useState<string>("");
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedApplets, setSelectedApplets] = useState<Set<string>>(
-    new Set()
+    new Set(),
   );
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -122,7 +122,7 @@ export default function HomeSettingsPage() {
 
       // Filter home-target applets
       const homeApplets = (userData.userApplets || []).filter(
-        (a: AppletInfo) => a.target === "home"
+        (a: AppletInfo) => a.target === "home",
       );
       setAvailableApplets(homeApplets);
 
@@ -137,7 +137,9 @@ export default function HomeSettingsPage() {
           const appletIds = JSON.parse(setting.data.value);
           // Map saved IDs to full applet info, filtering out invalid ones
           const pinned = appletIds
-            .map((id: string) => homeApplets.find((a: AppletInfo) => a.id === id))
+            .map((id: string) =>
+              homeApplets.find((a: AppletInfo) => a.id === id),
+            )
             .filter(Boolean);
           setPinnedApplets(pinned);
 
@@ -158,9 +160,7 @@ export default function HomeSettingsPage() {
         setPinnedApplets([]);
       }
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : "Failed to load settings"
-      );
+      setError(err instanceof Error ? err.message : "Failed to load settings");
     } finally {
       setLoading(false);
     }
@@ -183,7 +183,7 @@ export default function HomeSettingsPage() {
   const handleAddSelected = () => {
     const newApplets = availableApplets.filter(
       (a) =>
-        selectedApplets.has(a.id) && !pinnedApplets.find((p) => p.id === a.id)
+        selectedApplets.has(a.id) && !pinnedApplets.find((p) => p.id === a.id),
     );
     setPinnedApplets([...pinnedApplets, ...newApplets]);
     setSelectedApplets(new Set());
@@ -332,7 +332,7 @@ export default function HomeSettingsPage() {
       {isModalOpen && (
         <AddAppletModal
           availableApplets={availableApplets.filter(
-            (a) => !pinnedApplets.find((p) => p.id === a.id)
+            (a) => !pinnedApplets.find((p) => p.id === a.id),
           )}
           selectedApplets={selectedApplets}
           onSelect={(id) => {

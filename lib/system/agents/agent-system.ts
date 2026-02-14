@@ -1,6 +1,6 @@
 import Agent from "@/lib/system/agents/agent";
-import AgentManager from "@/lib/database/managers/agent";
-import LogManager from "@/lib/database/managers/log";
+import AgentManager from "@/lib/managers/agent";
+import LogManager from "@/lib/managers/log";
 
 /**
  * Singleton class to manage the agent system lifecycle.

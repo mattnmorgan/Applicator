@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import SessionManager, { getSession } from "@/lib/database/managers/session";
+import SessionManager, { getSession } from "@/lib/managers/session";
 
 export async function POST() {
   try {

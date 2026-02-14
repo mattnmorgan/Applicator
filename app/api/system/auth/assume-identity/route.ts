@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import UserManager, { getCurrentUser } from "@/lib/database/managers/user";
-import SessionManager from "@/lib/database/managers/session";
+import UserManager, { getCurrentUser } from "@/lib/managers/user";
+import SessionManager from "@/lib/managers/session";
 
 export async function POST(request: NextRequest) {
   try {

@@ -2,9 +2,9 @@ import { PoolClient } from "pg";
 import { v4 as uuidv4 } from "uuid";
 import Table from "@/lib/database/types/table";
 import TableRecord from "@/lib/database/crud/types/record";
-import { validateAndProcessRecord } from "@/lib/database/crud/validation";
+import { validateAndProcessRecord } from "@/lib/database/validation";
 import BulkResult from "@/lib/database/crud/types/bulk-result";
-import { withTransaction } from "@/lib/database/pg/transaction";
+import { withTransaction } from "@/lib/database/connections/postgresql";
 import { quoteIfReserved } from "@/lib/database/schema/reserved";
 
 export type Options = {
@@ -13,7 +13,9 @@ export type Options = {
 };
 
 function needsJsonStringify(value: any): boolean {
-  return value !== null && typeof value === "object" && !(value instanceof Date);
+  return (
+    value !== null && typeof value === "object" && !(value instanceof Date)
+  );
 }
 
 /**
@@ -35,7 +37,9 @@ export async function sqlCreate(
     for (const [col, value] of Object.entries(data)) {
       if (value !== undefined) {
         sqlColumns.push(col);
-        sqlValues.push(needsJsonStringify(value) ? JSON.stringify(value) : value);
+        sqlValues.push(
+          needsJsonStringify(value) ? JSON.stringify(value) : value,
+        );
       }
     }
 
@@ -95,8 +99,14 @@ export async function createRecord<T = any>(
     // Cascade: formulas run within the same transaction and see the new record
     if (table) {
       const { cascadeCollect } =
-        await import("@/lib/database/crud/validation/cascade");
-      await cascadeCollect(appId, tableName, id, processedData as Record<string, any>, client);
+        await import("@/lib/database/validation/cascade");
+      await cascadeCollect(
+        appId,
+        tableName,
+        id,
+        processedData as Record<string, any>,
+        client,
+      );
     }
 
     return {
@@ -160,15 +170,29 @@ export async function bulkCreateRecords<T = any>(
 
     // Save all primary records within the transaction
     for (const record of records) {
-      await sqlCreate(client, appId, tableName, record.id, record.data as Record<string, any>, now, now);
+      await sqlCreate(
+        client,
+        appId,
+        tableName,
+        record.id,
+        record.data as Record<string, any>,
+        now,
+        now,
+      );
     }
 
     // Cascade: formulas run within the same transaction and see all new records
     if (table) {
       const { cascadeCollect } =
-        await import("@/lib/database/crud/validation/cascade");
+        await import("@/lib/database/validation/cascade");
       for (const record of records) {
-        await cascadeCollect(appId, tableName, record.id, record.data as Record<string, any>, client);
+        await cascadeCollect(
+          appId,
+          tableName,
+          record.id,
+          record.data as Record<string, any>,
+          client,
+        );
       }
     }
 

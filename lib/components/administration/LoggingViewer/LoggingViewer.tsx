@@ -4,8 +4,8 @@ import TableRecord from "@/lib/database/crud/types/record";
 import React, { useState, useEffect } from "react";
 import styles from "./LoggingViewer.module.css";
 import Log from "@/lib/database/types/log";
-import LogManager from "@/lib/database/client/managers/log";
-import { getSystemSettings } from "@/lib/database/client/crud";
+import LogManager from "@/lib/client/managers/log";
+import { getSystemSettings } from "@/lib/client/database/crud/";
 
 export default function LoggingViewer() {
   const [logs, setLogs] = useState<TableRecord<Log>[]>([]);

@@ -1,8 +1,8 @@
 import { cookies } from "next/headers";
 import CRUD from "@/lib/database/crud";
 import User from "@/lib/database/types/user";
-import { getSession } from "@/lib/database/managers/session";
-import AuthorityManager from "@/lib/database/managers/authority";
+import { getSession } from "@/lib/managers/session";
+import AuthorityManager from "@/lib/managers/authority";
 import bcrypt from "bcryptjs";
 import TableRecord from "@/lib/database/crud/types/record";
 
@@ -69,7 +69,7 @@ export async function getCurrentUser(): Promise<{
 
 export async function verifyPassword(
   password: string,
-  passwordHash: string
+  passwordHash: string,
 ): Promise<boolean> {
   return bcrypt.compare(password, passwordHash);
 }
@@ -84,15 +84,21 @@ export async function getUserAuthorizations(userId: string): Promise<string[]> {
   const userRecord = await userManager.readRecord(userId);
   if (!userRecord) return [];
 
-  const mainAuthority = await authorityManager.readRecord(userRecord.data.authority_id);
+  const mainAuthority = await authorityManager.readRecord(
+    userRecord.data.authority_id,
+  );
   const userAuthority = await authorityManager.readUserAuthority(userId);
 
   const authorizations = new Set<string>();
   if (mainAuthority) {
-    mainAuthority.data.authorizations.forEach(auth => authorizations.add(auth));
+    mainAuthority.data.authorizations.forEach((auth) =>
+      authorizations.add(auth),
+    );
   }
   if (userAuthority) {
-    userAuthority.data.authorizations.forEach(auth => authorizations.add(auth));
+    userAuthority.data.authorizations.forEach((auth) =>
+      authorizations.add(auth),
+    );
   }
 
   return Array.from(authorizations);
@@ -107,14 +113,16 @@ export async function getUserAuthorizations(userId: string): Promise<string[]> {
 export async function userHasAuthorization(
   userId: string,
   authorizations: string | string[],
-  requireAll: boolean = false
+  requireAll: boolean = false,
 ): Promise<boolean> {
   const userAuths = await getUserAuthorizations(userId);
-  const requiredAuths = Array.isArray(authorizations) ? authorizations : [authorizations];
+  const requiredAuths = Array.isArray(authorizations)
+    ? authorizations
+    : [authorizations];
 
   if (requireAll) {
-    return requiredAuths.every(auth => userAuths.includes(auth));
+    return requiredAuths.every((auth) => userAuths.includes(auth));
   } else {
-    return requiredAuths.some(auth => userAuths.includes(auth));
+    return requiredAuths.some((auth) => userAuths.includes(auth));
   }
 }

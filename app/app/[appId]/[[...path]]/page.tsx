@@ -5,8 +5,8 @@ import { useEffect, useState } from "react";
 import Navigation from "@/lib/components/Navigation/Navigation";
 import Tabset from "@/lib/components/utility/Tabset/Tabset";
 import DynamicAppLoader from "@/lib/components/utility/DynamicAppLoader";
-import AppletManager from "@/lib/database/client/managers/applet";
-import AppManager from "@/lib/database/client/managers/app";
+import AppletManager from "@/lib/client/managers/applet";
+import AppManager from "@/lib/client/managers/app";
 
 interface TabsetItem {
   label: string;

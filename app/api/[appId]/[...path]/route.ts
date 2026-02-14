@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
-import ApiRouteManager from "@/lib/database/managers/apiRoute";
-import SettingManager from "@/lib/database/managers/setting";
-import AuthorityManager from "@/lib/database/managers/authority";
-import ContextualAuthorityManager from "@/lib/database/managers/contextualAuthority";
+import ApiRouteManager from "@/lib/managers/apiRoute";
+import SettingManager from "@/lib/managers/setting";
+import AuthorityManager from "@/lib/managers/authority";
+import ContextualAuthorityManager from "@/lib/managers/contextualAuthority";
 import Context from "@/lib/sdk/plugin-context";
-import { getSession } from "@/lib/database/managers/session";
+import { getSession } from "@/lib/managers/session";
 import * as path from "path";
 import * as fs from "fs";
 import { loadModule } from "@/lib/system/source";
@@ -171,7 +171,10 @@ async function handleRequest(
         }
       }
 
-      plugin = await Context.create(appId, null, { id: guestContextId, data: contextData });
+      plugin = await Context.create(appId, null, {
+        id: guestContextId,
+        data: contextData,
+      });
     } else {
       // Authenticated access path
       const sessionId = request.cookies.get("session")?.value;

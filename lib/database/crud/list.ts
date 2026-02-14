@@ -1,5 +1,5 @@
 import { PoolClient } from "pg";
-import { getClient } from "@/lib/database/pg/transaction";
+import { getClient } from "@/lib/database/connections/postgresql";
 
 async function sqlListIds(
   client: PoolClient,

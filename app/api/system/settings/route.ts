@@ -1,10 +1,10 @@
 import { NextResponse, NextRequest } from "next/server";
-import { getSystemSettings } from "@/lib/database/managers/setting";
-import { getSession } from "@/lib/database/managers/session";
+import { getSystemSettings } from "@/lib/managers/setting";
+import { getSession } from "@/lib/managers/session";
 import { SYSTEM_APP_METADATA } from "@/lib/database/systemMetadata";
-import SettingManager from "@/lib/database/managers/setting";
-import AppManager from "@/lib/database/managers/app";
-import { userHasAuthorization } from "@/lib/database/managers/user";
+import SettingManager from "@/lib/managers/setting";
+import AppManager from "@/lib/managers/app";
+import { userHasAuthorization } from "@/lib/managers/user";
 import path from "path";
 import fs from "fs/promises";
 
@@ -76,7 +76,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has admin authorization
-    const hasAdmin = await userHasAuthorization(session.user_id, "system:admin");
+    const hasAdmin = await userHasAuthorization(
+      session.user_id,
+      "system:admin",
+    );
     if (!hasAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -159,7 +162,10 @@ export async function POST(request: NextRequest) {
           await setSetting("storage", value);
         } else if (key === "loggingEnabled" && typeof value === "boolean") {
           await setSetting("loggingEnabled", String(value));
-        } else if (key === "selfregistrationEnabled" && typeof value === "boolean") {
+        } else if (
+          key === "selfregistrationEnabled" &&
+          typeof value === "boolean"
+        ) {
           await setSetting("selfregistrationEnabled", String(value));
         } else if (key === "appInplaceEnabled" && typeof value === "boolean") {
           await setSetting("appInplaceEnabled", String(value));

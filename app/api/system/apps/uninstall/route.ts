@@ -1,17 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/database/managers/session";
-import { userHasAuthorization } from "@/lib/database/managers/user";
-import AppManager from "@/lib/database/managers/app";
+import { getSession } from "@/lib/managers/session";
+import { userHasAuthorization } from "@/lib/managers/user";
+import AppManager from "@/lib/managers/app";
 import { formatVersion } from "@/lib/system/version";
-import AuthorizationManager from "@/lib/database/managers/authorization";
-import AuthorityManager from "@/lib/database/managers/authority";
-import SettingManager from "@/lib/database/managers/setting";
-import LogManager from "@/lib/database/managers/log";
-import TableManager from "@/lib/database/managers/table";
-import FieldManager from "@/lib/database/managers/field";
-import ApiRouteManager from "@/lib/database/managers/apiRoute";
-import AppletManager from "@/lib/database/managers/applet";
-import AgentManager from "@/lib/database/managers/agent";
+import AuthorizationManager from "@/lib/managers/authorization";
+import AuthorityManager from "@/lib/managers/authority";
+import SettingManager from "@/lib/managers/setting";
+import LogManager from "@/lib/managers/log";
+import TableManager from "@/lib/managers/table";
+import FieldManager from "@/lib/managers/field";
+import ApiRouteManager from "@/lib/managers/apiRoute";
+import AppletManager from "@/lib/managers/applet";
+import AgentManager from "@/lib/managers/agent";
 import Agent from "@/lib/system/agents/agent";
 import { deleteAll } from "@/lib/database/crud/delete";
 import path from "path";
@@ -32,7 +32,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has admin authorization
-    const hasAdmin = await userHasAuthorization(session.user_id, "system:admin");
+    const hasAdmin = await userHasAuthorization(
+      session.user_id,
+      "system:admin",
+    );
     if (!hasAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -44,7 +47,7 @@ export async function POST(request: NextRequest) {
     if (!appId) {
       return NextResponse.json(
         { error: "App ID is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -61,7 +64,7 @@ export async function POST(request: NextRequest) {
       await new LogManager().error("system", errorMsg);
       return NextResponse.json(
         { error: "Cannot uninstall system app" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -71,7 +74,7 @@ export async function POST(request: NextRequest) {
       (otherApp) =>
         otherApp.id !== appId &&
         otherApp.data.dependencies &&
-        Object.keys(otherApp.data.dependencies).includes(appId)
+        Object.keys(otherApp.data.dependencies).includes(appId),
     );
 
     if (dependentApps.length > 0) {
@@ -84,7 +87,7 @@ export async function POST(request: NextRequest) {
         {
           error: `Cannot uninstall this app because it is required by: ${dependentAppNames}`,
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -98,7 +101,7 @@ export async function POST(request: NextRequest) {
         const uninstallationHookPath = path.join(
           appDir,
           "system",
-          "uninstall.js"
+          "uninstall.js",
         );
         const uninstallationHookExists = await fs
           .access(uninstallationHookPath)
@@ -110,7 +113,7 @@ export async function POST(request: NextRequest) {
             "system",
             `Running OnUninstallation hook for ${
               app.data.label
-            } v${formatVersion(app.data.version)}`
+            } v${formatVersion(app.data.version)}`,
           );
 
           const uninstallationHook = loadModule(uninstallationHookPath);
@@ -133,7 +136,7 @@ export async function POST(request: NextRequest) {
       await new LogManager().error("system", errorMsg);
       return NextResponse.json(
         { error: `Uninstallation hook failed: ${error.message}` },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -141,7 +144,7 @@ export async function POST(request: NextRequest) {
     const agentManager = new AgentManager();
     const allAgentsResult = await agentManager.readRecords();
     const appAgents = allAgentsResult.records.filter(
-      (agent) => agent.data.app === appId
+      (agent) => agent.data.app === appId,
     );
 
     for (const agentRecord of appAgents) {
@@ -172,7 +175,7 @@ export async function POST(request: NextRequest) {
     const fieldManager = new FieldManager();
     const allTablesResult = await tableManager.readRecords();
     const appTables = allTablesResult.records.filter(
-      (table) => table.data.app === appId
+      (table) => table.data.app === appId,
     );
 
     for (const table of appTables) {
@@ -190,7 +193,7 @@ export async function POST(request: NextRequest) {
     const apiRouteManager = new ApiRouteManager();
     const allApiRoutesResult = await apiRouteManager.readRecords();
     const appApiRoutes = allApiRoutesResult.records.filter(
-      (route) => route.data.app === appId
+      (route) => route.data.app === appId,
     );
 
     for (const route of appApiRoutes) {
@@ -201,7 +204,7 @@ export async function POST(request: NextRequest) {
     const appletManager = new AppletManager();
     const allAppletsResult = await appletManager.readRecords();
     const appApplets = allAppletsResult.records.filter(
-      (applet) => applet.data.app === appId
+      (applet) => applet.data.app === appId,
     );
 
     for (const applet of appApplets) {
@@ -212,7 +215,7 @@ export async function POST(request: NextRequest) {
     const authorizationManager = new AuthorizationManager();
     const allAuthorizationsResult = await authorizationManager.readRecords();
     const appAuthorizations = allAuthorizationsResult.records.filter(
-      (auth) => auth.data.app === appId
+      (auth) => auth.data.app === appId,
     );
 
     for (const auth of appAuthorizations) {
@@ -221,7 +224,7 @@ export async function POST(request: NextRequest) {
 
     // Delete all contextual authorities for this app
     const ContextualAuthorityManager = (
-      await import("@/lib/database/managers/contextualAuthority")
+      await import("@/lib/managers/contextualAuthority")
     ).default;
     const contextualAuthorityManager = new ContextualAuthorityManager();
     const contextualAuthoritiesResult =
@@ -250,13 +253,13 @@ export async function POST(request: NextRequest) {
       // Also remove app's authorizations
       const updatedApps = authority.data.apps
         ? authority.data.apps.filter(
-            (id) => id !== appId && !id.startsWith(`${appId}:`)
+            (id) => id !== appId && !id.startsWith(`${appId}:`),
           )
         : [];
 
       const updatedAuthorizations = authority.data.authorizations
         ? authority.data.authorizations.filter(
-            (authId) => !authId.startsWith(`${appId}:`)
+            (authId) => !authId.startsWith(`${appId}:`),
           )
         : [];
 
@@ -278,7 +281,7 @@ export async function POST(request: NextRequest) {
             ...authority.data,
             apps: updatedApps,
             authorizations: updatedAuthorizations,
-          }
+          },
         );
       }
     }
@@ -302,7 +305,7 @@ export async function POST(request: NextRequest) {
     // Log app uninstallation
     await new LogManager().info(
       "system",
-      `Application uninstalled: ${app.data.label} (${appId})`
+      `Application uninstalled: ${app.data.label} (${appId})`,
     );
 
     return NextResponse.json({
@@ -320,7 +323,7 @@ export async function POST(request: NextRequest) {
         "system",
         `App uninstallation failed for '${appId}': ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       );
       await new LogManager().debug("system", error.stack || "");
     } catch (logError) {
@@ -329,7 +332,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

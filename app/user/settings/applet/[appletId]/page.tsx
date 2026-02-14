@@ -3,8 +3,8 @@
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import DynamicAppLoader from "@/lib/components/utility/DynamicAppLoader";
-import AppletManager from "@/lib/database/client/managers/applet";
-import AppManager from "@/lib/database/client/managers/app";
+import AppletManager from "@/lib/client/managers/applet";
+import AppManager from "@/lib/client/managers/app";
 export default function UserSettingsAppletPage() {
   const params = useParams();
   const fullAppletId = decodeURIComponent(params.appletId as string);

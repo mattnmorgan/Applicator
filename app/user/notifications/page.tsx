@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Notification from "@/lib/database/types/notification";
 import TableRecord from "@/lib/database/crud/types/record";
-import NotificationManager from "@/lib/database/client/managers/notification";
+import NotificationManager from "@/lib/client/managers/notification";
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<

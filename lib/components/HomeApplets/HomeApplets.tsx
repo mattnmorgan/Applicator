@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import DynamicAppLoader from "@/lib/components/utility/DynamicAppLoader";
-import AppManager from "@/lib/database/client/managers/app";
+import AppManager from "@/lib/client/managers/app";
 
 interface AppletInfo {
   id: string;

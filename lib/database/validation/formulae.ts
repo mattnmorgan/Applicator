@@ -1,6 +1,6 @@
 import { PoolClient } from "pg";
 import Field from "@/lib/database/types/field";
-import Context from "@/lib/database/crud/validation/types/formula-context";
+import Context from "@/lib/database/validation/types/formula-context";
 import path from "path";
 import fs from "fs";
 import vm from "vm";
@@ -25,7 +25,7 @@ export async function executeFormula(
 ): Promise<any> {
   try {
     // Get system storage path (lazy import to avoid circular dependency)
-    const { default: SettingManager } = await import("@/lib/database/managers/setting");
+    const { default: SettingManager } = await import("@/lib/managers/setting");
     const storagePath = (await new SettingManager().readRecord("storage"))?.data
       .value;
 
@@ -55,16 +55,29 @@ export async function executeFormula(
     // Build the query function for cross-table lookups
     // Pass the PoolClient so queries within formulas see uncommitted writes
     const { readRecords } = await import("@/lib/database/crud/read");
-    const { default: FieldManager } = await import("@/lib/database/managers/field");
+    const { default: FieldManager } = await import("@/lib/managers/field");
     const fieldManager = new FieldManager();
 
     const queryFn = async (
       queryAppId: string,
       queryTableName: string,
-      filter: { fields?: Record<string, any>; limit?: number; offset?: number } = {},
+      filter: {
+        fields?: Record<string, any>;
+        limit?: number;
+        offset?: number;
+      } = {},
     ) => {
-      const tableFields = await fieldManager.loadTableFields(queryAppId, queryTableName);
-      return readRecords(queryAppId, queryTableName, tableFields, filter, client);
+      const tableFields = await fieldManager.loadTableFields(
+        queryAppId,
+        queryTableName,
+      );
+      return readRecords(
+        queryAppId,
+        queryTableName,
+        tableFields,
+        filter,
+        client,
+      );
     };
 
     // Create a sandbox context with the formula context
@@ -130,7 +143,14 @@ export async function calculateFormulas(
 
   for (const field of fields) {
     if (field.type === "formula") {
-      const value = await executeFormula(appId, tableName, field, updatedData, recordId, client);
+      const value = await executeFormula(
+        appId,
+        tableName,
+        field,
+        updatedData,
+        recordId,
+        client,
+      );
       updatedData[field.name] = value;
     }
   }

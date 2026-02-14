@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import Row from "../../utility/Row";
 import Badge from "../../utility/Badge/Badge";
 import styles from "./AuthorizationList.module.css";
-import AuthorizationManager from "@/lib/database/client/managers/authorization";
-import AppManager from "@/lib/database/client/managers/app";
+import AuthorizationManager from "@/lib/client/managers/authorization";
+import AppManager from "@/lib/client/managers/app";
 
 interface Authorization {
   id: string;

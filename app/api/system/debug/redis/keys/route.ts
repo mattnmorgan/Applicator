@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
-import { getCurrentUser } from "@/lib/database/managers/user";
-import { getClient } from "@/lib/database/pg/transaction";
+import { getCurrentUser } from "@/lib/managers/user";
+import { getClient } from "@/lib/database/connections/postgresql";
 import schema from "@/lib/database/schema";
 
 export async function GET() {
@@ -14,7 +14,7 @@ export async function GET() {
     if (!user.authorizations.some((a) => a === "system:admin")) {
       return NextResponse.json(
         { error: "Forbidden - Admin access required" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -23,9 +23,11 @@ export async function GET() {
       const keys: string[] = [];
 
       // System tables
-      for (const tableName of schema.tables.map((t) => t.name).filter((n) => n !== "records")) {
+      for (const tableName of schema.tables
+        .map((t) => t.name)
+        .filter((n) => n !== "records")) {
         const result = await client.query(
-          `SELECT id FROM ${tableName} ORDER BY id`
+          `SELECT id FROM ${tableName} ORDER BY id`,
         );
         for (const row of result.rows) {
           keys.push(`${tableName}:${row.id}`);
@@ -34,7 +36,7 @@ export async function GET() {
 
       // App records
       const result = await client.query(
-        `SELECT app_id, table_name, id FROM records ORDER BY app_id, table_name, id`
+        `SELECT app_id, table_name, id FROM records ORDER BY app_id, table_name, id`,
       );
       for (const row of result.rows) {
         keys.push(`sandbox:${row.app_id}:${row.table_name}:${row.id}`);
@@ -48,7 +50,7 @@ export async function GET() {
     console.error("Failed to fetch database keys:", error);
     return NextResponse.json(
       { error: "Failed to fetch database keys" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import LogManager from "@/lib/database/managers/log";
-import { getCurrentUser } from "@/lib/database/managers/user";
-import { getClient } from "@/lib/database/pg/transaction";
+import LogManager from "@/lib/managers/log";
+import { getCurrentUser } from "@/lib/managers/user";
+import { getClient } from "@/lib/database/connections/postgresql";
 import schema from "@/lib/database/schema";
 
 export async function POST() {
@@ -15,7 +15,7 @@ export async function POST() {
     if (!user.authorizations.some((a) => a === "system:admin")) {
       return NextResponse.json(
         { error: "Forbidden - Admin access required" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -27,7 +27,9 @@ export async function POST() {
       await client.query(`TRUNCATE records`);
 
       // Truncate system tables (junction tables are handled by CASCADE)
-      for (const tableName of schema.tables.map((t) => t.name).filter((n) => n !== "records")) {
+      for (const tableName of schema.tables
+        .map((t) => t.name)
+        .filter((n) => n !== "records")) {
         await client.query(`TRUNCATE ${tableName} CASCADE`);
       }
     } finally {
@@ -42,7 +44,7 @@ export async function POST() {
     console.error("Failed to flush database:", error);
     return NextResponse.json(
       { error: "Failed to flush database" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/database/managers/session";
-import { userHasAuthorization } from "@/lib/database/managers/user";
-import AuthorizationManager from "@/lib/database/managers/authorization";
+import { getSession } from "@/lib/managers/session";
+import { userHasAuthorization } from "@/lib/managers/user";
+import AuthorizationManager from "@/lib/managers/authorization";
 import { extractAppPackage } from "@/lib/system/installation/package-extractor";
 import { validateAppPackage } from "@/lib/system/installation/package-validator";
 
@@ -19,7 +19,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has admin authorization
-    const hasAdmin = await userHasAuthorization(session.user_id, "system:admin");
+    const hasAdmin = await userHasAuthorization(
+      session.user_id,
+      "system:admin",
+    );
     if (!hasAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -90,8 +93,7 @@ export async function POST(request: NextRequest) {
     console.error("Error previewing app:", error);
     return NextResponse.json(
       {
-        error:
-          error instanceof Error ? error.message : "Failed to preview app",
+        error: error instanceof Error ? error.message : "Failed to preview app",
       },
       {
         status:

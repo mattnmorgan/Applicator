@@ -5,9 +5,9 @@ import {
   validateFields,
   validatePicklistFields,
   validateMultipicklistFields,
-} from "@/lib/database/crud/validation/validator";
-import { calculateFormulas } from "@/lib/database/crud/validation/formulae";
-import { hashPasswordFields } from "@/lib/database/crud/validation/password";
+} from "@/lib/database/validation/validator";
+import { calculateFormulas } from "@/lib/database/validation/formulae";
+import { hashPasswordFields } from "@/lib/database/validation/password";
 
 /**
  * Validate and process a record according to the execution order
@@ -39,7 +39,7 @@ export async function validateAndProcessRecord(
   }
 
   // Fetch fields once for all validation functions
-  const FieldManager = (await import("@/lib/database/managers/field")).default;
+  const FieldManager = (await import("@/lib/managers/field")).default;
   const fieldManager = new FieldManager();
   const fields = await fieldManager.loadTableFields(appId, tableName);
 

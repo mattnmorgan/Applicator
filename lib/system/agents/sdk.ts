@@ -1,16 +1,16 @@
 import path from "path";
 import fs from "fs/promises";
-import LogManager from "@/lib/database/managers/log";
-import TableManager from "@/lib/database/managers/table";
-import FieldManager from "@/lib/database/managers/field";
-import UserManager from "@/lib/database/managers/user";
+import LogManager from "@/lib/managers/log";
+import TableManager from "@/lib/managers/table";
+import FieldManager from "@/lib/managers/field";
+import UserManager from "@/lib/managers/user";
 import Logger from "@/lib/system/logger";
-import AuthorityManager from "@/lib/database/managers/authority";
+import AuthorityManager from "@/lib/managers/authority";
 import { createRecord } from "@/lib/database/crud/create";
 import { readRecord, readRecords } from "@/lib/database/crud/read";
 import { updateRecord } from "@/lib/database/crud/update";
 import { deleteRecord } from "@/lib/database/crud/delete";
-import { getSystemSettings } from "@/lib/database/managers/setting";
+import { getSystemSettings } from "@/lib/managers/setting";
 
 interface SdkParams {
   appId: string;

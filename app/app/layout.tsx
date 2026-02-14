@@ -1,7 +1,7 @@
 import { redirect } from "next/navigation";
 import { headers } from "next/headers";
-import { getCurrentUser } from "@/lib/database/managers/user";
-import UserManager from "@/lib/database/managers/user";
+import { getCurrentUser } from "@/lib/managers/user";
+import UserManager from "@/lib/managers/user";
 
 export default async function AppLayout({
   children,

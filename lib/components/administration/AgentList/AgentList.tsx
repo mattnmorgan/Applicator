@@ -4,7 +4,7 @@ import { useState, useEffect, useCallback } from "react";
 import Row from "../../utility/Row";
 import Badge from "../../utility/Badge/Badge";
 import styles from "./AgentList.module.css";
-import AgentManager from "@/lib/database/client/managers/agent";
+import AgentManager from "@/lib/client/managers/agent";
 
 interface Agent {
   id: string;
@@ -79,7 +79,7 @@ export default function AgentList() {
       agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
       agent.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       agent.app.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      agent.appLabel.toLowerCase().includes(searchQuery.toLowerCase())
+      agent.appLabel.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   const getStatusBadge = (status: string) => {
@@ -162,9 +162,7 @@ export default function AgentList() {
               </div>
             </div>
             <div className={styles.actionsColumn}>
-              <Badge
-                variant={agent.app === "system" ? "purple" : "blue"}
-              >
+              <Badge variant={agent.app === "system" ? "purple" : "blue"}>
                 {agent.appLabel}
               </Badge>
               {agent.status === "running" ? (

@@ -1,7 +1,7 @@
 import CRUD from "@/lib/database/crud";
 import App from "@/lib/database/types/app";
-import AuthorityManager from "@/lib/database/managers/authority";
-import AuthorizationManager from "@/lib/database/managers/authorization";
+import AuthorityManager from "@/lib/managers/authority";
+import AuthorizationManager from "@/lib/managers/authorization";
 import type Authority from "@/lib/database/types/authority";
 import type Authorization from "@/lib/database/types/authorization";
 import type TableRecord from "@/lib/database/crud/types/record";

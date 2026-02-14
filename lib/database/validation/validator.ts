@@ -1,6 +1,6 @@
 import Field from "@/lib/database/types/field";
-import Result from "@/lib/database/crud/validation/types/validator-result";
-import Context from "@/lib/database/crud/validation/types/validator-context";
+import Result from "@/lib/database/validation/types/validator-result";
+import Context from "@/lib/database/validation/types/validator-context";
 import path from "path";
 import fs from "fs";
 import vm from "vm";
@@ -23,8 +23,7 @@ export async function executeValidator(
 ): Promise<Result> {
   try {
     // Get system storage path (lazy import to avoid circular dependency)
-    const { default: SettingManager } =
-      await import("@/lib/database/managers/setting");
+    const { default: SettingManager } = await import("@/lib/managers/setting");
     const storagePath = (await new SettingManager().readRecord("storage"))?.data
       .value;
     if (!storagePath) {
@@ -240,7 +239,9 @@ export async function validateMultipicklistFields(
             error: `Field ${field.name} value must be an array`,
           });
           continue;
-        } else if ((value as string[]).some((v) => !isValidOption(field.options!, v))) {
+        } else if (
+          (value as string[]).some((v) => !isValidOption(field.options!, v))
+        ) {
           results.push({
             field: field.name,
             valid: false,

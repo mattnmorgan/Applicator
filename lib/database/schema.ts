@@ -2,7 +2,7 @@ import Schema from "@/lib/database/schema/schema";
 import Table from "@/lib/database/schema/table";
 import Field from "@/lib/database/schema/field";
 import Index from "@/lib/database/schema/index";
-import { getPool } from "@/lib/database/pg/pool";
+import { getPool } from "@/lib/database/connections/postgresql";
 
 const schema = new Schema({
   tables: [

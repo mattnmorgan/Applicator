@@ -7,8 +7,8 @@ import Toast from "@/lib/components/utility/Toast";
 import ConfirmModal from "@/lib/components/utility/ConfirmModal";
 import Badge from "@/lib/components/utility/Badge/Badge";
 import styles from "./AppList.module.css";
-import AppManager from "@/lib/database/client/managers/app";
-import ApiRouteManager from "@/lib/database/client/managers/apiRoute";
+import AppManager from "@/lib/client/managers/app";
+import ApiRouteManager from "@/lib/client/managers/apiRoute";
 
 interface Widget {
   id: string;
@@ -205,10 +205,7 @@ export default function AppList() {
     }
   };
 
-  const performInstall = async (
-    file: File,
-    approvedPermissions?: string[],
-  ) => {
+  const performInstall = async (file: File, approvedPermissions?: string[]) => {
     setInstalling(true);
     try {
       const formData = new FormData();

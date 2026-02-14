@@ -17,7 +17,7 @@ import {
   bulkCreateRecordsWrapper,
 } from "@/lib/database/crud/create";
 import { upsertRecordWrapper } from "@/lib/database/crud/upsert";
-import { closePool } from "@/lib/database/pg/pool";
+import { closePool } from "@/lib/database/connections/postgresql";
 import { listRecords } from "@/lib/database/crud/list";
 import Table from "@/lib/database/types/table";
 import Field from "@/lib/database/types/field";

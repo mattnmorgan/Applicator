@@ -1,9 +1,9 @@
 import fsPromises from "fs/promises";
 import nodePath from "path";
-import { getSession } from "@/lib/database/managers/session";
-import { userHasAuthorization } from "@/lib/database/managers/user";
-import AuthorityManager from "@/lib/database/managers/authority";
-import SettingManager from "@/lib/database/managers/setting";
+import { getSession } from "@/lib/managers/session";
+import { userHasAuthorization } from "@/lib/managers/user";
+import AuthorityManager from "@/lib/managers/authority";
+import SettingManager from "@/lib/managers/setting";
 
 export class FilesystemError extends Error {
   constructor(

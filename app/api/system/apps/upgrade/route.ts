@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/database/managers/session";
-import { userHasAuthorization } from "@/lib/database/managers/user";
-import LogManager from "@/lib/database/managers/log";
+import { getSession } from "@/lib/managers/session";
+import { userHasAuthorization } from "@/lib/managers/user";
+import LogManager from "@/lib/managers/log";
 import {
   upgradeApp,
   upgradeSystemApp,
@@ -21,7 +21,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has admin authorization
-    const hasAdmin = await userHasAuthorization(session.user_id, "system:admin");
+    const hasAdmin = await userHasAuthorization(
+      session.user_id,
+      "system:admin",
+    );
     if (!hasAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -34,7 +37,7 @@ export async function POST(request: NextRequest) {
     if (!appId) {
       return NextResponse.json(
         { error: "No app ID provided" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -63,7 +66,7 @@ export async function POST(request: NextRequest) {
     if (!file.name.endsWith(".zip")) {
       return NextResponse.json(
         { error: "Invalid file format. Please upload a .zip package" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -89,7 +92,7 @@ export async function POST(request: NextRequest) {
         "system",
         `App upgrade failed: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       );
     } catch (logError) {
       console.error("Failed to log upgrade error:", logError);
@@ -104,7 +107,7 @@ export async function POST(request: NextRequest) {
           error instanceof Error && error.message.includes("does not exist")
             ? 404
             : 500,
-      }
+      },
     );
   }
 }

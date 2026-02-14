@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import NotificationManager from "@/lib/database/client/managers/notification";
-import { getCurrentUser } from "@/lib/database/client/managers/user";
+import NotificationManager from "@/lib/client/managers/notification";
+import { getCurrentUser } from "@/lib/client/managers/user";
 type NotificationType = "info" | "success" | "warning" | "error";
 
 export default function TestNotificationsPage() {

@@ -1,12 +1,12 @@
-import { NextResponse } from 'next/server';
-import { getCurrentUser } from '@/lib/database/managers/user';
-import UserManager from '@/lib/database/managers/user';
-import SettingManager from '@/lib/database/managers/setting';
-import AuthorityManager from '@/lib/database/managers/authority';
-import AppletManager from '@/lib/database/managers/applet';
-import bcrypt from 'bcryptjs';
-import fs from 'fs';
-import path from 'path';
+import { NextResponse } from "next/server";
+import { getCurrentUser } from "@/lib/managers/user";
+import UserManager from "@/lib/managers/user";
+import SettingManager from "@/lib/managers/setting";
+import AuthorityManager from "@/lib/managers/authority";
+import AppletManager from "@/lib/managers/applet";
+import bcrypt from "bcryptjs";
+import fs from "fs";
+import path from "path";
 
 export async function GET() {
   try {
@@ -24,19 +24,19 @@ export async function GET() {
     // Get user's authorizations
     const authorityManager = new AuthorityManager();
     const mainAuthority = await authorityManager.readRecord(
-      user.data.authority_id
+      user.data.authority_id,
     );
     const userAuthority = await authorityManager.readUserAuthority(user.id);
 
     const authorizations = new Set<string>();
     if (mainAuthority) {
       mainAuthority.data.authorizations.forEach((auth) =>
-        authorizations.add(auth)
+        authorizations.add(auth),
       );
     }
     if (userAuthority) {
       userAuthority.data.authorizations.forEach((auth) =>
-        authorizations.add(auth)
+        authorizations.add(auth),
       );
     }
 
@@ -78,7 +78,7 @@ export async function GET() {
     console.error("Failed to get current user:", error);
     return NextResponse.json(
       { error: "Failed to get user information" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -88,26 +88,23 @@ export async function PATCH(request: Request) {
     const currentUserResult = await getCurrentUser();
 
     if (!currentUserResult) {
-      return NextResponse.json(
-        { error: 'Not authenticated' },
-        { status: 401 }
-      );
+      return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
     const currentUser = currentUserResult.user;
     const formData = await request.formData();
 
-    const displayName = formData.get('displayName') as string;
-    const email = formData.get('email') as string;
-    const currentPassword = formData.get('currentPassword') as string;
-    const newPassword = formData.get('newPassword') as string;
-    const profilePictureFile = formData.get('profilePicture') as File | null;
-    const clearProfilePicture = formData.get('clearProfilePicture') === 'true';
+    const displayName = formData.get("displayName") as string;
+    const email = formData.get("email") as string;
+    const currentPassword = formData.get("currentPassword") as string;
+    const newPassword = formData.get("newPassword") as string;
+    const profilePictureFile = formData.get("profilePicture") as File | null;
+    const clearProfilePicture = formData.get("clearProfilePicture") === "true";
 
     if (!displayName || !email) {
       return NextResponse.json(
-        { error: 'Display name and email are required' },
-        { status: 400 }
+        { error: "Display name and email are required" },
+        { status: 400 },
       );
     }
 
@@ -115,16 +112,19 @@ export async function PATCH(request: Request) {
     if (newPassword) {
       if (!currentPassword) {
         return NextResponse.json(
-          { error: 'Current password is required to set a new password' },
-          { status: 400 }
+          { error: "Current password is required to set a new password" },
+          { status: 400 },
         );
       }
 
-      const passwordMatch = await bcrypt.compare(currentPassword, currentUser.data.password_hash);
+      const passwordMatch = await bcrypt.compare(
+        currentPassword,
+        currentUser.data.password_hash,
+      );
       if (!passwordMatch) {
         return NextResponse.json(
-          { error: 'Current password is incorrect' },
-          { status: 400 }
+          { error: "Current password is incorrect" },
+          { status: 400 },
         );
       }
     }
@@ -149,18 +149,24 @@ export async function PATCH(request: Request) {
     // Handle profile picture upload if provided
     if (profilePictureFile) {
       const settingManager = new SettingManager();
-      const storageSetting = await settingManager.readRecord('storage');
+      const storageSetting = await settingManager.readRecord("storage");
       const systemStorage = storageSetting?.data.value;
 
       if (!systemStorage) {
         return NextResponse.json(
-          { error: 'System storage not configured' },
-          { status: 500 }
+          { error: "System storage not configured" },
+          { status: 500 },
         );
       }
 
       // Create directory structure
-      const userIconsDir = path.join(systemStorage, 'apps', 'system', 'icons', 'users');
+      const userIconsDir = path.join(
+        systemStorage,
+        "apps",
+        "system",
+        "icons",
+        "users",
+      );
 
       if (!fs.existsSync(userIconsDir)) {
         fs.mkdirSync(userIconsDir, { recursive: true });
@@ -174,25 +180,29 @@ export async function PATCH(request: Request) {
       fs.writeFileSync(filePath, buffer);
 
       // Set icon flag
-      updates.icon = 'true';
+      updates.icon = "true";
     }
 
     // Update user
     const userManager = new UserManager();
-    await userManager.updateRecord(await userManager.getTable(), currentUser.id, {
-      ...currentUser.data,
-      ...updates,
-    });
+    await userManager.updateRecord(
+      await userManager.getTable(),
+      currentUser.id,
+      {
+        ...currentUser.data,
+        ...updates,
+      },
+    );
 
     return NextResponse.json({
       success: true,
-      message: 'Profile updated successfully'
+      message: "Profile updated successfully",
     });
   } catch (error) {
-    console.error('Failed to update profile:', error);
+    console.error("Failed to update profile:", error);
     return NextResponse.json(
-      { error: 'Failed to update profile' },
-      { status: 500 }
+      { error: "Failed to update profile" },
+      { status: 500 },
     );
   }
 }

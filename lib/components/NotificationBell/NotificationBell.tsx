@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Notification from "@/lib/database/types/notification";
 import NotificationItem from "./NotificationItem";
 import TableRecord from "@/lib/database/crud/types/record";
-import NotificationManager from "@/lib/database/client/managers/notification";
+import NotificationManager from "@/lib/client/managers/notification";
 
 export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
@@ -26,7 +26,7 @@ export default function NotificationBell() {
       setNotifications(result.records);
       setUnreadCount(
         result.records.filter((r: TableRecord<Notification>) => !r.data.read)
-          .length
+          .length,
       );
     } catch (error) {
       console.error("Failed to fetch notifications:", error);
@@ -68,10 +68,13 @@ export default function NotificationBell() {
     }
 
     try {
-      const updates = unreadNotifications.reduce((acc, n) => {
-        acc[n.id] = { read: true };
-        return acc;
-      }, {} as Record<string, Partial<Notification>>);
+      const updates = unreadNotifications.reduce(
+        (acc, n) => {
+          acc[n.id] = { read: true };
+          return acc;
+        },
+        {} as Record<string, Partial<Notification>>,
+      );
 
       await notificationManager.updateRecords(updates);
       await fetchNotifications();
@@ -86,10 +89,13 @@ export default function NotificationBell() {
     }
 
     try {
-      const updates = notifications.reduce((acc, n) => {
-        acc[n.id] = { read: true, archived: true };
-        return acc;
-      }, {} as Record<string, Partial<Notification>>);
+      const updates = notifications.reduce(
+        (acc, n) => {
+          acc[n.id] = { read: true, archived: true };
+          return acc;
+        },
+        {} as Record<string, Partial<Notification>>,
+      );
 
       await notificationManager.updateRecords(updates);
       await fetchNotifications();

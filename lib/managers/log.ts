@@ -1,7 +1,7 @@
 import CRUD from "@/lib/database/crud";
 import Log, { LogLevel } from "@/lib/database/types/log";
-import SettingManager from "@/lib/database/managers/setting";
-import { getCurrentUser } from "@/lib/database/managers/user";
+import SettingManager from "@/lib/managers/setting";
+import { getCurrentUser } from "@/lib/managers/user";
 
 export default class LogManager extends CRUD<Log> {
   appId = "system";
@@ -10,7 +10,7 @@ export default class LogManager extends CRUD<Log> {
   async createLog(
     variant: LogLevel,
     message: string,
-    sender: string = "system"
+    sender: string = "system",
   ) {
     const loggingEnabled =
       (await new SettingManager().readRecord("loggingEnabled"))?.data.value ===
@@ -42,7 +42,7 @@ export default class LogManager extends CRUD<Log> {
         },
         {
           id: `${now}`,
-        }
+        },
       );
       return record;
     }

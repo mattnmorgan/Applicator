@@ -1,4 +1,4 @@
-import CRUD from "@/lib/database/client/crud";
+import CRUD from "@/lib/client/database/crud/";
 import Log from "@/lib/database/types/log";
 
 export default class Manager extends CRUD<Log> {

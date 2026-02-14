@@ -1,7 +1,7 @@
 import { NextResponse, NextRequest } from "next/server";
-import { getSession } from "@/lib/database/managers/session";
-import { userHasAuthorization } from "@/lib/database/managers/user";
-import AgentManager from "@/lib/database/managers/agent";
+import { getSession } from "@/lib/managers/session";
+import { userHasAuthorization } from "@/lib/managers/user";
+import AgentManager from "@/lib/managers/agent";
 import Agent from "@/lib/system/agents/agent";
 
 export async function POST(
@@ -23,7 +23,10 @@ export async function POST(
     }
 
     // Check authorization - must be admin or the app managing its own agents
-    const hasAdmin = await userHasAuthorization(session.user_id, "system:admin");
+    const hasAdmin = await userHasAuthorization(
+      session.user_id,
+      "system:admin",
+    );
 
     // Check if request is from the app itself (via X-App-Id header)
     const requestingAppId = request.headers.get("X-App-Id");

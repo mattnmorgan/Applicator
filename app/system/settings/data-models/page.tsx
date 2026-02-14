@@ -4,9 +4,9 @@ import { useState, useEffect } from "react";
 import TableDefinition from "@/lib/database/types/table";
 import TableField from "@/lib/database/types/field";
 import Badge from "@/lib/components/utility/Badge/Badge";
-import TableManager from "@/lib/database/client/managers/table";
-import FieldManager from "@/lib/database/client/managers/field";
-import AppManager from "@/lib/database/client/managers/app";
+import TableManager from "@/lib/client/managers/table";
+import FieldManager from "@/lib/client/managers/field";
+import AppManager from "@/lib/client/managers/app";
 interface TableSearchResult {
   appId: string;
   appName: string;

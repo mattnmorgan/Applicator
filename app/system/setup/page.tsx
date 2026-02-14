@@ -2,7 +2,7 @@
 
 import { useState, FormEvent, useEffect } from "react";
 import { useRouter } from "next/navigation";
-import UserManager from "@/lib/database/client/managers/user";
+import UserManager from "@/lib/client/managers/user";
 import { redirectToHome } from "@/lib/client/setup";
 
 export default function SetupPage() {

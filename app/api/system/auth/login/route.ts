@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import SessionManager from "@/lib/database/managers/session";
-import UserManager, { verifyPassword } from "@/lib/database/managers/user";
+import SessionManager from "@/lib/managers/session";
+import UserManager, { verifyPassword } from "@/lib/managers/user";
 
 export async function POST(request: Request) {
   try {
@@ -12,7 +12,7 @@ export async function POST(request: Request) {
     if (!username || !password) {
       return NextResponse.json(
         { error: "Username and password are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -23,19 +23,19 @@ export async function POST(request: Request) {
     if (!users.total) {
       return NextResponse.json(
         { error: "Invalid username or password" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     // Verify password
     const isValidPassword = await verifyPassword(
       password,
-      users.records[0].data.password_hash
+      users.records[0].data.password_hash,
     );
     if (!isValidPassword) {
       return NextResponse.json(
         { error: "Invalid username or password" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
@@ -43,12 +43,12 @@ export async function POST(request: Request) {
     if (!users.records[0].data.is_active) {
       return NextResponse.json(
         { error: "Invalid username or password" },
-        { status: 401 }
+        { status: 401 },
       );
     }
 
     const session = await new SessionManager().createSession(
-      users.records[0].id
+      users.records[0].id,
     );
     const cookieStore = await cookies();
     cookieStore.set("session", session.id, {

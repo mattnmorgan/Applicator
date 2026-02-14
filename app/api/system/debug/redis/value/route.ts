@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import LogManager from "@/lib/database/managers/log";
-import { getCurrentUser } from "@/lib/database/managers/user";
-import { getClient } from "@/lib/database/pg/transaction";
+import LogManager from "@/lib/managers/log";
+import { getCurrentUser } from "@/lib/managers/user";
+import { getClient } from "@/lib/database/connections/postgresql";
 import schema from "@/lib/database/schema";
 import { sqlRead } from "@/lib/database/crud/read";
 import { sqlUpdate } from "@/lib/database/crud/update";
@@ -27,7 +27,9 @@ function parseKey(key: string): {
   }
 
   // System tables: {tableName}:{id...}
-  for (const tableName of schema.tables.map((t) => t.name).filter((n) => n !== "records")) {
+  for (const tableName of schema.tables
+    .map((t) => t.name)
+    .filter((n) => n !== "records")) {
     const prefix = `${tableName}:`;
     if (key.startsWith(prefix)) {
       return { appId: "system", tableName, id: key.slice(prefix.length) };
@@ -48,7 +50,7 @@ export async function GET(request: Request) {
     if (!user.authorizations.some((a) => a === "system:admin")) {
       return NextResponse.json(
         { error: "Forbidden - Admin access required" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -58,7 +60,7 @@ export async function GET(request: Request) {
     if (!key) {
       return NextResponse.json(
         { error: "Key parameter is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -86,7 +88,7 @@ export async function GET(request: Request) {
     console.error("Failed to fetch database value:", error);
     return NextResponse.json(
       { error: "Failed to fetch database value" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -102,7 +104,7 @@ export async function POST(request: Request) {
     if (!user.authorizations.some((a) => a === "system:admin")) {
       return NextResponse.json(
         { error: "Forbidden - Admin access required" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -112,7 +114,7 @@ export async function POST(request: Request) {
     if (!key || value === undefined) {
       return NextResponse.json(
         { error: "Key and value are required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -120,7 +122,7 @@ export async function POST(request: Request) {
     if (!parsed) {
       return NextResponse.json(
         { error: "Invalid key format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -143,14 +145,14 @@ export async function POST(request: Request) {
     await new LogManager().createLog(
       "info",
       `Database key "${key}" was modified`,
-      "system"
+      "system",
     );
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to update database value:", error);
     return NextResponse.json(
       { error: "Failed to update database value" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -166,7 +168,7 @@ export async function DELETE(request: Request) {
     if (!user.authorizations.some((a) => a === "system:admin")) {
       return NextResponse.json(
         { error: "Forbidden - Admin access required" },
-        { status: 403 }
+        { status: 403 },
       );
     }
 
@@ -176,7 +178,7 @@ export async function DELETE(request: Request) {
     if (!key) {
       return NextResponse.json(
         { error: "Key parameter is required" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -184,18 +186,13 @@ export async function DELETE(request: Request) {
     if (!parsed) {
       return NextResponse.json(
         { error: "Invalid key format" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
     const client = await getClient();
     try {
-      await sqlDelete(
-        client,
-        parsed.appId,
-        parsed.tableName,
-        parsed.id,
-      );
+      await sqlDelete(client, parsed.appId, parsed.tableName, parsed.id);
     } finally {
       client.release();
     }
@@ -203,14 +200,14 @@ export async function DELETE(request: Request) {
     await new LogManager().createLog(
       "info",
       'Database key was deleted: "' + key + '"',
-      "system"
+      "system",
     );
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Failed to delete database key:", error);
     return NextResponse.json(
       { error: "Failed to delete database key" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

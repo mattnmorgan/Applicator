@@ -4,8 +4,8 @@ import { useState, useEffect } from "react";
 import styles from "./AppView.module.css";
 import Accordion from "@/lib/components/utility/Accordion/Accordion";
 import Badge from "@/lib/components/utility/Badge/Badge";
-import AppManager from "@/lib/database/client/managers/app";
-import ApiRouteManager from "@/lib/database/client/managers/apiRoute";
+import AppManager from "@/lib/client/managers/app";
+import ApiRouteManager from "@/lib/client/managers/apiRoute";
 
 interface ApiRoute {
   path: string;

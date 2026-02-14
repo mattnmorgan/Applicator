@@ -1,8 +1,8 @@
 import { redirect } from "next/navigation";
-import { getCurrentUser as getUser } from "@/lib/database/managers/user";
-import { getSystemSettings } from "@/lib/database/managers/setting";
-import AppletManager from "@/lib/database/managers/applet";
-import AuthorityManager from "@/lib/database/managers/authority";
+import { getCurrentUser as getUser } from "@/lib/managers/user";
+import { getSystemSettings } from "@/lib/managers/setting";
+import AppletManager from "@/lib/managers/applet";
+import AuthorityManager from "@/lib/managers/authority";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/utility/Tabset";
 import AccessDenied from "@/lib/components/utility/AccessDenied";
@@ -34,9 +34,7 @@ async function getBrandSettings() {
 }
 
 async function isFirstTimeSetup(): Promise<boolean> {
-  const userManager = new (
-    await import("@/lib/database/managers/user")
-  ).default();
+  const userManager = new (await import("@/lib/managers/user")).default();
   const users = await userManager.listRecords();
   return users.length === 0;
 }

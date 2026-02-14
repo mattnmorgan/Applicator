@@ -1,9 +1,9 @@
 import AdmZip from "adm-zip";
-import AppManager from "@/lib/database/managers/app";
+import AppManager from "@/lib/managers/app";
 import type AppVersion from "@/lib/database/types/appVersion";
 import AppMetadata from "@/lib/system/installation/types/package-metadata";
-import SettingManager from "@/lib/database/managers/setting";
-import TableManager from "@/lib/database/managers/table";
+import SettingManager from "@/lib/managers/setting";
+import TableManager from "@/lib/managers/table";
 import { isValidCronString } from "@/lib/system/cron";
 import { formatVersion, isVersionGreaterOrEqual } from "@/lib/system/version";
 
@@ -26,7 +26,7 @@ export async function validateAppPackage(
   options: {
     isUpgrade?: boolean;
     existingVersion?: AppVersion;
-  } = {}
+  } = {},
 ): Promise<void> {
   // Validate required attributes
   if (
@@ -43,7 +43,7 @@ export async function validateAppPackage(
         appAttributes.version || "missing"
       }, author: ${appAttributes.author || "missing"}, description: ${
         appAttributes.description ? "present" : "missing"
-      })`
+      })`,
     );
   }
 
@@ -54,14 +54,14 @@ export async function validateAppPackage(
     (!appAttributes.version.dev && appAttributes.version.dev !== 0)
   ) {
     throw new Error(
-      `Invalid version format for '${appAttributes.id}'. Version must have major, minor, and dev properties.`
+      `Invalid version format for '${appAttributes.id}'. Version must have major, minor, and dev properties.`,
     );
   }
 
   // Safety check: prevent 'system' from being used as an app ID for new installs
   if (appAttributes.id === "system" && !options.isUpgrade) {
     throw new Error(
-      "Invalid app ID: 'system' is a reserved keyword and cannot be used as an app ID"
+      "Invalid app ID: 'system' is a reserved keyword and cannot be used as an app ID",
     );
   }
 
@@ -74,14 +74,15 @@ export async function validateAppPackage(
 
     if (versionComparison === 0) {
       const settingManager = new SettingManager();
-      const inplaceRecord = await settingManager.readRecord("appInplaceEnabled");
+      const inplaceRecord =
+        await settingManager.readRecord("appInplaceEnabled");
       const inplaceEnabled = inplaceRecord?.data.value === "true";
 
       if (!inplaceEnabled) {
         throw new Error(
           `Cannot upgrade to the same version ${formatVersion(
-            appAttributes.version
-          )}`
+            appAttributes.version,
+          )}`,
         );
       }
     }
@@ -103,11 +104,11 @@ export async function validateAppPackage(
     const appManager = new AppManager();
     const allAppsResult = await appManager.readRecords();
     const installedApps = new Map(
-      allAppsResult.records.map((app) => [app.id, app])
+      allAppsResult.records.map((app) => [app.id, app]),
     );
 
     for (const [depId, requiredVersion] of Object.entries(
-      appAttributes.dependencies
+      appAttributes.dependencies,
     )) {
       const installedApp = installedApps.get(depId);
 
@@ -118,13 +119,13 @@ export async function validateAppPackage(
       if (
         !isVersionGreaterOrEqual(
           installedApp.data.version,
-          requiredVersion as AppVersion
+          requiredVersion as AppVersion,
         )
       ) {
         const installedVersionStr = formatVersion(installedApp.data.version);
         const requiredVersionStr = formatVersion(requiredVersion as AppVersion);
         throw new Error(
-          `Dependency '${depId}' version ${installedVersionStr} does not meet minimum requirement ${requiredVersionStr}`
+          `Dependency '${depId}' version ${installedVersionStr} does not meet minimum requirement ${requiredVersionStr}`,
         );
       }
     }
@@ -147,7 +148,7 @@ export async function validateAppPackage(
         !applet.target
       ) {
         throw new Error(
-          `Applet at index ${i} is missing required fields (id, label, description, component, or target)`
+          `Applet at index ${i} is missing required fields (id, label, description, component, or target)`,
         );
       }
 
@@ -160,11 +161,11 @@ export async function validateAppPackage(
       // Validate target
       if (
         !["app", "home", "user-settings", "system-settings", "guest"].includes(
-          applet.target
+          applet.target,
         )
       ) {
         throw new Error(
-          `Applet '${applet.id}' has invalid target. Must be 'app', 'home', 'user-settings', 'system-settings', or 'guest'`
+          `Applet '${applet.id}' has invalid target. Must be 'app', 'home', 'user-settings', 'system-settings', or 'guest'`,
         );
       }
 
@@ -181,14 +182,14 @@ export async function validateAppPackage(
       ];
 
       const componentExists = componentPaths.some((p) =>
-        zipEntries.some((e) => e.entryName === p)
+        zipEntries.some((e) => e.entryName === p),
       );
 
       if (!componentExists) {
         throw new Error(
           `Applet '${
             applet.id
-          }' component not found. Expected one of: ${componentPaths.join(", ")}`
+          }' component not found. Expected one of: ${componentPaths.join(", ")}`,
         );
       }
     }
@@ -313,7 +314,7 @@ export async function validateAppPackage(
     // Add existing tables from the system
     for (const tableRecord of allTables.records) {
       existingTableNames.add(
-        `${tableRecord.data.app}:${tableRecord.data.table_name}`
+        `${tableRecord.data.app}:${tableRecord.data.table_name}`,
       );
     }
 
@@ -372,7 +373,7 @@ export async function validateAppPackage(
 
     if (errors.length) {
       throw new Error(
-        `App validation error: ${errors.map((e) => e.error).join(", ")}`
+        `App validation error: ${errors.map((e) => e.error).join(", ")}`,
       );
     }
   }

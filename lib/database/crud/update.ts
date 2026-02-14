@@ -3,8 +3,8 @@ import Table from "@/lib/database/types/table";
 import TableRecord from "@/lib/database/crud/types/record";
 import BulkResult from "@/lib/database/crud/types/bulk-result";
 import { readRecord } from "@/lib/database/crud/read";
-import { validateAndProcessRecord } from "@/lib/database/crud/validation";
-import { withTransaction } from "@/lib/database/pg/transaction";
+import { validateAndProcessRecord } from "@/lib/database/validation";
+import { withTransaction } from "@/lib/database/connections/postgresql";
 import { quoteIfReserved } from "@/lib/database/schema/reserved";
 
 export interface Options {
@@ -13,7 +13,9 @@ export interface Options {
 }
 
 function needsJsonStringify(value: any): boolean {
-  return value !== null && typeof value === "object" && !(value instanceof Date);
+  return (
+    value !== null && typeof value === "object" && !(value instanceof Date)
+  );
 }
 
 /**
@@ -117,8 +119,14 @@ export async function updateRecord<T = any>(
     // Cascade: formulas run within the same transaction
     if (table) {
       const { cascadeCollect } =
-        await import("@/lib/database/crud/validation/cascade");
-      await cascadeCollect(appId, tableName, recordId, processedData as Record<string, any>, client);
+        await import("@/lib/database/validation/cascade");
+      await cascadeCollect(
+        appId,
+        tableName,
+        recordId,
+        processedData as Record<string, any>,
+        client,
+      );
     }
 
     return updatedRecord;
@@ -202,15 +210,28 @@ export async function bulkUpdateRecords<T = any>(
 
     // Save all primary records within the transaction
     for (const record of updatedRecords) {
-      await sqlUpdate(client, appId, tableName, record.id, record.data as Record<string, any>, now);
+      await sqlUpdate(
+        client,
+        appId,
+        tableName,
+        record.id,
+        record.data as Record<string, any>,
+        now,
+      );
     }
 
     // Cascade: formulas run within the same transaction
     if (table) {
       const { cascadeCollect } =
-        await import("@/lib/database/crud/validation/cascade");
+        await import("@/lib/database/validation/cascade");
       for (const record of updatedRecords) {
-        await cascadeCollect(appId, tableName, record.id, record.data as Record<string, any>, client);
+        await cascadeCollect(
+          appId,
+          tableName,
+          record.id,
+          record.data as Record<string, any>,
+          client,
+        );
       }
     }
 

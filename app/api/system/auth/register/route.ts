@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import bcrypt from "bcryptjs";
-import UserManager from "@/lib/database/managers/user";
-import SettingManager from "@/lib/database/managers/setting";
+import UserManager from "@/lib/managers/user";
+import SettingManager from "@/lib/managers/setting";
 
 export async function POST(request: Request) {
   try {

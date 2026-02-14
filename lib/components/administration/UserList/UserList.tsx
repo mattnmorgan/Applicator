@@ -7,8 +7,8 @@ import Row from "../../utility/Row";
 import UserCreate from "../UserCreate";
 import Badge from "../../utility/Badge/Badge";
 import styles from "./UserList.module.css";
-import UserManager from "@/lib/database/client/managers/user";
-import AuthorityManager from "@/lib/database/client/managers/authority";
+import UserManager from "@/lib/client/managers/user";
+import AuthorityManager from "@/lib/client/managers/authority";
 
 interface User {
   id: string;

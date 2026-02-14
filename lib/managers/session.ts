@@ -1,6 +1,6 @@
 import CRUD from "@/lib/database/crud";
 import Session from "@/lib/database/types/session";
-import UserManager from "@/lib/database/managers/user";
+import UserManager from "@/lib/managers/user";
 import { NextRequest } from "next/server";
 
 export default class SessionManager extends CRUD<Session> {

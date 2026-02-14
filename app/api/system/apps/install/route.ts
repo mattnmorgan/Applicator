@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSession } from "@/lib/database/managers/session";
-import { userHasAuthorization } from "@/lib/database/managers/user";
-import LogManager from "@/lib/database/managers/log";
+import { getSession } from "@/lib/managers/session";
+import { userHasAuthorization } from "@/lib/managers/user";
+import LogManager from "@/lib/managers/log";
 import { installApp } from "@/lib/system/installation/app-installer";
 
 export async function POST(request: NextRequest) {
@@ -18,7 +18,10 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has admin authorization
-    const hasAdmin = await userHasAuthorization(session.user_id, "system:admin");
+    const hasAdmin = await userHasAuthorization(
+      session.user_id,
+      "system:admin",
+    );
     if (!hasAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -35,7 +38,7 @@ export async function POST(request: NextRequest) {
     if (!file.name.endsWith(".zip")) {
       return NextResponse.json(
         { error: "Invalid file format. Please upload a .zip package" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -43,7 +46,9 @@ export async function POST(request: NextRequest) {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
 
     // Read approved permissions if provided
-    const approvedPermissionsRaw = formData.get("approvedPermissions") as string | null;
+    const approvedPermissionsRaw = formData.get("approvedPermissions") as
+      | string
+      | null;
     let approvedPermissions: string[] | undefined;
     if (approvedPermissionsRaw) {
       try {
@@ -51,7 +56,7 @@ export async function POST(request: NextRequest) {
       } catch {
         return NextResponse.json(
           { error: "Invalid approvedPermissions format" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -73,7 +78,7 @@ export async function POST(request: NextRequest) {
         "system",
         `App installation failed: ${
           error instanceof Error ? error.message : String(error)
-        }`
+        }`,
       );
     } catch (logError) {
       console.error("Failed to log installation error:", logError);
@@ -88,7 +93,7 @@ export async function POST(request: NextRequest) {
           error instanceof Error && error.message.includes("already exists")
             ? 409
             : 500,
-      }
+      },
     );
   }
 }

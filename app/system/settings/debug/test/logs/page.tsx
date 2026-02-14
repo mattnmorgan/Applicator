@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import LogManager from "@/lib/database/client/managers/log";
-import { getCurrentUser } from "@/lib/database/client/managers/user";
+import LogManager from "@/lib/client/managers/log";
+import { getCurrentUser } from "@/lib/client/managers/user";
 type LogLevel = "info" | "debug" | "error" | "warning";
 
 export default function TestLogsPage() {

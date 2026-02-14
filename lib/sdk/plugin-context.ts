@@ -1,8 +1,8 @@
 import { GenericCRUD as CRUD } from "@/lib/database/crud/";
-import LogManager from "@/lib/database/managers/log";
-import SettingManager from "@/lib/database/managers/setting";
-import AuthorityManager from "@/lib/database/managers/authority";
-import ContextualAuthorityManager from "@/lib/database/managers/contextualAuthority";
+import LogManager from "@/lib/managers/log";
+import SettingManager from "@/lib/managers/setting";
+import AuthorityManager from "@/lib/managers/authority";
+import ContextualAuthorityManager from "@/lib/managers/contextualAuthority";
 import ContextUser from "@/lib/sdk/types/context-user";
 import ContextApp from "@/lib/sdk/types/context-app";
 import User from "@/lib/database/types/user";

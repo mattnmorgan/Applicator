@@ -3,15 +3,15 @@
 import { useState, useEffect } from "react";
 import Badge from "@/lib/components/utility/Badge/Badge";
 import styles from "./UserCreate.module.css";
-import UserManager from "@/lib/database/client/managers/user";
-import AuthorityManager from "@/lib/database/client/managers/authority";
-import AuthorizationManager from "@/lib/database/client/managers/authorization";
-import AppManager from "@/lib/database/client/managers/app";
-import AppletManager from "@/lib/database/client/managers/applet";
+import UserManager from "@/lib/client/managers/user";
+import AuthorityManager from "@/lib/client/managers/authority";
+import AuthorizationManager from "@/lib/client/managers/authorization";
+import AppManager from "@/lib/client/managers/app";
+import AppletManager from "@/lib/client/managers/applet";
 import TableRecord from "@/lib/database/crud/types/record";
 import User from "@/lib/database/types/user";
 import Authority from "@/lib/database/types/authority";
-import { uploadFile, getSystemSettings } from "@/lib/database/client/crud";
+import { uploadFile, getSystemSettings } from "@/lib/client/database/crud/";
 
 interface Authorization {
   id: string;

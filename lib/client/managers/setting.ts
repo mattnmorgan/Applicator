@@ -1,4 +1,4 @@
-import CRUD from "@/lib/database/client/crud";
+import CRUD from "@/lib/client/database/crud/";
 import Setting from "@/lib/database/types/setting";
 
 export default class Manager extends CRUD<Setting> {

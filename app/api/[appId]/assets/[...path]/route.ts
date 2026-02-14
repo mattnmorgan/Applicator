@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { getSystemSettings } from "@/lib/database/managers/setting";
+import { getSystemSettings } from "@/lib/managers/setting";
 import path from "path";
 import fs from "fs/promises";
 
@@ -19,7 +19,7 @@ const contentTypeMap: { [key: string]: string } = {
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ appId: string; path: string[] }> }
+  { params }: { params: Promise<{ appId: string; path: string[] }> },
 ) {
   try {
     const { appId, path: pathSegments } = await params;
@@ -29,7 +29,7 @@ export async function GET(
     if (!storagePath) {
       return NextResponse.json(
         { error: "Storage not configured" },
-        { status: 500 }
+        { status: 500 },
       );
     }
 
@@ -39,7 +39,13 @@ export async function GET(
     if (appId === "system") {
       if (pathSegments.length === 1 && pathSegments[0] === "icon") {
         // Serve the static system icon from the public folder
-        filePath = path.join(process.cwd(), "public", "assets", "icons", "system.png");
+        filePath = path.join(
+          process.cwd(),
+          "public",
+          "assets",
+          "icons",
+          "system.png",
+        );
       } else if (pathSegments.length === 1 && pathSegments[0] === "brand") {
         filePath = path.join(storagePath, "apps", "system", "brand.png");
       } else if (
@@ -54,7 +60,7 @@ export async function GET(
           "system",
           "icons",
           pathSegments[1],
-          `${id}.png`
+          `${id}.png`,
         );
       } else {
         return NextResponse.json({ error: "Invalid path" }, { status: 403 });
@@ -98,7 +104,7 @@ export async function GET(
     console.error("Error serving app asset:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

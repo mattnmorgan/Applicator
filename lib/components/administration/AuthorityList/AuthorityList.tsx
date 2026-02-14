@@ -7,9 +7,9 @@ import Toast from "../../utility/Toast";
 import AuthorityCreate from "../AuthorityCreate";
 import Badge from "../../utility/Badge/Badge";
 import styles from "./AuthorityList.module.css";
-import AuthorityManager from "@/lib/database/client/managers/authority";
-import UserManager from "@/lib/database/client/managers/user";
-import AppManager from "@/lib/database/client/managers/app";
+import AuthorityManager from "@/lib/client/managers/authority";
+import UserManager from "@/lib/client/managers/user";
+import AppManager from "@/lib/client/managers/app";
 
 interface Authority {
   id: string;

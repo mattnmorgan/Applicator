@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import styles from "./AssumeIdentityModal.module.css";
 import User from "@/lib/database/types/user";
 import TableRecord from "@/lib/database/crud/types/record";
-import UserManager from "@/lib/database/client/managers/user";
+import UserManager from "@/lib/client/managers/user";
 
 interface AssumeIdentityModalProps {
   onClose: () => void;
@@ -58,7 +58,7 @@ export default function AssumeIdentityModal({
         ?.toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
       user.data.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      user.data.email?.toLowerCase().includes(searchQuery.toLowerCase())
+      user.data.email?.toLowerCase().includes(searchQuery.toLowerCase()),
   );
 
   return (

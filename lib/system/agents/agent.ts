@@ -1,9 +1,9 @@
-import SettingManager from "@/lib/database/managers/setting";
+import SettingManager from "@/lib/managers/setting";
 import path from "path";
 import Logger from "@/lib/system/logger";
 import fs from "fs/promises";
-import AgentManager from "@/lib/database/managers/agent";
-import LogManager from "@/lib/database/managers/log";
+import AgentManager from "@/lib/managers/agent";
+import LogManager from "@/lib/managers/log";
 import {
   formatNextExecution,
   getNextCronExecution,

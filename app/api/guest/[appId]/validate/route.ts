@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GenericCRUD as CRUD } from "@/lib/database/crud/";
-import AuthorityManager from "@/lib/database/managers/authority";
-import ContextualAuthorityManager from "@/lib/database/managers/contextualAuthority";
+import AuthorityManager from "@/lib/managers/authority";
+import ContextualAuthorityManager from "@/lib/managers/contextualAuthority";
 import App from "@/lib/database/types/app";
 import ContextualAuthority from "@/lib/database/types/contextualAuthority";
 import bcrypt from "bcryptjs";
@@ -39,8 +39,7 @@ export async function POST(
 
     // Check if app has guest-accessible permission
     const authorityManager = new AuthorityManager();
-    const appAuthority =
-      await authorityManager.readAppSpecificAuthority(appId);
+    const appAuthority = await authorityManager.readAppSpecificAuthority(appId);
     if (
       !appAuthority ||
       !appAuthority.data.authorizations.includes("system:guest-accessible")
@@ -96,8 +95,7 @@ export async function POST(
     const applets = await appletManager.readRecords({
       fields: { app: appId, target: "guest" },
     });
-    const guestApplet =
-      applets.records.length > 0 ? applets.records[0] : null;
+    const guestApplet = applets.records.length > 0 ? applets.records[0] : null;
 
     // Get app version for module URL
     const version = appRecord.data.version;

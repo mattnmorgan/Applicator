@@ -1,22 +1,22 @@
 import {
   createRecordWrapper,
   createRecordsWrapper,
-} from "@/lib/database/client/crud/create";
+} from "@/lib/client/database/crud/create";
 import {
   updateRecordWrapper,
   updateRecordsWrapper,
-} from "@/lib/database/client/crud/update";
+} from "@/lib/client/database/crud/update";
 import {
   deleteRecordWrapper,
   deleteRecordsWrapper,
   deleteAll,
-} from "@/lib/database/client/crud/delete";
+} from "@/lib/client/database/crud/delete";
 import {
   readRecordWrapper,
   readRecordsWrapper,
-} from "@/lib/database/client/crud/read";
-import { upsertRecordWrapper } from "@/lib/database/client/crud/upsert";
-import { SystemSettings } from "@/lib/database/managers/setting";
+} from "@/lib/client/database/crud/read";
+import { upsertRecordWrapper } from "@/lib/client/database/crud/upsert";
+import { SystemSettings } from "@/lib/managers/setting";
 
 export default abstract class CRUD<T = any> {
   tableId: string;
@@ -67,7 +67,7 @@ export async function uploadFile(file: File, dir: string, fname: string) {
 
   if (!response.ok) {
     throw new Error(
-      `Failure uploading file: [${response.status}] ${response.statusText}`
+      `Failure uploading file: [${response.status}] ${response.statusText}`,
     );
   }
 }
@@ -77,7 +77,7 @@ export async function getSystemSettings(): Promise<SystemSettings> {
 
   if (!response.ok) {
     throw new Error(
-      `Unable to fetch system settings: [${response.status}] ${response.statusText}`
+      `Unable to fetch system settings: [${response.status}] ${response.statusText}`,
     );
   }
 

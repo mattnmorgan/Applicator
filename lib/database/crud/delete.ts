@@ -1,7 +1,7 @@
 import { PoolClient } from "pg";
 import BulkResult from "@/lib/database/crud/types/bulk-result";
 import { readRecord } from "@/lib/database/crud/read";
-import { withTransaction } from "@/lib/database/pg/transaction";
+import { withTransaction } from "@/lib/database/connections/postgresql";
 
 export interface DeleteOptions {
   cascade?: boolean;
@@ -77,8 +77,13 @@ export async function deleteRecord(
 
     // Check for dependent records (referential integrity)
     const { checkDependents, cascadeCollectDeletes, cascadeCollect } =
-      await import("@/lib/database/crud/validation/cascade");
-    const dependents = await checkDependents(appId, tableName, recordId, client);
+      await import("@/lib/database/validation/cascade");
+    const dependents = await checkDependents(
+      appId,
+      tableName,
+      recordId,
+      client,
+    );
 
     if (dependents.length > 0 && !options.cascade) {
       const details = dependents
@@ -94,7 +99,13 @@ export async function deleteRecord(
 
     // Cascade delete dependent records (within the transaction)
     if (dependents.length > 0 && options.cascade) {
-      await cascadeCollectDeletes(appId, tableName, recordId, recordData, client);
+      await cascadeCollectDeletes(
+        appId,
+        tableName,
+        recordId,
+        recordData,
+        client,
+      );
     }
 
     // Delete primary record
@@ -119,20 +130,29 @@ export async function bulkDeleteRecords(
 
   return withTransaction(async (client) => {
     // Read all records before deletion
-    const existingRecords: Array<{ id: string; data: Record<string, any> }> = [];
+    const existingRecords: Array<{ id: string; data: Record<string, any> }> =
+      [];
     for (const id of recordIds) {
       const existing = await readRecord(appId, tableName, id, client);
       if (existing) {
-        existingRecords.push({ id, data: existing.data as Record<string, any> });
+        existingRecords.push({
+          id,
+          data: existing.data as Record<string, any>,
+        });
       }
     }
 
     // Check dependents and cascade delete (within the transaction)
     const { checkDependents, cascadeCollectDeletes, cascadeCollect } =
-      await import("@/lib/database/crud/validation/cascade");
+      await import("@/lib/database/validation/cascade");
 
     for (const record of existingRecords) {
-      const dependents = await checkDependents(appId, tableName, record.id, client);
+      const dependents = await checkDependents(
+        appId,
+        tableName,
+        record.id,
+        client,
+      );
 
       if (dependents.length > 0 && !options.cascade) {
         const details = dependents
@@ -147,7 +167,13 @@ export async function bulkDeleteRecords(
       }
 
       if (dependents.length > 0 && options.cascade) {
-        await cascadeCollectDeletes(appId, tableName, record.id, record.data, client);
+        await cascadeCollectDeletes(
+          appId,
+          tableName,
+          record.id,
+          record.data,
+          client,
+        );
       }
     }
 

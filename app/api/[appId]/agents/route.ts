@@ -1,14 +1,14 @@
 import { NextResponse, NextRequest } from "next/server";
-import { getSession } from "@/lib/database/managers/session";
-import { userHasAuthorization } from "@/lib/database/managers/user";
-import AgentManager from "@/lib/database/managers/agent";
-import AppManager from "@/lib/database/managers/app";
+import { getSession } from "@/lib/managers/session";
+import { userHasAuthorization } from "@/lib/managers/user";
+import AgentManager from "@/lib/managers/agent";
+import AppManager from "@/lib/managers/app";
 import Agent from "@/lib/system/agents/agent";
 import { getNextCronExecution, formatNextExecution } from "@/lib/system/cron";
 
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ appId: string }> }
+  { params }: { params: Promise<{ appId: string }> },
 ) {
   try {
     const { appId } = await params;
@@ -25,7 +25,10 @@ export async function GET(
     }
 
     // Check authorization - must be admin
-    const hasAdmin = await userHasAuthorization(session.user_id, "system:admin");
+    const hasAdmin = await userHasAuthorization(
+      session.user_id,
+      "system:admin",
+    );
     if (!hasAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -35,9 +38,10 @@ export async function GET(
     const allAgents = await agentManager.readRecords();
 
     // Filter by app if not "system" (system shows all agents)
-    const filteredAgents = appId === "system"
-      ? allAgents.records
-      : allAgents.records.filter((agent) => agent.data.app === appId);
+    const filteredAgents =
+      appId === "system"
+        ? allAgents.records
+        : allAgents.records.filter((agent) => agent.data.app === appId);
 
     // Get all apps for labels
     const appManager = new AppManager();
@@ -87,7 +91,7 @@ export async function GET(
     console.error("Error listing agents:", error);
     return NextResponse.json(
       { error: "Internal server error" },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

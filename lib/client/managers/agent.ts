@@ -1,4 +1,4 @@
-import CRUD from "@/lib/database/client/crud";
+import CRUD from "@/lib/client/database/crud/";
 import Agent from "@/lib/database/types/agent";
 
 export default class Manager extends CRUD<Agent> {

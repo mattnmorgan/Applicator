@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
-import TableManager from "@/lib/database/managers/table";
-import { getSessionFromRequest } from "@/lib/database/managers/session";
+import TableManager from "@/lib/managers/table";
+import { getSessionFromRequest } from "@/lib/managers/session";
 import { createRecord } from "@/lib/database/crud/create";
 import { readRecords } from "@/lib/database/crud/read";
 import {
@@ -13,9 +13,9 @@ import {
   deleteAll,
 } from "@/lib/database/crud/delete";
 import { upsertRecord } from "@/lib/database/crud/upsert";
-import FieldManager from "@/lib/database/managers/field";
-import { createRecords } from "@/lib/database/client/crud/create";
-import AppManager from "@/lib/database/managers/app";
+import FieldManager from "@/lib/managers/field";
+import { createRecords } from "@/lib/client/database/crud/create";
+import AppManager from "@/lib/managers/app";
 
 /**
  * POST /api/[appId]/tables/[tableId]
@@ -23,7 +23,7 @@ import AppManager from "@/lib/database/managers/app";
  */
 export async function POST(
   request: NextRequest,
-  { params }: { params: Promise<{ appId: string; tableId: string }> }
+  { params }: { params: Promise<{ appId: string; tableId: string }> },
 ) {
   try {
     const { appId, tableId } = await params;
@@ -42,7 +42,7 @@ export async function POST(
     // Handle bulk creation
     if (body.records && Array.isArray(body.records)) {
       return NextResponse.json(
-        await createRecords(appId, tableId, body.records, true)
+        await createRecords(appId, tableId, body.records, true),
       );
     }
 
@@ -51,7 +51,7 @@ export async function POST(
         ? await createRecords(appId, tableId, body.records, true)
         : await createRecord(appId, tableId, tableRecord.data, body.data, {
             id: body.id,
-          })
+          }),
     );
   } catch (error) {
     console.error("Error creating record:", error);
@@ -60,7 +60,7 @@ export async function POST(
         error: "Failed to create record",
         details: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -77,7 +77,7 @@ export async function POST(
  */
 export async function GET(
   request: NextRequest,
-  { params }: { params: Promise<{ appId: string; tableId: string }> }
+  { params }: { params: Promise<{ appId: string; tableId: string }> },
 ) {
   try {
     const { appId, tableId } = await params;
@@ -112,7 +112,7 @@ export async function GET(
       } catch (e) {
         return NextResponse.json(
           { error: "Invalid fields parameter - must be valid JSON" },
-          { status: 400 }
+          { status: 400 },
         );
       }
     }
@@ -139,7 +139,7 @@ export async function GET(
         error: "Failed to read records",
         details: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -153,7 +153,7 @@ export async function GET(
  */
 export async function PATCH(
   request: NextRequest,
-  { params }: { params: Promise<{ appId: string; tableId: string }> }
+  { params }: { params: Promise<{ appId: string; tableId: string }> },
 ) {
   try {
     const { appId, tableId } = await params;
@@ -173,7 +173,7 @@ export async function PATCH(
         if (!update.id || !update.data) {
           return NextResponse.json(
             { error: "Each update must have an id and data field" },
-            { status: 400 }
+            { status: 400 },
           );
         }
       }
@@ -182,7 +182,7 @@ export async function PATCH(
         {
           error: "Record update should containa an id and data fields",
         },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -229,8 +229,8 @@ export async function PATCH(
             tableId,
             tableRecord.data,
             body.id,
-            body.data
-          )
+            body.data,
+          ),
     );
   } catch (error) {
     console.error("Error updating record:", error);
@@ -239,7 +239,7 @@ export async function PATCH(
         error: "Failed to update record",
         details: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -251,7 +251,7 @@ export async function PATCH(
  */
 export async function PUT(
   request: NextRequest,
-  { params }: { params: Promise<{ appId: string; tableId: string }> }
+  { params }: { params: Promise<{ appId: string; tableId: string }> },
 ) {
   try {
     const { appId, tableId } = await params;
@@ -268,7 +268,7 @@ export async function PUT(
     if (!body.id) {
       return NextResponse.json(
         { error: "Record id is required for upsert" },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
@@ -279,8 +279,8 @@ export async function PUT(
         tableRecord.data,
         body.id,
         body.data,
-        {}
-      )
+        {},
+      ),
     );
   } catch (error) {
     console.error("Error upserting record:", error);
@@ -289,7 +289,7 @@ export async function PUT(
         error: "Failed to upsert record",
         details: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }
@@ -304,7 +304,7 @@ export async function PUT(
  */
 export async function DELETE(
   request: NextRequest,
-  { params }: { params: Promise<{ appId: string; tableId: string }> }
+  { params }: { params: Promise<{ appId: string; tableId: string }> },
 ) {
   try {
     const { appId, tableId } = await params;
@@ -324,7 +324,10 @@ export async function DELETE(
     // Handle delete all
     if (deleteAllParam === "true") {
       await deleteAll(appId, tableId);
-      return NextResponse.json({ success: true, message: "All records deleted" });
+      return NextResponse.json({
+        success: true,
+        message: "All records deleted",
+      });
     } else if (idsParam) {
       const ids = idsParam.split(",");
       return NextResponse.json(await deleteRecords(appId, tableId, ids));
@@ -334,7 +337,7 @@ export async function DELETE(
 
     return NextResponse.json(
       { error: "Either id, ids, or deleteAll query parameter is required" },
-      { status: 400 }
+      { status: 400 },
     );
   } catch (error) {
     console.error("Error deleting record:", error);
@@ -343,7 +346,7 @@ export async function DELETE(
         error: "Failed to delete record",
         details: error instanceof Error ? error.message : String(error),
       },
-      { status: 500 }
+      { status: 500 },
     );
   }
 }

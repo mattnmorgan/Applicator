@@ -4,10 +4,10 @@ import { useState, useEffect } from "react";
 import styles from "./AuthorityCreate.module.css";
 import Toast from "@/lib/components/utility/Toast";
 import Badge from "@/lib/components/utility/Badge/Badge";
-import AuthorityManager from "@/lib/database/client/managers/authority";
-import AppManager from "@/lib/database/client/managers/app";
-import AuthorizationManager from "@/lib/database/client/managers/authorization";
-import AppletManager from "@/lib/database/client/managers/applet";
+import AuthorityManager from "@/lib/client/managers/authority";
+import AppManager from "@/lib/client/managers/app";
+import AuthorizationManager from "@/lib/client/managers/authorization";
+import AppletManager from "@/lib/client/managers/applet";
 
 interface AuthorityCreateProps {
   onCancel: () => void;
