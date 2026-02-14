@@ -19,7 +19,7 @@ export default function TestLogsPage() {
         sender: "system",
         level: level,
         message: `Test ${level} log created from test page`,
-        userId: (await getCurrentUser()).user.id,
+        user_id: (await getCurrentUser()).user.id,
       });
     } catch (error) {
       console.error("Error creating log:", error);

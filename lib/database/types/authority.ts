@@ -3,7 +3,7 @@ export default interface Authority {
   icon?: string;
   authorizations: string[];
   apps: string[];
-  userId?: string;
+  user_id?: string;
   contextual?: boolean;
   app?: string;
 }

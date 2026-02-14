@@ -30,7 +30,7 @@ export async function POST(request: Request) {
     // Verify password
     const isValidPassword = await verifyPassword(
       password,
-      users.records[0].data.passwordHash
+      users.records[0].data.password_hash
     );
     if (!isValidPassword) {
       return NextResponse.json(
@@ -40,7 +40,7 @@ export async function POST(request: Request) {
     }
 
     // Check if user is active
-    if (!users.records[0].data.isActive) {
+    if (!users.records[0].data.is_active) {
       return NextResponse.json(
         { error: "Invalid username or password" },
         { status: 401 }

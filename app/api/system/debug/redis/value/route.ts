@@ -1,7 +1,41 @@
 import { NextResponse } from "next/server";
 import LogManager from "@/lib/database/managers/log";
 import { getCurrentUser } from "@/lib/database/managers/user";
-import { getRedisClient } from "@/lib/database/crud/redis";
+import { getClient } from "@/lib/database/pg/transaction";
+import schema from "@/lib/database/schema";
+import { sqlRead } from "@/lib/database/crud/read";
+import { sqlUpdate } from "@/lib/database/crud/update";
+import { sqlDelete } from "@/lib/database/crud/delete";
+
+function parseKey(key: string): {
+  appId: string;
+  tableName: string;
+  id: string;
+} | null {
+  // App records: sandbox:{appId}:{tableName}:{id...}
+  if (key.startsWith("sandbox:")) {
+    const rest = key.slice("sandbox:".length);
+    const firstColon = rest.indexOf(":");
+    if (firstColon === -1) return null;
+    const appId = rest.slice(0, firstColon);
+    const afterAppId = rest.slice(firstColon + 1);
+    const secondColon = afterAppId.indexOf(":");
+    if (secondColon === -1) return null;
+    const tableName = afterAppId.slice(0, secondColon);
+    const id = afterAppId.slice(secondColon + 1);
+    return { appId, tableName, id };
+  }
+
+  // System tables: {tableName}:{id...}
+  for (const tableName of schema.tables.map((t) => t.name).filter((n) => n !== "records")) {
+    const prefix = `${tableName}:`;
+    if (key.startsWith(prefix)) {
+      return { appId: "system", tableName, id: key.slice(prefix.length) };
+    }
+  }
+
+  return null;
+}
 
 export async function GET(request: Request) {
   try {
@@ -28,14 +62,30 @@ export async function GET(request: Request) {
       );
     }
 
-    return NextResponse.json({
-      key: key,
-      value: await getRedisClient().get(key),
-    });
+    const parsed = parseKey(key);
+    if (!parsed) {
+      return NextResponse.json({ key, value: null });
+    }
+
+    const client = await getClient();
+    try {
+      const record = await sqlRead(
+        client,
+        parsed.appId,
+        parsed.tableName,
+        parsed.id,
+      );
+      return NextResponse.json({
+        key,
+        value: record ? JSON.stringify(record.data) : null,
+      });
+    } finally {
+      client.release();
+    }
   } catch (error) {
-    console.error("Failed to fetch Redis value:", error);
+    console.error("Failed to fetch database value:", error);
     return NextResponse.json(
-      { error: "Failed to fetch Redis value" },
+      { error: "Failed to fetch database value" },
       { status: 500 }
     );
   }
@@ -66,7 +116,29 @@ export async function POST(request: Request) {
       );
     }
 
-    await getRedisClient().set(key, value);
+    const parsed = parseKey(key);
+    if (!parsed) {
+      return NextResponse.json(
+        { error: "Invalid key format" },
+        { status: 400 }
+      );
+    }
+
+    const data = JSON.parse(value);
+
+    const client = await getClient();
+    try {
+      await sqlUpdate(
+        client,
+        parsed.appId,
+        parsed.tableName,
+        parsed.id,
+        data,
+        Date.now(),
+      );
+    } finally {
+      client.release();
+    }
 
     await new LogManager().createLog(
       "info",
@@ -75,9 +147,9 @@ export async function POST(request: Request) {
     );
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to update Redis value:", error);
+    console.error("Failed to update database value:", error);
     return NextResponse.json(
-      { error: "Failed to update Redis value" },
+      { error: "Failed to update database value" },
       { status: 500 }
     );
   }
@@ -108,7 +180,26 @@ export async function DELETE(request: Request) {
       );
     }
 
-    await getRedisClient().del(key);
+    const parsed = parseKey(key);
+    if (!parsed) {
+      return NextResponse.json(
+        { error: "Invalid key format" },
+        { status: 400 }
+      );
+    }
+
+    const client = await getClient();
+    try {
+      await sqlDelete(
+        client,
+        parsed.appId,
+        parsed.tableName,
+        parsed.id,
+      );
+    } finally {
+      client.release();
+    }
+
     await new LogManager().createLog(
       "info",
       'Database key was deleted: "' + key + '"',
@@ -116,9 +207,9 @@ export async function DELETE(request: Request) {
     );
     return NextResponse.json({ success: true });
   } catch (error) {
-    console.error("Failed to delete Redis key:", error);
+    console.error("Failed to delete database key:", error);
     return NextResponse.json(
-      { error: "Failed to delete Redis key" },
+      { error: "Failed to delete database key" },
       { status: 500 }
     );
   }

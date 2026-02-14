@@ -19,8 +19,8 @@ export default interface TableField {
   /** The app this field belongs to */
   app: string;
 
-  /** The table this field belongs to */
-  table: string;
+  /** The table_name this field belongs to */
+  table_name: string;
 
   /** The field name */
   name: string;
@@ -35,10 +35,10 @@ export default interface TableField {
   required?: boolean;
 
   /** For relationship fields - the related table (format: "appId:tableName") */
-  relatedTo?: string;
+  related_to?: string;
 
   /** Default value for the field */
-  defaultValue?: any;
+  default_value?: any;
 
   /** For picklist/multipicklist fields - the available options */
   options?: { [id: string]: string };

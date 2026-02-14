@@ -34,11 +34,11 @@ export default function DataModelsPage() {
       const filtered = tables
         .filter(
           (t) =>
-            t.table.tableName.toLowerCase().includes(query) ||
+            t.table.table_name.toLowerCase().includes(query) ||
             t.table.description.toLowerCase().includes(query) ||
             t.appName.toLowerCase().includes(query),
         )
-        .sort((a, b) => a.table.tableName.localeCompare(b.table.tableName));
+        .sort((a, b) => a.table.table_name.localeCompare(b.table.table_name));
       setFilteredTables(filtered);
     }
   }, [searchQuery, tables]);
@@ -71,7 +71,7 @@ export default function DataModelsPage() {
         const tableFieldsMap = new Map<string, TableField[]>();
         if (fieldsData.records) {
           fieldsData.records.forEach((fieldRecord) => {
-            const key = `${fieldRecord.data.app}:${fieldRecord.data.table}`;
+            const key = `${fieldRecord.data.app}:${fieldRecord.data.table_name}`;
             if (!tableFieldsMap.has(key)) {
               tableFieldsMap.set(key, []);
             }
@@ -82,7 +82,7 @@ export default function DataModelsPage() {
 
         // Transform records into TableSearchResult format
         const results: TableSearchResult[] = data.records.map((record) => {
-          const tableKey = `${record.data.app}:${record.data.tableName}`;
+          const tableKey = `${record.data.app}:${record.data.table_name}`;
           const fields = tableFieldsMap.get(tableKey) || [];
 
           return {
@@ -97,7 +97,7 @@ export default function DataModelsPage() {
 
         // Sort tables alphabetically by table name
         const sortedResults = results.sort((a, b) =>
-          a.table.tableName.localeCompare(b.table.tableName),
+          a.table.table_name.localeCompare(b.table.table_name),
         );
 
         setTables(sortedResults);
@@ -218,15 +218,15 @@ export default function DataModelsPage() {
               ) : (
                 filteredTables.map((result, index) => (
                   <div
-                    key={`${result.appId}:${result.table.tableName}`}
+                    key={`${result.appId}:${result.table.table_name}`}
                     onClick={() => setSelectedTable(result)}
                     style={{
                       padding: "16px",
                       background: "#1e293b",
                       border: `2px solid ${
                         selectedTable?.appId === result.appId &&
-                        selectedTable?.table.tableName ===
-                          result.table.tableName
+                        selectedTable?.table.table_name ===
+                          result.table.table_name
                           ? "#3b82f6"
                           : "#334155"
                       }`,
@@ -237,8 +237,8 @@ export default function DataModelsPage() {
                     onMouseOver={(e) => {
                       if (
                         selectedTable?.appId !== result.appId ||
-                        selectedTable?.table.tableName !==
-                          result.table.tableName
+                        selectedTable?.table.table_name !==
+                          result.table.table_name
                       ) {
                         e.currentTarget.style.borderColor = "#475569";
                       }
@@ -246,8 +246,8 @@ export default function DataModelsPage() {
                     onMouseOut={(e) => {
                       if (
                         selectedTable?.appId !== result.appId ||
-                        selectedTable?.table.tableName !==
-                          result.table.tableName
+                        selectedTable?.table.table_name !==
+                          result.table.table_name
                       ) {
                         e.currentTarget.style.borderColor = "#334155";
                       }
@@ -269,7 +269,7 @@ export default function DataModelsPage() {
                           margin: 0,
                         }}
                       >
-                        {result.table.tableName}
+                        {result.table.table_name}
                       </h3>
                       <Badge variant="gray">{result.appName}</Badge>
                     </div>
@@ -324,7 +324,7 @@ export default function DataModelsPage() {
                         margin: 0,
                       }}
                     >
-                      {selectedTable.table.tableName}
+                      {selectedTable.table.table_name}
                     </h2>
                     <Badge variant="gray">{selectedTable.appName}</Badge>
                   </div>
@@ -417,7 +417,7 @@ export default function DataModelsPage() {
                           >
                             {field.description}
                           </p>
-                          {field.relatedTo && (
+                          {field.related_to && (
                             <div
                               style={{
                                 fontSize: "12px",
@@ -431,11 +431,11 @@ export default function DataModelsPage() {
                                   fontFamily: "monospace",
                                 }}
                               >
-                                {field.relatedTo}
+                                {field.related_to}
                               </span>
                             </div>
                           )}
-                          {field.defaultValue !== undefined && (
+                          {field.default_value !== undefined && (
                             <div
                               style={{
                                 fontSize: "12px",
@@ -449,7 +449,7 @@ export default function DataModelsPage() {
                                   fontFamily: "monospace",
                                 }}
                               >
-                                {JSON.stringify(field.defaultValue)}
+                                {JSON.stringify(field.default_value)}
                               </span>
                             </div>
                           )}

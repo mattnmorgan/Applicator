@@ -1,16 +1,58 @@
+import { PoolClient } from "pg";
 import { v4 as uuidv4 } from "uuid";
 import Table from "@/lib/database/types/table";
 import TableRecord from "@/lib/database/crud/types/record";
-import { getRedisClient } from "@/lib/database/crud/redis";
 import { validateAndProcessRecord } from "@/lib/database/crud/validation";
-import { getRecordKey } from "@/lib/database/crud/redis";
 import BulkResult from "@/lib/database/crud/types/bulk-result";
-import type PendingOperation from "@/lib/database/crud/validation/types/pending-operation";
+import { withTransaction } from "@/lib/database/pg/transaction";
+import { quoteIfReserved } from "@/lib/database/schema/reserved";
 
 export type Options = {
   id?: string;
   skipValidation?: boolean;
 };
+
+function needsJsonStringify(value: any): boolean {
+  return value !== null && typeof value === "object" && !(value instanceof Date);
+}
+
+/**
+ * Low-level SQL insert for both system tables and the records table.
+ */
+export async function sqlCreate(
+  client: PoolClient,
+  appId: string,
+  tableName: string,
+  id: string,
+  data: Record<string, any>,
+  createdAt: number,
+  updatedAt: number,
+): Promise<void> {
+  if (appId === "system") {
+    const sqlColumns: string[] = ["id", "created_at", "updated_at"];
+    const sqlValues: any[] = [id, createdAt, updatedAt];
+
+    for (const [col, value] of Object.entries(data)) {
+      if (value !== undefined) {
+        sqlColumns.push(col);
+        sqlValues.push(needsJsonStringify(value) ? JSON.stringify(value) : value);
+      }
+    }
+
+    const placeholders = sqlValues.map((_, i) => `$${i + 1}`).join(", ");
+    const quotedColumns = sqlColumns.map(quoteIfReserved).join(", ");
+
+    await client.query(
+      `INSERT INTO ${tableName} (${quotedColumns}) VALUES (${placeholders})`,
+      sqlValues,
+    );
+  } else {
+    await client.query(
+      `INSERT INTO records (id, app_id, table_name, data, created_at, updated_at) VALUES ($1, $2, $3, $4, $5, $6)`,
+      [id, appId, tableName, JSON.stringify(data), createdAt, updatedAt],
+    );
+  }
+}
 
 export function createRecordWrapper<T = any>(appId: string, tableName: string) {
   return (table: Table | null, data: T, options: Options = {}) =>
@@ -32,56 +74,38 @@ export async function createRecord<T = any>(
   data: T,
   options: Options = {},
 ): Promise<TableRecord<T>> {
-  const redis = getRedisClient();
-  const id = options.id || uuidv4();
-  const now = Date.now();
+  return withTransaction(async (client) => {
+    const id = options.id || uuidv4();
+    const now = Date.now();
 
-  // Validate and process the record (skip if table is null - bootstrap scenario)
-  const processedData = await validateAndProcessRecord(
-    appId,
-    tableName,
-    table,
-    data as Record<string, any>,
-    options.skipValidation || !table,
-    id,
-  );
-
-  const record: TableRecord<T> = {
-    id,
-    data: processedData as T,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  // Save primary record first so cascade formulas see it in Redis
-  const key = getRecordKey(appId, tableName, id);
-  await redis.set(key, JSON.stringify(record));
-
-  // Collect and commit cascade operations (formulas can now query the new record)
-  if (table) {
-    const { cascadeCollect } =
-      await import("@/lib/database/crud/validation/cascade");
-    const cascadeOps = await cascadeCollect(
+    // Validate and process the record (skip if table is null - bootstrap scenario)
+    const processedData = await validateAndProcessRecord(
       appId,
       tableName,
+      table,
+      data as Record<string, any>,
+      options.skipValidation || !table,
       id,
-      processedData as Record<string, any>,
+      client,
     );
 
-    if (cascadeOps.length > 0) {
-      const pipeline = redis.pipeline();
-      for (const op of cascadeOps) {
-        if (op.type === "del") {
-          pipeline.del(op.key);
-        } else {
-          pipeline.set(op.key, op.value!);
-        }
-      }
-      await pipeline.exec();
-    }
-  }
+    // Save primary record within transaction — cascade reads will see it
+    await sqlCreate(client, appId, tableName, id, processedData, now, now);
 
-  return record;
+    // Cascade: formulas run within the same transaction and see the new record
+    if (table) {
+      const { cascadeCollect } =
+        await import("@/lib/database/crud/validation/cascade");
+      await cascadeCollect(appId, tableName, id, processedData as Record<string, any>, client);
+    }
+
+    return {
+      id,
+      data: processedData as T,
+      created_at: now,
+      updated_at: now,
+    };
+  });
 }
 
 export async function bulkCreateRecords<T = any>(
@@ -91,86 +115,66 @@ export async function bulkCreateRecords<T = any>(
   dataArray: T[],
   options: Options = {},
 ): Promise<BulkResult<T>> {
-  const redis = getRedisClient();
-  const now = Date.now();
-  const records: TableRecord<T>[] = [];
-  const failures: Array<{ data: any; error: string }> = [];
+  return withTransaction(async (client) => {
+    const now = Date.now();
+    const records: TableRecord<T>[] = [];
+    const failures: Array<{ data: any; error: string }> = [];
 
-  // Validate and process all records first
-  for (let i = 0; i < dataArray.length; i++) {
-    try {
-      const data = dataArray[i];
-      const id = uuidv4();
+    // Validate and process all records first
+    for (let i = 0; i < dataArray.length; i++) {
+      try {
+        const data = dataArray[i];
+        const id = uuidv4();
 
-      const processedData = await validateAndProcessRecord(
-        appId,
-        tableName,
-        table,
-        data as Record<string, any>,
-        options.skipValidation || !table,
-        id,
-      );
+        const processedData = await validateAndProcessRecord(
+          appId,
+          tableName,
+          table,
+          data as Record<string, any>,
+          options.skipValidation || !table,
+          id,
+          client,
+        );
 
-      records.push({
-        id,
-        data: processedData as T,
-        createdAt: now,
-        updatedAt: now,
-      });
-    } catch (error) {
-      failures.push({
-        data: dataArray[i],
-        error: error instanceof Error ? error.message : "Unknown error",
-      });
-    }
-  }
-
-  // If any validation failed, don't commit anything
-  if (failures.length > 0) {
-    return {
-      success: [],
-      failures,
-    };
-  }
-
-  // Save all primary records first so cascade formulas see them
-  const primaryPipeline = redis.pipeline();
-  for (const record of records) {
-    const key = getRecordKey(appId, tableName, record.id);
-    primaryPipeline.set(key, JSON.stringify(record));
-  }
-  await primaryPipeline.exec();
-
-  // Collect and commit cascade operations
-  if (table) {
-    const cascadeOps: PendingOperation[] = [];
-    const { cascadeCollect } =
-      await import("@/lib/database/crud/validation/cascade");
-    for (const record of records) {
-      const ops = await cascadeCollect(
-        appId,
-        tableName,
-        record.id,
-        record.data as Record<string, any>,
-      );
-      cascadeOps.push(...ops);
-    }
-
-    if (cascadeOps.length > 0) {
-      const cascadePipeline = redis.pipeline();
-      for (const op of cascadeOps) {
-        if (op.type === "del") {
-          cascadePipeline.del(op.key);
-        } else {
-          cascadePipeline.set(op.key, op.value!);
-        }
+        records.push({
+          id,
+          data: processedData as T,
+          created_at: now,
+          updated_at: now,
+        });
+      } catch (error) {
+        failures.push({
+          data: dataArray[i],
+          error: error instanceof Error ? error.message : "Unknown error",
+        });
       }
-      await cascadePipeline.exec();
     }
-  }
 
-  return {
-    success: records,
-    failures: [],
-  };
+    // If any validation failed, don't commit anything (transaction will rollback)
+    if (failures.length > 0) {
+      return {
+        success: [],
+        failures,
+      };
+    }
+
+    // Save all primary records within the transaction
+    for (const record of records) {
+      await sqlCreate(client, appId, tableName, record.id, record.data as Record<string, any>, now, now);
+    }
+
+    // Cascade: formulas run within the same transaction and see all new records
+    if (table) {
+      const { cascadeCollect } =
+        await import("@/lib/database/crud/validation/cascade");
+      for (const record of records) {
+        await cascadeCollect(appId, tableName, record.id, record.data as Record<string, any>, client);
+      }
+    }
+
+    return {
+      success: records,
+      failures: [],
+    };
+  });
 }

@@ -1,3 +1,4 @@
+import { PoolClient } from "pg";
 import Field from "@/lib/database/types/field";
 import Context from "@/lib/database/crud/validation/types/formula-context";
 import path from "path";
@@ -11,6 +12,7 @@ import vm from "vm";
  * @param field The field definition
  * @param record The full record for formula calculation
  * @param recordId The record's ID
+ * @param client Optional PoolClient so formula queries see uncommitted writes
  * @returns Calculated value
  */
 export async function executeFormula(
@@ -18,7 +20,8 @@ export async function executeFormula(
   tableName: string,
   field: Field,
   record: Record<string, any>,
-  recordId: string = ""
+  recordId: string = "",
+  client?: PoolClient,
 ): Promise<any> {
   try {
     // Get system storage path (lazy import to avoid circular dependency)
@@ -38,7 +41,7 @@ export async function executeFormula(
       "tables",
       tableName,
       field.name,
-      "formula.js"
+      "formula.js",
     );
 
     // Check if formula exists
@@ -50,6 +53,7 @@ export async function executeFormula(
     const scriptCode = fs.readFileSync(formulaPath, "utf8");
 
     // Build the query function for cross-table lookups
+    // Pass the PoolClient so queries within formulas see uncommitted writes
     const { readRecords } = await import("@/lib/database/crud/read");
     const { default: FieldManager } = await import("@/lib/database/managers/field");
     const fieldManager = new FieldManager();
@@ -57,10 +61,10 @@ export async function executeFormula(
     const queryFn = async (
       queryAppId: string,
       queryTableName: string,
-      filter: { fields?: Record<string, any>; limit?: number; offset?: number } = {}
+      filter: { fields?: Record<string, any>; limit?: number; offset?: number } = {},
     ) => {
       const tableFields = await fieldManager.loadTableFields(queryAppId, queryTableName);
-      return readRecords(queryAppId, queryTableName, tableFields, filter);
+      return readRecords(queryAppId, queryTableName, tableFields, filter, client);
     };
 
     // Create a sandbox context with the formula context
@@ -99,7 +103,7 @@ export async function executeFormula(
     throw new Error(
       `Formula execution failed for field ${field.name}: ${
         error instanceof Error ? error.message : "Unknown error"
-      }`
+      }`,
     );
   }
 }
@@ -111,6 +115,7 @@ export async function executeFormula(
  * @param fields The table field definitions
  * @param data The record data
  * @param recordId The record's ID
+ * @param client Optional PoolClient so formula queries see uncommitted writes
  * @returns Updated record data with calculated formula values
  */
 export async function calculateFormulas(
@@ -118,13 +123,14 @@ export async function calculateFormulas(
   tableName: string,
   fields: Field[],
   data: Record<string, any>,
-  recordId: string = ""
+  recordId: string = "",
+  client?: PoolClient,
 ): Promise<Record<string, any>> {
   const updatedData = { ...data };
 
   for (const field of fields) {
     if (field.type === "formula") {
-      const value = await executeFormula(appId, tableName, field, updatedData, recordId);
+      const value = await executeFormula(appId, tableName, field, updatedData, recordId, client);
       updatedData[field.name] = value;
     }
   }

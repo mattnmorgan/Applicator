@@ -142,7 +142,7 @@ export async function installAppComponents(
     for (const table of appAttributes.tables) {
       // Create table record
       await tableManager.createTable(appId, table.name, {
-        tableName: table.name,
+        table_name: table.name,
         app: appId,
         description: table.description || "",
       });
@@ -234,7 +234,7 @@ export async function installAppComponents(
           app: appId,
           cron: agent.cron,
           status: "stopped",
-          wasRunning: false,
+          was_running: false,
         },
         { id: `${appId}:${agent.name}` },
       );
@@ -351,7 +351,7 @@ export async function updateAppComponents(
     );
     const existingTableNames = new Set(
       existingTables.map((t: any) =>
-        typeof t === "string" ? t.split(":")[1] : t.data.tableName,
+        typeof t === "string" ? t.split(":")[1] : t.data.table_name,
       ),
     );
 
@@ -364,7 +364,7 @@ export async function updateAppComponents(
 
       // Create table record
       await tableManager.createTable(appId, table.name, {
-        tableName: table.name,
+        table_name: table.name,
         app: appId,
         description: table.description || "",
       });
@@ -408,7 +408,7 @@ export async function updateAppComponents(
           description: agent.description || "",
           app: appId,
           cron: agent.cron,
-          // Preserve: status, pid, lastRun, lastError, wasRunning
+          // Preserve: status, pid, last_run, last_error, was_running
         });
       } else {
         // Create new agent
@@ -420,7 +420,7 @@ export async function updateAppComponents(
             app: appId,
             cron: agent.cron,
             status: "stopped",
-            wasRunning: false,
+            was_running: false,
           },
           { id: `${appId}:${agent.name}` },
         );
@@ -527,10 +527,10 @@ export async function installApp(
       label: appAttributes.name,
       version: appAttributes.version,
       author: appAttributes.author,
-      contactEmail: appAttributes.contactEmail || "",
+      contact_email: appAttributes.contactEmail || "",
       description: appAttributes.description,
       dependencies: appAttributes.dependencies || {},
-      requiredPermissions: appAttributes.requiredPermissions || [],
+      required_permissions: appAttributes.requiredPermissions || [],
     },
     { id: appAttributes.id },
   );
@@ -621,7 +621,7 @@ export async function upgradeSystemApp(): Promise<{
     label: SYSTEM_APP_METADATA.name,
     version: SYSTEM_APP_METADATA.version,
     author: SYSTEM_APP_METADATA.author,
-    contactEmail: SYSTEM_APP_METADATA.contactEmail,
+    contact_email: SYSTEM_APP_METADATA.contact_email,
     description: SYSTEM_APP_METADATA.description,
     dependencies: SYSTEM_APP_METADATA.dependencies,
   });
@@ -693,7 +693,7 @@ export async function upgradeSystemApp(): Promise<{
     const fieldManager = new FieldManager();
 
     // MIGRATION: Check if fields table exists, if not this is the first upgrade with the new field system
-    const fieldsTableExists = await tableManager.loadTable("system", "field");
+    const fieldsTableExists = await tableManager.loadTable("system", "fields");
     if (!fieldsTableExists) {
       await new LogManager().info(
         "system",
@@ -728,7 +728,7 @@ export async function upgradeSystemApp(): Promise<{
     const existingTables = allTables.filter((t) => t.startsWith("system:"));
     const existingTableNames = new Set(
       existingTables.map((t: any) =>
-        typeof t === "string" ? t.split(":")[1] : t.data.tableName,
+        typeof t === "string" ? t.split(":")[1] : t.data.table_name,
       ),
     );
 
@@ -739,7 +739,7 @@ export async function upgradeSystemApp(): Promise<{
       }
 
       await tableManager.createTable("system", table.name, {
-        tableName: table.name,
+        table_name: table.name,
         app: "system",
         description: table.description || "",
       });
@@ -926,10 +926,10 @@ export async function upgradeApp(
       label: appAttributes.name,
       version: appAttributes.version,
       author: appAttributes.author,
-      contactEmail: appAttributes.contactEmail || "",
+      contact_email: appAttributes.contactEmail || "",
       description: appAttributes.description,
       dependencies: appAttributes.dependencies || {},
-      requiredPermissions: appAttributes.requiredPermissions || [],
+      required_permissions: appAttributes.requiredPermissions || [],
     });
 
     // Update components
@@ -1061,10 +1061,10 @@ export async function setupSystem(adminUser: {
       label: SYSTEM_APP_METADATA.name,
       version: SYSTEM_APP_METADATA.version,
       author: SYSTEM_APP_METADATA.author,
-      contactEmail: SYSTEM_APP_METADATA.contactEmail,
+      contact_email: SYSTEM_APP_METADATA.contact_email,
       description: SYSTEM_APP_METADATA.description,
       dependencies: SYSTEM_APP_METADATA.dependencies,
-      requiredPermissions: [],
+      required_permissions: [],
     },
     { id: "system" },
   );
@@ -1121,7 +1121,7 @@ export async function setupSystem(adminUser: {
   for (const table of SYSTEM_APP_METADATA.tables) {
     // Create the table definition (without fields)
     await tableManager.createTable("system", table.name, {
-      tableName: table.name,
+      table_name: table.name,
       app: "system",
       description: table.description,
     });
@@ -1172,10 +1172,10 @@ export async function setupSystem(adminUser: {
   const user = await userManager.createRecord(await userManager.getTable(), {
     username: adminUser.username,
     email: adminUser.email,
-    displayName: adminUser.displayName,
-    passwordHash,
-    authority: "system:admin",
-    isActive: true,
+    display_name: adminUser.displayName,
+    password_hash: passwordHash,
+    authority_id: "system:admin",
+    is_active: true,
   });
 
   // Mark setup as complete

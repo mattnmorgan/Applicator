@@ -1,3 +1,4 @@
+import { PoolClient } from "pg";
 import Table from "@/lib/database/types/table";
 import {
   validateRequiredFields,
@@ -17,6 +18,7 @@ import { hashPasswordFields } from "@/lib/database/crud/validation/password";
  * @param data The record data
  * @param skipValidation Whether to skip validation
  * @param recordId Id of the record being validated/processed
+ * @param client Optional PoolClient for within-transaction reads (formula queries)
  * @returns Processed record data
  * @throws Error if validation fails
  */
@@ -27,6 +29,7 @@ export async function validateAndProcessRecord(
   data: Record<string, any>,
   skipValidation: boolean = false,
   recordId: string = "",
+  client?: PoolClient,
 ): Promise<Record<string, any>> {
   let processedData = { ...data };
 
@@ -73,13 +76,14 @@ export async function validateAndProcessRecord(
     throw new Error(`Multipicklist field validation failed: ${errors}`);
   }
 
-  // Calculate formula fields
+  // Calculate formula fields (pass client so formulas see uncommitted writes)
   processedData = await calculateFormulas(
     appId,
     tableName,
     fields,
     processedData,
     recordId,
+    client,
   );
 
   // Execute validator scripts

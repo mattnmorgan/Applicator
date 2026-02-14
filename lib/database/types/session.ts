@@ -1,5 +1,5 @@
 export default interface Session {
-  userId: string;
-  expiresAt: string;
-  originalSessionId?: string;
+  user_id: string;
+  expires_at: string;
+  original_session_id?: string;
 }

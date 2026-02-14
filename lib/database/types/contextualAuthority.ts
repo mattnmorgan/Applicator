@@ -4,7 +4,7 @@ export default interface ContextualAuthority {
   authority?: string;
   password?: string;
   app: string;
-  createdAt: number;
-  createdBy: string;
+  created_at: number;
+  created_by: string;
   context?: string;
 }

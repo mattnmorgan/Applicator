@@ -151,7 +151,7 @@ class AgentSystem {
     const allAgents = await agentManager.readRecords();
 
     const agentsToRestart = allAgents.records.filter(
-      (agent) => agent.data.wasRunning === true,
+      (agent) => agent.data.was_running === true,
     );
 
     for (const agentRecord of agentsToRestart) {
@@ -170,8 +170,8 @@ class AgentSystem {
             agentRecord.id,
             {
               status: "stopped",
-              wasRunning: false,
-              lastError: "Storage not configured",
+              was_running: false,
+              last_error: "Storage not configured",
             },
           );
           continue;
@@ -209,7 +209,7 @@ class AgentSystem {
           agentRecord.id,
           {
             status: "error",
-            lastError: `Failed to auto-restart: ${error.message}`,
+            last_error: `Failed to auto-restart: ${error.message}`,
           },
         );
       }

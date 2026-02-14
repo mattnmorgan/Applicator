@@ -17,12 +17,7 @@ import {
   bulkCreateRecordsWrapper,
 } from "@/lib/database/crud/create";
 import { upsertRecordWrapper } from "@/lib/database/crud/upsert";
-import {
-  getRedisClient,
-  getKeyPrefix,
-  closeRedis,
-  getRecordKey,
-} from "@/lib/database/crud/redis";
+import { closePool } from "@/lib/database/pg/pool";
 import { listRecords } from "@/lib/database/crud/list";
 import Table from "@/lib/database/types/table";
 import Field from "@/lib/database/types/field";
@@ -74,7 +69,7 @@ export default abstract class CRUD<T = any> {
     if (!this.table) {
       const tableRecord = await readRecord<Table>(
         "system",
-        "table",
+        "app_tables",
         `${this.appId}:${this.tableName}`,
       );
       this.table = tableRecord?.data || null;
@@ -87,7 +82,7 @@ export default abstract class CRUD<T = any> {
       // We pass an empty array for readRecords here because it only gets used for
       // checking relationships, which we don't care about here
       this.fields =
-        (await readRecords<Field>("system", "field", [], {}))?.records?.map(
+        (await readRecords<Field>("system", "fields", [], {}))?.records?.map(
           (r) => r.data,
         ) || null;
     }
@@ -102,10 +97,7 @@ export default abstract class CRUD<T = any> {
     await deleteAll(this.appId, this.tableName);
   }
 
-  getRedisClient = getRedisClient;
-  getKeyPrefix = getKeyPrefix;
-  closeRedis = closeRedis;
-  getRecordKey = getRecordKey;
+  closePool = closePool;
 }
 
 /**

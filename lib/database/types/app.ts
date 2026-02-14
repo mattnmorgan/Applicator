@@ -4,8 +4,8 @@ export default interface App {
   label: string;
   version: AppVersion;
   author: string;
-  contactEmail: string;
+  contact_email: string;
   description: string;
   dependencies?: Record<string, AppVersion>;
-  requiredPermissions: string[];
+  required_permissions: string[];
 }

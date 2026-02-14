@@ -118,7 +118,7 @@ export default function AppList() {
             label: record.data.label,
             version: record.data.version,
             author: record.data.author,
-            contactEmail: record.data.contactEmail,
+            contactEmail: record.data.contact_email,
             description: record.data.description,
             dependencies: record.data.dependencies,
             apiRoutes: apiRoutesByApp[record.id] || [],

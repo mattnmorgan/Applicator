@@ -1,5 +1,5 @@
 export default interface Table {
-  tableName: string;
+  table_name: string;
   app: string;
   description: string;
 }

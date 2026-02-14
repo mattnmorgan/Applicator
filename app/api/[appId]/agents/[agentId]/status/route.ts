@@ -23,7 +23,7 @@ export async function GET(
     }
 
     // Check authorization - must be admin or the app checking its own agents
-    const hasAdmin = await userHasAuthorization(session.userId, "system:admin");
+    const hasAdmin = await userHasAuthorization(session.user_id, "system:admin");
 
     // Check if request is from the app itself (via X-App-Id header)
     const requestingAppId = request.headers.get("X-App-Id");
@@ -57,8 +57,8 @@ export async function GET(
       cron: agent.data.cron,
       status: effectiveStatus || agent.data.status,
       isRunning: actuallyRunning,
-      lastRun: status.lastRun || agent.data.lastRun,
-      lastError: status.lastError || agent.data.lastError,
+      lastRun: status.lastRun || agent.data.last_run,
+      lastError: status.lastError || agent.data.last_error,
       nextRun: status.nextRun,
       nextRunFormatted: status.nextRunFormatted,
     });

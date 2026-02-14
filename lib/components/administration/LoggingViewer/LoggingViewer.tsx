@@ -93,7 +93,7 @@ export default function LoggingViewer() {
     }
   };
 
-  logs.sort((a, b) => b.createdAt - a.createdAt);
+  logs.sort((a, b) => b.created_at - a.created_at);
 
   return (
     <div className={styles.container}>
@@ -166,9 +166,9 @@ export default function LoggingViewer() {
                     <span className={styles.logSender}>
                       [{log.data.sender}]
                     </span>
-                    {log.data.userId && (
+                    {log.data.user_id && (
                       <span className={styles.logUserId}>
-                        user:{log.data.userId.substring(0, 8)}
+                        user:{log.data.user_id.substring(0, 8)}
                       </span>
                     )}
                     <span className={styles.logMessage}>

@@ -10,9 +10,9 @@ export async function POST() {
     if (sessionId) {
       const session = await getSession(sessionId);
 
-      if (session?.originalSessionId) {
+      if (session?.original_session_id) {
         await new SessionManager().deleteRecord(sessionId);
-        cookieStore.set("session", session.originalSessionId, {
+        cookieStore.set("session", session.original_session_id, {
           httpOnly: true,
           secure: process.env.NODE_ENV === "production",
           sameSite: "lax",

@@ -19,7 +19,7 @@ export default function TestNotificationsPage() {
           type: type,
           message: "This is a test notification",
           timestamp: Date.now(),
-          userId: (await getCurrentUser()).user.id,
+          user_id: (await getCurrentUser()).user.id,
           app: "system",
           title: "Test Notification (" + type + ")",
           archived: false,

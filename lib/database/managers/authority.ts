@@ -4,7 +4,7 @@ import { Options as CreateOptions } from "@/lib/database/crud/create";
 import { Options as UpdateOptions } from "@/lib/database/crud/update";
 
 export default class AuthorityManager extends CRUD<Authority> {
-  tableName = "authority";
+  tableName = "authorities";
   appId = "system";
 
   async readUserAuthority(uid: string) {

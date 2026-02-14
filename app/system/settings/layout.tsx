@@ -14,11 +14,11 @@ async function getCurrentUser() {
 
   return {
     id: result.user.id,
-    displayName: result.user.data.displayName,
+    displayName: result.user.data.display_name,
     username: result.user.data.username,
     email: result.user.data.email,
     icon: result.user.data.icon,
-    authority: result.user.data.authority,
+    authority: result.user.data.authority_id,
     authorizations: result.authorizations.flat(),
     authorities: result.authorities,
     isAssumedIdentity: result.isAssumedIdentity,

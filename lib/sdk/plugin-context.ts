@@ -184,14 +184,14 @@ export default class Context {
         "user",
       ).readRecord(targetUserId);
       const systemAuthority = await authorityManager.readRecord(
-        userRecord.data.authority,
+        userRecord.data.authority_id,
       );
       const userSpecificAuthority = await authorityManager.readRecord(
         `user-specific:${targetUserId}`,
       );
       userInfo = {
         id: targetUserId,
-        displayName: userRecord.data.displayName,
+        display_name: userRecord.data.display_name,
         username: userRecord.data.username,
         email: userRecord.data.email,
         authorities: {

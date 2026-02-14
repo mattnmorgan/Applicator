@@ -5,7 +5,7 @@ import { getCurrentUser } from "@/lib/database/managers/user";
 
 export default class LogManager extends CRUD<Log> {
   appId = "system";
-  tableName = "log";
+  tableName = "logs";
 
   async createLog(
     variant: LogLevel,
@@ -36,7 +36,7 @@ export default class LogManager extends CRUD<Log> {
         {
           level: variant,
           message: message,
-          userId,
+          user_id: userId,
           timestamp: `${now}`,
           sender,
         },

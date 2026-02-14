@@ -32,7 +32,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Check if user has admin authorization
-    const hasAdmin = await userHasAuthorization(session.userId, "system:admin");
+    const hasAdmin = await userHasAuthorization(session.user_id, "system:admin");
     if (!hasAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -177,13 +177,13 @@ export async function POST(request: NextRequest) {
 
     for (const table of appTables) {
       // Delete all records in this table
-      await deleteAll(appId, table.data.tableName);
+      await deleteAll(appId, table.data.table_name);
 
       // Delete the field definitions for this table
-      await fieldManager.deleteTableFields(appId, table.data.tableName);
+      await fieldManager.deleteTableFields(appId, table.data.table_name);
 
       // Delete the table definition
-      await tableManager.deleteTable(appId, table.data.tableName);
+      await tableManager.deleteTable(appId, table.data.table_name);
     }
 
     // Delete all API routes for this app
@@ -271,7 +271,7 @@ export async function POST(request: NextRequest) {
       if (appsChanged || authorizationsChanged) {
         await authorityManager.updateRecord(
           await authorityManager.getTable(),
-          authority.data.userId
+          authority.data.user_id
             ? `user-specific:${authority.id}`
             : authority.id,
           {

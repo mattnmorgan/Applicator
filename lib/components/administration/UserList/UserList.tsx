@@ -61,11 +61,11 @@ export default function UserList() {
         id: record.id,
         username: record.data.username,
         email: record.data.email,
-        displayName: record.data.displayName,
-        authority: record.data.authority,
+        displayName: record.data.display_name,
+        authority: record.data.authority_id,
         authorityName:
-          authorityIdToName.get(record.data.authority) || "Unknown",
-        isActive: record.data.isActive,
+          authorityIdToName.get(record.data.authority_id) || "Unknown",
+        isActive: record.data.is_active,
         icon:
           record.data.icon && record.data.icon.trim() !== ""
             ? `/api/system/assets/icons/users/${record.id}?t=${Date.now()}`
@@ -115,10 +115,10 @@ export default function UserList() {
     try {
       const updates = Array.from(selectedUserIds).reduce(
         (acc, id) => {
-          acc[id] = { isActive };
+          acc[id] = { is_active: isActive };
           return acc;
         },
-        {} as Record<string, { isActive: boolean }>,
+        {} as Record<string, { is_active: boolean }>,
       );
 
       await userManager.updateRecords(updates);
@@ -162,7 +162,7 @@ export default function UserList() {
 
       // Fetch main authority data
       const mainAuthorityData = await authorityManager.readRecords({
-        ids: [userRecord.data.authority],
+        ids: [userRecord.data.authority_id],
       });
       const mainAuthority = mainAuthorityData.records?.[0];
 
@@ -176,9 +176,9 @@ export default function UserList() {
         id: userRecord.id,
         username: userRecord.data.username,
         email: userRecord.data.email,
-        displayName: userRecord.data.displayName,
-        authority: userRecord.data.authority,
-        isActive: userRecord.data.isActive,
+        displayName: userRecord.data.display_name,
+        authority: userRecord.data.authority_id,
+        isActive: userRecord.data.is_active,
         icon: userRecord.data.icon, // Preserve the actual file path
         authorityName: mainAuthority?.data.name || "Unknown",
         allAuthorizations: {

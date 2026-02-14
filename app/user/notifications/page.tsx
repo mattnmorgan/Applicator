@@ -28,7 +28,7 @@ export default function NotificationsPage() {
       setNotifications(
         result.records.sort(
           (a: TableRecord<Notification>, b: TableRecord<Notification>) =>
-            b.createdAt - a.createdAt,
+            b.created_at - a.created_at,
         ),
       );
     } catch (error) {

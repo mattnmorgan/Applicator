@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import LogManager from "@/lib/database/managers/log";
 import { getCurrentUser } from "@/lib/database/managers/user";
-import { getRedisClient } from "@/lib/database/crud/redis";
+import { getClient } from "@/lib/database/pg/transaction";
+import schema from "@/lib/database/schema";
 
-export async function POST(request: Request) {
+export async function POST() {
   try {
     const user = await getCurrentUser();
 
@@ -19,7 +20,19 @@ export async function POST(request: Request) {
     }
 
     await new LogManager().createLog("info", "Database was flushed", "system");
-    await getRedisClient().flushdb();
+
+    const client = await getClient();
+    try {
+      // Truncate app records first
+      await client.query(`TRUNCATE records`);
+
+      // Truncate system tables (junction tables are handled by CASCADE)
+      for (const tableName of schema.tables.map((t) => t.name).filter((n) => n !== "records")) {
+        await client.query(`TRUNCATE ${tableName} CASCADE`);
+      }
+    } finally {
+      client.release();
+    }
 
     return NextResponse.json({
       success: true,

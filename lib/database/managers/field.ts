@@ -2,7 +2,7 @@ import CRUD from "@/lib/database/crud";
 import Field from "@/lib/database/types/field";
 
 export default class FieldManager extends CRUD<Field> {
-  tableName = "field";
+  tableName = "fields";
   appId = "system";
 
   /**
@@ -20,7 +20,7 @@ export default class FieldManager extends CRUD<Field> {
    */
   async loadTableFields(appId: string, tableName: string): Promise<Field[]> {
     const result = await super.readRecords({
-      fields: { app: appId, table: tableName },
+      fields: { app: appId, table_name: tableName },
     });
     return result.records.map((r) => r.data);
   }
@@ -34,11 +34,11 @@ export default class FieldManager extends CRUD<Field> {
   async createField(
     appId: string,
     tableName: string,
-    field: Omit<Field, "app" | "table">
+    field: Omit<Field, "app" | "table_name">
   ): Promise<void> {
     const fieldRecord: Field = {
       app: appId,
-      table: tableName,
+      table_name: tableName,
       ...field,
     };
 

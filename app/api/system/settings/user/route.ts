@@ -24,7 +24,7 @@ export async function GET() {
     // Get user's authorizations
     const authorityManager = new AuthorityManager();
     const mainAuthority = await authorityManager.readRecord(
-      user.data.authority
+      user.data.authority_id
     );
     const userAuthority = await authorityManager.readUserAuthority(user.id);
 
@@ -63,10 +63,10 @@ export async function GET() {
     return NextResponse.json({
       user: {
         id: user.id,
-        displayName: user.data.displayName,
+        displayName: user.data.display_name,
         username: user.data.username,
         email: user.data.email,
-        authority: user.data.authority,
+        authority: user.data.authority_id,
         isAdmin: authorizations.has("system:admin"),
         profilePicture: profilePictureUrl,
       },
@@ -120,7 +120,7 @@ export async function PATCH(request: Request) {
         );
       }
 
-      const passwordMatch = await bcrypt.compare(currentPassword, currentUser.data.passwordHash);
+      const passwordMatch = await bcrypt.compare(currentPassword, currentUser.data.password_hash);
       if (!passwordMatch) {
         return NextResponse.json(
           { error: 'Current password is incorrect' },

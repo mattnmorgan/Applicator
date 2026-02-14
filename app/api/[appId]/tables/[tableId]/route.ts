@@ -28,7 +28,7 @@ export async function POST(
   try {
     const { appId, tableId } = await params;
     const session = await getSessionFromRequest(request);
-    const userId = session?.userId;
+    const userId = session?.user_id;
 
     // Load table definition
     const tableManager = new TableManager();
@@ -82,7 +82,7 @@ export async function GET(
   try {
     const { appId, tableId } = await params;
     const session = await getSessionFromRequest(request);
-    const userId = session?.userId;
+    const userId = session?.user_id;
 
     // Load table definition
     const tableManager = new TableManager();
@@ -202,9 +202,9 @@ export async function PATCH(
           const appManager = new AppManager();
           const appRecord = await appManager.readRecord(targetAppId);
 
-          if (appRecord?.data.requiredPermissions?.length) {
+          if (appRecord?.data.required_permissions?.length) {
             const updatedAuthorizations: string[] = update.data.authorizations;
-            const missing = appRecord.data.requiredPermissions.filter(
+            const missing = appRecord.data.required_permissions.filter(
               (perm: string) => !updatedAuthorizations.includes(perm),
             );
 

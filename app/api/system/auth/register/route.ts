@@ -44,10 +44,10 @@ export async function POST(request: Request) {
     await userManager.createRecord(await userManager.getTable(), {
       username,
       email,
-      displayName,
-      passwordHash,
-      authority: "system:user",
-      isActive: true,
+      display_name: displayName,
+      password_hash: passwordHash,
+      authority_id: "system:user",
+      is_active: true,
     });
 
     return NextResponse.json({

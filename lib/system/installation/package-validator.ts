@@ -313,7 +313,7 @@ export async function validateAppPackage(
     // Add existing tables from the system
     for (const tableRecord of allTables.records) {
       existingTableNames.add(
-        `${tableRecord.data.app}:${tableRecord.data.tableName}`
+        `${tableRecord.data.app}:${tableRecord.data.table_name}`
       );
     }
 

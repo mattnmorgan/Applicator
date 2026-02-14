@@ -25,7 +25,7 @@ export async function GET(
     }
 
     // Check authorization - must be admin
-    const hasAdmin = await userHasAuthorization(session.userId, "system:admin");
+    const hasAdmin = await userHasAuthorization(session.user_id, "system:admin");
     if (!hasAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -72,8 +72,8 @@ export async function GET(
         appLabel: appLabels[agent.data.app] || agent.data.app,
         cron: agent.data.cron,
         status,
-        lastRun: agent.data.lastRun,
-        lastError: agent.data.lastError,
+        lastRun: agent.data.last_run,
+        lastError: agent.data.last_error,
         nextRun,
         nextRunFormatted,
       };

@@ -10,5 +10,5 @@ export default interface Notification {
   timestamp: number;
   read: boolean;
   archived: boolean;
-  userId: string;
+  user_id: string;
 }

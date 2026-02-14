@@ -4,6 +4,6 @@ export default interface Log {
   timestamp: string;
   level: LogLevel;
   sender: string;
-  userId: string;
+  user_id: string;
   message: string;
 }

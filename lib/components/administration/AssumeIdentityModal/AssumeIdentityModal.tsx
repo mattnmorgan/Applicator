@@ -54,7 +54,7 @@ export default function AssumeIdentityModal({
 
   const filteredUsers = users.filter(
     (user) =>
-      user.data.displayName
+      user.data.display_name
         ?.toLowerCase()
         .includes(searchQuery.toLowerCase()) ||
       user.data.username?.toLowerCase().includes(searchQuery.toLowerCase()) ||
@@ -119,9 +119,9 @@ export default function AssumeIdentityModal({
                   key={user.id}
                   className={`${styles.userItem} ${
                     selectedUserId === user.id ? styles.selected : ""
-                  } ${!user.data.isActive ? styles.inactive : ""}`}
+                  } ${!user.data.is_active ? styles.inactive : ""}`}
                   onClick={() =>
-                    user.data.isActive && setSelectedUserId(user.id)
+                    user.data.is_active && setSelectedUserId(user.id)
                   }
                 >
                   <div
@@ -136,7 +136,7 @@ export default function AssumeIdentityModal({
                       {user.data.icon ? (
                         <img
                           src={user.data.icon}
-                          alt={user.data.displayName}
+                          alt={user.data.display_name}
                           style={{
                             width: "100%",
                             height: "100%",
@@ -146,7 +146,7 @@ export default function AssumeIdentityModal({
                         />
                       ) : (
                         <span>
-                          {user.data.displayName.charAt(0).toUpperCase()}
+                          {user.data.display_name.charAt(0).toUpperCase()}
                         </span>
                       )}
                     </div>
@@ -158,8 +158,8 @@ export default function AssumeIdentityModal({
                           fontWeight: "500",
                         }}
                       >
-                        {user.data.displayName}
-                        {!user.data.isActive && (
+                        {user.data.display_name}
+                        {!user.data.is_active && (
                           <span
                             style={{
                               color: "#94a3b8",
@@ -172,7 +172,7 @@ export default function AssumeIdentityModal({
                         )}
                       </div>
                       <div style={{ fontSize: "12px", color: "#94a3b8" }}>
-                        @{user.data.username} • {user.data.authority}
+                        @{user.data.username} • {user.data.authority_id}
                       </div>
                     </div>
                   </div>

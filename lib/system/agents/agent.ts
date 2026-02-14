@@ -63,8 +63,8 @@ export default class Agent {
 
     await agentManager.updateRecord(await agentManager.getTable(), this.id, {
       status: "running",
-      wasRunning: true,
-      lastError: undefined,
+      was_running: true,
+      last_error: undefined,
     });
 
     const agentState: AgentState = {};
@@ -124,7 +124,7 @@ export default class Agent {
               this.id,
               {
                 status: "stopped",
-                wasRunning: false,
+                was_running: false,
               },
             );
           }
@@ -179,7 +179,7 @@ export default class Agent {
     if (agent) {
       await agentManager.updateRecord(await agentManager.getTable(), this.id, {
         status: "stopped",
-        wasRunning: false,
+        was_running: false,
         pid: undefined,
       });
 
@@ -367,8 +367,8 @@ export default class Agent {
 
     return {
       status: record.data.status,
-      lastRun: record.data.lastRun,
-      lastError: record.data.lastError,
+      lastRun: record.data.last_run,
+      lastError: record.data.last_error,
       nextRun,
       nextRunFormatted,
       nextExecution,
@@ -506,8 +506,8 @@ export default class Agent {
         await manager.getTable(),
         `${this.appId}:${this.agentName}`,
         {
-          lastRun: Date.now(),
-          lastError: executionContext?.error,
+          last_run: Date.now(),
+          last_error: executionContext?.error,
         },
       );
     }

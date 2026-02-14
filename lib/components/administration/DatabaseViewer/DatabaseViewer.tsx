@@ -296,8 +296,8 @@ export default function DatabaseViewer() {
           <div className={styles.modal}>
             <h3 className={styles.modalTitle}>Flush Database</h3>
             <p className={styles.modalMessage}>
-              Are you sure you want to flush the entire Redis database? This
-              action cannot be undone and will delete all keys.
+              Are you sure you want to flush the entire database? This action
+              cannot be undone and will delete all data.
             </p>
             <div className={styles.modalActions}>
               <button

@@ -4,7 +4,7 @@ import { SYSTEM_APP_METADATA } from "@/lib/database/systemMetadata";
 
 export default class SettingManager extends CRUD<Setting> {
   appId = "system";
-  tableName = "setting";
+  tableName = "settings";
 }
 
 export type SystemSettings = {

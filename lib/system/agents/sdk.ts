@@ -114,7 +114,7 @@ async function records_list({ appId, params }: SdkParams): Promise<any> {
     params.table,
     (
       await new FieldManager().readRecords({
-        fields: { app: appId, table: params.table },
+        fields: { app: appId, table_name: params.table },
       })
     ).records.map((r) => r.data),
     { limit: params.limit || 100, offset: params.offset || 0 },
@@ -228,13 +228,13 @@ async function system_getUser({ params }: SdkParams): Promise<any> {
   }
 
   const authority = await new AuthorityManager().readRecord(
-    user.data.authority,
+    user.data.authority_id,
   );
 
   return {
     id: user.id,
     username: user.data.username,
-    displayName: user.data.displayName,
+    displayName: user.data.display_name,
     email: user.data.email,
     authorityName: authority?.data.name || "Unknown",
   };
@@ -253,16 +253,16 @@ async function system_getUsers({ params }: SdkParams): Promise<any> {
 
     const user = await userManager.readRecord(userId);
     if (!user) continue;
-    if (!includeInactive && !user.data.isActive) continue;
+    if (!includeInactive && !user.data.is_active) continue;
 
-    const authority = await authorityManager.readRecord(user.data.authority);
+    const authority = await authorityManager.readRecord(user.data.authority_id);
 
     users.push({
       id: user.id,
       username: user.data.username,
-      displayName: user.data.displayName,
+      displayName: user.data.display_name,
       email: user.data.email,
-      isActive: user.data.isActive,
+      isActive: user.data.is_active,
       authorityName: authority?.data.name || "Unknown",
     });
   }
@@ -280,7 +280,7 @@ async function system_checkAuthorization({ params }: SdkParams): Promise<any> {
   if (!user) return false;
 
   const authorities = [
-    await authorityManager.readRecord(user.data.authority),
+    await authorityManager.readRecord(user.data.authority_id),
     await authorityManager.readUserAuthority(params.userId),
   ];
 

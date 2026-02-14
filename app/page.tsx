@@ -26,7 +26,7 @@ async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
   if (!userRecord) return homeMenuItems;
 
   const mainAuthority = await authorityManager.readRecord(
-    userRecord.data.authority,
+    userRecord.data.authority_id,
   );
   const userAuthority = await authorityManager.readUserAuthority(userId);
 
@@ -88,7 +88,7 @@ async function getUserPinnedApplets(userId: string): Promise<PinnedApplet[]> {
     }
 
     const mainAuthority = await authorityManager.readRecord(
-      userRecord.data.authority,
+      userRecord.data.authority_id,
     );
     const userAuthority = await authorityManager.readUserAuthority(userId);
 
@@ -281,7 +281,7 @@ export default async function HomePage() {
   return (
     <>
       <Navigation
-        displayName={user.data.displayName}
+        displayName={user.data.display_name}
         profilePicture={profilePictureUrl}
         isAdmin={hasAdminAuth}
         brandName={brandSettings.brandName}
@@ -340,7 +340,7 @@ export default async function HomePage() {
                     color: "#f1f5f9",
                   }}
                 >
-                  Hello, {user.data.displayName}
+                  Hello, {user.data.display_name}
                 </h1>
                 <p
                   style={{

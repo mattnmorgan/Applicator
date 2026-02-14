@@ -1,8 +1,31 @@
-import { getRedisClient, getKeyPrefix } from "@/lib/database/crud/redis";
+import { PoolClient } from "pg";
+import { getClient } from "@/lib/database/pg/transaction";
+
+async function sqlListIds(
+  client: PoolClient,
+  appId: string,
+  tableName: string,
+): Promise<string[]> {
+  if (appId === "system") {
+    const result = await client.query(`SELECT id FROM ${tableName}`);
+    return result.rows.map((r) => r.id);
+  } else {
+    const result = await client.query(
+      `SELECT id FROM records WHERE app_id = $1 AND table_name = $2`,
+      [appId, tableName],
+    );
+    return result.rows.map((r) => r.id);
+  }
+}
 
 export async function listRecords(
   table: string,
-  appId: string
+  appId: string,
 ): Promise<string[]> {
-  return await getRedisClient().keys(getKeyPrefix(appId, table) + "*");
+  const client = await getClient();
+  try {
+    return await sqlListIds(client, appId, table);
+  } finally {
+    client.release();
+  }
 }

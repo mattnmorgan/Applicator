@@ -4,7 +4,7 @@ import UserManager from "@/lib/database/managers/user";
 import { NextRequest } from "next/server";
 
 export default class SessionManager extends CRUD<Session> {
-  tableName = "session";
+  tableName = "sessions";
   appId = "system";
 
   async createSession(uid: string, originalSessionId: string | null = null) {
@@ -12,14 +12,11 @@ export default class SessionManager extends CRUD<Session> {
     expiresAt.setDate(expiresAt.getDate() + 7);
 
     const record = await super.createRecord(await this.getTable(), {
-      userId: uid,
-      expiresAt: expiresAt.toISOString(),
-      originalSessionId: originalSessionId ?? undefined,
+      user_id: uid,
+      expires_at: expiresAt.toISOString(),
+      original_session_id: originalSessionId ?? undefined,
     });
-    await this.getRedisClient().expire(
-      `${this.tableName}:${record.id}`,
-      Math.floor((expiresAt.getTime() - Date.now()) / 1000)
-    );
+    // Session expiry is checked on read in getSession() — no Redis expire needed
 
     return record;
   }
@@ -33,14 +30,14 @@ export async function getSession(id: string): Promise<Session | null> {
     return null;
   }
 
-  if (new Date(record.data.expiresAt) < new Date()) {
+  if (new Date(record.data.expires_at) < new Date()) {
     await manager.deleteRecord(record.id);
     return null;
   }
 
-  const user = await new UserManager().readRecord(record.data.userId);
+  const user = await new UserManager().readRecord(record.data.user_id);
 
-  if (!user || !user.data.isActive) {
+  if (!user || !user.data.is_active) {
     await manager.deleteRecord(record.id);
     return null;
   }
@@ -49,7 +46,7 @@ export async function getSession(id: string): Promise<Session | null> {
 }
 
 export async function getSessionFromRequest(
-  request: NextRequest
+  request: NextRequest,
 ): Promise<Session | null> {
   const id = request.headers
     .get("cookie")

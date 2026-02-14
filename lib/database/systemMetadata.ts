@@ -7,14 +7,14 @@ export const SYSTEM_APP_METADATA = {
     dev: 2,
   },
   author: "Matthew Morgan",
-  contactEmail: "matthew@morgantech.info",
+  contact_email: "matthew@morgantech.info",
   description: "Core system functionality and data models",
   dependencies: {},
   applets: [],
   apiRoutes: [],
   tables: [
     {
-      name: "setting",
+      name: "settings",
       description: "System settings",
       fields: [
         {
@@ -33,13 +33,13 @@ export const SYSTEM_APP_METADATA = {
           name: "user",
           description: "User this setting belongs to",
           type: "relationship",
-          relatedTo: "system:user",
+          relatedTo: "system:users",
           required: false,
         },
       ],
     },
     {
-      name: "user",
+      name: "users",
       description: "System users with authentication and profile information",
       fields: [
         {
@@ -55,26 +55,26 @@ export const SYSTEM_APP_METADATA = {
           required: true,
         },
         {
-          name: "displayName",
+          name: "display_name",
           description: "Display name shown in the UI",
           type: "string",
           required: true,
         },
         {
-          name: "passwordHash",
+          name: "password_hash",
           description: "Hashed password for authentication",
           type: "password",
           required: true,
         },
         {
-          name: "authority",
+          name: "authority_id",
           description: "Authority ID assigned to the user",
           type: "relationship",
-          relatedTo: "system:authority",
+          relatedTo: "system:authorities",
           required: true,
         },
         {
-          name: "isActive",
+          name: "is_active",
           description: "Whether the user account is active",
           type: "boolean",
           required: true,
@@ -88,7 +88,7 @@ export const SYSTEM_APP_METADATA = {
       ],
     },
     {
-      name: "authority",
+      name: "authorities",
       description:
         "User authorities that grant access to authorizations and apps",
       fields: [
@@ -118,10 +118,10 @@ export const SYSTEM_APP_METADATA = {
           defaultValue: [],
         },
         {
-          name: "userId",
+          name: "user_id",
           description: "User ID for user-specific authorities",
           type: "relationship",
-          relatedTo: "system:user",
+          relatedTo: "system:users",
         },
         {
           name: "contextual",
@@ -132,12 +132,13 @@ export const SYSTEM_APP_METADATA = {
         {
           name: "app",
           description: "App that created this contextual authority",
-          type: "string",
+          type: "relationship",
+          relatedTo: "system:apps",
         },
       ],
     },
     {
-      name: "authorization",
+      name: "authorizations",
       description: "Permissions that can be granted to authorities",
       fields: [
         {
@@ -155,7 +156,8 @@ export const SYSTEM_APP_METADATA = {
         {
           name: "app",
           description: "App that owns this authorization",
-          type: "string",
+          type: "relationship",
+          relatedTo: "system:apps",
           required: true,
         },
         {
@@ -175,7 +177,7 @@ export const SYSTEM_APP_METADATA = {
       ],
     },
     {
-      name: "contextual-authority",
+      name: "contextual_authorities",
       description:
         "Resource-specific authorities for fine-grained access control",
       fields: [
@@ -184,20 +186,20 @@ export const SYSTEM_APP_METADATA = {
           description:
             "Contextual authority that grants permissions to the record",
           type: "relationship",
-          relatedTo: "system:authority",
+          relatedTo: "system:authorities",
           required: true,
         },
         {
           name: "user",
           description: "User ID for user-based contextual authority",
           type: "relationship",
-          relatedTo: "system:user",
+          relatedTo: "system:users",
         },
         {
           name: "authority",
           description: "Authority ID for authority-based contextual authority",
           type: "relationship",
-          relatedTo: "system:authority",
+          relatedTo: "system:authorities",
         },
         {
           name: "password",
@@ -207,17 +209,18 @@ export const SYSTEM_APP_METADATA = {
         {
           name: "app",
           description: "App that created this contextual authority",
-          type: "string",
+          type: "relationship",
+          relatedTo: "system:apps",
           required: true,
         },
         {
-          name: "createdAt",
+          name: "created_at",
           description: "Timestamp when the authority was created",
           type: "number",
           required: true,
         },
         {
-          name: "createdBy",
+          name: "created_by",
           description: "User ID or app that created this authority",
           type: "string",
           required: true,
@@ -230,7 +233,7 @@ export const SYSTEM_APP_METADATA = {
       ],
     },
     {
-      name: "log",
+      name: "logs",
       description: "System log entries for audit and debugging",
       fields: [
         {
@@ -252,10 +255,10 @@ export const SYSTEM_APP_METADATA = {
           required: true,
         },
         {
-          name: "userId",
+          name: "user_id",
           description: "User associated with the log entry",
           type: "relationship",
-          relatedTo: "system:user",
+          relatedTo: "system:users",
         },
         {
           name: "message",
@@ -266,7 +269,7 @@ export const SYSTEM_APP_METADATA = {
       ],
     },
     {
-      name: "notification",
+      name: "notifications",
       description: "User notifications from apps and system",
       fields: [
         {
@@ -278,7 +281,8 @@ export const SYSTEM_APP_METADATA = {
         {
           name: "app",
           description: "App that created the notification",
-          type: "string",
+          type: "relationship",
+          relatedTo: "system:apps",
           required: true,
         },
         {
@@ -324,16 +328,16 @@ export const SYSTEM_APP_METADATA = {
           defaultValue: false,
         },
         {
-          name: "userId",
+          name: "user_id",
           description: "The user the notification is for",
           type: "relationship",
           required: true,
-          relatedTo: "system:user",
+          relatedTo: "system:users",
         },
       ],
     },
     {
-      name: "app",
+      name: "apps",
       description: "Installed applications in the system",
       fields: [
         {
@@ -355,7 +359,7 @@ export const SYSTEM_APP_METADATA = {
           required: true,
         },
         {
-          name: "contactEmail",
+          name: "contact_email",
           description: "Contact email for the app author",
           type: "string",
           required: true,
@@ -367,25 +371,13 @@ export const SYSTEM_APP_METADATA = {
           required: true,
         },
         {
-          name: "subApps",
-          description: "Sub-applications within the app",
-          type: "json",
-          defaultValue: [],
-        },
-        {
-          name: "widgets",
-          description: "Widgets provided by the app",
-          type: "json",
-          defaultValue: [],
-        },
-        {
           name: "dependencies",
           description: "App dependencies (app ID -> version)",
           type: "json",
           defaultValue: {},
         },
         {
-          name: "requiredPermissions",
+          name: "required_permissions",
           description: "Permissions required for the application to function",
           type: "json",
           defaultValue: [],
@@ -393,11 +385,11 @@ export const SYSTEM_APP_METADATA = {
       ],
     },
     {
-      name: "table",
+      name: "app_tables",
       description: "Data model tables defined by applications",
       fields: [
         {
-          name: "tableName",
+          name: "table_name",
           description: "Name of the table within its app",
           type: "string",
           required: true,
@@ -405,7 +397,8 @@ export const SYSTEM_APP_METADATA = {
         {
           name: "app",
           description: "App ID that owns this table",
-          type: "string",
+          type: "relationship",
+          relatedTo: "system:apps",
           required: true,
         },
         {
@@ -414,22 +407,17 @@ export const SYSTEM_APP_METADATA = {
           type: "string",
           required: true,
         },
-        {
-          name: "fields",
-          description: "Field definitions for the table",
-          type: "json",
-          required: true,
-        },
       ],
     },
     {
-      name: "api-route",
+      name: "api_routes",
       description: "API routes defined by applications",
       fields: [
         {
           name: "app",
           description: "App ID that owns this API route",
-          type: "string",
+          type: "relationship",
+          relatedTo: "system:apps",
           required: true,
         },
         {
@@ -453,7 +441,7 @@ export const SYSTEM_APP_METADATA = {
       ],
     },
     {
-      name: "applet",
+      name: "applets",
       description:
         "Applets (apps, widgets, and UI components) defined by applications",
       fields: [
@@ -478,7 +466,8 @@ export const SYSTEM_APP_METADATA = {
         {
           name: "app",
           description: "App ID that owns this applet",
-          type: "string",
+          type: "relationship",
+          relatedTo: "system:apps",
           required: true,
         },
         {
@@ -492,17 +481,18 @@ export const SYSTEM_APP_METADATA = {
       ],
     },
     {
-      name: "field",
+      name: "fields",
       description: "Database field definitions for tables",
       fields: [
         {
           name: "app",
           description: "The app this field belongs to",
-          type: "string",
+          type: "relationship",
+          relatedTo: "system:apps",
           required: true,
         },
         {
-          name: "table",
+          name: "table_name",
           description: "The table this field belongs to",
           type: "string",
           required: true,
@@ -545,13 +535,13 @@ export const SYSTEM_APP_METADATA = {
           defaultValue: false,
         },
         {
-          name: "relatedTo",
+          name: "related_to",
           description:
             "For relationship fields - the related table (format: appId:tableName)",
           type: "string",
         },
         {
-          name: "defaultValue",
+          name: "default_value",
           description: "Default value for the field",
           type: "json",
         },
@@ -564,7 +554,7 @@ export const SYSTEM_APP_METADATA = {
       ],
     },
     {
-      name: "agent",
+      name: "agents",
       description: "Asynchronous job that runs for an installed application",
       fields: [
         {
@@ -582,7 +572,8 @@ export const SYSTEM_APP_METADATA = {
         {
           name: "app",
           description: "Application the agent belongs to",
-          type: "string",
+          type: "relationship",
+          relatedTo: "system:apps",
           required: true,
         },
         {
@@ -607,19 +598,19 @@ export const SYSTEM_APP_METADATA = {
           required: false,
         },
         {
-          name: "lastRun",
+          name: "last_run",
           description: "Timestamp of the last execution",
           type: "number",
           required: false,
         },
         {
-          name: "lastError",
+          name: "last_error",
           description: "Last error message if status is error",
           type: "string",
           required: false,
         },
         {
-          name: "wasRunning",
+          name: "was_running",
           description: "Whether agent was running before server restart",
           type: "boolean",
           required: false,

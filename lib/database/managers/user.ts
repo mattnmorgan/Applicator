@@ -7,7 +7,7 @@ import bcrypt from "bcryptjs";
 import TableRecord from "@/lib/database/crud/types/record";
 
 export default class UserManager extends CRUD<User> {
-  tableName = "user";
+  tableName = "users";
   appId = "system";
 }
 
@@ -28,7 +28,7 @@ export async function getCurrentUser(): Promise<{
       return null;
     }
 
-    const user = await new UserManager().readRecord(session.userId);
+    const user = await new UserManager().readRecord(session.user_id);
 
     if (!user) {
       return null;
@@ -37,7 +37,7 @@ export async function getCurrentUser(): Promise<{
     const authorityManager = new AuthorityManager();
 
     const authorities = [
-      await authorityManager.readRecord(user.data.authority),
+      await authorityManager.readRecord(user.data.authority_id),
       await authorityManager.readUserAuthority(user.id),
     ];
     const authorityIds = [];
@@ -54,7 +54,7 @@ export async function getCurrentUser(): Promise<{
       user,
       authorities: authorityIds,
       authorizations: Array.from(new Set(authorizations)),
-      isAssumedIdentity: !!session.originalSessionId,
+      isAssumedIdentity: !!session.original_session_id,
     };
   } catch (error) {
     // Don't log errors when called outside request context (e.g., during initialization)
@@ -84,7 +84,7 @@ export async function getUserAuthorizations(userId: string): Promise<string[]> {
   const userRecord = await userManager.readRecord(userId);
   if (!userRecord) return [];
 
-  const mainAuthority = await authorityManager.readRecord(userRecord.data.authority);
+  const mainAuthority = await authorityManager.readRecord(userRecord.data.authority_id);
   const userAuthority = await authorityManager.readUserAuthority(userId);
 
   const authorizations = new Set<string>();

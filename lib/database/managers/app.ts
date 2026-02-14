@@ -7,7 +7,7 @@ import type Authorization from "@/lib/database/types/authorization";
 import type TableRecord from "@/lib/database/crud/types/record";
 
 export default class AppManager extends CRUD<App> {
-  tableName = "app";
+  tableName = "apps";
   appId = "system";
 
   /**

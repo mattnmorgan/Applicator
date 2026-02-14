@@ -120,9 +120,9 @@ export default function AuthorityCreate({
           const appRecord = appsData.records.find(
             (record) => record.id === appId,
           );
-          if (appRecord && appRecord.data.requiredPermissions) {
+          if (appRecord && appRecord.data.required_permissions) {
             setRequiredPermissions(
-              new Set(appRecord.data.requiredPermissions as string[]),
+              new Set(appRecord.data.required_permissions as string[]),
             );
           }
         }

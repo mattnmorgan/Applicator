@@ -4,7 +4,7 @@ import TableRecord from "@/lib/database/crud/types/record";
 import bcrypt from "bcryptjs";
 
 export default class ContextualAuthorityManager extends CRUD<ContextualAuthority> {
-  tableName = "contextual-authority";
+  tableName = "contextual_authorities";
   appId = "system";
 
   /**
@@ -54,8 +54,8 @@ export default class ContextualAuthorityManager extends CRUD<ContextualAuthority
       permission: params.permission,
       app: params.app,
       password: hashedPassword,
-      createdAt: timestamp,
-      createdBy: params.createdBy,
+      created_at: timestamp,
+      created_by: params.createdBy,
       ...(params.context !== undefined ? { context: params.context } : {}),
     }, { id: key });
   }
@@ -86,8 +86,8 @@ export default class ContextualAuthorityManager extends CRUD<ContextualAuthority
       permission: params.permission,
       app: params.app,
       user: params.user,
-      createdAt: Date.now(),
-      createdBy: params.createdBy,
+      created_at: Date.now(),
+      created_by: params.createdBy,
       ...(params.context !== undefined ? { context: params.context } : {}),
     }, { id: key });
   }
@@ -118,8 +118,8 @@ export default class ContextualAuthorityManager extends CRUD<ContextualAuthority
       permission: params.permission,
       app: params.app,
       authority: params.authority,
-      createdAt: Date.now(),
-      createdBy: params.createdBy,
+      created_at: Date.now(),
+      created_by: params.createdBy,
       ...(params.context !== undefined ? { context: params.context } : {}),
     }, { id: key });
   }
@@ -136,7 +136,7 @@ export default class ContextualAuthorityManager extends CRUD<ContextualAuthority
 
   /**
    * Fetch all contextual authorities for a specific app and record ID grouping.
-   * Matches records whose keys start with `{appId}:{recordId}:`.
+   * Matches records whose IDs start with `{appId}:{recordId}:`.
    *
    * @param appId App that owns the authorities
    * @param recordId Domain-specific record grouping
@@ -146,23 +146,38 @@ export default class ContextualAuthorityManager extends CRUD<ContextualAuthority
     appId: string,
     recordId: string,
   ): Promise<TableRecord<ContextualAuthority>[]> {
-    const redis = this.getRedisClient();
-    const tablePrefix = this.getKeyPrefix(this.appId, this.tableName);
-    const keys = await redis.keys(`${tablePrefix}${appId}:${recordId}:*`);
+    // Use readRecords with no filter and manually filter by ID prefix,
+    // or use the underlying storage directly for efficiency
+    const { getClient } = await import("@/lib/database/pg/transaction");
 
-    if (keys.length === 0) {
-      return [];
+    const sqlTable = "contextual_authorities";
+
+    const client = await getClient();
+    try {
+      const prefix = `${appId}:${recordId}:`;
+      // Query with LIKE to find matching records by ID prefix
+      const result = await client.query(
+        `SELECT * FROM ${sqlTable} WHERE id LIKE $1 ORDER BY created_at ASC`,
+        [`${prefix}%`],
+      );
+
+      return result.rows.map((row) => ({
+        id: row.id as string,
+        data: {
+          permission: row.permission,
+          user: row.user,
+          authority: row.authority,
+          password: row.password,
+          app: row.app,
+          created_at: Number(row.created_at),
+          created_by: row.created_by,
+          context: row.context,
+        } as ContextualAuthority,
+        created_at: Number(row.created_at),
+        updated_at: Number(row.updated_at),
+      }));
+    } finally {
+      client.release();
     }
-
-    const values = await redis.mget(...keys);
-    const records: TableRecord<ContextualAuthority>[] = [];
-
-    for (const value of values) {
-      if (value) {
-        records.push(JSON.parse(value) as TableRecord<ContextualAuthority>);
-      }
-    }
-
-    return records;
   }
 }

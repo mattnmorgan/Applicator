@@ -31,7 +31,7 @@ export async function POST(
     }
 
     // Check if app exists
-    const appManager = new CRUD<App>("system", "app");
+    const appManager = new CRUD<App>("system", "apps");
     const appRecord = await appManager.readRecord(appId);
     if (!appRecord) {
       return NextResponse.json({ error: "App not found" }, { status: 404 });
@@ -92,7 +92,7 @@ export async function POST(
     }
 
     // Resolve the guest applet for this app
-    const appletManager = new CRUD<Applet>("system", "applet");
+    const appletManager = new CRUD<Applet>("system", "applets");
     const applets = await appletManager.readRecords({
       fields: { app: appId, target: "guest" },
     });

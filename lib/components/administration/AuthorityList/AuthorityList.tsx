@@ -51,7 +51,7 @@ export default function AuthorityList() {
       const allAuthorities = data.records;
 
       const nonUserAuthorities = allAuthorities.filter((record) => {
-        return record && record.data && !record.data.userId;
+        return record && record.data && !record.data.user_id;
       });
 
       // Fetch all apps for contextual authorities

@@ -38,7 +38,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
 
-    if (!targetUser.data.isActive) {
+    if (!targetUser.data.is_active) {
       return NextResponse.json(
         { error: "Cannot assume identity of inactive user" },
         { status: 400 },
@@ -76,7 +76,7 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       success: true,
-      message: `Successfully assumed identity of ${targetUser.data.displayName}`,
+      message: `Successfully assumed identity of ${targetUser.data.display_name}`,
     });
   } catch (error) {
     console.error("Assume identity error:", error);

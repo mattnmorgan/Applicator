@@ -102,7 +102,7 @@ export default function UserCreate({
           await new AuthorityManager().readRecords({
             fields: { contextual: false },
           })
-        ).records.filter((r) => !r.data.userId),
+        ).records.filter((r) => !r.data.user_id),
       );
     } catch (error) {
       console.error("Failed to fetch authorities:", error);
@@ -231,11 +231,11 @@ export default function UserCreate({
         id: editUser?.id,
         data: {
           username: username,
-          displayName: displayName,
+          display_name: displayName,
           email: email,
-          authority: authority,
-          isActive: true,
-          passwordHash: password == "" ? undefined : password,
+          authority_id: authority,
+          is_active: true,
+          password_hash: password == "" ? undefined : password,
         },
       };
 
@@ -288,8 +288,8 @@ export default function UserCreate({
           {
             authorizations: customAuthorizations,
             apps: customApps,
-            name: `${record.data.displayName} (User-specific)`,
-            userId: record.id,
+            name: `${record.data.display_name} (User-specific)`,
+            user_id: record.id,
           },
           userAuthorityId,
         );
@@ -297,7 +297,7 @@ export default function UserCreate({
         await authorityManager.updateRecord(`user-specific:${record.id}`, {
           authorizations: customAuthorizations,
           apps: customApps,
-          userId: record.id,
+          user_id: record.id,
         });
       }
 

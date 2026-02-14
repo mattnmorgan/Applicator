@@ -23,7 +23,7 @@ export async function POST(
     }
 
     // Check authorization - must be admin or the app managing its own agents
-    const hasAdmin = await userHasAuthorization(session.userId, "system:admin");
+    const hasAdmin = await userHasAuthorization(session.user_id, "system:admin");
 
     // Check if request is from the app itself (via X-App-Id header)
     const requestingAppId = request.headers.get("X-App-Id");

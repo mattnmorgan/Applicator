@@ -1,16 +1,16 @@
+import { PoolClient } from "pg";
 import { readRecord, readRecords } from "@/lib/database/crud/read";
-import { getRecordKey } from "@/lib/database/crud/redis";
 import { validateAndProcessRecord } from "@/lib/database/crud/validation";
-import TableRecord from "@/lib/database/crud/types/record";
 import Field from "@/lib/database/types/field";
-import PendingOperation from "@/lib/database/crud/validation/types/pending-operation";
 import DependentRecord from "@/lib/database/crud/validation/types/dependent-record";
+import { sqlUpdate } from "@/lib/database/crud/update";
+import { sqlDelete } from "@/lib/database/crud/delete";
 
 const MAX_CASCADE_DEPTH = 10;
 
 /**
- * Collect cascade reprocessing operations for records related via relationship fields.
- * Does NOT save anything — returns pending SET operations for the caller to commit atomically.
+ * Cascade reprocessing for records related via relationship fields.
+ * Writes directly within the transaction — no more PendingOperation accumulator.
  *
  * Performs both:
  * - Forward pass: follows the changed record's relationship fields to reprocess targets
@@ -20,21 +20,20 @@ const MAX_CASCADE_DEPTH = 10;
  * @param tableName Table of the changed record
  * @param recordId ID of the changed record (used for reverse lookups)
  * @param recordData The changed record's data (used to find forward relationship targets)
- * @param operations Accumulator for pending operations
+ * @param client PoolClient for within-transaction reads and writes
  * @param visited Set of already-processed record keys to prevent loops
  * @param depth Current recursion depth
- * @returns Array of pending SET operations
  */
 export async function cascadeCollect(
   appId: string,
   tableName: string,
   recordId: string,
   recordData: Record<string, any>,
-  operations: PendingOperation[] = [],
+  client: PoolClient,
   visited: Set<string> = new Set(),
   depth: number = 0,
-): Promise<PendingOperation[]> {
-  if (depth >= MAX_CASCADE_DEPTH) return operations;
+): Promise<void> {
+  if (depth >= MAX_CASCADE_DEPTH) return;
 
   const { default: FieldManager } =
     await import("@/lib/database/managers/field");
@@ -43,16 +42,16 @@ export async function cascadeCollect(
 
   // Forward pass: follow this record's relationship fields to reprocess target records
   for (const field of fields) {
-    if (field.type !== "relationship" || !field.relatedTo) continue;
+    if (field.type !== "relationship" || !field.related_to) continue;
 
     const value = recordData[field.name];
     if (!value) continue;
 
     // Parse target app and table
     let targetAppId = appId;
-    let targetTableName = field.relatedTo;
-    if (field.relatedTo.includes(":")) {
-      [targetAppId, targetTableName] = field.relatedTo.split(":");
+    let targetTableName = field.related_to;
+    if (field.related_to.includes(":")) {
+      [targetAppId, targetTableName] = field.related_to.split(":");
     }
 
     // Relationship value can be single ID or array
@@ -63,7 +62,7 @@ export async function cascadeCollect(
         targetAppId,
         targetTableName,
         relatedId,
-        operations,
+        client,
         visited,
         depth,
       );
@@ -78,49 +77,47 @@ export async function cascadeCollect(
     const targetRef = `${appId}:${tableName}`;
 
     for (const field of allFields) {
-      if (field.type !== "relationship" || !field.relatedTo) continue;
+      if (field.type !== "relationship" || !field.related_to) continue;
 
-      let resolvedRef = field.relatedTo;
+      let resolvedRef = field.related_to;
       if (!resolvedRef.includes(":")) {
         resolvedRef = `${field.app}:${resolvedRef}`;
       }
 
       if (resolvedRef !== targetRef) continue;
 
-      // Query for records that reference our record
+      // Query for records that reference our record (within the transaction)
       const tableFields = await fieldManager.loadTableFields(
         field.app,
-        field.table,
+        field.table_name,
       );
-      const result = await readRecords(field.app, field.table, tableFields, {
+      const result = await readRecords(field.app, field.table_name, tableFields, {
         fields: { [field.name]: recordId },
-      });
+      }, client);
 
       for (const record of result.records) {
         await reprocessRecord(
           field.app,
-          field.table,
+          field.table_name,
           record.id,
-          operations,
+          client,
           visited,
           depth,
         );
       }
     }
   }
-
-  return operations;
 }
 
 /**
- * Reprocess a single target record and add SET operation if data changed.
- * Recurses via cascadeCollect for the reprocessed record's own relationships.
+ * Reprocess a single target record. Writes directly to DB within the transaction
+ * if data changed. Recurses via cascadeCollect for the reprocessed record's own relationships.
  */
 async function reprocessRecord(
   targetAppId: string,
   targetTableName: string,
   targetRecordId: string,
-  operations: PendingOperation[],
+  client: PoolClient,
   visited: Set<string>,
   depth: number,
 ): Promise<void> {
@@ -132,6 +129,7 @@ async function reprocessRecord(
     targetAppId,
     targetTableName,
     targetRecordId,
+    client,
   );
   if (!targetRecord) return;
 
@@ -151,26 +149,24 @@ async function reprocessRecord(
     targetRecord.data as Record<string, any>,
     false,
     targetRecordId,
+    client,
   );
 
   const dataChanged =
     JSON.stringify(targetRecord.data) !== JSON.stringify(reprocessedData);
 
   if (dataChanged) {
-    const updatedRecord: TableRecord = {
-      ...targetRecord,
-      data: reprocessedData,
-      updatedAt: Date.now(),
-    };
-    const key = getRecordKey(targetAppId, targetTableName, targetRecordId);
-    operations.push({ type: "set", key, value: JSON.stringify(updatedRecord) });
+    const now = Date.now();
+
+    // Write directly within the transaction — next cascade level sees updated data
+    await sqlUpdate(client, targetAppId, targetTableName, targetRecordId, reprocessedData, now);
 
     await cascadeCollect(
       targetAppId,
       targetTableName,
       targetRecordId,
       reprocessedData,
-      operations,
+      client,
       visited,
       depth + 1,
     );
@@ -185,12 +181,14 @@ async function reprocessRecord(
  * @param appId App owning the target record
  * @param tableName Table of the target record
  * @param recordId ID of the target record
+ * @param client PoolClient for within-transaction reads
  * @returns Array of dependent records
  */
 export async function checkDependents(
   appId: string,
   tableName: string,
   recordId: string,
+  client: PoolClient,
 ): Promise<DependentRecord[]> {
   const { default: FieldManager } =
     await import("@/lib/database/managers/field");
@@ -205,11 +203,11 @@ export async function checkDependents(
 
   // Find required relationship fields pointing to our table
   for (const field of allFields) {
-    if (field.type !== "relationship" || !field.required || !field.relatedTo)
+    if (field.type !== "relationship" || !field.required || !field.related_to)
       continue;
 
-    // Resolve the relatedTo to full format
-    let resolvedRef = field.relatedTo;
+    // Resolve the related_to to full format
+    let resolvedRef = field.related_to;
     if (!resolvedRef.includes(":")) {
       resolvedRef = `${field.app}:${resolvedRef}`;
     }
@@ -219,16 +217,16 @@ export async function checkDependents(
     // Query for records in this field's table where the field value matches our record ID
     const tableFields = await fieldManager.loadTableFields(
       field.app,
-      field.table,
+      field.table_name,
     );
-    const result = await readRecords(field.app, field.table, tableFields, {
+    const result = await readRecords(field.app, field.table_name, tableFields, {
       fields: { [field.name]: recordId },
-    });
+    }, client);
 
     for (const record of result.records) {
       dependents.push({
         appId: field.app,
-        tableName: field.table,
+        tableName: field.table_name,
         fieldName: field.name,
         recordId: record.id,
         recordData: record.data as Record<string, any>,
@@ -240,65 +238,60 @@ export async function checkDependents(
 }
 
 /**
- * Recursively collect DEL operations for cascade deletion, plus reprocessing
- * operations for related records whose formulas may change.
+ * Recursively delete dependent records and reprocess formulas for cascade deletion.
+ * Writes directly within the transaction.
  *
  * @param appId App owning the record being deleted
  * @param tableName Table of the record being deleted
  * @param recordId ID of the record being deleted
  * @param recordData Data of the record being deleted (for relationship traversal)
- * @param operations Accumulator for pending operations
+ * @param client PoolClient for within-transaction reads and writes
  * @param visited Set of already-processed record keys
  * @param depth Current recursion depth
- * @returns Array of pending DEL and SET operations
  */
-
 export async function cascadeCollectDeletes(
   appId: string,
   tableName: string,
   recordId: string,
   recordData: Record<string, any>,
-  operations: PendingOperation[] = [],
+  client: PoolClient,
   visited: Set<string> = new Set(),
   depth: number = 0,
-): Promise<PendingOperation[]> {
-  if (depth >= MAX_CASCADE_DEPTH) return operations;
+): Promise<void> {
+  if (depth >= MAX_CASCADE_DEPTH) return;
 
   // Find records that depend on this record via required relationships
-  const dependents = await checkDependents(appId, tableName, recordId);
+  const dependents = await checkDependents(appId, tableName, recordId, client);
 
   for (const dep of dependents) {
     const visitKey = `${dep.appId}:${dep.tableName}:${dep.recordId}`;
     if (visited.has(visitKey)) continue;
     visited.add(visitKey);
 
-    // Add DEL operation for the dependent record
-    const key = getRecordKey(dep.appId, dep.tableName, dep.recordId);
-    operations.push({ type: "del", key });
-
-    // Recurse: this dependent's own dependents also need cascade deletion
+    // Recurse first: this dependent's own dependents also need cascade deletion
     await cascadeCollectDeletes(
       dep.appId,
       dep.tableName,
       dep.recordId,
       dep.recordData,
-      operations,
+      client,
       visited,
       depth + 1,
     );
+
+    // Delete the dependent record within the transaction
+    await sqlDelete(client, dep.appId, dep.tableName, dep.recordId);
   }
 
-  // Also collect formula reprocessing for the deleted record's forward relationships
+  // Also cascade formula reprocessing for the deleted record's forward relationships
   // (records the deleted record was pointing to may have formulas that counted it)
   await cascadeCollect(
     appId,
     tableName,
     recordId,
     recordData,
-    operations,
+    client,
     visited,
     depth,
   );
-
-  return operations;
 }

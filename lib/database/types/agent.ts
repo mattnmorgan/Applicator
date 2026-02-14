@@ -5,7 +5,7 @@ export default interface Agent {
   cron?: string;
   status: "stopped" | "running" | "error";
   pid?: number;
-  lastRun?: number;
-  lastError?: string;
-  wasRunning?: boolean;
+  last_run?: number;
+  last_error?: string;
+  was_running?: boolean;
 }

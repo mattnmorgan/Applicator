@@ -544,7 +544,7 @@ export class Filesystem {
       };
     } else {
       const hasAdmin = await userHasAuthorization(
-        session.userId,
+        session.user_id,
         "system:admin",
       );
 

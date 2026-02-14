@@ -180,7 +180,7 @@ async function handleRequest(
       if (sessionId) {
         const session = await getSession(sessionId);
         if (session) {
-          userId = session.userId;
+          userId = session.user_id;
         }
       }
 
