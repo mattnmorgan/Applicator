@@ -31,17 +31,28 @@ export default function DataModelsPage() {
       setFilteredTables(tables);
     } else {
       const query = searchQuery.toLowerCase();
+      const isSelected = (t: TableSearchResult) =>
+        selectedTable &&
+        t.appId === selectedTable.appId &&
+        t.table.table_name === selectedTable.table.table_name;
+
+      const matches = (t: TableSearchResult) =>
+        t.table.table_name.toLowerCase().includes(query) ||
+        t.table.description.toLowerCase().includes(query) ||
+        t.appName.toLowerCase().includes(query) ||
+        t.table.fields.some(
+          (f) =>
+            f.name.toLowerCase().includes(query) ||
+            f.type.toLowerCase().includes(query) ||
+            f.description.toLowerCase().includes(query),
+        );
+
       const filtered = tables
-        .filter(
-          (t) =>
-            t.table.table_name.toLowerCase().includes(query) ||
-            t.table.description.toLowerCase().includes(query) ||
-            t.appName.toLowerCase().includes(query),
-        )
+        .filter((t) => matches(t) || isSelected(t))
         .sort((a, b) => a.table.table_name.localeCompare(b.table.table_name));
       setFilteredTables(filtered);
     }
-  }, [searchQuery, tables]);
+  }, [searchQuery, tables, selectedTable]);
 
   const fetchTables = async () => {
     try {
@@ -142,49 +153,51 @@ export default function DataModelsPage() {
   };
 
   return (
-    <div>
-      <h1
-        style={{
-          fontSize: "32px",
-          fontWeight: "bold",
-          marginBottom: "20px",
-          color: "#f1f5f9",
-        }}
-      >
-        Data Models
-      </h1>
-
-      <p
-        style={{
-          fontSize: "14px",
-          color: "#94a3b8",
-          marginBottom: "24px",
-        }}
-      >
-        Browse and search data models across all installed applications
-      </p>
-
-      <div style={{ marginBottom: "24px" }}>
-        <input
-          type="text"
-          placeholder="Search tables by name, description, or app..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
+    <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+      <div style={{ flexShrink: 0 }}>
+        <h1
           style={{
-            width: "100%",
-            maxWidth: "600px",
-            padding: "12px 16px",
-            background: "#0f172a",
-            border: "1px solid #475569",
-            borderRadius: "6px",
+            fontSize: "32px",
+            fontWeight: "bold",
+            marginBottom: "20px",
             color: "#f1f5f9",
-            fontSize: "14px",
-            outline: "none",
-            transition: "border-color 0.2s",
           }}
-          onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
-          onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
-        />
+        >
+          Data Models
+        </h1>
+
+        <p
+          style={{
+            fontSize: "14px",
+            color: "#94a3b8",
+            marginBottom: "24px",
+          }}
+        >
+          Browse and search data models across all installed applications
+        </p>
+
+        <div style={{ marginBottom: "24px" }}>
+          <input
+            type="text"
+            placeholder="Search tables and fields..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            style={{
+              width: "100%",
+              maxWidth: "600px",
+              padding: "12px 16px",
+              background: "#0f172a",
+              border: "1px solid #475569",
+              borderRadius: "6px",
+              color: "#f1f5f9",
+              fontSize: "14px",
+              outline: "none",
+              transition: "border-color 0.2s",
+            }}
+            onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
+            onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
+          />
+        </div>
       </div>
 
       {loading ? (
@@ -192,8 +205,25 @@ export default function DataModelsPage() {
           Loading tables...
         </div>
       ) : (
-        <div style={{ display: "flex", gap: "24px" }}>
-          <div style={{ flex: 1, maxWidth: "400px" }}>
+        <div
+          style={{
+            display: "flex",
+            flex: 1,
+            minHeight: 0,
+            border: "1px solid #334155",
+            borderRadius: "8px",
+            overflow: "hidden",
+          }}
+        >
+          <div
+            style={{
+              width: "400px",
+              flexShrink: 0,
+              overflowY: "auto",
+              padding: "16px",
+              borderRight: "1px solid #334155",
+            }}
+          >
             <div
               style={{
                 display: "flex",
@@ -216,7 +246,7 @@ export default function DataModelsPage() {
                   No tables found
                 </div>
               ) : (
-                filteredTables.map((result, index) => (
+                filteredTables.map((result) => (
                   <div
                     key={`${result.appId}:${result.table.table_name}`}
                     onClick={() => setSelectedTable(result)}
@@ -297,14 +327,18 @@ export default function DataModelsPage() {
             </div>
           </div>
 
-          {selectedTable && (
-            <div style={{ flex: 1 }}>
+          <div
+            style={{
+              flex: 1,
+              overflowY: "auto",
+              padding: "16px",
+            }}
+          >
+            {selectedTable ? (
               <div
                 style={{
                   padding: "24px",
                   background: "#1e293b",
-                  border: "1px solid #334155",
-                  borderRadius: "8px",
                 }}
               >
                 <div style={{ marginBottom: "24px" }}>
@@ -359,6 +393,15 @@ export default function DataModelsPage() {
                   >
                     {selectedTable.table.fields
                       .slice()
+                      .filter((f) => {
+                        if (!searchQuery.trim()) return true;
+                        const q = searchQuery.toLowerCase();
+                        return (
+                          f.name.toLowerCase().includes(q) ||
+                          f.type.toLowerCase().includes(q) ||
+                          f.description.toLowerCase().includes(q)
+                        );
+                      })
                       .sort((a, b) => a.name.localeCompare(b.name))
                       .map((field, index) => (
                         <div
@@ -494,8 +537,21 @@ export default function DataModelsPage() {
                   </div>
                 </div>
               </div>
-            </div>
-          )}
+            ) : (
+              <div
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  height: "100%",
+                  color: "#64748b",
+                  fontSize: "14px",
+                }}
+              >
+                Select a table to view its fields
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>
