@@ -1,17 +1,16 @@
-import { initializeSchema } from "@/lib/database/schema";
-
 /**
  * Called automatically by NextJS on server startup.
  */
 export async function register() {
-  // Only run on the server
+  // Only run on the server — all imports are dynamic to avoid
+  // pulling Node.js modules into the edge runtime bundle.
   if (process.env.NEXT_RUNTIME === "nodejs") {
-    // Initialize database
+    const { initializeSchema } = await import("@/lib/database/schema");
     await initializeSchema();
 
-    // Dynamically import to avoid client-side issues
-    const { default: AgentSystem } =
-      await import("@/lib/system/agents/agent-system");
+    const { default: AgentSystem } = await import(
+      "@/lib/system/agents/agent-system"
+    );
 
     // Initialize after a short delay to ensure database is ready
     setTimeout(async () => {

@@ -551,6 +551,7 @@ export async function installApp(
       const authorityManager = new AuthorityManager();
       const appAuthority = await authorityManager.readAppSpecificAuthority(
         appAttributes.id,
+        client,
       );
       if (appAuthority) {
         await authorityManager.updateAppSpecificAuthority(appAttributes.id, {

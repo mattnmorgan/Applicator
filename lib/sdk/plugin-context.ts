@@ -177,11 +177,11 @@ export default class Context {
     if (!this.contextUser || userId) {
       const authorityManager = this.recordManager<Authority>(
         "system",
-        "authority",
+        "authorities",
       );
       const userRecord = await this.recordManager<User>(
         "system",
-        "user",
+        "users",
       ).readRecord(targetUserId);
       const systemAuthority = await authorityManager.readRecord(
         userRecord.data.authority_id,
@@ -227,11 +227,11 @@ export default class Context {
     if (!this.contextApp || appId) {
       const appRecord = await this.recordManager<App>(
         "system",
-        "app",
+        "apps",
       ).readRecord(targetAppId);
       const appAuthority = await this.recordManager<Authority>(
         "system",
-        "authority",
+        "authorities",
       ).readRecord(`app-specific:${targetAppId}`);
       appInfo = {
         name: appRecord.data.label,

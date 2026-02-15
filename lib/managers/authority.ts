@@ -43,8 +43,8 @@ export default class AuthorityManager extends CRUD<Authority> {
     );
   }
 
-  async readAppSpecificAuthority(appId: string) {
-    return this.readRecord(`app-specific:${appId}`);
+  async readAppSpecificAuthority(appId: string, client?: PoolClient) {
+    return this.readRecord(`app-specific:${appId}`, client);
   }
 
   async createAppSpecificAuthority(

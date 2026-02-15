@@ -7,7 +7,8 @@ import { getClient } from "@/lib/database/connections/postgresql";
 import { quoteIfReserved } from "@/lib/database/utility/postgresql";
 
 export function readRecordWrapper<T = any>(appId: string, tableName: string) {
-  return (id: string) => readRecord<T>(appId, tableName, id);
+  return (id: string, client?: PoolClient) =>
+    readRecord<T>(appId, tableName, id, client);
 }
 
 /**
