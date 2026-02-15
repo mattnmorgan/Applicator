@@ -23,17 +23,9 @@ export async function GET(
 ) {
   try {
     const { appId, path: pathSegments } = await params;
-
-    // Get storage path
     const storagePath = (await getSystemSettings()).storage;
-    if (!storagePath) {
-      return NextResponse.json(
-        { error: "Storage not configured" },
-        { status: 500 },
-      );
-    }
-
     let filePath: string;
+    let skipValidation: boolean = false;
 
     // Handle system app assets with special routing
     if (appId === "system") {
@@ -46,6 +38,7 @@ export async function GET(
           "icons",
           "system.png",
         );
+        skipValidation = true;
       } else if (pathSegments.length === 1 && pathSegments[0] === "brand") {
         filePath = path.join(storagePath, "apps", "system", "brand.png");
       } else if (
@@ -75,15 +68,25 @@ export async function GET(
       }
     }
 
-    // Security check: ensure the resolved path is within the storage directory or public folder
-    const resolvedPath = path.resolve(filePath);
-    const resolvedStoragePath = path.resolve(storagePath);
-    const resolvedPublicPath = path.resolve(process.cwd(), "public");
-    const isInStorage = resolvedPath.startsWith(resolvedStoragePath);
-    const isInPublic = resolvedPath.startsWith(resolvedPublicPath);
+    // Skip validation if a specific file in the public assets is requested
+    if (!skipValidation) {
+      if (!storagePath) {
+        return NextResponse.json(
+          { error: "Storage not configured" },
+          { status: 500 },
+        );
+      }
 
-    if (!isInStorage && !isInPublic) {
-      return NextResponse.json({ error: "Invalid path" }, { status: 403 });
+      // Security check: ensure the resolved path is within the storage directory or public folder
+      const resolvedPath = path.resolve(filePath);
+      const resolvedStoragePath = path.resolve(storagePath);
+      const resolvedPublicPath = path.resolve(process.cwd(), "public");
+      const isInStorage = resolvedPath.startsWith(resolvedStoragePath);
+      const isInPublic = resolvedPath.startsWith(resolvedPublicPath);
+
+      if (!isInStorage && !isInPublic) {
+        return NextResponse.json({ error: "Invalid path" }, { status: 403 });
+      }
     }
 
     try {

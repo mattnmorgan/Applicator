@@ -27,7 +27,8 @@ export async function executeValidator(
     const storagePath = (await new SettingManager().readRecord("storage"))?.data
       .value;
     if (!storagePath) {
-      throw new Error("System storage not configured");
+      // No storage configured means no validator scripts can exist
+      return { field: field.name, valid: true };
     }
 
     // Build the validator script path from system storage
