@@ -1,3 +1,5 @@
+import schema from "@/lib/database/schema";
+
 /**
  * PostgreSQL reserved words that must be quoted when used as identifiers.
  * Source: https://www.postgresql.org/docs/current/sql-keywords-appendix.html
@@ -129,9 +131,6 @@ function needsJsonStringify(value: any): boolean {
 let _jsonbCache: Map<string, Set<string>> | null = null;
 export function getJsonbColumns(tableName: string): Set<string> {
   if (!_jsonbCache) {
-    // Lazy require to avoid circular dependency with schema classes
-    // that also import from this module
-    const schema = require("@/lib/database/schema").default;
     _jsonbCache = new Map();
     for (const table of schema.tables) {
       const cols = new Set<string>();

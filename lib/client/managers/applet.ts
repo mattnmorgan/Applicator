@@ -2,6 +2,6 @@ import CRUD from "@/lib/client/database/crud/";
 import Applet from "@/lib/database/types/applet";
 
 export default class Manager extends CRUD<Applet> {
-  tableId = "applet";
+  tableId = "applets";
   appId = "system";
 }

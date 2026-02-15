@@ -2,7 +2,7 @@ import CRUD from "@/lib/client/database/crud/";
 import User from "@/lib/database/types/user";
 
 export default class Manager extends CRUD<User> {
-  tableId = "user";
+  tableId = "users";
   appId = "system";
 }
 

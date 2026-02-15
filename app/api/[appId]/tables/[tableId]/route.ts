@@ -187,7 +187,7 @@ export async function PATCH(
     }
 
     // Validate required permissions for app-specific authority updates
-    if (appId === "system" && tableId === "authority") {
+    if (appId === "system" && tableId === "authorities") {
       const updates = body.updates
         ? body.updates
         : [{ id: body.id, data: body.data }];
