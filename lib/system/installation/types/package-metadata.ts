@@ -24,8 +24,9 @@ export default interface AppMetadata {
       description: string;
       type: string;
       required?: boolean;
-      defaultValue?: string;
+      defaultValue?: any;
       relatedTo?: string;
+      options?: any;
     }[];
   }[];
   authorizations?: {

@@ -33,22 +33,26 @@ export default class FieldManager extends CRUD<Field> {
   }
 
   /**
-   * Create a field for a table
-   * @param appId The app ID
-   * @param tableName The table name
-   * @param field The field definition (app and table will be set automatically)
-   * @param client Optional transaction client
+   * Create a field for a table.
+   * Accepts both snake_case DB format and camelCase metadata format
+   * (e.g. relatedTo → related_to, defaultValue → default_value).
    */
   async createField(
     appId: string,
     tableName: string,
-    field: Omit<Field, "app" | "table_name">,
+    field: Record<string, any>,
     client?: PoolClient,
   ): Promise<void> {
     const fieldRecord: Field = {
       app: appId,
       table_name: tableName,
-      ...field,
+      name: field.name,
+      description: field.description ?? "",
+      type: field.type,
+      required: field.required,
+      related_to: field.related_to ?? field.relatedTo,
+      default_value: field.default_value ?? field.defaultValue,
+      options: field.options,
     };
 
     await this.createRecord(await this.getTable(), fieldRecord, {
