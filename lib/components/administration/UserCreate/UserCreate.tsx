@@ -258,52 +258,65 @@ export default function UserCreate({
       console.log(JSON.stringify(record));
 
       if (profilePicture && !clearProfilePicture) {
-        const systemSettings = await getSystemSettings();
+        try {
+          const systemSettings = await getSystemSettings();
 
-        if (!systemSettings.storage) {
-          setError("System storage not configured");
-          return;
+          if (!systemSettings.storage) {
+            throw new Error("System storage not configured");
+          }
+
+          const fname = `${record.id}.png`;
+          await uploadFile(
+            profilePicture,
+            `${systemSettings.storage}/apps/system/icons/users`,
+            fname,
+          );
+          record = await manager.updateRecord(record.id, {
+            ...record?.data,
+            icon: "true",
+          });
+        } catch (iconError) {
+          console.error("Failed to upload profile picture:", iconError);
+          setError(
+            `User ${isEditMode ? "updated" : "created"} but profile picture upload failed`,
+          );
         }
-
-        const fname = `${record.id}.png`;
-        await uploadFile(
-          profilePicture,
-          `${systemSettings.storage}/apps/system/icons/users`,
-          fname,
-        );
-        record = await manager.updateRecord(record.id, {
-          ...record?.data,
-          icon: "true",
-        });
       }
 
-      // Does this work if authority doesn't exist
-      const userAuthorityId = `user-specific:${record.id}`;
-      let userAuthority = await authorityManager.readRecord({
-        id: userAuthorityId,
-      });
+      // Create or update user-specific authority for custom authorizations/apps
+      try {
+        const userAuthorityId = `user-specific:${record.id}`;
+        let userAuthority = await authorityManager.readRecord({
+          id: userAuthorityId,
+        });
 
-      if (!userAuthority) {
-        userAuthority = await authorityManager.createRecord(
-          {
+        if (!userAuthority) {
+          userAuthority = await authorityManager.createRecord(
+            {
+              authorizations: customAuthorizations,
+              apps: customApps,
+              name: `${record.data.display_name} (User-specific)`,
+              user_id: record.id,
+            },
+            userAuthorityId,
+          );
+        } else {
+          await authorityManager.updateRecord(`user-specific:${record.id}`, {
             authorizations: customAuthorizations,
             apps: customApps,
-            name: `${record.data.display_name} (User-specific)`,
             user_id: record.id,
-          },
-          userAuthorityId,
+          });
+        }
+      } catch (authError) {
+        console.error("Failed to set user-specific authority:", authError);
+        setError(
+          `User ${isEditMode ? "updated" : "created"} but custom authorizations could not be saved`,
         );
-      } else {
-        await authorityManager.updateRecord(`user-specific:${record.id}`, {
-          authorizations: customAuthorizations,
-          apps: customApps,
-          user_id: record.id,
-        });
       }
 
       onUserCreated();
     } catch (err) {
-      console.log(err);
+      console.error("Failed to create/update user:", err);
       setError(`Failed to ${isEditMode ? "update" : "create"} user`);
     } finally {
       setCreating(false);

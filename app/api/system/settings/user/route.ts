@@ -129,16 +129,15 @@ export async function PATCH(request: Request) {
       }
     }
 
-    // Build updates object
+    // Build updates object (use snake_case column names)
     const updates: any = {
-      displayName,
+      display_name: displayName,
       email,
     };
 
     // Update password if provided
     if (newPassword) {
-      const passwordHash = await bcrypt.hash(newPassword, 10);
-      updates.passwordHash = passwordHash;
+      updates.password_hash = await bcrypt.hash(newPassword, 10);
     }
 
     // Handle clearing profile picture

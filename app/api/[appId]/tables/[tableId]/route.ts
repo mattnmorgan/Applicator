@@ -46,13 +46,24 @@ export async function POST(
       );
     }
 
-    return NextResponse.json(
-      body.records && Array.isArray(body.records)
-        ? await createRecords(appId, tableId, body.records, true)
-        : await createRecord(appId, tableId, tableRecord.data, body.data, {
-            id: body.id,
-          }),
+    // Single record creation
+    if (!body?.data) {
+      return NextResponse.json(
+        { error: "No record data provided" },
+        { status: 400 },
+      );
+    }
+
+    const record = await createRecord(
+      appId,
+      tableId,
+      tableRecord.data,
+      body.data,
+      {
+        id: body.id,
+      },
     );
+    return NextResponse.json({ record });
   } catch (error) {
     console.error("Error creating record:", error);
     return NextResponse.json(

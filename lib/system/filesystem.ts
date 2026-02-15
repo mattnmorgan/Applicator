@@ -500,16 +500,6 @@ export class Filesystem {
     error?: string;
     status?: number;
   }> {
-    const settingManager = new SettingManager();
-    const storageRecord = await settingManager.readRecord("storage");
-    if (!storageRecord?.data.value) {
-      return {
-        authorized: false,
-        error: "System storage not configured",
-        status: 503,
-      };
-    }
-
     const cookieHeader = request.headers.get("cookie");
     const sessionId = cookieHeader?.match(/session=([^;]+)/)?.[1];
 
@@ -520,6 +510,27 @@ export class Filesystem {
     const session = await getSession(sessionId);
     if (!session) {
       return { authorized: false, error: "Unauthorized", status: 401 };
+    }
+
+    const settingManager = new SettingManager();
+    const storageRecord = await settingManager.readRecord("storage");
+    const storageConfigured = !!storageRecord?.data.value;
+    const hasAdmin = await userHasAuthorization(
+      session.user_id,
+      "system:admin",
+    );
+
+    if (!storageConfigured) {
+      // Storage not yet configured — allow admins through so they can
+      // browse directories and set the storage path during initial setup.
+      if (hasAdmin) {
+        return { authorized: true };
+      }
+      return {
+        authorized: false,
+        error: "System storage not configured",
+        status: 503,
+      };
     }
 
     const url = new URL(request.url);
@@ -543,11 +554,6 @@ export class Filesystem {
         status: 403,
       };
     } else {
-      const hasAdmin = await userHasAuthorization(
-        session.user_id,
-        "system:admin",
-      );
-
       if (hasAdmin) {
         return { authorized: true };
       } else {
