@@ -171,7 +171,7 @@ export default function NotificationItem({
           {notification.data.message}
         </div>
         <div style={{ color: "#64748b", fontSize: "11px", marginTop: "4px" }}>
-          {new Date(notification.data.timestamp).toLocaleString()}
+          {new Date(Number(notification.data.timestamp)).toLocaleString()}
         </div>
       </div>
 

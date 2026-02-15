@@ -19,16 +19,16 @@ export default class LogManager extends CRUD<Log> {
     if (loggingEnabled) {
       const now = Date.now();
 
-      // Try to get current user, but handle cases where we're outside a request context
+      // Try to get current user — null when outside a request context
       // (e.g., agent system initialization, background tasks)
-      let userId = "system";
+      let userId: string | null = null;
       try {
         const currentUser = await getCurrentUser();
         if (currentUser?.user.id) {
           userId = currentUser.user.id;
         }
       } catch {
-        // Outside request context (e.g., agent system), use "system" as userId
+        // Outside request context — leave as null
       }
 
       const record = await this.createRecord(

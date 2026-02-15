@@ -60,7 +60,7 @@ export default function NotificationsPage() {
           n.data.title?.toLowerCase().includes(query) ||
           n.data.message.toLowerCase().includes(query) ||
           n.data.app.toLowerCase().includes(query) ||
-          new Date(n.data.timestamp)
+          new Date(Number(n.data.timestamp) || n.created_at)
             .toLocaleString()
             .toLowerCase()
             .includes(query),
@@ -419,7 +419,8 @@ export default function NotificationsPage() {
                         <span>{notification.data.app}</span>
                         <span>
                           {new Date(
-                            notification.data.timestamp,
+                            Number(notification.data.timestamp) ||
+                              notification.created_at,
                           ).toLocaleString()}
                         </span>
                       </div>

@@ -218,6 +218,7 @@ const schema = new Schema({
         new Field({
           name: "user_id",
           type: "text",
+          nillable: true,
           foreignKey: { table: "users", field: "id" },
         }),
         new Field({ name: "message", type: "text" }),
@@ -388,7 +389,11 @@ const schema = new Schema({
  * Initialize database
  */
 export async function initializeSchema(): Promise<void> {
-  await getPool().query(schema.toSql());
+  const pool = getPool();
+  await pool.query(schema.toSql());
+
+  // Migrations: safe to run repeatedly (no-op if already applied)
+  await pool.query(`ALTER TABLE logs ALTER COLUMN user_id DROP NOT NULL`);
 }
 
 export default schema;

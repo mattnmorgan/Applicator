@@ -5,7 +5,20 @@ import React, { useState, useEffect } from "react";
 import styles from "./LoggingViewer.module.css";
 import Log from "@/lib/database/types/log";
 import LogManager from "@/lib/client/managers/log";
+import UserManager from "@/lib/client/managers/user";
 import { getSystemSettings } from "@/lib/client/database/crud/";
+
+function formatTimestamp(ts: string): string {
+  const date = new Date(Number(ts));
+  if (isNaN(date.getTime())) return ts;
+  const mm = String(date.getMonth() + 1).padStart(2, "0");
+  const dd = String(date.getDate()).padStart(2, "0");
+  const yyyy = date.getFullYear();
+  const hh = String(date.getHours()).padStart(2, "0");
+  const min = String(date.getMinutes()).padStart(2, "0");
+  const ss = String(date.getSeconds()).padStart(2, "0");
+  return `${mm}/${dd}/${yyyy} ${hh}:${min}:${ss}`;
+}
 
 export default function LoggingViewer() {
   const [logs, setLogs] = useState<TableRecord<Log>[]>([]);
@@ -14,6 +27,7 @@ export default function LoggingViewer() {
   const [totalCount, setTotalCount] = useState(0);
   const [offset, setOffset] = useState(0);
   const [hasMore, setHasMore] = useState(true);
+  const [userMap, setUserMap] = useState<Record<string, string>>({});
   const limit = 100;
 
   const fetchLoggingStatus = async () => {
@@ -76,6 +90,16 @@ export default function LoggingViewer() {
 
   useEffect(() => {
     fetchLogs(true);
+    new UserManager()
+      .readRecords({})
+      .then((result) => {
+        const map: Record<string, string> = {};
+        for (const u of result.records) {
+          map[u.id] = u.data.username;
+        }
+        setUserMap(map);
+      })
+      .catch(() => {});
   }, []);
 
   const getLevelColor = (level: string): string => {
@@ -161,14 +185,17 @@ export default function LoggingViewer() {
                       {log.data.level}
                     </span>
                     <span className={styles.logTimestamp}>
-                      {log.data.timestamp}
+                      {formatTimestamp(log.data.timestamp)}
                     </span>
                     <span className={styles.logSender}>
                       [{log.data.sender}]
                     </span>
                     {log.data.user_id && (
                       <span className={styles.logUserId}>
-                        user:{log.data.user_id.substring(0, 8)}
+                        {log.data.user_id
+                          ? userMap[log.data.user_id] ||
+                            log.data.user_id.substring(0, 8)
+                          : ""}
                       </span>
                     )}
                     <span className={styles.logMessage}>
