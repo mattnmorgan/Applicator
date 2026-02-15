@@ -31,7 +31,7 @@ export async function sqlUpdate(
     let paramIdx = 3;
 
     for (const [col, value] of Object.entries(data)) {
-      if (value !== undefined) {
+      if (value !== undefined && col !== "id" && col !== "created_at" && col !== "updated_at") {
         setClauses.push(`${quoteIfReserved(col)} = $${paramIdx}`);
         params.push(serializeValue(value, jsonbCols.has(col)));
         paramIdx++;

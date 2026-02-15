@@ -31,7 +31,7 @@ export async function sqlCreate(
     const sqlValues: any[] = [id, createdAt, updatedAt];
 
     for (const [col, value] of Object.entries(data)) {
-      if (value !== undefined) {
+      if (value !== undefined && col !== "id" && col !== "created_at" && col !== "updated_at") {
         sqlColumns.push(col);
         sqlValues.push(serializeValue(value, jsonbCols.has(col)));
       }
