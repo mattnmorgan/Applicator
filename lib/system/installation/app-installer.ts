@@ -132,6 +132,7 @@ export async function installAppComponents(
           component: applet.component,
           app: appId,
           target: applet.target,
+          settings: applet.settings || [],
         },
         { id: `${appId}:${applet.id}`, client },
       );
@@ -328,6 +329,7 @@ export async function updateAppComponents(
           component: applet.component,
           app: appId,
           target: applet.target,
+          settings: applet.settings || [],
         },
         { id: `${appId}:${applet.id}`, client },
       );
@@ -692,6 +694,7 @@ export async function upgradeSystemApp(): Promise<{
             component: applet.component,
             app: "system",
             target: applet.target,
+            settings: applet.settings || [],
           },
           { id: `system:${applet.id}`, client },
         );
@@ -773,50 +776,46 @@ export async function upgradeSystemApp(): Promise<{
     const authorizationManager = new AuthorizationManager();
     const authorityManager = new AuthorityManager();
 
-    // Delete existing system authorizations
+    // Create new system authorizations (skip existing to preserve customizations)
     const authorizationsResult = await authorizationManager.readRecords({}, client);
-    for (const auth of authorizationsResult.records) {
-      if (auth.data.app === "system") {
-        await authorizationManager.deleteRecord(auth.id, { client });
-      }
-    }
+    const existingAuthorizationIds = new Set(authorizationsResult.records.map((a) => a.id));
 
-    // Delete existing system authorities (identified by system: prefix or app === "system")
-    const authoritiesResult = await authorityManager.readRecords({}, client);
-    for (const authority of authoritiesResult.records) {
-      if (authority.id.startsWith("system:") || authority.data.app === "system") {
-        await authorityManager.deleteRecord(authority.id, { client });
-      }
-    }
-
-    // Create system authorizations
     for (const auth of SYSTEM_APP_METADATA.authorizations) {
-      await authorizationManager.createRecord(
-        await authorizationManager.getTable(),
-        {
-          app: "system",
-          name: auth.name,
-          description: auth.description,
-          contextual: auth.contextual,
-          target: (auth as any).target || "user",
-        },
-        { id: "system:" + auth.id, client },
-      );
+      const authId = "system:" + auth.id;
+      if (!existingAuthorizationIds.has(authId)) {
+        await authorizationManager.createRecord(
+          await authorizationManager.getTable(),
+          {
+            app: "system",
+            name: auth.name,
+            description: auth.description,
+            contextual: auth.contextual,
+            target: (auth as any).target || "user",
+          },
+          { id: authId, client },
+        );
+      }
     }
 
-    // Create system authorities
+    // Create new system authorities (skip existing to preserve customizations)
+    const authoritiesResult = await authorityManager.readRecords({}, client);
+    const existingAuthorityIds = new Set(authoritiesResult.records.map((a) => a.id));
+
     for (const auth of SYSTEM_APP_METADATA.authorities) {
-      await authorityManager.createRecord(
-        await authorityManager.getTable(),
-        {
-          name: auth.name,
-          authorizations: auth.authorizations,
-          apps: auth.apps,
-          contextual: auth.contextual || false,
-          app: auth.contextual ? "system" : undefined,
-        },
-        { id: "system:" + auth.id, client },
-      );
+      const authorityId = "system:" + auth.id;
+      if (!existingAuthorityIds.has(authorityId)) {
+        await authorityManager.createRecord(
+          await authorityManager.getTable(),
+          {
+            name: auth.name,
+            authorizations: auth.authorizations,
+            apps: auth.apps,
+            contextual: auth.contextual || false,
+            app: auth.contextual ? "system" : undefined,
+          },
+          { id: authorityId, client },
+        );
+      }
     }
   });
 

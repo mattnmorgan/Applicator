@@ -55,6 +55,13 @@ export default interface AppMetadata {
     description: string;
     target: string;
     component: string;
+    settings?: {
+      name: string;
+      label: string;
+      type: "string" | "number" | "boolean" | "picklist" | "multipicklist";
+      default?: any;
+      options?: Record<string, string>;
+    }[];
   }[];
   agents?: {
     name: string;

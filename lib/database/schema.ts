@@ -291,6 +291,28 @@ const schema = new Schema({
           type: "text",
           check: ["app", "home", "user-settings", "system-settings", "guest"],
         }),
+        new Field({ name: "settings", type: "jsonb", defaultValue: "[]" }),
+        new Field({ name: "created_at", type: "bigint" }),
+        new Field({ name: "updated_at", type: "bigint" }),
+      ],
+    }),
+
+    new Table({
+      createNonexisting: true,
+      name: "applet_settings",
+      fields: [
+        new Field({ name: "id", type: "text", primaryKey: true }),
+        new Field({
+          name: "user",
+          type: "text",
+          foreignKey: { table: "users", field: "id", cascade: true },
+        }),
+        new Field({
+          name: "applet",
+          type: "text",
+          foreignKey: { table: "applets", field: "id", cascade: true },
+        }),
+        new Field({ name: "settings", type: "jsonb", defaultValue: "{}" }),
         new Field({ name: "created_at", type: "bigint" }),
         new Field({ name: "updated_at", type: "bigint" }),
       ],
@@ -394,6 +416,7 @@ export async function initializeSchema(): Promise<void> {
 
   // Migrations: safe to run repeatedly (no-op if already applied)
   await pool.query(`ALTER TABLE logs ALTER COLUMN user_id DROP NOT NULL`);
+  await pool.query(`ALTER TABLE applets ADD COLUMN IF NOT EXISTS settings jsonb DEFAULT '[]'`);
 }
 
 export default schema;

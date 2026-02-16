@@ -11,7 +11,9 @@ import TableManager from "@/lib/managers/table";
 import FieldManager from "@/lib/managers/field";
 import ApiRouteManager from "@/lib/managers/apiRoute";
 import AppletManager from "@/lib/managers/applet";
+import AppletSettingManager from "@/lib/managers/appletSetting";
 import AgentManager from "@/lib/managers/agent";
+import UserManager from "@/lib/managers/user";
 import Agent from "@/lib/system/agents/agent";
 import { deleteAll } from "@/lib/database/crud/delete";
 import { withTransaction } from "@/lib/database/connections/postgresql";
@@ -201,8 +203,55 @@ export async function POST(request: NextRequest) {
         (applet) => applet.data.app === appId,
       );
 
+      // Collect applet IDs for cleanup
+      const appAppletIds = new Set(appApplets.map((a) => a.id));
+
       for (const applet of appApplets) {
         await appletManager.deleteRecord(applet.id, { client });
+      }
+
+      // Delete all applet_settings for this app's applets
+      const appletSettingManager = new AppletSettingManager();
+      const allAppletSettings = await appletSettingManager.readRecords({}, client);
+      for (const setting of allAppletSettings.records) {
+        if (appAppletIds.has(setting.data.applet)) {
+          await appletSettingManager.deleteRecord(setting.id, { client });
+        }
+      }
+
+      // Clean up pinned applet instances referencing this app's applets
+      const userManager = new UserManager();
+      const allUsers = await userManager.readRecords({}, client);
+      for (const user of allUsers.records) {
+        const pinnedSetting = await settingManager.readRecord(
+          `${user.id}:home:applets`,
+          client,
+        );
+        if (pinnedSetting && pinnedSetting.data.value) {
+          try {
+            const instances = JSON.parse(pinnedSetting.data.value);
+            if (Array.isArray(instances)) {
+              const filtered = instances.filter(
+                (inst: any) => !appAppletIds.has(inst.appletId),
+              );
+              if (filtered.length !== instances.length) {
+                const settingTable = await settingManager.getTable();
+                await settingManager.upsertRecord(
+                  settingTable,
+                  `${user.id}:home:applets`,
+                  {
+                    value: JSON.stringify(filtered),
+                    name: "home:applets",
+                    user: user.id,
+                  },
+                  { client },
+                );
+              }
+            }
+          } catch {
+            // Invalid JSON, skip
+          }
+        }
       }
 
       // Delete all authorizations for this app

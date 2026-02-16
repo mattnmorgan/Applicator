@@ -58,6 +58,7 @@ export async function GET() {
         description: applet.data.description,
         target: applet.data.target,
         app: applet.data.app,
+        settings: applet.data.settings || [],
       }));
 
     return NextResponse.json({

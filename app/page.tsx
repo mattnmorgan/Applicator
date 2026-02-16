@@ -4,6 +4,7 @@ import { getSystemSettings } from "@/lib/managers/setting";
 import UserManager from "@/lib/managers/user";
 import AuthorityManager from "@/lib/managers/authority";
 import AppletManager from "@/lib/managers/applet";
+import AppletSettingManager from "@/lib/managers/appletSetting";
 import SettingManager from "@/lib/managers/setting";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/utility/Tabset";
@@ -53,17 +54,25 @@ async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
   return homeMenuItems;
 }
 
+interface PinnedInstance {
+  instanceId: string;
+  appletId: string;
+}
+
 interface PinnedApplet {
-  id: string;
+  instanceId: string;
+  appletId: string;
   label: string;
   description: string;
   component: string;
   app: string;
+  instanceSettings: Record<string, any>;
 }
 
 async function getUserPinnedApplets(userId: string): Promise<PinnedApplet[]> {
   const settingManager = new SettingManager();
   const appletManager = new AppletManager();
+  const appletSettingManager = new AppletSettingManager();
   const authorityManager = new AuthorityManager();
   const userManager = new UserManager();
 
@@ -75,9 +84,9 @@ async function getUserPinnedApplets(userId: string): Promise<PinnedApplet[]> {
   }
 
   try {
-    const appletIds = JSON.parse(setting.data.value);
+    const instances: PinnedInstance[] = JSON.parse(setting.data.value);
 
-    if (!Array.isArray(appletIds) || appletIds.length === 0) {
+    if (!Array.isArray(instances) || instances.length === 0) {
       return [];
     }
 
@@ -98,32 +107,46 @@ async function getUserPinnedApplets(userId: string): Promise<PinnedApplet[]> {
     ];
     const uniqueAccessibleIds = new Set(accessibleAppletIds);
 
-    // Fetch applet details, filtering out invalid ones and ones the user doesn't have access to
+    // Fetch applet details and instance settings
     const pinnedApplets: PinnedApplet[] = [];
-    for (const id of appletIds) {
+    for (const instance of instances) {
       // Check if user has access to this applet
-      if (!uniqueAccessibleIds.has(id)) {
+      if (!uniqueAccessibleIds.has(instance.appletId)) {
         continue;
       }
 
-      const applet = await appletManager.readRecord(id);
+      const applet = await appletManager.readRecord(instance.appletId);
       if (applet && applet.data.target === "home") {
+        // Read instance settings
+        let instanceSettings: Record<string, any> = {};
+        const settingRecord = await appletSettingManager.readRecord(
+          instance.instanceId,
+        );
+        if (settingRecord) {
+          instanceSettings = settingRecord.data.settings || {};
+        }
+
         pinnedApplets.push({
-          id: applet.id,
+          instanceId: instance.instanceId,
+          appletId: applet.id,
           label: applet.data.label,
           description: applet.data.description,
           component: applet.data.component,
           app: applet.data.app,
+          instanceSettings,
         });
       }
     }
 
-    // Silently clean up invalid applets from saved settings
-    if (pinnedApplets.length !== appletIds.length) {
-      const validIds = pinnedApplets.map((a) => a.id);
+    // Silently clean up invalid instances from saved settings
+    if (pinnedApplets.length !== instances.length) {
+      const validInstances = pinnedApplets.map((a) => ({
+        instanceId: a.instanceId,
+        appletId: a.appletId,
+      }));
       const table = await settingManager.getTable();
       await settingManager.upsertRecord(table, `${userId}:home:applets`, {
-        value: JSON.stringify(validIds),
+        value: JSON.stringify(validInstances),
         name: "home:applets",
         user: userId,
       });
@@ -311,7 +334,13 @@ export default async function HomePage() {
           }}
         >
           {pinnedApplets.length > 0 ? (
-            <HomeApplets applets={pinnedApplets} />
+            <HomeApplets
+              applets={pinnedApplets}
+              user={{
+                username: user.data.username,
+                displayName: user.data.display_name,
+              }}
+            />
           ) : (
             <div
               style={{

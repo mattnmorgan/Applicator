@@ -4,7 +4,7 @@ export const SYSTEM_APP_METADATA = {
   version: {
     major: 0,
     minor: 0,
-    dev: 2,
+    dev: 4,
   },
   author: "Matthew Morgan",
   contact_email: "matthew@morgantech.info",
@@ -477,6 +477,40 @@ export const SYSTEM_APP_METADATA = {
             "system-settings": "System Settings",
             guest: "Guests",
           },
+        },
+        {
+          name: "settings",
+          description:
+            "Settings definitions for the applet (JSON array of setting descriptors)",
+          type: "json",
+          defaultValue: [],
+        },
+      ],
+    },
+    {
+      name: "applet_settings",
+      description:
+        "Per-instance settings for pinned applets on user homescreens",
+      fields: [
+        {
+          name: "user",
+          description: "User this settings instance belongs to",
+          type: "relationship",
+          relatedTo: "system:users",
+          required: true,
+        },
+        {
+          name: "applet",
+          description: "Applet ID this instance is for",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "settings",
+          description: "JSON object of setting values",
+          type: "json",
+          required: true,
+          defaultValue: {},
         },
       ],
     },

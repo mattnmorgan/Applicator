@@ -5,22 +5,25 @@ import DynamicAppLoader from "@/lib/components/utility/DynamicAppLoader";
 import AppManager from "@/lib/client/managers/app";
 
 interface AppletInfo {
-  id: string;
+  instanceId: string;
+  appletId: string;
   label: string;
   description: string;
   component: string;
   app: string;
+  instanceSettings: Record<string, any>;
 }
 
 interface HomeAppletsProps {
   applets: AppletInfo[];
+  user: { username: string; displayName: string };
 }
 
 interface AppletWithVersion extends AppletInfo {
   moduleUrl: string;
 }
 
-export default function HomeApplets({ applets }: HomeAppletsProps) {
+export default function HomeApplets({ applets, user }: HomeAppletsProps) {
   const [appletsWithVersions, setAppletsWithVersions] = useState<
     AppletWithVersion[]
   >([]);
@@ -95,7 +98,7 @@ export default function HomeApplets({ applets }: HomeAppletsProps) {
     >
       {appletsWithVersions.map((applet) => (
         <div
-          key={applet.id}
+          key={applet.instanceId}
           style={{
             background: "#1e293b",
             borderRadius: "10px",
@@ -108,7 +111,10 @@ export default function HomeApplets({ applets }: HomeAppletsProps) {
             moduleUrl={applet.moduleUrl}
             componentName={applet.component}
             componentProps={{
-              appId: applet.id,
+              appId: applet.appletId,
+              instanceId: applet.instanceId,
+              settings: applet.instanceSettings,
+              user,
             }}
           />
         </div>
