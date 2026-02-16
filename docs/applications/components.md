@@ -1,16 +1,16 @@
 # Reusable Components
 
-The platform provides reusable React components that apps can import from `@applicator/lib`. These components follow the platform's dark theme and are used throughout the system UI.
+The platform provides reusable React components that apps can import from `@applicator/sdk`. These components follow the platform's dark theme and are used throughout the system UI.
 
 ## Importing Components
 
-Components are available through the `@applicator/lib` package (linked via npm):
+Components are available through the `@applicator/sdk` package (linked via npm):
 
 ```typescript
-import Badge from '@applicator/lib/components/utility/Badge/Badge';
-import Toast from '@applicator/lib/components/utility/Toast/Toast';
-import ConfirmModal from '@applicator/lib/components/utility/ConfirmModal/ConfirmModal';
+import { Badge, Toast, ConfirmModal } from "@applicator/sdk/components";
 ```
+
+All components are exported from a single barrel file. Use named imports to pick what you need.
 
 ---
 
@@ -19,17 +19,17 @@ import ConfirmModal from '@applicator/lib/components/utility/ConfirmModal/Confir
 A colored label for categorizing or highlighting content.
 
 ```typescript
-import Badge from '@applicator/lib/components/utility/Badge/Badge';
+import { Badge } from "@applicator/sdk/components";
 ```
 
 ### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `children` | `ReactNode` | required | Badge content |
-| `variant` | `string` | `"blue"` | Color variant |
-| `shape` | `"circle" \| "square"` | `"circle"` | Border radius style |
-| `uppercase` | `boolean` | `false` | Uppercase text transform |
+| Prop        | Type                   | Default    | Description              |
+| ----------- | ---------------------- | ---------- | ------------------------ |
+| `children`  | `ReactNode`            | required   | Badge content            |
+| `variant`   | `string`               | `"blue"`   | Color variant            |
+| `shape`     | `"circle" \| "square"` | `"circle"` | Border radius style      |
+| `uppercase` | `boolean`              | `false`    | Uppercase text transform |
 
 ### Variants
 
@@ -50,34 +50,39 @@ import Badge from '@applicator/lib/components/utility/Badge/Badge';
 A temporary notification that auto-dismisses after a duration.
 
 ```typescript
-import Toast from '@applicator/lib/components/utility/Toast/Toast';
+import { Toast } from "@applicator/sdk/components";
 ```
 
 ### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `message` | `string` | required | Notification message |
-| `type` | `"success" \| "error"` | required | Notification type (determines color and icon) |
-| `onClose` | `() => void` | required | Called when toast dismisses or close is clicked |
-| `duration` | `number` | `3000` | Auto-dismiss duration in milliseconds |
+| Prop       | Type                   | Default  | Description                                     |
+| ---------- | ---------------------- | -------- | ----------------------------------------------- |
+| `message`  | `string`               | required | Notification message                            |
+| `type`     | `"success" \| "error"` | required | Notification type (determines color and icon)   |
+| `onClose`  | `() => void`           | required | Called when toast dismisses or close is clicked |
+| `duration` | `number`               | `3000`   | Auto-dismiss duration in milliseconds           |
 
 ### Usage
 
 ```tsx
-const [toast, setToast] = useState<{ message: string; type: 'success' | 'error' } | null>(null);
+const [toast, setToast] = useState<{
+  message: string;
+  type: "success" | "error";
+} | null>(null);
 
 // Show toast
-setToast({ message: 'Item saved', type: 'success' });
+setToast({ message: "Item saved", type: "success" });
 
 // Render
-{toast && (
-  <Toast
-    message={toast.message}
-    type={toast.type}
-    onClose={() => setToast(null)}
-  />
-)}
+{
+  toast && (
+    <Toast
+      message={toast.message}
+      type={toast.type}
+      onClose={() => setToast(null)}
+    />
+  );
+}
 ```
 
 ---
@@ -87,39 +92,41 @@ setToast({ message: 'Item saved', type: 'success' });
 A confirmation dialog with cancel and confirm buttons. Closes on Escape key or overlay click.
 
 ```typescript
-import ConfirmModal from '@applicator/lib/components/utility/ConfirmModal/ConfirmModal';
+import { ConfirmModal } from "@applicator/sdk/components";
 ```
 
 ### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `title` | `string` | required | Modal title |
-| `message` | `string` | required | Confirmation message |
-| `confirmText` | `string` | `"Confirm"` | Confirm button label |
-| `cancelText` | `string` | `"Cancel"` | Cancel button label |
-| `onConfirm` | `() => void` | required | Called on confirm |
-| `onCancel` | `() => void` | required | Called on cancel or dismiss |
-| `danger` | `boolean` | `false` | Red danger styling for the confirm button |
+| Prop          | Type         | Default     | Description                               |
+| ------------- | ------------ | ----------- | ----------------------------------------- |
+| `title`       | `string`     | required    | Modal title                               |
+| `message`     | `string`     | required    | Confirmation message                      |
+| `confirmText` | `string`     | `"Confirm"` | Confirm button label                      |
+| `cancelText`  | `string`     | `"Cancel"`  | Cancel button label                       |
+| `onConfirm`   | `() => void` | required    | Called on confirm                         |
+| `onCancel`    | `() => void` | required    | Called on cancel or dismiss               |
+| `danger`      | `boolean`    | `false`     | Red danger styling for the confirm button |
 
 ### Usage
 
 ```tsx
 const [showConfirm, setShowConfirm] = useState(false);
 
-{showConfirm && (
-  <ConfirmModal
-    title="Delete Item"
-    message="Are you sure you want to delete this item? This action cannot be undone."
-    confirmText="Delete"
-    onConfirm={() => {
-      deleteItem();
-      setShowConfirm(false);
-    }}
-    onCancel={() => setShowConfirm(false)}
-    danger
-  />
-)}
+{
+  showConfirm && (
+    <ConfirmModal
+      title="Delete Item"
+      message="Are you sure you want to delete this item? This action cannot be undone."
+      confirmText="Delete"
+      onConfirm={() => {
+        deleteItem();
+        setShowConfirm(false);
+      }}
+      onCancel={() => setShowConfirm(false)}
+      danger
+    />
+  );
+}
 ```
 
 ---
@@ -129,16 +136,16 @@ const [showConfirm, setShowConfirm] = useState(false);
 A collapsible content section with a title header and expand/collapse toggle.
 
 ```typescript
-import Accordion from '@applicator/lib/components/utility/Accordion/Accordion';
+import { Accordion } from "@applicator/sdk/components";
 ```
 
 ### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `title` | `ReactNode` | required | Header content |
-| `children` | `ReactNode` | required | Collapsible body content |
-| `defaultOpen` | `boolean` | `false` | Initial expanded state |
+| Prop          | Type        | Default  | Description              |
+| ------------- | ----------- | -------- | ------------------------ |
+| `title`       | `ReactNode` | required | Header content           |
+| `children`    | `ReactNode` | required | Collapsible body content |
+| `defaultOpen` | `boolean`   | `false`  | Initial expanded state   |
 
 ### Usage
 
@@ -157,29 +164,29 @@ import Accordion from '@applicator/lib/components/utility/Accordion/Accordion';
 A navigation component supporting both vertical tree view and horizontal tab layouts. Vertical mode supports nested items, search filtering, and auto-expand.
 
 ```typescript
-import Tabset from '@applicator/lib/components/utility/Tabset/Tabset';
-import { TabsetItem } from '@applicator/lib/components/utility/Tabset/Tabset';
+import { Tabset } from "@applicator/sdk/components";
+import type { TabsetItem } from "@applicator/sdk/components";
 ```
 
 ### TabsetItem Interface
 
 ```typescript
 interface TabsetItem {
-  label: string;           // Display text
-  path?: string;           // Navigation path (triggers router.push)
+  label: string; // Display text
+  path?: string; // Navigation path (triggers router.push)
   children?: TabsetItem[]; // Nested items (vertical mode only)
-  clickable?: boolean;     // Whether the item triggers navigation (default: true)
+  clickable?: boolean; // Whether the item triggers navigation (default: true)
 }
 ```
 
 ### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `items` | `TabsetItem[]` | required | Navigation items |
-| `variant` | `"vertical" \| "horizontal"` | `"vertical"` | Layout direction |
-| `searchable` | `boolean` | `false` | Show search filter (vertical only) |
-| `autoExpand` | `boolean` | `false` | Expand all tree nodes by default |
+| Prop         | Type                         | Default      | Description                        |
+| ------------ | ---------------------------- | ------------ | ---------------------------------- |
+| `items`      | `TabsetItem[]`               | required     | Navigation items                   |
+| `variant`    | `"vertical" \| "horizontal"` | `"vertical"` | Layout direction                   |
+| `searchable` | `boolean`                    | `false`      | Show search filter (vertical only) |
+| `autoExpand` | `boolean`                    | `false`      | Expand all tree nodes by default   |
 
 ### Usage
 
@@ -217,15 +224,15 @@ interface TabsetItem {
 A simple styled row container with optional click handler.
 
 ```typescript
-import Row from '@applicator/lib/components/utility/Row/Row';
+import { Row } from "@applicator/sdk/components";
 ```
 
 ### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `children` | `ReactNode` | required | Row content |
-| `onClick` | `() => void` | - | Click handler |
+| Prop       | Type         | Default  | Description   |
+| ---------- | ------------ | -------- | ------------- |
+| `children` | `ReactNode`  | required | Row content   |
+| `onClick`  | `() => void` | -        | Click handler |
 
 ### Usage
 
@@ -243,27 +250,34 @@ import Row from '@applicator/lib/components/utility/Row/Row';
 An icon button with a tooltip that appears on hover. Supports semantic color variants.
 
 ```typescript
-import ButtonIcon from '@applicator/lib/components/utility/ButtonIcon/ButtonIcon';
+import { ButtonIcon } from "@applicator/sdk/components";
 ```
 
 ### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `icon` | `ReactNode` | required | Icon element (typically an SVG) |
-| `label` | `string` | required | Tooltip text and aria-label |
-| `onClick` | `() => void` | required | Click handler |
-| `variant` | `"bare" \| "bordered"` | `"bare"` | Visual style |
-| `subvariant` | `"danger" \| "warning" \| "info" \| "neutral"` | `"neutral"` | Hover color theme |
-| `disabled` | `boolean` | `false` | Disabled state |
+| Prop         | Type                                           | Default     | Description                     |
+| ------------ | ---------------------------------------------- | ----------- | ------------------------------- |
+| `icon`       | `ReactNode`                                    | required    | Icon element (typically an SVG) |
+| `label`      | `string`                                       | required    | Tooltip text and aria-label     |
+| `onClick`    | `() => void`                                   | required    | Click handler                   |
+| `variant`    | `"bare" \| "bordered"`                         | `"bare"`    | Visual style                    |
+| `subvariant` | `"danger" \| "warning" \| "info" \| "neutral"` | `"neutral"` | Hover color theme               |
+| `disabled`   | `boolean`                                      | `false`     | Disabled state                  |
 
 ### Usage
 
 ```tsx
 <ButtonIcon
-  icon={<svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-    <path d="M4 6V13C4 13.5523 4.44772 14 5 14H11C11.5523 14 12 13.5523 12 13V6M2 4H14M6 4V3C6 2.44772 6.44772 2 7 2H9C9.55228 2 10 2.44772 10 3V4" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
-  </svg>}
+  icon={
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+      <path
+        d="M4 6V13C4 13.5523 4.44772 14 5 14H11C11.5523 14 12 13.5523 12 13V6M2 4H14M6 4V3C6 2.44772 6.44772 2 7 2H9C9.55228 2 10 2.44772 10 3V4"
+        stroke="currentColor"
+        strokeWidth="1.5"
+        strokeLinecap="round"
+      />
+    </svg>
+  }
   label="Delete"
   onClick={() => handleDelete()}
   subvariant="danger"
@@ -277,18 +291,18 @@ import ButtonIcon from '@applicator/lib/components/utility/ButtonIcon/ButtonIcon
 A dropdown menu that opens from a trigger element. Uses portals for correct positioning.
 
 ```typescript
-import ButtonMenu from '@applicator/lib/components/utility/ButtonMenu/ButtonMenu';
+import { ButtonMenu } from "@applicator/sdk/components";
 ```
 
 ### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `children` | `ReactNode` | required | Legacy trigger or custom dropdown content |
-| `options` | `array` | - | Menu items (see below) |
-| `trigger` | `ReactNode` | - | Trigger element (preferred over children) |
-| `disabled` | `boolean` | `false` | Disabled state |
-| `alignment` | `"left" \| "right"` | `"right"` | Dropdown alignment relative to trigger |
+| Prop        | Type                | Default   | Description                               |
+| ----------- | ------------------- | --------- | ----------------------------------------- |
+| `children`  | `ReactNode`         | required  | Legacy trigger or custom dropdown content |
+| `options`   | `array`             | -         | Menu items (see below)                    |
+| `trigger`   | `ReactNode`         | -         | Trigger element (preferred over children) |
+| `disabled`  | `boolean`           | `false`   | Disabled state                            |
+| `alignment` | `"left" \| "right"` | `"right"` | Dropdown alignment relative to trigger    |
 
 ### Options Array
 
@@ -307,12 +321,12 @@ import ButtonMenu from '@applicator/lib/components/utility/ButtonMenu/ButtonMenu
   trigger={<button>Actions</button>}
   options={[
     {
-      label: 'Edit',
+      label: "Edit",
       icon: <EditIcon />,
       onClick: () => handleEdit(),
     },
     {
-      label: 'Delete',
+      label: "Delete",
       icon: <DeleteIcon />,
       onClick: () => handleDelete(),
     },
@@ -327,15 +341,15 @@ import ButtonMenu from '@applicator/lib/components/utility/ButtonMenu/ButtonMenu
 Displays a user's avatar (or first-letter placeholder) with their display name.
 
 ```typescript
-import ProfileIndicator from '@applicator/lib/components/utility/ProfileIndicator/ProfileIndicator';
+import { ProfileIndicator } from "@applicator/sdk/components";
 ```
 
 ### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `displayName` | `string` | required | User's display name |
-| `profilePicture` | `string` | - | URL to profile image |
+| Prop             | Type     | Default  | Description          |
+| ---------------- | -------- | -------- | -------------------- |
+| `displayName`    | `string` | required | User's display name  |
+| `profilePicture` | `string` | -        | URL to profile image |
 
 ### Usage
 
@@ -351,22 +365,22 @@ import ProfileIndicator from '@applicator/lib/components/utility/ProfileIndicato
 A generic searchable dropdown with single or multi-select support. Fully controlled component with type-safe generics.
 
 ```typescript
-import SearchableCombobox from '@applicator/lib/components/utility/SearchableCombobox/SearchableCombobox';
+import { SearchableCombobox } from "@applicator/sdk/components";
 ```
 
 ### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `items` | `T[]` | required | All available items |
-| `renderItem` | `(item: T) => ReactNode` | required | Render function for dropdown items |
-| `filterItem` | `(item: T, searchTerm: string) => boolean` | required | Filter function for search |
-| `selectedItems` | `T[]` | required | Currently selected items |
-| `onSelectionChange` | `(items: T[]) => void` | required | Selection change handler |
-| `getItemKey` | `(item: T) => string` | required | Unique key extractor |
-| `multiSelect` | `boolean` | `false` | Allow multiple selections |
-| `placeholder` | `string` | `"Search..."` | Input placeholder |
-| `renderSelected` | `(item: T) => ReactNode` | - | Custom render for selected item chips |
+| Prop                | Type                                       | Default       | Description                           |
+| ------------------- | ------------------------------------------ | ------------- | ------------------------------------- |
+| `items`             | `T[]`                                      | required      | All available items                   |
+| `renderItem`        | `(item: T) => ReactNode`                   | required      | Render function for dropdown items    |
+| `filterItem`        | `(item: T, searchTerm: string) => boolean` | required      | Filter function for search            |
+| `selectedItems`     | `T[]`                                      | required      | Currently selected items              |
+| `onSelectionChange` | `(items: T[]) => void`                     | required      | Selection change handler              |
+| `getItemKey`        | `(item: T) => string`                      | required      | Unique key extractor                  |
+| `multiSelect`       | `boolean`                                  | `false`       | Allow multiple selections             |
+| `placeholder`       | `string`                                   | `"Search..."` | Input placeholder                     |
+| `renderSelected`    | `(item: T) => ReactNode`                   | -             | Custom render for selected item chips |
 
 ### Usage
 
@@ -384,7 +398,7 @@ const [selected, setSelected] = useState<User[]>([]);
   renderItem={(user) => (
     <div>
       <strong>{user.name}</strong>
-      <span style={{ color: '#94a3b8' }}> {user.email}</span>
+      <span style={{ color: "#94a3b8" }}> {user.email}</span>
     </div>
   )}
   filterItem={(user, term) =>
@@ -396,7 +410,7 @@ const [selected, setSelected] = useState<User[]>([]);
   getItemKey={(user) => user.id}
   multiSelect
   placeholder="Search users..."
-/>
+/>;
 ```
 
 ---
@@ -406,20 +420,22 @@ const [selected, setSelected] = useState<User[]>([]);
 A full-page access denied message with a "Go Back" button.
 
 ```typescript
-import AccessDenied from '@applicator/lib/components/utility/AccessDenied/AccessDenied';
+import { AccessDenied } from "@applicator/sdk/components";
 ```
 
 ### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
+| Prop      | Type     | Default                                             | Description   |
+| --------- | -------- | --------------------------------------------------- | ------------- |
 | `message` | `string` | `"You do not have permission to access this page."` | Error message |
 
 ### Usage
 
 ```tsx
 if (!hasPermission) {
-  return <AccessDenied message="You need the 'manage' permission to access this page." />;
+  return (
+    <AccessDenied message="You need the 'manage' permission to access this page." />
+  );
 }
 ```
 
@@ -430,17 +446,17 @@ if (!hasPermission) {
 A modal file browser for selecting directories on the server filesystem. Supports navigation, creating new folders, and deleting folders.
 
 ```typescript
-import FolderBrowser from '@applicator/lib/components/utility/FolderBrowser/FolderBrowser';
+import { FolderBrowser } from "@applicator/sdk/components";
 ```
 
 ### Props
 
-| Prop | Type | Default | Description |
-|------|------|---------|-------------|
-| `isOpen` | `boolean` | required | Controls modal visibility |
-| `onClose` | `() => void` | required | Called when modal is dismissed |
-| `onConfirm` | `(path: string) => void` | required | Called with selected directory path |
-| `initialPath` | `string` | - | Starting directory path |
+| Prop          | Type                     | Default  | Description                         |
+| ------------- | ------------------------ | -------- | ----------------------------------- |
+| `isOpen`      | `boolean`                | required | Controls modal visibility           |
+| `onClose`     | `() => void`             | required | Called when modal is dismissed      |
+| `onConfirm`   | `(path: string) => void` | required | Called with selected directory path |
+| `initialPath` | `string`                 | -        | Starting directory path             |
 
 ### Usage
 

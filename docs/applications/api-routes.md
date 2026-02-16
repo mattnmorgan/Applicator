@@ -31,30 +31,30 @@ Routes must be declared in `app.json`:
 
 ## Handler Export Convention
 
-Handlers export named functions matching HTTP methods. Import the `Context` type from `@applicator/lib` for autocompletion:
+Handlers export named functions matching HTTP methods. Import the `Context` type from `@applicator/sdk` for autocompletion:
 
 ```typescript
-import { NextRequest, NextResponse } from 'next/server';
-import type Context from '@/lib/sdk/plugin-context';
+import { NextRequest, NextResponse } from "next/server";
+import { ApiContext } from "@applicator/sdk/context";
 
 // GET /api/{appId}/my-route
-export async function GET(req: NextRequest, context: Context) {
-  return NextResponse.json({ message: 'Hello' });
+export async function GET(req: NextRequest, context: ApiContext) {
+  return NextResponse.json({ message: "Hello" });
 }
 
 // POST /api/{appId}/my-route
-export async function POST(req: NextRequest, context: Context) {
+export async function POST(req: NextRequest, context: ApiContext) {
   const body = await req.json();
   return NextResponse.json({ received: body });
 }
 
 // PUT /api/{appId}/my-route
-export async function PUT(req: NextRequest, context: Context) {
+export async function PUT(req: NextRequest, context: ApiContext) {
   // Update logic
 }
 
 // DELETE /api/{appId}/my-route
-export async function DELETE(req: NextRequest, context: Context) {
+export async function DELETE(req: NextRequest, context: ApiContext) {
   // Delete logic
 }
 ```
@@ -62,9 +62,9 @@ export async function DELETE(req: NextRequest, context: Context) {
 ### Handler Signature
 
 ```typescript
-import type Context from '@/lib/sdk/plugin-context';
+import { ApiContext } from "@applicator/sdk/context";
 
-(req: NextRequest, context: Context) => Promise<NextResponse>
+(req: NextRequest, context: ApiContext) => Promise<NextResponse>;
 ```
 
 - `req`: Next.js request object with query params, body, headers
@@ -82,44 +82,50 @@ A `Filesystem` instance scoped to your app's data directory. All paths are relat
 
 ```typescript
 // Write a file (creates parent directories automatically)
-await context.appFileManager.writeFile('data/config.json', JSON.stringify(config));
-await context.appFileManager.writeFile('uploads/image.png', buffer);
+await context.appFileManager.writeFile(
+  "data/config.json",
+  JSON.stringify(config),
+);
+await context.appFileManager.writeFile("uploads/image.png", buffer);
 
 // Read a file (returns Buffer)
-const buffer = await context.appFileManager.readFile('uploads/image.png');
-const text = buffer.toString('utf-8');
+const buffer = await context.appFileManager.readFile("uploads/image.png");
+const text = buffer.toString("utf-8");
 
 // Delete a file
-await context.appFileManager.deleteFile('temp/old-file.txt');
+await context.appFileManager.deleteFile("temp/old-file.txt");
 
 // Delete a directory
-await context.appFileManager.deleteDirectory('temp', true); // recursive
+await context.appFileManager.deleteDirectory("temp", true); // recursive
 
 // Check existence
-const exists = await context.appFileManager.exists('data/config.json');
+const exists = await context.appFileManager.exists("data/config.json");
 
 // Create directory (throws if already exists)
-await context.appFileManager.createDirectory('uploads/images');
+await context.appFileManager.createDirectory("uploads/images");
 
 // Ensure directory exists (creates if not, no error if exists)
-await context.appFileManager.ensureDirectory('uploads/images');
+await context.appFileManager.ensureDirectory("uploads/images");
 
 // List directory contents
-const entries = await context.appFileManager.listDirectory('uploads');
+const entries = await context.appFileManager.listDirectory("uploads");
 // [{ name, isDirectory, size, modifiedAt }] — sorted: directories first, then by name
 
 // Get file/directory metadata
-const meta = await context.appFileManager.getMetadata('uploads/image.png');
+const meta = await context.appFileManager.getMetadata("uploads/image.png");
 // { size: number, createdAt: Date, modifiedAt: Date, isDirectory: boolean }
 
 // Rename a file or directory (returns new relative path)
-const newPath = await context.appFileManager.rename('old-name.txt', 'new-name.txt');
+const newPath = await context.appFileManager.rename(
+  "old-name.txt",
+  "new-name.txt",
+);
 
 // Move to a different directory (returns new relative path)
-const movedPath = await context.appFileManager.move('file.txt', 'archive');
+const movedPath = await context.appFileManager.move("file.txt", "archive");
 
 // Copy a file or directory (returns new relative path, handles name conflicts)
-const copiedPath = await context.appFileManager.copy('file.txt', 'backup');
+const copiedPath = await context.appFileManager.copy("file.txt", "backup");
 ```
 
 **Filesystem errors** have `name: "FilesystemError"`, a `code` property (`NOT_FOUND`, `ALREADY_EXISTS`, `INVALID_PATH`, `INVALID_OPERATION`, `PERMISSION_DENIED`), and a `statusCode` suitable for HTTP responses.
@@ -130,10 +136,10 @@ A `Filesystem` instance scoped to the system files directory. Only available if 
 
 ```typescript
 // Access system files (requires system:fs-access permission)
-const systemEntries = await context.systemFileManager.listDirectory('');
+const systemEntries = await context.systemFileManager.listDirectory("");
 
 // Create a child filesystem scoped to a subdirectory
-const scopedFs = context.systemFileManager.scoped('some/subdir');
+const scopedFs = context.systemFileManager.scoped("some/subdir");
 ```
 
 See [Authorities](./authorities.md#filesystem-access) for how to request `system:fs-access`.
@@ -144,56 +150,56 @@ Create a CRUD manager for a specific app table. The manager is scoped to the giv
 
 ```typescript
 // Get a record manager for a table
-const items = context.recordManager('my-app', 'items');
+const items = context.recordManager("my-app", "items");
 
 // Read a single record by ID
-const record = await items.readRecord('record-id');
+const record = await items.readRecord("record-id");
 // { id, data: T, createdAt, updatedAt }
 
 // Read records with filtering and pagination
 const result = await items.readRecords({
   limit: 50,
   offset: 0,
-  fields: { status: 'active' },    // filter by field values
-  ids: ['id-1', 'id-2'],           // filter by specific IDs
-  includeRelated: ['author'],       // include related records
+  fields: { status: "active" }, // filter by field values
+  ids: ["id-1", "id-2"], // filter by specific IDs
+  includeRelated: ["author"], // include related records
 });
 // { records: TableRecord[], total, limit, offset, related? }
 
 // Create a record (pass null for table to skip validation)
 const table = await items.getTable();
 const created = await items.createRecord(table, {
-  title: 'New Item',
-  status: 'active',
+  title: "New Item",
+  status: "active",
 });
 
 // Update a record (partial update)
-const updated = await items.updateRecord(table, 'record-id', {
-  status: 'completed',
+const updated = await items.updateRecord(table, "record-id", {
+  status: "completed",
 });
 
 // Upsert a record (create or update)
-const upserted = await items.upsertRecord(table, 'record-id', {
-  title: 'Item',
-  status: 'active',
+const upserted = await items.upsertRecord(table, "record-id", {
+  title: "Item",
+  status: "active",
 });
 
 // Delete a record
-await items.deleteRecord('record-id');
+await items.deleteRecord("record-id");
 
 // Bulk operations
 const bulkCreated = await items.bulkCreateRecords(table, [
-  { title: 'Item 1' },
-  { title: 'Item 2' },
+  { title: "Item 1" },
+  { title: "Item 2" },
 ]);
 // { success: TableRecord[], failures: { data, error }[] }
 
 const bulkUpdated = await items.bulkUpdateRecords(table, [
-  { id: 'id-1', data: { status: 'done' } },
-  { id: 'id-2', data: { status: 'done' } },
+  { id: "id-1", data: { status: "done" } },
+  { id: "id-2", data: { status: "done" } },
 ]);
 
-await items.bulkDeleteRecords(['id-1', 'id-2']);
+await items.bulkDeleteRecords(["id-1", "id-2"]);
 
 // List all record keys
 const keys = await items.listRecords();
@@ -214,31 +220,40 @@ const user = await context.user();
 // { id, displayName, username, email, authorities: { system, userSpecific } }
 
 // Get a specific user's info
-const otherUser = await context.user('user-id');
+const otherUser = await context.user("user-id");
 
 // Get current app's info (cached after first call)
 const app = await context.app();
 // { name, version, authority: { name, authorizations } }
 
 // Get another app's info
-const otherApp = await context.app('other-app-id');
+const otherApp = await context.app("other-app-id");
 ```
 
 ### Authorization
 
 ```typescript
 // Check if the current user has an authorization
-const canManage = await context.isUserAuthorizedFor('my-app:manage');
+const canManage = await context.isUserAuthorizedFor("my-app:manage");
 
 // Check multiple authorizations (test: "some" or "all")
-const hasAny = await context.isUserAuthorized(['my-app:view', 'my-app:edit'], 'some');
-const hasAll = await context.isUserAuthorized(['my-app:view', 'my-app:edit'], 'all');
+const hasAny = await context.isUserAuthorized(
+  ["my-app:view", "my-app:edit"],
+  "some",
+);
+const hasAll = await context.isUserAuthorized(
+  ["my-app:view", "my-app:edit"],
+  "all",
+);
 
 // Check app-level authorization (for the current app)
-const appHasAccess = await context.isAppAuthorizedFor('system:fs-access');
+const appHasAccess = await context.isAppAuthorizedFor("system:fs-access");
 
 // Check another app's authorization
-const otherAppAccess = await context.isAppAuthorizedFor('files:fs-access', 'other-app-id');
+const otherAppAccess = await context.isAppAuthorizedFor(
+  "files:fs-access",
+  "other-app-id",
+);
 ```
 
 ### Logger (`context.logger`)
@@ -246,10 +261,10 @@ const otherAppAccess = await context.isAppAuthorizedFor('files:fs-access', 'othe
 Log messages to the system log.
 
 ```typescript
-await context.logger.info('Processing request...');
-await context.logger.warn('Rate limit approaching');
-await context.logger.debug('Debug details here');
-await context.logger.error('Failed to process: ' + error.message);
+await context.logger.info("Processing request...");
+await context.logger.warn("Rate limit approaching");
+await context.logger.debug("Debug details here");
+await context.logger.error("Failed to process: " + error.message);
 ```
 
 ---
@@ -262,11 +277,11 @@ await context.logger.error('Failed to process: ' + error.message);
 export async function GET(req: NextRequest, context: Context) {
   const { searchParams } = new URL(req.url);
 
-  const limit = parseInt(searchParams.get('limit') || '50');
-  const offset = parseInt(searchParams.get('offset') || '0');
-  const status = searchParams.get('status');
+  const limit = parseInt(searchParams.get("limit") || "50");
+  const offset = parseInt(searchParams.get("offset") || "0");
+  const status = searchParams.get("status");
 
-  const items = context.recordManager('my-app', 'items');
+  const items = context.recordManager("my-app", "items");
   const result = await items.readRecords({
     limit,
     offset,
@@ -274,7 +289,7 @@ export async function GET(req: NextRequest, context: Context) {
   });
 
   return NextResponse.json({
-    items: result.records.map(r => ({ id: r.id, ...r.data })),
+    items: result.records.map((r) => ({ id: r.id, ...r.data })),
     total: result.total,
   });
 }
@@ -288,22 +303,18 @@ export async function POST(req: NextRequest, context: Context) {
     const body = await req.json();
 
     if (!body.title) {
-      return NextResponse.json(
-        { error: 'Title is required' },
-        { status: 400 }
-      );
+      return NextResponse.json({ error: "Title is required" }, { status: 400 });
     }
 
-    const items = context.recordManager('my-app', 'items');
+    const items = context.recordManager("my-app", "items");
     const table = await items.getTable();
     const record = await items.createRecord(table, {
       title: body.title,
-      status: body.status || 'pending',
+      status: body.status || "pending",
     });
 
     await context.logger.info(`Created item: ${record.id}`);
     return NextResponse.json(record, { status: 201 });
-
   } catch (error: any) {
     await context.logger.error(`Create failed: ${error.message}`);
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -316,25 +327,24 @@ export async function POST(req: NextRequest, context: Context) {
 ```typescript
 export async function PUT(req: NextRequest, context: Context) {
   const { searchParams } = new URL(req.url);
-  const id = searchParams.get('id');
+  const id = searchParams.get("id");
 
   if (!id) {
-    return NextResponse.json({ error: 'ID required' }, { status: 400 });
+    return NextResponse.json({ error: "ID required" }, { status: 400 });
   }
 
   try {
     const body = await req.json();
-    const items = context.recordManager('my-app', 'items');
+    const items = context.recordManager("my-app", "items");
     const table = await items.getTable();
     const existing = await items.readRecord(id);
 
     if (!existing) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     const updated = await items.updateRecord(table, id, body);
     return NextResponse.json(updated);
-
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -346,23 +356,22 @@ export async function PUT(req: NextRequest, context: Context) {
 ```typescript
 export async function DELETE(req: NextRequest, context: Context) {
   const { searchParams } = new URL(req.url);
-  const id = searchParams.get('id');
+  const id = searchParams.get("id");
 
   if (!id) {
-    return NextResponse.json({ error: 'ID required' }, { status: 400 });
+    return NextResponse.json({ error: "ID required" }, { status: 400 });
   }
 
   try {
-    const items = context.recordManager('my-app', 'items');
+    const items = context.recordManager("my-app", "items");
     const existing = await items.readRecord(id);
 
     if (!existing) {
-      return NextResponse.json({ error: 'Not found' }, { status: 404 });
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
     await items.deleteRecord(id);
     return NextResponse.json({ success: true });
-
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -375,10 +384,10 @@ export async function DELETE(req: NextRequest, context: Context) {
 export async function POST(req: NextRequest, context: Context) {
   try {
     const formData = await req.formData();
-    const file = formData.get('file') as File;
+    const file = formData.get("file") as File;
 
     if (!file) {
-      return NextResponse.json({ error: 'No file provided' }, { status: 400 });
+      return NextResponse.json({ error: "No file provided" }, { status: 400 });
     }
 
     const buffer = Buffer.from(await file.arrayBuffer());
@@ -391,7 +400,6 @@ export async function POST(req: NextRequest, context: Context) {
       path: filename,
       size: buffer.length,
     });
-
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -403,28 +411,27 @@ export async function POST(req: NextRequest, context: Context) {
 ```typescript
 export async function GET(req: NextRequest, context: Context) {
   const { searchParams } = new URL(req.url);
-  const path = searchParams.get('path');
+  const path = searchParams.get("path");
 
   if (!path) {
-    return NextResponse.json({ error: 'Path required' }, { status: 400 });
+    return NextResponse.json({ error: "Path required" }, { status: 400 });
   }
 
   try {
     const exists = await context.appFileManager.exists(path);
     if (!exists) {
-      return NextResponse.json({ error: 'File not found' }, { status: 404 });
+      return NextResponse.json({ error: "File not found" }, { status: 404 });
     }
 
     const buffer = await context.appFileManager.readFile(path);
-    const filename = path.split('/').pop();
+    const filename = path.split("/").pop();
 
     return new NextResponse(buffer, {
       headers: {
-        'Content-Type': 'application/octet-stream',
-        'Content-Disposition': `attachment; filename="${filename}"`,
+        "Content-Type": "application/octet-stream",
+        "Content-Disposition": `attachment; filename="${filename}"`,
       },
     });
-
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -435,14 +442,14 @@ export async function GET(req: NextRequest, context: Context) {
 
 ```typescript
 export async function POST(req: NextRequest, context: Context) {
-  const canManage = await context.isUserAuthorizedFor('my-app:manage');
+  const canManage = await context.isUserAuthorizedFor("my-app:manage");
   if (!canManage) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 
   // Authorized - proceed with operation
   const body = await req.json();
-  const items = context.recordManager('my-app', 'items');
+  const items = context.recordManager("my-app", "items");
   const table = await items.getTable();
   const record = await items.createRecord(table, body);
   return NextResponse.json(record);
@@ -469,7 +476,10 @@ function findTsFiles(dir, prefix = "") {
     const stat = fs.statSync(fullPath);
 
     if (stat.isDirectory()) {
-      Object.assign(entries, findTsFiles(fullPath, prefix ? `${prefix}/${file}` : file));
+      Object.assign(
+        entries,
+        findTsFiles(fullPath, prefix ? `${prefix}/${file}` : file),
+      );
     } else if (file.endsWith(".ts") && file !== "index.ts") {
       const name = file.replace(".ts", "");
       const entryName = prefix ? `${prefix}/${name}` : name;
@@ -488,26 +498,28 @@ module.exports = {
   output: {
     path: path.resolve(__dirname, "dist"),
     filename: "[name].js",
-    library: { type: "commonjs2" }
+    library: { type: "commonjs2" },
   },
   resolve: {
     extensions: [".tsx", ".ts", ".js"],
-    alias: { "@": path.resolve(__dirname, "../..") }
+    alias: {},
   },
   module: {
-    rules: [{
-      test: /\.tsx?$/,
-      use: "ts-loader",
-      exclude: /node_modules/
-    }]
+    rules: [
+      {
+        test: /\.tsx?$/,
+        use: "ts-loader",
+        exclude: /node_modules/,
+      },
+    ],
   },
   externals: {
-    "next/server": "commonjs2 next/server"
+    "next/server": "commonjs2 next/server",
   },
   optimization: {
     splitChunks: false,
-    runtimeChunk: false
+    runtimeChunk: false,
   },
-  mode: "production"
+  mode: "production",
 };
 ```

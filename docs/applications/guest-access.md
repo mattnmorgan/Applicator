@@ -49,22 +49,22 @@ Only one guest applet per app is used. If multiple exist, the first one found is
 Your app creates a contextual authority that encodes what the guest can access:
 
 ```typescript
-import type Context from '@/lib/sdk/plugin-context';
+import { ApiContext } from "@applicator/sdk/context";
 
-export async function POST(req: NextRequest, context: Context) {
+export async function POST(req: NextRequest, context: ApiContext) {
   const user = await context.user();
   const caManager = context.contextualAuthorityManager;
   const body = await req.json();
 
   const ca = await caManager.createPasswordContextualAuthority({
-    app: 'my-app',
-    recordId: 'share',
-    permission: 'my-app:view',
+    app: "my-app",
+    recordId: "share",
+    permission: "my-app:view",
     password: body.password,
     createdBy: user.id,
     context: JSON.stringify({
       documentId: body.documentId,
-      viewMode: 'readonly',
+      viewMode: "readonly",
     }),
   });
 
@@ -92,32 +92,33 @@ The platform handles the entire validation flow:
 
 ### 3. Guest Applet Receives Context
 
-Your guest component receives a single `context` prop from the platform, typed as `UIContext` from `@applicator/lib`:
+Your guest component receives a single `context` prop from the platform, typed as `UiContext` from `@applicator/sdk`:
 
 ```typescript
-import type UIContext from '@/lib/sdk/types/ui-context';
+import { UiContext } from "@applicator/sdk/context";
 ```
 
 The `UIContext` interface is generic and defined as:
 
 ```typescript
 interface UIContext<T = any> {
-  appId: string;       // App identifier being accessed
-  path: string[];      // URL path segments after the appId
-  guest?: {            // Present for guest applets
-    id: string;        // Contextual authority record ID
-    data: T;           // Data stored by the contextual authority (JSON-stringified)
-    password: string;  // Password used to access (empty string if none)
+  appId: string; // App identifier being accessed
+  path: string[]; // URL path segments after the appId
+  guest?: {
+    // Present for guest applets
+    id: string; // Contextual authority record ID
+    data: T; // Data stored by the contextual authority (JSON-stringified)
+    password: string; // Password used to access (empty string if none)
   };
 }
 ```
 
 ```typescript
 // src/apps/GuestViewer.tsx
-import type UIContext from '@/lib/sdk/types/ui-context';
+import { UiContext } from "@applicator/sdk/context";
 
 interface GuestViewerProps {
-  context?: UIContext<{ documentId: string; viewMode: string }>;
+  context?: UiContext<{ documentId: string; viewMode: string }>;
 }
 
 export default function GuestViewer({ context }: GuestViewerProps) {
@@ -144,10 +145,10 @@ When a guest makes an API call, the request must include the context ID and opti
 ```typescript
 // From your guest component
 const headers: Record<string, string> = {
-  'X-Guest-Context': contextId,
+  "X-Guest-Context": contextId,
 };
 if (guestPassword) {
-  headers['X-Guest-Password'] = guestPassword;
+  headers["X-Guest-Password"] = guestPassword;
 }
 
 const response = await fetch(`/api/${appId}/my-route`, { headers });
@@ -158,9 +159,9 @@ const response = await fetch(`/api/${appId}/my-route`, { headers });
 Your API handlers can check if the request is from a guest:
 
 ```typescript
-import type Context from '@/lib/sdk/plugin-context';
+import { ApiContext } from "@applicator/sdk/context";
 
-export async function GET(req: NextRequest, context: Context) {
+export async function GET(req: NextRequest, context: ApiContext) {
   if (context.isGuest) {
     // Guest request — access is limited
     const guestContext = context.contextGuest;
@@ -168,12 +169,12 @@ export async function GET(req: NextRequest, context: Context) {
     // guestContext.data  — parsed context data
     // guestContext.password — password used (if any)
 
-    return NextResponse.json({ mode: 'guest', data: guestContext.data });
+    return NextResponse.json({ mode: "guest", data: guestContext.data });
   }
 
   // Authenticated request
   const user = await context.user();
-  return NextResponse.json({ mode: 'authenticated', userId: user.id });
+  return NextResponse.json({ mode: "authenticated", userId: user.id });
 }
 ```
 
@@ -203,6 +204,7 @@ POST /api/guest/{appId}/validate
 ```
 
 **Request body:**
+
 ```json
 {
   "contextId": "my-app:share:password:1706000000000",
@@ -232,16 +234,44 @@ POST /api/guest/{appId}/validate
   "description": "Share documents with guest access",
   "requiredPermissions": ["system:guest-accessible"],
   "authorizations": [
-    { "id": "view", "name": "View Documents", "description": "Can view documents" },
-    { "id": "share", "name": "Share Documents", "description": "Can create share links" }
+    {
+      "id": "view",
+      "name": "View Documents",
+      "description": "Can view documents"
+    },
+    {
+      "id": "share",
+      "name": "Share Documents",
+      "description": "Can create share links"
+    }
   ],
   "applets": [
-    { "id": "main", "label": "Documents", "target": "app", "component": "DocumentList", "description": "Manage documents" },
-    { "id": "guest", "label": "Shared View", "target": "guest", "component": "GuestViewer", "description": "Public document viewer" }
+    {
+      "id": "main",
+      "label": "Documents",
+      "target": "app",
+      "component": "DocumentList",
+      "description": "Manage documents"
+    },
+    {
+      "id": "guest",
+      "label": "Shared View",
+      "target": "guest",
+      "component": "GuestViewer",
+      "description": "Public document viewer"
+    }
   ],
   "apiRoutes": [
-    { "path": "share/create", "method": "POST", "description": "Create share link" },
-    { "path": "document/view", "method": "GET", "description": "View a document" }
+    {
+      "path": "share/create",
+      "method": "POST",
+      "description": "Create share link"
+    },
+    {
+      "path": "document/view",
+      "method": "GET",
+      "description": "View a document"
+    }
   ]
 }
 ```
@@ -251,10 +281,10 @@ POST /api/guest/{appId}/validate
 ```typescript
 // src/apps/GuestViewer.tsx
 import React, { useState, useEffect } from 'react';
-import type UIContext from '@/lib/sdk/types/ui-context';
+import { UiContext } from '@applicator/sdk/context';
 
 interface Props {
-  context?: UIContext<{ documentId: string }>;
+  context?: UiContext<{ documentId: string }>;
 }
 
 export default function GuestViewer({ context }: Props) {
