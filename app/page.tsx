@@ -117,19 +117,23 @@ async function getUserPinnedApplets(userId: string): Promise<PinnedApplet[]> {
 
       const applet = await appletManager.readRecord(instance.appletId);
       if (applet && applet.data.target === "home") {
-        // Read instance settings
+        // Read instance settings and custom label
         let instanceSettings: Record<string, any> = {};
+        let instanceLabel = applet.data.label;
         const settingRecord = await appletSettingManager.readRecord(
           instance.instanceId,
         );
         if (settingRecord) {
           instanceSettings = settingRecord.data.settings || {};
+          if (settingRecord.data.label) {
+            instanceLabel = settingRecord.data.label;
+          }
         }
 
         pinnedApplets.push({
           instanceId: instance.instanceId,
           appletId: applet.id,
-          label: applet.data.label,
+          label: instanceLabel,
           description: applet.data.description,
           component: applet.data.component,
           app: applet.data.app,

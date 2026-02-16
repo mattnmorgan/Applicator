@@ -24,6 +24,7 @@ interface AppletInfo {
   label: string;
   description: string;
   app: string;
+  appLabel: string;
   target: string;
   settings?: SettingDefinition[];
 }
@@ -32,14 +33,16 @@ interface PinnedInstance {
   instanceId: string;
   appletId: string;
   label: string;
+  customLabel: string;
   description: string;
   app: string;
+  appLabel: string;
   settings?: SettingDefinition[];
 }
 
 interface AddAppletModalProps {
   availableApplets: AppletInfo[];
-  onAdd: (appletId: string) => void;
+  onAdd: (appletId: string, customLabel: string) => void;
   onClose: () => void;
 }
 
@@ -48,6 +51,14 @@ function AddAppletModal({
   onAdd,
   onClose,
 }: AddAppletModalProps) {
+  const [labels, setLabels] = useState<Record<string, string>>(() => {
+    const initial: Record<string, string> = {};
+    for (const applet of availableApplets) {
+      initial[applet.id] = applet.label;
+    }
+    return initial;
+  });
+
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
@@ -77,10 +88,23 @@ function AddAppletModal({
                   <span className={styles.checkboxDescription}>
                     {applet.description}
                   </span>
+                  <input
+                    className={styles.settingInput}
+                    type="text"
+                    placeholder="Custom label"
+                    value={labels[applet.id] || ""}
+                    onChange={(e) =>
+                      setLabels({ ...labels, [applet.id]: e.target.value })
+                    }
+                    onClick={(e) => e.stopPropagation()}
+                    style={{ marginTop: "6px" }}
+                  />
                 </div>
                 <button
                   className={styles.addAppletButton}
-                  onClick={() => onAdd(applet.id)}
+                  onClick={() =>
+                    onAdd(applet.id, labels[applet.id] || applet.label)
+                  }
                 >
                   Add
                 </button>
@@ -101,17 +125,24 @@ function AddAppletModal({
 interface SettingsModalProps {
   instance: PinnedInstance;
   currentValues: Record<string, any>;
-  onSave: (instanceId: string, values: Record<string, any>) => void;
+  currentLabel: string;
+  onSave: (
+    instanceId: string,
+    label: string,
+    values: Record<string, any>,
+  ) => void;
   onClose: () => void;
 }
 
 function SettingsModal({
   instance,
   currentValues,
+  currentLabel,
   onSave,
   onClose,
 }: SettingsModalProps) {
   const definitions = instance.settings || [];
+  const [label, setLabel] = useState(currentLabel);
   const [values, setValues] = useState<Record<string, any>>(() => {
     const initial: Record<string, any> = {};
     for (const def of definitions) {
@@ -134,7 +165,7 @@ function SettingsModal({
 
   const handleSave = async () => {
     setSaving(true);
-    await onSave(instance.instanceId, values);
+    await onSave(instance.instanceId, label, values);
     setSaving(false);
   };
 
@@ -155,90 +186,93 @@ function SettingsModal({
           </button>
         </div>
         <div className={styles.modalBody}>
-          {definitions.length === 0 ? (
-            <div className={styles.emptyState}>
-              This applet has no configurable settings.
-            </div>
-          ) : (
-            definitions.map((def) => (
-              <div key={def.name} className={styles.settingField}>
-                <label className={styles.settingLabel}>{def.label}</label>
-                {def.type === "string" && (
+          <div className={styles.settingField}>
+            <label className={styles.settingLabel}>Label</label>
+            <input
+              className={styles.settingInput}
+              type="text"
+              value={label}
+              onChange={(e) => setLabel(e.target.value)}
+            />
+          </div>
+          {definitions.map((def) => (
+            <div key={def.name} className={styles.settingField}>
+              <label className={styles.settingLabel}>{def.label}</label>
+              {def.type === "string" && (
+                <input
+                  className={styles.settingInput}
+                  type="text"
+                  value={values[def.name] || ""}
+                  onChange={(e) =>
+                    setValues({ ...values, [def.name]: e.target.value })
+                  }
+                />
+              )}
+              {def.type === "number" && (
+                <input
+                  className={styles.settingInput}
+                  type="number"
+                  value={values[def.name] ?? 0}
+                  onChange={(e) =>
+                    setValues({
+                      ...values,
+                      [def.name]: Number(e.target.value),
+                    })
+                  }
+                />
+              )}
+              {def.type === "boolean" && (
+                <label className={styles.settingCheckbox}>
                   <input
-                    className={styles.settingInput}
-                    type="text"
-                    value={values[def.name] || ""}
-                    onChange={(e) =>
-                      setValues({ ...values, [def.name]: e.target.value })
-                    }
-                  />
-                )}
-                {def.type === "number" && (
-                  <input
-                    className={styles.settingInput}
-                    type="number"
-                    value={values[def.name] ?? 0}
+                    type="checkbox"
+                    checked={!!values[def.name]}
                     onChange={(e) =>
                       setValues({
                         ...values,
-                        [def.name]: Number(e.target.value),
+                        [def.name]: e.target.checked,
                       })
                     }
                   />
-                )}
-                {def.type === "boolean" && (
-                  <label className={styles.settingCheckbox}>
-                    <input
-                      type="checkbox"
-                      checked={!!values[def.name]}
-                      onChange={(e) =>
-                        setValues({
-                          ...values,
-                          [def.name]: e.target.checked,
-                        })
-                      }
-                    />
-                    Enabled
-                  </label>
-                )}
-                {def.type === "picklist" && def.options && (
-                  <select
-                    className={styles.settingSelect}
-                    value={values[def.name] || ""}
-                    onChange={(e) =>
-                      setValues({ ...values, [def.name]: e.target.value })
-                    }
-                  >
-                    {Object.entries(def.options).map(([key, label]) => (
-                      <option key={key} value={key}>
-                        {label}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                {def.type === "multipicklist" && def.options && (
-                  <div className={styles.multipicklistOptions}>
-                    {Object.entries(def.options).map(([key, label]) => (
-                      <label key={key} className={styles.settingCheckbox}>
-                        <input
-                          type="checkbox"
-                          checked={(values[def.name] || []).includes(key)}
-                          onChange={(e) => {
-                            const current: string[] = values[def.name] || [];
-                            const updated = e.target.checked
-                              ? [...current, key]
-                              : current.filter((v: string) => v !== key);
-                            setValues({ ...values, [def.name]: updated });
-                          }}
-                        />
-                        {label}
-                      </label>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ))
-          )}
+                  Enabled
+                </label>
+              )}
+              {def.type === "picklist" && def.options && (
+                <select
+                  className={styles.settingSelect}
+                  value={values[def.name] || ""}
+                  onChange={(e) =>
+                    setValues({ ...values, [def.name]: e.target.value })
+                  }
+                >
+                  {Object.entries(def.options).map(([key, label]) => (
+                    <option key={key} value={key}>
+                      {label}
+                    </option>
+                  ))}
+                </select>
+              )}
+              {def.type === "multipicklist" && def.options && (
+                <div className={styles.multipicklistOptions}>
+                  {Object.entries(def.options).map(([key, label]) => (
+                    <label key={key} className={styles.settingCheckbox}>
+                      <input
+                        type="checkbox"
+                        checked={(values[def.name] || []).includes(key)}
+                        onChange={(e) => {
+                          const current: string[] = values[def.name] || [];
+                          const updated = e.target.checked
+                            ? [...current, key]
+                            : current.filter((v: string) => v !== key);
+                          setValues({ ...values, [def.name]: updated });
+                        }}
+                      />
+                      {label}
+                    </label>
+                  ))}
+                </div>
+              )}
+            </div>
+          ))}
         </div>
         <div className={styles.modalFooter}>
           <button className={styles.cancelButton} onClick={onClose}>
@@ -247,7 +281,7 @@ function SettingsModal({
           <button
             className={styles.confirmButton}
             onClick={handleSave}
-            disabled={saving || definitions.length === 0}
+            disabled={saving}
           >
             {saving ? "Saving..." : "Save"}
           </button>
@@ -322,27 +356,36 @@ export default function HomeSettingsPage() {
             for (const inst of instances) {
               const applet = appletMap.get(inst.appletId);
               if (applet) {
-                pinned.push({
-                  instanceId: inst.instanceId,
-                  appletId: inst.appletId,
-                  label: applet.label,
-                  description: applet.description,
-                  app: applet.app,
-                  settings: applet.settings,
-                });
+                let instanceSettingsData: Record<string, any> = {};
+                let customLabel = applet.label;
 
-                // Fetch instance settings
+                // Fetch instance settings and custom label
                 try {
                   const settingRecord = await appletSettingManager.readRecord({
                     id: inst.instanceId,
                   });
                   if (settingRecord) {
-                    settingsMap[inst.instanceId] =
-                      settingRecord.data.settings || {};
+                    instanceSettingsData = settingRecord.data.settings || {};
+                    if (settingRecord.data.label) {
+                      customLabel = settingRecord.data.label;
+                    }
                   }
                 } catch {
                   // No settings for this instance yet
                 }
+
+                pinned.push({
+                  instanceId: inst.instanceId,
+                  appletId: inst.appletId,
+                  label: applet.label,
+                  customLabel,
+                  description: applet.description,
+                  app: applet.app,
+                  appLabel: applet.appLabel,
+                  settings: applet.settings,
+                });
+
+                settingsMap[inst.instanceId] = instanceSettingsData;
               }
             }
 
@@ -391,7 +434,7 @@ export default function HomeSettingsPage() {
     setInstanceSettings(newSettings);
   };
 
-  const handleAddApplet = (appletId: string) => {
+  const handleAddApplet = (appletId: string, customLabel: string) => {
     const applet = availableApplets.find((a) => a.id === appletId);
     if (!applet) return;
 
@@ -402,8 +445,10 @@ export default function HomeSettingsPage() {
         instanceId,
         appletId: applet.id,
         label: applet.label,
+        customLabel,
         description: applet.description,
         app: applet.app,
+        appLabel: applet.appLabel,
         settings: applet.settings,
       },
     ]);
@@ -413,6 +458,7 @@ export default function HomeSettingsPage() {
 
   const handleSaveSettings = async (
     instanceId: string,
+    label: string,
     values: Record<string, any>,
   ) => {
     try {
@@ -425,10 +471,16 @@ export default function HomeSettingsPage() {
       await appletSettingManager.upsertRecord(instanceId, {
         user: userId,
         applet: instance.appletId,
+        label,
         settings: values,
       });
 
       setInstanceSettings({ ...instanceSettings, [instanceId]: values });
+      setPinnedInstances(
+        pinnedInstances.map((i) =>
+          i.instanceId === instanceId ? { ...i, customLabel: label } : i,
+        ),
+      );
       setEditingInstance(null);
     } catch {
       setError("Failed to save applet settings");
@@ -442,6 +494,8 @@ export default function HomeSettingsPage() {
 
     try {
       const settingManager = new SettingManager();
+      const appletSettingManager = new AppletSettingManager();
+
       await settingManager.upsertRecord(`${userId}:home:applets`, {
         value: JSON.stringify(
           pinnedInstances.map((a) => ({
@@ -452,6 +506,16 @@ export default function HomeSettingsPage() {
         name: "home:applets",
         user: userId,
       });
+
+      // Persist labels and settings for each instance
+      for (const instance of pinnedInstances) {
+        await appletSettingManager.upsertRecord(instance.instanceId, {
+          user: userId,
+          applet: instance.appletId,
+          label: instance.customLabel,
+          settings: instanceSettings[instance.instanceId] || {},
+        });
+      }
 
       setSuccess("Settings saved successfully");
     } catch {
@@ -528,39 +592,36 @@ export default function HomeSettingsPage() {
                           <div className={styles.appletContent}>
                             <div className={styles.appletInfo}>
                               <span className={styles.appletTitle}>
-                                {instance.label}
+                                {instance.customLabel}
                               </span>
                               <span className={styles.appletDescription}>
                                 {instance.description}
                               </span>
                             </div>
                             <div className={styles.appletBadge}>
-                              {instance.app}
+                              {instance.appLabel}
                             </div>
                           </div>
-                          {instance.settings &&
-                            instance.settings.length > 0 && (
-                              <button
-                                className={styles.editButton}
-                                onClick={() => setEditingInstance(instance)}
-                                title="Edit settings"
-                              >
-                                <svg
-                                  width="16"
-                                  height="16"
-                                  viewBox="0 0 16 16"
-                                  fill="none"
-                                >
-                                  <path
-                                    d="M11.5 2.5L13.5 4.5M10 4L3 11V13H5L12 6L10 4Z"
-                                    stroke="currentColor"
-                                    strokeWidth="1.5"
-                                    strokeLinecap="round"
-                                    strokeLinejoin="round"
-                                  />
-                                </svg>
-                              </button>
-                            )}
+                          <button
+                            className={styles.editButton}
+                            onClick={() => setEditingInstance(instance)}
+                            title="Edit settings"
+                          >
+                            <svg
+                              width="16"
+                              height="16"
+                              viewBox="0 0 16 16"
+                              fill="none"
+                            >
+                              <path
+                                d="M11.5 2.5L13.5 4.5M10 4L3 11V13H5L12 6L10 4Z"
+                                stroke="currentColor"
+                                strokeWidth="1.5"
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                              />
+                            </svg>
+                          </button>
                           <button
                             className={styles.removeButton}
                             onClick={() => handleRemove(instance.instanceId)}
@@ -614,6 +675,7 @@ export default function HomeSettingsPage() {
         <SettingsModal
           instance={editingInstance}
           currentValues={instanceSettings[editingInstance.instanceId] || {}}
+          currentLabel={editingInstance.customLabel}
           onSave={handleSaveSettings}
           onClose={() => setEditingInstance(null)}
         />

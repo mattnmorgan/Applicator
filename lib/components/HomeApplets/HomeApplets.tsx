@@ -112,6 +112,7 @@ export default function HomeApplets({ applets, user }: HomeAppletsProps) {
             componentProps={{
               appId: applet.appletId,
               instanceId: applet.instanceId,
+              label: applet.label,
               settings: applet.instanceSettings,
               user,
             }}

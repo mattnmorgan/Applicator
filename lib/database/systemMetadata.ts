@@ -4,7 +4,7 @@ export const SYSTEM_APP_METADATA = {
   version: {
     major: 0,
     minor: 0,
-    dev: 4,
+    dev: 5,
   },
   author: "Matthew Morgan",
   contact_email: "matthew@morgantech.info",
@@ -504,6 +504,12 @@ export const SYSTEM_APP_METADATA = {
           description: "Applet ID this instance is for",
           type: "string",
           required: true,
+        },
+        {
+          name: "label",
+          description: "Custom display label for this applet instance",
+          type: "string",
+          required: false,
         },
         {
           name: "settings",

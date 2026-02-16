@@ -4,6 +4,7 @@ import UserManager from "@/lib/managers/user";
 import SettingManager from "@/lib/managers/setting";
 import AuthorityManager from "@/lib/managers/authority";
 import AppletManager from "@/lib/managers/applet";
+import AppManager from "@/lib/managers/app";
 import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
@@ -50,6 +51,15 @@ export async function GET() {
     // Get applet details
     const appletManager = new AppletManager();
     const allAppletsResult = await appletManager.readRecords();
+
+    // Resolve app display names
+    const appManager = new AppManager();
+    const allAppsResult = await appManager.readRecords();
+    const appLabelMap = new Map<string, string>();
+    for (const app of allAppsResult.records) {
+      appLabelMap.set(app.id, app.data.label);
+    }
+
     const userApplets = allAppletsResult.records
       .filter((applet) => uniqueAppletIds.includes(applet.id))
       .map((applet) => ({
@@ -58,6 +68,7 @@ export async function GET() {
         description: applet.data.description,
         target: applet.data.target,
         app: applet.data.app,
+        appLabel: appLabelMap.get(applet.data.app) || applet.data.app,
         settings: applet.data.settings || [],
       }));
 
