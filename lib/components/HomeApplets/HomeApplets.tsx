@@ -104,7 +104,6 @@ export default function HomeApplets({ applets, user }: HomeAppletsProps) {
             borderRadius: "10px",
             border: "1px solid #334155",
             overflow: "hidden",
-            minHeight: "200px",
           }}
         >
           <DynamicAppLoader
