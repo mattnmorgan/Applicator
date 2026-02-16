@@ -641,7 +641,7 @@ See [Agents](./agents.md) for implementation details.
       "description": "Tasks",
       "fields": [
         { "name": "title", "description": "Task title", "type": "string", "required": true },
-        { "name": "status", "description": "Status", "type": "picklist", "options": ["todo", "in-progress", "done"] },
+        { "name": "status", "description": "Status", "type": "picklist", "options": { "todo": "To Do", "in-progress": "In Progress", "done": "Done" } },
         { "name": "assignee", "description": "Assigned to", "type": "relationship", "relatedTo": "system:user" }
       ]
     }
