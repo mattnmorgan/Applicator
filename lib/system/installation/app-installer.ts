@@ -317,22 +317,29 @@ export async function updateAppComponents(
     const appletTable = await appletManager.getTable();
 
     for (const applet of appAttributes.applets) {
-      if (existingAppletIds.has(applet.id)) {
-        await appletManager.deleteRecord(`${appId}:${applet.id}`, { client });
-      }
+      const appletData = {
+        label: applet.label,
+        description: applet.description || "",
+        component: applet.component,
+        app: appId,
+        target: applet.target,
+        settings: applet.settings || [],
+      };
 
-      await appletManager.createRecord(
-        appletTable,
-        {
-          label: applet.label,
-          description: applet.description || "",
-          component: applet.component,
-          app: appId,
-          target: applet.target,
-          settings: applet.settings || [],
-        },
-        { id: `${appId}:${applet.id}`, client },
-      );
+      if (existingAppletIds.has(applet.id)) {
+        await appletManager.updateRecord(
+          appletTable,
+          `${appId}:${applet.id}`,
+          appletData,
+          { client },
+        );
+      } else {
+        await appletManager.createRecord(
+          appletTable,
+          appletData,
+          { id: `${appId}:${applet.id}`, client },
+        );
+      }
 
       existingAppletIds.delete(applet.id);
     }
