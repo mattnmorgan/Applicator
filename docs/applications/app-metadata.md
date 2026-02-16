@@ -109,7 +109,7 @@ Define custom data tables for your app:
           "name": "status",
           "description": "Current status",
           "type": "picklist",
-          "options": ["pending", "active", "completed"],
+          "options": { "pending": "Pending", "active": "Active", "completed": "Completed" },
           "defaultValue": "pending"
         },
         {
@@ -144,10 +144,14 @@ Define custom data tables for your app:
 | Type | Description | Additional Properties |
 |------|-------------|----------------------|
 | `string` | Text content | - |
+| `number` | Numeric values | - |
+| `boolean` | True/false values | - |
 | `date` | Date values | - |
+| `datetime` | Date and time values | - |
 | `json` | JSON data structures | - |
-| `picklist` | Single selection from options | `options` (array or object) |
-| `multipicklist` | Multiple selections from options | `options` (array or object) |
+| `password` | Hashed password field | Automatically hashed on create/update |
+| `picklist` | Single selection from options | `options` (object: id to label map) |
+| `multipicklist` | Multiple selections from options | `options` (object: id to label map) |
 | `relationship` | Foreign key reference | `relatedTo` (format: `app:table` or `table`) |
 | `formula` | Computed field | Cannot be `required`, requires formula script |
 
@@ -157,25 +161,15 @@ Define custom data tables for your app:
 |----------|------|----------|-------------|
 | `name` | string | Yes | Field identifier |
 | `description` | string | Yes | Human-readable description |
-| `type` | string | Yes | One of the supported types |
+| `type` | string | Yes | One of: `string`, `number`, `boolean`, `date`, `datetime`, `json`, `password`, `picklist`, `multipicklist`, `relationship`, `formula` |
 | `required` | boolean | No | Whether field is required (default: false) |
 | `defaultValue` | string | No | Default value for new records |
-| `options` | array/object | For picklist | Array `["a", "b"]` or object `{"a": "Label A"}` |
+| `options` | object | For picklist | Map of value to display label: `{"a": "Label A", "b": "Label B"}` |
 | `relatedTo` | string | For relationship | Related table reference |
 
 ### Picklist Options
 
-Options can be defined as an array or object:
-
-```json
-{
-  "name": "priority",
-  "type": "picklist",
-  "options": ["low", "medium", "high"]
-}
-```
-
-Or with display labels:
+Options are defined as an object mapping values to display labels:
 
 ```json
 {
@@ -520,13 +514,65 @@ Define UI components that integrate into the framework:
 
 ### Applet Properties
 
-| Property | Type | Description |
-|----------|------|-------------|
-| `id` | string | Unique identifier within app |
-| `label` | string | Display label |
-| `description` | string | Description shown to users |
-| `target` | string | Where the applet appears |
-| `component` | string | Exported component name from app.js |
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `id` | string | Yes | Unique identifier within app |
+| `label` | string | Yes | Display label |
+| `description` | string | Yes | Description shown to users |
+| `target` | string | Yes | Where the applet appears |
+| `component` | string | Yes | Exported component name from app.js |
+| `settings` | array | No | Setting definitions for per-instance configuration |
+
+### Applet Settings
+
+Applets with `target: "home"` can define settings that users configure per-instance on their homescreen. Each setting descriptor defines a configurable field:
+
+```json
+{
+  "id": "home-widget",
+  "label": "Quick View",
+  "target": "home",
+  "component": "HomeWidget",
+  "description": "Configurable home widget",
+  "settings": [
+    {
+      "name": "color",
+      "label": "Theme Color",
+      "type": "picklist",
+      "default": "blue",
+      "options": {
+        "blue": "Blue",
+        "green": "Green",
+        "red": "Red"
+      }
+    },
+    {
+      "name": "showCount",
+      "label": "Show Item Count",
+      "type": "boolean",
+      "default": true
+    },
+    {
+      "name": "maxItems",
+      "label": "Maximum Items",
+      "type": "number",
+      "default": 5
+    }
+  ]
+}
+```
+
+#### Setting Descriptor Properties
+
+| Property | Type | Required | Description |
+|----------|------|----------|-------------|
+| `name` | string | Yes | Setting identifier |
+| `label` | string | Yes | Display label shown to the user |
+| `type` | string | Yes | One of: `string`, `number`, `boolean`, `picklist`, `multipicklist` |
+| `default` | any | No | Default value |
+| `options` | object | For picklist | Map of value to display label |
+
+Setting values are stored per-user in the `applet_settings` system table and passed to the component via the `settings` prop.
 
 ### Applet Targets
 
@@ -536,6 +582,7 @@ Define UI components that integrate into the framework:
 | `home` | Dashboard widget on the home page |
 | `user-settings` | Widget in user settings |
 | `system-settings` | Widget in system settings (admin only) |
+| `guest` | Displayed to unauthenticated guest users via shared links |
 
 ---
 

@@ -22,7 +22,18 @@ export default interface AppMetadata {
     fields: {
       name: string;
       description: string;
-      type: string;
+      type:
+        | "string"
+        | "number"
+        | "boolean"
+        | "date"
+        | "datetime"
+        | "json"
+        | "relationship"
+        | "formula"
+        | "password"
+        | "picklist"
+        | "multipicklist";
       required?: boolean;
       defaultValue?: any;
       relatedTo?: string;
