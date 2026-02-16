@@ -138,9 +138,12 @@ export async function validateRequiredFields(
 ): Promise<Result[]> {
   const results: Result[] = [];
 
+  const SYSTEM_COLUMNS = new Set(["id", "created_at", "updated_at"]);
+
   for (const field of fields) {
     // Skip formula fields (they can't be required)
-    if (field.type === "formula") {
+    // Skip system-managed columns (handled by CRUD layer, not in data)
+    if (field.type === "formula" || SYSTEM_COLUMNS.has(field.name)) {
       continue;
     }
 

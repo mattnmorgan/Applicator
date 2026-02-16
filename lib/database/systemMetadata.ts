@@ -214,12 +214,6 @@ export const SYSTEM_APP_METADATA = {
           required: true,
         },
         {
-          name: "created_at",
-          description: "Timestamp when the authority was created",
-          type: "number",
-          required: true,
-        },
-        {
           name: "created_by",
           description: "User ID or app that created this authority",
           type: "string",
