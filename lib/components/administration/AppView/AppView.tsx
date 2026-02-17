@@ -6,6 +6,7 @@ import Accordion from "@/lib/components/utility/Accordion/Accordion";
 import Badge from "@/lib/components/utility/Badge/Badge";
 import AppManager from "@/lib/client/managers/app";
 import ApiRouteManager from "@/lib/client/managers/apiRoute";
+import AppletManager from "@/lib/client/managers/applet";
 
 interface ApiRoute {
   path: string;
@@ -111,11 +112,13 @@ export default function AppView({ appId, onBack }: AppViewProps) {
       setLoading(true);
       const appManager = new AppManager();
       const apiRouteManager = new ApiRouteManager();
+      const appletManager = new AppletManager();
 
-      // Fetch apps and apiRoutes in parallel
-      const [appsData, apiRoutesData] = await Promise.all([
+      // Fetch apps, apiRoutes, and applets in parallel
+      const [appsData, apiRoutesData, appletsData] = await Promise.all([
         appManager.readRecords({}),
         apiRouteManager.readRecords({}),
+        appletManager.readRecords({}),
       ]);
 
       if (appsData.records) {
@@ -135,7 +138,26 @@ export default function AppView({ appId, onBack }: AppViewProps) {
           }
         }
 
-        // Transform apps with their API routes
+        // Group applets by app
+        const appletsByApp: Record<string, Widget[]> = {};
+        if (appletsData.records) {
+          for (const applet of appletsData.records) {
+            const appIdKey = applet.data.app;
+            if (!appletsByApp[appIdKey]) {
+              appletsByApp[appIdKey] = [];
+            }
+            appletsByApp[appIdKey].push({
+              id: applet.id,
+              name: applet.data.label,
+              description: applet.data.description,
+              target: applet.data.target,
+              component: applet.data.component,
+              appId: applet.data.app,
+            });
+          }
+        }
+
+        // Transform apps with their API routes and applets
         const transformedApps = appsData.records.map((record) => ({
           id: record.id,
           label: record.data.label,
@@ -145,6 +167,7 @@ export default function AppView({ appId, onBack }: AppViewProps) {
           description: record.data.description,
           dependencies: record.data.dependencies,
           apiRoutes: apiRoutesByApp[record.id] || [],
+          widgets: appletsByApp[record.id] || [],
           requiredPermissions: record.data.required_permissions,
         }));
 
@@ -407,7 +430,7 @@ export default function AppView({ appId, onBack }: AppViewProps) {
 
       {app.widgets && app.widgets.length > 0 && (
         <div className={styles.section}>
-          <h2 className={styles.sectionTitle}>Widgets</h2>
+          <h2 className={styles.sectionTitle}>Applets</h2>
           <div className={styles.widgetList}>
             {app.widgets.map((widget) => (
               <div key={widget.id} className={styles.widgetRow}>
@@ -421,6 +444,8 @@ export default function AppView({ appId, onBack }: AppViewProps) {
                   {widget.target === "home" && "Home"}
                   {widget.target === "user-settings" && "User Settings"}
                   {widget.target === "system-settings" && "System Settings"}
+                  {widget.target === "app" && "App"}
+                  {widget.target === "guest" && "Guest"}
                 </Badge>
               </div>
             ))}
