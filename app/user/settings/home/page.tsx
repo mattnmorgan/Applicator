@@ -568,6 +568,20 @@ export default function HomeSettingsPage() {
                             snapshot.isDragging ? styles.dragging : ""
                           }`}
                         >
+                          <svg
+                            className={styles.dragHandle}
+                            width="16"
+                            height="16"
+                            viewBox="0 0 16 16"
+                            fill="none"
+                          >
+                            <circle cx="5" cy="4" r="1.5" fill="currentColor" />
+                            <circle cx="11" cy="4" r="1.5" fill="currentColor" />
+                            <circle cx="5" cy="8" r="1.5" fill="currentColor" />
+                            <circle cx="11" cy="8" r="1.5" fill="currentColor" />
+                            <circle cx="5" cy="12" r="1.5" fill="currentColor" />
+                            <circle cx="11" cy="12" r="1.5" fill="currentColor" />
+                          </svg>
                           <div className={styles.appletContent}>
                             <div className={styles.appletInfo}>
                               <span className={styles.appletTitle}>

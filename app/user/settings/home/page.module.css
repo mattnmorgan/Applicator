@@ -89,6 +89,12 @@
   border-color: #3b82f6;
 }
 
+.dragHandle {
+  color: #475569;
+  flex-shrink: 0;
+  margin-right: 8px;
+}
+
 .appletContent {
   display: flex;
   align-items: center;
