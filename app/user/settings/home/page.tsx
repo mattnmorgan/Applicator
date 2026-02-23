@@ -9,14 +9,44 @@ import {
 } from "@hello-pangea/dnd";
 import SettingManager from "@/lib/client/managers/setting";
 import AppletSettingManager from "@/lib/client/managers/appletSetting";
+import DynamicInput from "@/lib/components/utility/DynamicInput/DynamicInput";
+import type { DynamicInputDefinition } from "@/lib/components/utility/DynamicInput/types/dynamic-input-definition";
 import styles from "./page.module.css";
 
 interface SettingDefinition {
   name: string;
   label: string;
-  type: "string" | "number" | "boolean" | "picklist" | "multipicklist";
-  default?: any;
-  options?: Record<string, string>;
+  type:
+    | "select"
+    | "multiselect"
+    | "radio"
+    | "pseudoassignee"
+    | "multipseudoassignee"
+    | "checkbox"
+    | "text"
+    | "date"
+    | "datetime"
+    | "time"
+    | "number"
+    | "range"
+    | "rangeslider"
+    | "color"
+    | "checklist"
+    | "icon"
+    | "file"
+    | "password";
+  defaultValue?: string;
+  required?: boolean;
+  placeholder?: string;
+  min?: string;
+  max?: string;
+  step?: string;
+  decimalPlaces?: number;
+  format?: string;
+  lines?: number;
+  resizable?: boolean;
+  searchable?: boolean;
+  options?: { value: string; label: string; description?: string; icon?: string }[];
 }
 
 interface AppletInfo {
@@ -149,15 +179,13 @@ function SettingsModal({
       initial[def.name] =
         currentValues[def.name] !== undefined
           ? currentValues[def.name]
-          : def.default !== undefined
-            ? def.default
-            : def.type === "boolean"
+          : def.defaultValue !== undefined
+            ? def.defaultValue
+            : def.type === "checkbox"
               ? false
-              : def.type === "number"
-                ? 0
-                : def.type === "multipicklist"
-                  ? []
-                  : "";
+              : def.type === "multiselect" || def.type === "multipseudoassignee"
+                ? []
+                : "";
     }
     return initial;
   });
@@ -195,84 +223,35 @@ function SettingsModal({
               onChange={(e) => setLabel(e.target.value)}
             />
           </div>
-          {definitions.map((def) => (
-            <div key={def.name} className={styles.settingField}>
-              <label className={styles.settingLabel}>{def.label}</label>
-              {def.type === "string" && (
-                <input
-                  className={styles.settingInput}
-                  type="text"
-                  value={values[def.name] || ""}
-                  onChange={(e) =>
-                    setValues({ ...values, [def.name]: e.target.value })
-                  }
-                />
-              )}
-              {def.type === "number" && (
-                <input
-                  className={styles.settingInput}
-                  type="number"
-                  value={values[def.name] ?? 0}
-                  onChange={(e) =>
-                    setValues({
-                      ...values,
-                      [def.name]: Number(e.target.value),
-                    })
-                  }
-                />
-              )}
-              {def.type === "boolean" && (
-                <label className={styles.settingCheckbox}>
-                  <input
-                    type="checkbox"
-                    checked={!!values[def.name]}
-                    onChange={(e) =>
-                      setValues({
-                        ...values,
-                        [def.name]: e.target.checked,
-                      })
-                    }
-                  />
-                  Enabled
-                </label>
-              )}
-              {def.type === "picklist" && def.options && (
-                <select
-                  className={styles.settingSelect}
-                  value={values[def.name] || ""}
-                  onChange={(e) =>
-                    setValues({ ...values, [def.name]: e.target.value })
-                  }
-                >
-                  {Object.entries(def.options).map(([key, label]) => (
-                    <option key={key} value={key}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              )}
-              {def.type === "multipicklist" && def.options && (
-                <div className={styles.multipicklistOptions}>
-                  {Object.entries(def.options).map(([key, label]) => (
-                    <label key={key} className={styles.settingCheckbox}>
-                      <input
-                        type="checkbox"
-                        checked={(values[def.name] || []).includes(key)}
-                        onChange={(e) => {
-                          const current: string[] = values[def.name] || [];
-                          const updated = e.target.checked
-                            ? [...current, key]
-                            : current.filter((v: string) => v !== key);
-                          setValues({ ...values, [def.name]: updated });
-                        }}
-                      />
-                      {label}
-                    </label>
-                  ))}
-                </div>
-              )}
-            </div>
-          ))}
+          {definitions.map((def) => {
+            const inputDef: DynamicInputDefinition = {
+              id: def.name,
+              label: def.label,
+              type: def.type,
+              defaultValue: def.defaultValue,
+              required: def.required,
+              placeholder: def.placeholder,
+              min: def.min,
+              max: def.max,
+              step: def.step,
+              decimalPlaces: def.decimalPlaces,
+              format: def.format,
+              lines: def.lines,
+              resizable: def.resizable,
+              searchable: def.searchable,
+              options: def.options,
+            };
+            return (
+              <DynamicInput
+                key={def.name}
+                input={inputDef}
+                value={values[def.name]}
+                onChange={(id, value) =>
+                  setValues((prev) => ({ ...prev, [id]: value }))
+                }
+              />
+            );
+          })}
         </div>
         <div className={styles.modalFooter}>
           <button className={styles.cancelButton} onClick={onClose}>

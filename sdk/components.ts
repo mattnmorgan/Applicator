@@ -7,6 +7,12 @@ export { default as ButtonIcon } from "../lib/components/utility/ButtonIcon";
 export type { ButtonIconProps } from "../lib/components/utility/ButtonIcon";
 export { default as ButtonMenu } from "../lib/components/utility/ButtonMenu";
 export { default as ConfirmModal } from "../lib/components/utility/ConfirmModal";
+export { default as DynamicInput } from "../lib/components/utility/DynamicInput";
+export type {
+  DynamicInputDefinition,
+  DynamicInputOption,
+  DynamicInputProps,
+} from "../lib/components/utility/DynamicInput";
 export { default as FolderBrowser } from "../lib/components/utility/FolderBrowser";
 export { default as ProfileIndicator } from "../lib/components/utility/ProfileIndicator";
 export { default as Row } from "../lib/components/utility/Row";

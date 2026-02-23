@@ -1,0 +1,577 @@
+.wrapper {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.label {
+  font-size: 13px;
+  font-weight: 500;
+  color: #cbd5e1;
+}
+
+.required {
+  color: #ef4444;
+  margin-left: 2px;
+}
+
+.input {
+  width: 100%;
+  padding: 8px 12px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #f1f5f9;
+  font-size: 14px;
+  outline: none;
+  transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.input:focus {
+  border-color: #3b82f6;
+}
+
+.input::placeholder {
+  color: #475569;
+}
+
+.textarea {
+  resize: vertical;
+  min-height: 80px;
+  font-family: inherit;
+}
+
+.select {
+  appearance: none;
+  cursor: pointer;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  padding-right: 36px;
+}
+
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.checkboxInput {
+  width: 18px;
+  height: 18px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+.checkboxLabel {
+  font-size: 14px;
+  color: #f1f5f9;
+  cursor: pointer;
+}
+
+.radioGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.radioOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+}
+
+.radioInput {
+  width: 18px;
+  height: 18px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+.radioLabel {
+  font-size: 14px;
+  color: #f1f5f9;
+  cursor: pointer;
+}
+
+.radioDescription {
+  font-size: 12px;
+  color: #94a3b8;
+  margin-left: 26px;
+}
+
+.rangeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.rangeButton {
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #334155;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  color: #f1f5f9;
+  font-size: 18px;
+  cursor: pointer;
+  transition: background 0.2s;
+  flex-shrink: 0;
+}
+
+.rangeButton:hover {
+  background: #475569;
+}
+
+.rangeButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.rangeButton:disabled:hover {
+  background: #334155;
+}
+
+.rangeValue {
+  flex: 1;
+  text-align: center;
+}
+
+/* Hide native number spinners for range input value */
+.rangeValueInput {
+  -moz-appearance: textfield;
+}
+
+.rangeValueInput::-webkit-inner-spin-button,
+.rangeValueInput::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.slider {
+  width: 100%;
+  accent-color: #3b82f6;
+  cursor: pointer;
+}
+
+.sliderValue {
+  font-size: 13px;
+  color: #94a3b8;
+  text-align: right;
+}
+
+.colorRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.colorInput {
+  width: 48px;
+  height: 36px;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  background: #0f172a;
+  cursor: pointer;
+  padding: 2px;
+}
+
+.colorHex {
+  font-size: 14px;
+  color: #94a3b8;
+  font-family: "Consolas", "Monaco", "Courier New", monospace;
+}
+
+.checklist {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.checklistItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+}
+
+.checklistItemInput {
+  width: 16px;
+  height: 16px;
+  accent-color: #3b82f6;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.checklistItemText {
+  flex: 1;
+  font-size: 14px;
+  color: #f1f5f9;
+}
+
+.checklistItemTextChecked {
+  text-decoration: line-through;
+  color: #64748b;
+}
+
+.checklistRemove {
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0 4px;
+  line-height: 1;
+}
+
+.checklistRemove:hover {
+  color: #ef4444;
+}
+
+.checklistRemove:disabled {
+  cursor: not-allowed;
+}
+
+.checklistRemove:disabled:hover {
+  color: #64748b;
+}
+
+.checklistAdd {
+  display: flex;
+  gap: 8px;
+}
+
+.checklistAddInput {
+  flex: 1;
+}
+
+.checklistAddButton {
+  padding: 8px 16px;
+  background: #334155;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  color: #f1f5f9;
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.checklistAddButton:hover {
+  background: #475569;
+}
+
+.checklistAddButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.checklistAddButton:disabled:hover {
+  background: #334155;
+}
+
+.fileButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 16px;
+  background: #334155;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  color: #f1f5f9;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s;
+}
+
+.fileButton:hover {
+  background: #475569;
+}
+
+.fileName {
+  font-size: 13px;
+  color: #94a3b8;
+  margin-top: 4px;
+}
+
+.iconPreview {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.iconImage {
+  width: 48px;
+  height: 48px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #0f172a;
+  border: 1px solid #334155;
+}
+
+.iconRemove {
+  background: none;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 12px;
+  padding: 4px 10px;
+}
+
+.iconRemove:hover {
+  color: #ef4444;
+  border-color: #ef4444;
+}
+
+.multiSelectContainer {
+  position: relative;
+}
+
+.multiSelectTags {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+  padding: 6px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  color: #f1f5f9;
+  font-size: 14px;
+  cursor: pointer;
+  box-sizing: border-box;
+}
+
+.multiSelectTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  background: #334155;
+  border-radius: 4px;
+  font-size: 13px;
+  color: #f1f5f9;
+}
+
+.multiSelectTagRemove {
+  background: none;
+  border: none;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 14px;
+  padding: 0;
+  line-height: 1;
+}
+
+.multiSelectTagRemove:hover {
+  color: #ef4444;
+}
+
+.multiSelectDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 10;
+}
+
+.multiSelectOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.multiSelectOption:hover {
+  background: #334155;
+}
+
+.multiSelectOptionSelected {
+  background: #1e3a5f;
+}
+
+.multiSelectOptionIcon {
+  width: 24px;
+  height: 24px;
+  border-radius: 4px;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.multiSelectOptionText {
+  flex: 1;
+  font-size: 14px;
+  color: #f1f5f9;
+}
+
+.multiSelectOptionDesc {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.placeholder {
+  color: #475569;
+  font-size: 14px;
+}
+
+.input:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.containerDisabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.checkboxDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.radioDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fileButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.fileButton:disabled:hover {
+  background: #334155;
+}
+
+.iconRemove:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.iconRemove:disabled:hover {
+  color: #94a3b8;
+  border-color: #475569;
+}
+
+.slider:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.colorInput:disabled {
+  opacity: 0.5;
+}
+
+/* Single-select trigger (searchable select) */
+.selectTrigger {
+  flex-wrap: nowrap;
+  padding-right: 36px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2394a3b8' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 12px center;
+  user-select: none;
+}
+
+/* Dropdown search box */
+.dropdownSearchWrapper {
+  padding: 8px;
+  border-bottom: 1px solid #334155;
+  position: sticky;
+  top: 0;
+  background: #1e293b;
+  z-index: 1;
+}
+
+.dropdownSearchInput {
+  width: 100%;
+  padding: 6px 10px;
+  background: #0f172a;
+  border: 1px solid #334155;
+  border-radius: 4px;
+  color: #f1f5f9;
+  font-size: 13px;
+  outline: none;
+  box-sizing: border-box;
+}
+
+.dropdownSearchInput:focus {
+  border-color: #3b82f6;
+}
+
+.dropdownSearchInput::placeholder {
+  color: #475569;
+}
+
+.dropdownEmpty {
+  padding: 12px;
+  color: #64748b;
+  font-size: 13px;
+  text-align: center;
+}
+
+/* Password input */
+.passwordRow {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.passwordInput {
+  padding-right: 40px;
+}
+
+.passwordToggle {
+  position: absolute;
+  right: 8px;
+  background: none;
+  border: none;
+  color: #64748b;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  transition: color 0.15s;
+  flex-shrink: 0;
+}
+
+.passwordToggle:hover {
+  color: #94a3b8;
+}
+
+.passwordToggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.pseudoOption {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #f1f5f9;
+  font-size: 14px;
+}
+
+.pseudoIcon {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}

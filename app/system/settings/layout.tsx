@@ -177,6 +177,10 @@ async function getSettingsMenuItems(
               path: "/system/settings/debug/test/logs",
             },
             {
+              label: "Dynamic Inputs",
+              path: "/system/settings/debug/test/dynamic-inputs",
+            },
+            {
               label: "Notifications",
               path: "/system/settings/debug/test/notifications",
             },

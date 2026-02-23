@@ -69,9 +69,42 @@ export default interface AppMetadata {
     settings?: {
       name: string;
       label: string;
-      type: "string" | "number" | "boolean" | "picklist" | "multipicklist";
-      default?: any;
-      options?: Record<string, string>;
+      type:
+        | "select"
+        | "multiselect"
+        | "radio"
+        | "pseudoassignee"
+        | "multipseudoassignee"
+        | "checkbox"
+        | "text"
+        | "date"
+        | "datetime"
+        | "time"
+        | "number"
+        | "range"
+        | "rangeslider"
+        | "color"
+        | "checklist"
+        | "icon"
+        | "file"
+        | "password";
+      defaultValue?: string;
+      required?: boolean;
+      placeholder?: string;
+      min?: string;
+      max?: string;
+      step?: string;
+      decimalPlaces?: number;
+      format?: string;
+      lines?: number;
+      resizable?: boolean;
+      searchable?: boolean;
+      options?: {
+        value: string;
+        label: string;
+        description?: string;
+        icon?: string;
+      }[];
     }[];
   }[];
   agents?: {
