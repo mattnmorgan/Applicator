@@ -109,6 +109,7 @@ export async function GET(
     const idsParam = searchParams.get("ids");
     const fieldsParam = searchParams.get("fields");
     const filtersParam = searchParams.get("filters");
+    const conditionParam = searchParams.get("condition");
     const limitParam = searchParams.get("limit");
     const offsetParam = searchParams.get("offset");
     const includeRelatedParam = searchParams.get("includeRelated");
@@ -139,6 +140,10 @@ export async function GET(
           { status: 400 },
         );
       }
+    }
+
+    if (conditionParam) {
+      options.condition = conditionParam;
     }
 
     if (limitParam) {

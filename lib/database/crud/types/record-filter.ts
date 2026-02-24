@@ -20,8 +20,19 @@ export interface FieldFilter {
 export default interface RecordFilter<T = object> {
   ids?: string[];
   fields?: Partial<{ [K in keyof T]: T[K] }>;
+  /**
+   * Array of filter conditions. Each entry is referenced 1-based in `condition`.
+   * If `condition` is omitted, all filters are ANDed together.
+   */
   filters?: FieldFilter[];
+  /**
+   * Optional logical expression combining filter indices.
+   * e.g. "1 AND (2 OR 3)" — indices are 1-based, operators are AND / OR,
+   * parentheses control grouping.
+   * Defaults to ANDing all filters when omitted.
+   */
+  condition?: string;
   limit?: number;
   offset?: number;
-  includeRelated?: string[]; // Array of relationship field names to include in the response
+  includeRelated?: string[];
 }

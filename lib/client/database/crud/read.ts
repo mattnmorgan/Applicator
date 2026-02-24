@@ -11,6 +11,7 @@ export function readRecordsWrapper<T = any>(appId: string, tableId: string) {
     ids?: string[];
     fields?: { [field: string]: any };
     filters?: FieldFilter[];
+    condition?: string;
     limit?: number;
     offset?: number;
     includeRelated?: string[];
@@ -39,6 +40,7 @@ export async function readRecords<T = any>(
     ids?: string[];
     fields?: { [field: string]: any };
     filters?: FieldFilter[];
+    condition?: string;
     limit?: number;
     offset?: number;
     includeRelated?: string[];
@@ -48,6 +50,7 @@ export async function readRecords<T = any>(
     params.ids ? `ids=${params.ids.join(",")}` : "",
     params.fields ? `fields=${JSON.stringify(params.fields)}` : "",
     params.filters ? `filters=${JSON.stringify(params.filters)}` : "",
+    params.condition ? `condition=${encodeURIComponent(params.condition)}` : "",
     params.limit ? `limit=${params.limit}` : "",
     params.offset ? `offset=${params.offset}` : "",
     params.includeRelated ? `includeRelated=${params.includeRelated.join(",")}` : "",

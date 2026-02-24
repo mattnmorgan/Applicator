@@ -122,6 +122,7 @@ async function records_list({ appId, params }: SdkParams): Promise<any> {
       limit: params.limit || 100,
       offset: params.offset || 0,
       filters: params.filters,
+      condition: params.condition,
     },
   );
 }
