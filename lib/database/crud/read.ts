@@ -1,10 +1,72 @@
 import { PoolClient } from "pg";
 import ReadResult from "@/lib/database/crud/types/read-result";
-import RecordFilter from "@/lib/database/crud/types/record-filter";
+import RecordFilter, { FieldFilter, FilterOperator } from "@/lib/database/crud/types/record-filter";
 import TableRecord from "@/lib/database/crud/types/record";
 import Field from "@/lib/database/types/field";
 import { getClient } from "@/lib/database/connections/postgresql";
 import { quoteIfReserved } from "@/lib/database/utility/postgresql";
+
+/**
+ * Append SQL conditions for complex FieldFilter[] on typed system table columns.
+ */
+function applySystemFilters(
+  fieldFilters: FieldFilter[],
+  conditions: string[],
+  params: any[],
+  paramIdx: number,
+): number {
+  for (const { field, operator, value } of fieldFilters) {
+    const col = quoteIfReserved(field);
+    if (operator === "IN" || operator === "NOT IN") {
+      const values = Array.isArray(value) ? value : [value];
+      const placeholders = values.map((_, i) => `$${paramIdx + i}`).join(", ");
+      conditions.push(`${col} ${operator} (${placeholders})`);
+      params.push(...values);
+      paramIdx += values.length;
+    } else {
+      conditions.push(`${col} ${operator} $${paramIdx}`);
+      params.push(value);
+      paramIdx++;
+    }
+  }
+  return paramIdx;
+}
+
+/**
+ * Append SQL conditions for complex FieldFilter[] on JSONB records table.
+ * Casts to ::numeric when the value(s) are numbers.
+ */
+function applyJsonbFilters(
+  fieldFilters: FieldFilter[],
+  conditions: string[],
+  params: any[],
+  paramIdx: number,
+): number {
+  for (const { field, operator, value } of fieldFilters) {
+    if (operator === "IN" || operator === "NOT IN") {
+      const values = Array.isArray(value) ? value : [value];
+      const allNumeric = values.every((v) => typeof v === "number");
+      const accessor = allNumeric
+        ? `(data->>$${paramIdx})::numeric`
+        : `data->>$${paramIdx}`;
+      const placeholders = values
+        .map((_, i) => `$${paramIdx + 1 + i}`)
+        .join(", ");
+      conditions.push(`${accessor} ${operator} (${placeholders})`);
+      params.push(field, ...values);
+      paramIdx += 1 + values.length;
+    } else {
+      const isNumeric = typeof value === "number";
+      const accessor = isNumeric
+        ? `(data->>$${paramIdx})::numeric`
+        : `data->>$${paramIdx}`;
+      conditions.push(`${accessor} ${operator} $${paramIdx + 1}`);
+      params.push(field, value);
+      paramIdx += 2;
+    }
+  }
+  return paramIdx;
+}
 
 export function readRecordWrapper<T = any>(appId: string, tableName: string) {
   return (id: string, client?: PoolClient) =>
@@ -68,6 +130,7 @@ export async function sqlReadAll<T = any>(
   filter?: {
     ids?: string[];
     fields?: Record<string, any>;
+    filters?: FieldFilter[];
     limit?: number;
     offset?: number;
   },
@@ -92,6 +155,10 @@ export async function sqlReadAll<T = any>(
         params.push(value);
         paramIdx++;
       }
+    }
+
+    if (filter?.filters && filter.filters.length > 0) {
+      paramIdx = applySystemFilters(filter.filters, conditions, params, paramIdx);
     }
 
     const whereClause =
@@ -155,6 +222,10 @@ export async function sqlReadAll<T = any>(
         params.push(fieldName, String(value));
         paramIdx += 2;
       }
+    }
+
+    if (filter?.filters && filter.filters.length > 0) {
+      paramIdx = applyJsonbFilters(filter.filters, conditions, params, paramIdx);
     }
 
     const whereClause = `WHERE ${conditions.join(" AND ")}`;
@@ -226,12 +297,13 @@ export async function readRecords<T = any>(
   filter: RecordFilter<T> = {},
   client?: PoolClient,
 ): Promise<ReadResult<T>> {
-  const { ids, fields, limit, offset = 0, includeRelated } = filter;
+  const { ids, fields, filters, limit, offset = 0, includeRelated } = filter;
 
   const doRead = async (c: PoolClient): Promise<ReadResult<T>> => {
     const storageFilter: {
       ids?: string[];
       fields?: Record<string, any>;
+      filters?: typeof filters;
       limit?: number;
       offset?: number;
     } = {};
@@ -242,11 +314,15 @@ export async function readRecords<T = any>(
     if (fields && Object.keys(fields).length > 0) {
       storageFilter.fields = fields as Record<string, any>;
     }
+    if (filters && filters.length > 0) {
+      storageFilter.filters = filters;
+    }
 
     // Get total without pagination
     const totalResult = await sqlReadAll<T>(c, appId, tableName, {
       ids: storageFilter.ids,
       fields: storageFilter.fields,
+      filters: storageFilter.filters,
     });
     const total = totalResult.total;
 

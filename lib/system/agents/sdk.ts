@@ -109,15 +109,20 @@ async function records_create({ appId, params }: SdkParams): Promise<any> {
 }
 
 async function records_list({ appId, params }: SdkParams): Promise<any> {
+  const targetAppId = params.appId || appId;
   return await readRecords(
-    appId,
+    targetAppId,
     params.table,
     (
       await new FieldManager().readRecords({
-        fields: { app: appId, table_name: params.table },
+        fields: { app: targetAppId, table_name: params.table },
       })
     ).records.map((r) => r.data),
-    { limit: params.limit || 100, offset: params.offset || 0 },
+    {
+      limit: params.limit || 100,
+      offset: params.offset || 0,
+      filters: params.filters,
+    },
   );
 }
 

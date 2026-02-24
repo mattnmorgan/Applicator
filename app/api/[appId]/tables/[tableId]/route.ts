@@ -81,7 +81,8 @@ export async function POST(
  * Read records from the specified table with optional filtering
  * Query parameters:
  * - ids: comma-separated list of record IDs
- * - fields: JSON object for field filtering
+ * - fields: JSON object for exact field equality filtering
+ * - filters: JSON array of { field, operator, value } for complex filtering
  * - limit: maximum number of records to return
  * - offset: number of records to skip
  * - includeRelated: whether to include related records
@@ -107,6 +108,7 @@ export async function GET(
     const searchParams = request.nextUrl.searchParams;
     const idsParam = searchParams.get("ids");
     const fieldsParam = searchParams.get("fields");
+    const filtersParam = searchParams.get("filters");
     const limitParam = searchParams.get("limit");
     const offsetParam = searchParams.get("offset");
     const includeRelatedParam = searchParams.get("includeRelated");
@@ -123,6 +125,17 @@ export async function GET(
       } catch (e) {
         return NextResponse.json(
           { error: "Invalid fields parameter - must be valid JSON" },
+          { status: 400 },
+        );
+      }
+    }
+
+    if (filtersParam) {
+      try {
+        options.filters = JSON.parse(filtersParam);
+      } catch (e) {
+        return NextResponse.json(
+          { error: "Invalid filters parameter - must be valid JSON" },
           { status: 400 },
         );
       }

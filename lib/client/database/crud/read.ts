@@ -1,4 +1,5 @@
 import ReadResult from "@/lib/database/crud/types/read-result";
+import { FieldFilter } from "@/lib/database/crud/types/record-filter";
 
 export function readRecordWrapper<T = any>(appId: string, tableId: string) {
   return (params: { id?: string; fields?: { [field: string]: any } }) =>
@@ -9,6 +10,7 @@ export function readRecordsWrapper<T = any>(appId: string, tableId: string) {
   return (params: {
     ids?: string[];
     fields?: { [field: string]: any };
+    filters?: FieldFilter[];
     limit?: number;
     offset?: number;
     includeRelated?: string[];
@@ -36,6 +38,7 @@ export async function readRecords<T = any>(
   params: {
     ids?: string[];
     fields?: { [field: string]: any };
+    filters?: FieldFilter[];
     limit?: number;
     offset?: number;
     includeRelated?: string[];
@@ -44,6 +47,7 @@ export async function readRecords<T = any>(
   const paramBits = [
     params.ids ? `ids=${params.ids.join(",")}` : "",
     params.fields ? `fields=${JSON.stringify(params.fields)}` : "",
+    params.filters ? `filters=${JSON.stringify(params.filters)}` : "",
     params.limit ? `limit=${params.limit}` : "",
     params.offset ? `offset=${params.offset}` : "",
     params.includeRelated ? `includeRelated=${params.includeRelated.join(",")}` : "",
