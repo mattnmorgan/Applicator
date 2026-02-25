@@ -543,6 +543,13 @@ export default function AuthorityCreate({
                   >
                     <div className={styles.authorizationName}>
                       <Badge variant="blue">{applet.appLabel}</Badge>
+                      <Badge variant="gray">
+                        {applet.target === "home" && "Homescreen"}
+                        {applet.target === "app" && "App"}
+                        {applet.target === "user-settings" && "User Settings"}
+                        {applet.target === "system-settings" &&
+                          "System Settings"}
+                      </Badge>
                       {applet.label}
                     </div>
                     <div className={styles.authorizationDescription}>

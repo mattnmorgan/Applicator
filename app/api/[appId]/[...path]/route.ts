@@ -8,6 +8,7 @@ import { getSession } from "@/lib/managers/session";
 import * as path from "path";
 import * as fs from "fs";
 import { loadModule } from "@/lib/system/source";
+import { toCamelCase } from "@/lib/system/utility";
 import bcrypt from "bcryptjs";
 
 export async function GET(
@@ -45,6 +46,31 @@ export async function DELETE(
   return handleRequest(request, params, "DELETE");
 }
 
+
+/**
+ * Match an incoming path against a registered route pattern.
+ * Segments wrapped in `[...]` are treated as named parameters.
+ * Returns a params object on match, or null if the path doesn't match.
+ */
+function matchRoute(
+  pattern: string,
+  incoming: string,
+): Record<string, string> | null {
+  const pp = pattern.split("/");
+  const ip = incoming.split("/");
+  if (pp.length !== ip.length) return null;
+
+  const params: Record<string, string> = {};
+  for (let i = 0; i < pp.length; i++) {
+    if (pp[i].startsWith("[") && pp[i].endsWith("]")) {
+      params[toCamelCase(pp[i].slice(1, -1))] = ip[i];
+    } else if (pp[i] !== ip[i]) {
+      return null;
+    }
+  }
+  return params;
+}
+
 async function handleRequest(
   request: NextRequest,
   params: Promise<{ appId: string; path: string[] }>,
@@ -54,10 +80,28 @@ async function handleRequest(
     const { appId, path: routePath } = await params;
     const route = routePath.join("/");
 
-    // Find matching API route from database
     const apiRouteManager = new ApiRouteManager();
-    const apiRouteId = `${appId}:${route}:${method}`;
-    const apiRouteRecord = await apiRouteManager.readRecord(apiRouteId);
+    let routeParams: Record<string, string> = {};
+
+    // Try exact match first (fast path for non-parameterized routes)
+    let apiRouteRecord = await apiRouteManager.readRecord(
+      `${appId}:${route}:${method}`,
+    );
+
+    // If no exact match, scan routes for this app+method and pattern-match
+    if (!apiRouteRecord) {
+      const candidates = await apiRouteManager.readRecords({
+        fields: { app: appId, method },
+      });
+      for (const candidate of candidates.records) {
+        const matched = matchRoute(candidate.data.path, route);
+        if (matched !== null) {
+          apiRouteRecord = candidate;
+          routeParams = matched;
+          break;
+        }
+      }
+    }
 
     if (!apiRouteRecord) {
       return NextResponse.json(
@@ -79,9 +123,11 @@ async function handleRequest(
       );
     }
 
-    // Load the handler from the app's API directory in system storage
-    const fileName = routePath[routePath.length - 1];
-    const folders = routePath.slice(0, -1);
+    // Derive handler file path from the registered pattern (not the request
+    // path) so that parameterized routes resolve to the correct .js file.
+    const registeredParts = apiRoute.path.split("/");
+    const fileName = registeredParts[registeredParts.length - 1];
+    const folders = registeredParts.slice(0, -1);
 
     // Build the full path: storage/apps/{appId}/api/{folders}/{fileName}.js
     const handlerPath = path.join(
@@ -190,8 +236,8 @@ async function handleRequest(
       plugin = await Context.create(appId, userId);
     }
 
-    // Execute the handler with context
-    return await handler(request, plugin);
+    // Execute the handler with context and any matched route params
+    return await handler(request, plugin, routeParams);
   } catch (error) {
     console.error("Error handling app API request:", error);
     console.error(
