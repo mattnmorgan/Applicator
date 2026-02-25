@@ -123,20 +123,18 @@ async function handleRequest(
       );
     }
 
-    // Derive handler file path from the registered pattern (not the request
-    // path) so that parameterized routes resolve to the correct .js file.
+    // Derive handler file path from the registered route pattern.
+    // Each path segment maps to a directory, with route.js as the handler.
+    // e.g. "items/[item-id]" → api/items/[item-id]/route.js
     const registeredParts = apiRoute.path.split("/");
-    const fileName = registeredParts[registeredParts.length - 1];
-    const folders = registeredParts.slice(0, -1);
 
-    // Build the full path: storage/apps/{appId}/api/{folders}/{fileName}.js
     const handlerPath = path.join(
       storagePath,
       "apps",
       appId,
       "api",
-      ...folders,
-      `${fileName}.js`,
+      ...registeredParts,
+      "route.js",
     );
 
     // Check if file exists
