@@ -16,6 +16,7 @@ Run in a loop until stopped. Useful for:
   "agents": [
     {
       "name": "worker",
+      "label": "Queue Worker",
       "description": "Processes items from the queue"
     }
   ]
@@ -34,6 +35,7 @@ Run on a schedule. Useful for:
   "agents": [
     {
       "name": "cleanup",
+      "label": "Daily Cleanup",
       "description": "Cleans up old records",
       "cron": "0 0 * * *"
     }
@@ -417,7 +419,8 @@ Agents can be started and stopped through the admin UI or API:
 ### Status Monitoring
 
 Agent status is tracked:
-- `running` - Agent is active
+- `scheduled` - CRON agent is active and waiting for its next scheduled execution
+- `running` - Agent is actively executing its script, or a continuous agent is live
 - `stopped` - Agent is not running
 - `error` - Agent encountered an error
 

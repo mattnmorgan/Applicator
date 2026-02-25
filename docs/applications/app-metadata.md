@@ -595,11 +595,13 @@ Define background tasks:
   "agents": [
     {
       "name": "cleanup-agent",
+      "label": "Daily Cleanup",
       "description": "Cleans up old records daily",
       "cron": "0 0 * * *"
     },
     {
       "name": "worker-agent",
+      "label": "Background Worker",
       "description": "Continuous background worker"
     }
   ]
@@ -610,7 +612,8 @@ Define background tasks:
 
 | Property | Type | Required | Description |
 |----------|------|----------|-------------|
-| `name` | string | Yes | Agent identifier |
+| `name` | string | Yes | Agent identifier (must match the agent script filename) |
+| `label` | string | No | Human-readable display name shown in the admin UI |
 | `description` | string | Yes | What the agent does |
 | `cron` | string | No | CRON schedule (if omitted, runs continuously) |
 
@@ -663,7 +666,7 @@ See [Agents](./agents.md) for implementation details.
     { "id": "widget", "label": "My Tasks", "description": "Task widget", "target": "home", "component": "TaskWidget" }
   ],
   "agents": [
-    { "name": "reminder", "description": "Send task reminders", "cron": "0 9 * * *" }
+    { "name": "reminder", "label": "Daily Reminder", "description": "Send task reminders", "cron": "0 9 * * *" }
   ]
 }
 ```

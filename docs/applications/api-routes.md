@@ -160,11 +160,31 @@ const record = await items.readRecord("record-id");
 const result = await items.readRecords({
   limit: 50,
   offset: 0,
-  fields: { status: "active" }, // filter by field values
+  fields: { status: "active" }, // simple equality filter by field values
   ids: ["id-1", "id-2"], // filter by specific IDs
   includeRelated: ["author"], // include related records
 });
 // { records: TableRecord[], total, limit, offset, related? }
+
+// Advanced filtering with operators
+const result = await items.readRecords({
+  filters: [
+    { field: "status", operator: "IN", value: ["active", "pending"] },
+    { field: "score", operator: ">=", value: 50 },
+    { field: "title", operator: "LIKE", value: "Report%" },
+  ],
+});
+// All filters are ANDed together by default
+
+// Complex conditions with logical grouping
+const result = await items.readRecords({
+  filters: [
+    { field: "status", operator: "=", value: "active" },   // 1
+    { field: "type", operator: "=", value: "urgent" },     // 2
+    { field: "type", operator: "=", value: "critical" },   // 3
+  ],
+  condition: "1 AND (2 OR 3)",  // index-based logical expression
+});
 
 // Create a record (pass null for table to skip validation)
 const table = await items.getTable();
@@ -211,6 +231,53 @@ await items.deleteAll();
 const tableDef = await items.getTable();
 const fields = await items.getTableFields();
 ```
+
+#### Record Filtering Reference
+
+`readRecords` accepts a `RecordFilter` object with these options:
+
+| Option | Type | Description |
+|--------|------|-------------|
+| `fields` | `object` | Simple equality filter: `{ status: "active", type: "task" }` |
+| `ids` | `string[]` | Return only records with these IDs |
+| `filters` | `FieldFilter[]` | Advanced filter conditions with operators (see below) |
+| `condition` | `string` | Logical expression combining `filters` by 1-based index |
+| `limit` | `number` | Max records to return |
+| `offset` | `number` | Number of records to skip |
+| `includeRelated` | `string[]` | Field names whose related records should be fetched |
+
+##### FieldFilter Operators
+
+| Operator | Description | Value type |
+|----------|-------------|------------|
+| `=` | Exact match | scalar |
+| `!=` | Not equal | scalar |
+| `<` | Less than | number |
+| `>` | Greater than | number |
+| `<=` | Less than or equal | number |
+| `>=` | Greater than or equal | number |
+| `IN` | Matches any value in list | `string[]` or `number[]` |
+| `NOT IN` | Matches none of the values | `string[]` or `number[]` |
+| `LIKE` | SQL LIKE pattern (`%` wildcard) | string |
+| `NOT LIKE` | Negated LIKE | string |
+
+##### Condition Syntax
+
+When `filters` has more than one entry and you need non-default logic, use `condition` to express the relationship. Indices are **1-based** and map to positions in the `filters` array:
+
+```typescript
+filters: [
+  { field: "status", operator: "=", value: "active" },    // 1
+  { field: "priority", operator: "=", value: "high" },    // 2
+  { field: "priority", operator: "=", value: "critical" }, // 3
+  { field: "dueDate", operator: "<", value: Date.now() }, // 4
+],
+condition: "(2 OR 3) AND (1 AND 4)"
+```
+
+If `condition` is omitted, all filters are ANDed together.
+
+---
 
 ### User and App Info
 
