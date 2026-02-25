@@ -4,7 +4,7 @@ export const SYSTEM_APP_METADATA = {
   version: {
     major: 0,
     minor: 0,
-    dev: 6,
+    dev: 7,
   },
   author: "Matthew Morgan",
   contact_email: "matthew@morgantech.info",
@@ -627,7 +627,12 @@ export const SYSTEM_APP_METADATA = {
           name: "status",
           description: "Current status of the agent",
           type: "picklist",
-          options: { stopped: "Stopped", running: "Running", error: "Error" },
+          options: {
+            stopped: "Stopped",
+            running: "Running",
+            scheduled: "Scheduled",
+            error: "Error",
+          },
           required: true,
           defaultValue: "stopped",
         },

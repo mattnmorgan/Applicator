@@ -40,6 +40,23 @@ export default class Manager extends CRUD<Agent> {
   }
 
   /**
+   * Immediately execute a CRON agent without waiting for its schedule
+   */
+  async runAgentNow(appId: string, agentName: string): Promise<any> {
+    const response = await fetch(`/api/${appId}/agents/${agentName}/execute`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || "Failed to execute agent");
+    }
+
+    return response.json();
+  }
+
+  /**
    * Get agent status
    */
   async getAgentStatus(appId: string, agentName: string): Promise<any> {

@@ -26,6 +26,11 @@ export default class Agent {
    */
   private static runningAgents: Map<string, AgentState> = new Map();
 
+  /**
+   * Set of agents currently executing their script (distinct from being scheduled)
+   */
+  private static executingAgents: Set<string> = new Set();
+
   public constructor(
     appId: string,
     agentName: string,
@@ -47,6 +52,13 @@ export default class Agent {
   }
 
   /**
+   * Check if an agent is actively executing its script
+   */
+  public static isAgentExecuting(agentId: string): boolean {
+    return Agent.executingAgents.has(agentId);
+  }
+
+  /**
    * Start the agent (schedule it for execution)
    */
   public async start(): Promise<boolean> {
@@ -62,7 +74,7 @@ export default class Agent {
     }
 
     await agentManager.updateRecord(await agentManager.getTable(), this.id, {
-      status: "running",
+      status: agent.data.cron ? "scheduled" : "running",
       was_running: true,
       last_error: undefined,
     });
@@ -337,7 +349,7 @@ export default class Agent {
    * @returns The current status of this agent
    */
   public async getStatus(): Promise<{
-    status: "stopped" | "running" | "error";
+    status: "stopped" | "running" | "scheduled" | "error";
     lastRun?: number;
     lastError?: string;
     nextRun?: string;
@@ -356,7 +368,7 @@ export default class Agent {
     let nextExecution: Date | undefined;
     let nextRunFormatted: string | undefined;
 
-    if (record.data.cron && record.data.status == "running") {
+    if (record.data.cron && (record.data.status === "running" || record.data.status === "scheduled")) {
       nextExecution = getNextCronExecution(record.data.cron);
 
       if (nextExecution) {
@@ -486,6 +498,7 @@ export default class Agent {
       executionTime: -1,
     };
 
+    Agent.executingAgents.add(this.id);
     await this.initialize();
 
     try {
@@ -499,6 +512,7 @@ export default class Agent {
       executionContext.success = false;
       executionContext.error = error.message || String(error);
     } finally {
+      Agent.executingAgents.delete(this.id);
       executionContext.executionTime = Date.now() - executionStart;
 
       const manager = new AgentManager();

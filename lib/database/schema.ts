@@ -128,6 +128,7 @@ const schema = new Schema({
           foreignKey: { table: "apps", field: "id", cascade: true },
         }),
         new Field({ name: "name", type: "text" }),
+        new Field({ name: "label", type: "text", nillable: true }),
         new Field({ name: "description", type: "text" }),
         new Field({ name: "cron", type: "text", nillable: true }),
         new Field({ name: "status", type: "text", defaultValue: "stopped" }),

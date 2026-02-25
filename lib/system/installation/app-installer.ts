@@ -234,6 +234,7 @@ export async function installAppComponents(
         agentTable,
         {
           name: agent.name,
+          label: agent.label,
           description: agent.description || "",
           app: appId,
           cron: agent.cron,
@@ -420,6 +421,7 @@ export async function updateAppComponents(
         // Update existing agent, preserve runtime state
         await agentManager.updateRecord(agentTable, existingAgent.id, {
           name: agent.name,
+          label: agent.label,
           description: agent.description || "",
           app: appId,
           cron: agent.cron,
@@ -431,6 +433,7 @@ export async function updateAppComponents(
           agentTable,
           {
             name: agent.name,
+            label: agent.label,
             description: agent.description || "",
             app: appId,
             cron: agent.cron,

@@ -56,7 +56,7 @@ export async function GET(
       let nextRun: string | null = null;
       let nextRunFormatted: string | null = null;
 
-      if (agent.data.cron && agent.data.status === "running") {
+      if (agent.data.cron && (agent.data.status === "running" || agent.data.status === "scheduled")) {
         const nextExec = getNextCronExecution(agent.data.cron);
         if (nextExec) {
           nextRun = nextExec.toISOString();
@@ -64,19 +64,28 @@ export async function GET(
         }
       }
 
-      // Check if actually running in memory
-      const actuallyRunning = Agent.isAgentRunning(agent.id);
-      const status = actuallyRunning ? "running" : agent.data.status;
+      // Determine precise status:
+      // - CRON agents in runningAgents but not executing → "scheduled"
+      // - Any agent actively executing → "running"
+      // - Not in runningAgents → use DB status
+      let status: string = agent.data.status;
+      if (Agent.isAgentRunning(agent.id)) {
+        status =
+          agent.data.cron && !Agent.isAgentExecuting(agent.id)
+            ? "scheduled"
+            : "running";
+      }
 
       return {
         id: agent.id,
         name: agent.data.name,
+        label: agent.data.label,
         description: agent.data.description,
         app: agent.data.app,
         appLabel: appLabels[agent.data.app] || agent.data.app,
         cron: agent.data.cron,
         status,
-        lastRun: agent.data.last_run,
+        lastRun: agent.data.last_run ? Number(agent.data.last_run) : undefined,
         lastError: agent.data.last_error,
         nextRun,
         nextRunFormatted,

@@ -133,6 +133,7 @@
 }
 
 .primaryButton,
+.secondaryButton,
 .dangerButton {
   padding: 6px 12px;
   border-radius: 6px;
@@ -152,6 +153,15 @@
   background: #2563eb;
 }
 
+.secondaryButton {
+  background: #334155;
+  color: #e2e8f0;
+}
+
+.secondaryButton:hover:not(:disabled) {
+  background: #475569;
+}
+
 .dangerButton {
   background: #ef4444;
   color: white;
@@ -162,6 +172,7 @@
 }
 
 .primaryButton:disabled,
+.secondaryButton:disabled,
 .dangerButton:disabled {
   opacity: 0.5;
   cursor: not-allowed;

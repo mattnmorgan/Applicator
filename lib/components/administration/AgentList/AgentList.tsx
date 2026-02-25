@@ -9,11 +9,12 @@ import AgentManager from "@/lib/client/managers/agent";
 interface Agent {
   id: string;
   name: string;
+  label?: string;
   description: string;
   app: string;
   appLabel: string;
   cron?: string;
-  status: "stopped" | "running" | "error";
+  status: "stopped" | "running" | "scheduled" | "error";
   lastRun?: number;
   lastError?: string;
   nextRun?: string;
@@ -60,6 +61,20 @@ export default function AgentList() {
     }
   };
 
+  const handleRunNow = async (agent: Agent) => {
+    setActionInProgress(agent.id);
+    try {
+      const agentManager = new AgentManager();
+      await agentManager.runAgentNow(agent.app, agent.name);
+      await fetchAgents();
+    } catch (error: any) {
+      console.error("Failed to run agent:", error);
+      alert(`Failed to run agent: ${error.message}`);
+    } finally {
+      setActionInProgress(null);
+    }
+  };
+
   const handleStopAgent = async (agent: Agent) => {
     setActionInProgress(agent.id);
     try {
@@ -76,7 +91,7 @@ export default function AgentList() {
 
   const filteredAgents = agents.filter(
     (agent) =>
-      agent.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (agent.label || agent.name).toLowerCase().includes(searchQuery.toLowerCase()) ||
       agent.description.toLowerCase().includes(searchQuery.toLowerCase()) ||
       agent.app.toLowerCase().includes(searchQuery.toLowerCase()) ||
       agent.appLabel.toLowerCase().includes(searchQuery.toLowerCase()),
@@ -86,6 +101,8 @@ export default function AgentList() {
     switch (status) {
       case "running":
         return <Badge variant="green">Running</Badge>;
+      case "scheduled":
+        return <Badge variant="blue">Scheduled</Badge>;
       case "error":
         return <Badge variant="red">Error</Badge>;
       default:
@@ -124,11 +141,11 @@ export default function AgentList() {
           <Row key={agent.id}>
             <div className={styles.agentInfo}>
               <div className={styles.iconPlaceholder}>
-                {agent.name.charAt(0).toUpperCase()}
+                {(agent.label || agent.name).charAt(0).toUpperCase()}
               </div>
               <div className={styles.contentColumn}>
                 <div className={styles.agentHeader}>
-                  <div className={styles.agentName}>{agent.name}</div>
+                  <div className={styles.agentName}>{agent.label || agent.name}</div>
                   {getStatusBadge(agent.status)}
                 </div>
                 <div className={styles.agentDescription}>
@@ -143,7 +160,7 @@ export default function AgentList() {
                   {!agent.cron && (
                     <span className={styles.metaItem}>Continuous</span>
                   )}
-                  {agent.status === "running" && agent.nextRunFormatted && (
+                  {(agent.status === "running" || agent.status === "scheduled") && agent.nextRunFormatted && (
                     <span className={styles.metaItem}>
                       Next run: {agent.nextRunFormatted}
                     </span>
@@ -165,7 +182,16 @@ export default function AgentList() {
               <Badge variant={agent.app === "system" ? "purple" : "blue"}>
                 {agent.appLabel}
               </Badge>
-              {agent.status === "running" ? (
+              {agent.status === "scheduled" && (
+                <button
+                  className={styles.secondaryButton}
+                  onClick={() => handleRunNow(agent)}
+                  disabled={actionInProgress === agent.id}
+                >
+                  {actionInProgress === agent.id ? "..." : "Run Now"}
+                </button>
+              )}
+              {agent.status === "running" || agent.status === "scheduled" ? (
                 <button
                   className={styles.dangerButton}
                   onClick={() => handleStopAgent(agent)}
