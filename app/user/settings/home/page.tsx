@@ -46,7 +46,12 @@ interface SettingDefinition {
   lines?: number;
   resizable?: boolean;
   searchable?: boolean;
-  options?: { value: string; label: string; description?: string; icon?: string }[];
+  options?: {
+    value: string;
+    label: string;
+    description?: string;
+    icon?: string;
+  }[];
 }
 
 interface AppletInfo {
@@ -242,14 +247,15 @@ function SettingsModal({
               options: def.options,
             };
             return (
-              <DynamicInput
-                key={def.name}
-                input={inputDef}
-                value={values[def.name]}
-                onChange={(id, value) =>
-                  setValues((prev) => ({ ...prev, [id]: value }))
-                }
-              />
+              <div key={def.name} style={{ paddingBottom: "12px" }}>
+                <DynamicInput
+                  input={inputDef}
+                  value={values[def.name]}
+                  onChange={(id, value) =>
+                    setValues((prev) => ({ ...prev, [id]: value }))
+                  }
+                />
+              </div>
             );
           })}
         </div>
@@ -442,9 +448,7 @@ export default function HomeSettingsPage() {
   ) => {
     try {
       const appletSettingManager = new AppletSettingManager();
-      const instance = pinnedInstances.find(
-        (i) => i.instanceId === instanceId,
-      );
+      const instance = pinnedInstances.find((i) => i.instanceId === instanceId);
       if (!instance) return;
 
       await appletSettingManager.upsertRecord(instanceId, {
@@ -576,11 +580,31 @@ export default function HomeSettingsPage() {
                             fill="none"
                           >
                             <circle cx="5" cy="4" r="1.5" fill="currentColor" />
-                            <circle cx="11" cy="4" r="1.5" fill="currentColor" />
+                            <circle
+                              cx="11"
+                              cy="4"
+                              r="1.5"
+                              fill="currentColor"
+                            />
                             <circle cx="5" cy="8" r="1.5" fill="currentColor" />
-                            <circle cx="11" cy="8" r="1.5" fill="currentColor" />
-                            <circle cx="5" cy="12" r="1.5" fill="currentColor" />
-                            <circle cx="11" cy="12" r="1.5" fill="currentColor" />
+                            <circle
+                              cx="11"
+                              cy="8"
+                              r="1.5"
+                              fill="currentColor"
+                            />
+                            <circle
+                              cx="5"
+                              cy="12"
+                              r="1.5"
+                              fill="currentColor"
+                            />
+                            <circle
+                              cx="11"
+                              cy="12"
+                              r="1.5"
+                              fill="currentColor"
+                            />
                           </svg>
                           <div className={styles.appletContent}>
                             <div className={styles.appletInfo}>
