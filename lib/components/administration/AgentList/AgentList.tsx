@@ -140,9 +140,6 @@ export default function AgentList() {
         {filteredAgents.map((agent) => (
           <Row key={agent.id}>
             <div className={styles.agentInfo}>
-              <div className={styles.iconPlaceholder}>
-                {(agent.label || agent.name).charAt(0).toUpperCase()}
-              </div>
               <div className={styles.contentColumn}>
                 <div className={styles.agentHeader}>
                   <div className={styles.agentName}>{agent.label || agent.name}</div>
@@ -197,7 +194,7 @@ export default function AgentList() {
                   onClick={() => handleStopAgent(agent)}
                   disabled={actionInProgress === agent.id}
                 >
-                  {actionInProgress === agent.id ? "..." : "Terminate"}
+                  {actionInProgress === agent.id ? "..." : agent.cron ? "Unschedule" : "Terminate"}
                 </button>
               ) : (
                 <button
@@ -205,7 +202,7 @@ export default function AgentList() {
                   onClick={() => handleStartAgent(agent)}
                   disabled={actionInProgress === agent.id}
                 >
-                  {actionInProgress === agent.id ? "..." : "Launch"}
+                  {actionInProgress === agent.id ? "..." : agent.cron ? "Schedule" : "Launch"}
                 </button>
               )}
             </div>
