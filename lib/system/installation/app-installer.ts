@@ -451,6 +451,36 @@ export async function updateAppComponents(
       await agentManager.deleteRecord(agent.id, { client });
     }
   }
+
+  // Update authorizations (add new, skip existing to preserve customizations)
+  if (appAttributes.authorizations && Array.isArray(appAttributes.authorizations)) {
+    const authorizationManager = new AuthorizationManager();
+    const existingAuthorizationsResult = await authorizationManager.readRecords(
+      { fields: { app: appId } },
+      client,
+    );
+    const existingAuthorizationIds = new Set(
+      existingAuthorizationsResult.records.map((a) => a.id),
+    );
+    const authTable = await authorizationManager.getTable();
+
+    for (const auth of appAttributes.authorizations) {
+      const authId = `${appId}:${auth.id}`;
+      if (!existingAuthorizationIds.has(authId)) {
+        await authorizationManager.createRecord(
+          authTable,
+          {
+            name: auth.name,
+            description: auth.description || "",
+            app: appId,
+            contextual: auth.contextual || false,
+            target: auth.target || "user",
+          },
+          { id: authId, client },
+        );
+      }
+    }
+  }
 }
 
 /**
