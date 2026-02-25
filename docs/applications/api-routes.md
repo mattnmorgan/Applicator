@@ -9,22 +9,32 @@ Routes are accessible at `/api/{appId}/{path}`.
 ### File Location
 
 ```
-src/api/my-route.ts  →  dist/api/my-route.js  →  /api/{appId}/my-route
-src/api/items/list.ts  →  dist/api/items/list.js  →  /api/{appId}/items/list
+src/api/my-route.ts         →  /api/{appId}/my-route
+src/api/items/list.ts       →  /api/{appId}/items/list
+src/api/items/[item-id].ts  →  /api/{appId}/items/:item-id
 ```
 
 ### Declaring Routes
 
-Routes must be declared in `app.json`:
+Routes must be declared in `app.json`. Wrap a path segment in `[brackets]` to make it a named parameter:
 
 ```json
 {
   "apiRoutes": [
     { "path": "my-route", "method": "GET", "description": "My endpoint" },
-    { "path": "items/list", "method": "GET", "description": "List items" },
-    { "path": "items/create", "method": "POST", "description": "Create item" }
+    { "path": "items", "method": "GET", "description": "List items" },
+    { "path": "items", "method": "POST", "description": "Create item" },
+    { "path": "items/[item-id]", "method": "GET", "description": "Get item by ID" },
+    { "path": "items/[item-id]", "method": "PATCH", "description": "Update item" },
+    { "path": "items/[item-id]", "method": "DELETE", "description": "Delete item" }
   ]
 }
+```
+
+Parameters are matched in-order left-to-right. Any segment of any depth can be parameterized:
+
+```json
+{ "path": "projects/[project-id]/tasks/[task-id]", "method": "GET" }
 ```
 
 ---
@@ -57,6 +67,17 @@ export async function PUT(req: NextRequest, context: ApiContext) {
 export async function DELETE(req: NextRequest, context: ApiContext) {
   // Delete logic
 }
+
+// For parameterized routes: src/api/items/[item-id].ts
+export async function PATCH(
+  req: NextRequest,
+  context: ApiContext,
+  params: { itemId: string },
+) {
+  const { itemId } = params;
+  const body = await req.json();
+  // Update itemId...
+}
 ```
 
 ### Handler Signature
@@ -64,11 +85,81 @@ export async function DELETE(req: NextRequest, context: ApiContext) {
 ```typescript
 import { ApiContext } from "@applicator/sdk/context";
 
-(req: NextRequest, context: ApiContext) => Promise<NextResponse>;
+(req: NextRequest, context: ApiContext, params: Record<string, string>) => Promise<NextResponse>;
 ```
 
 - `req`: Next.js request object with query params, body, headers
 - `context`: Context instance with file, record, and authorization utilities
+- `params`: Named URL parameters extracted from the route pattern. Segment names are converted to camelCase: `[item-id]` → `params.itemId`. Always an object — empty `{}` for non-parameterized routes.
+
+---
+
+## Parameterized Routes
+
+Bracket segments in a route path declare URL parameters. The file name should match the segment name:
+
+```
+src/api/items/[item-id].ts  →  handles /api/{appId}/items/{any-value}
+```
+
+The matched value is available in `params`, with the segment name camelCased:
+
+```typescript
+// src/api/items/[item-id].ts
+
+export async function GET(
+  _req: NextRequest,
+  context: ApiContext,
+  params: { itemId: string },
+) {
+  const { itemId } = params;
+  const items = context.recordManager("my-app", "items");
+  const record = await items.readRecord(itemId);
+
+  if (!record) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  return NextResponse.json(record);
+}
+
+export async function DELETE(
+  _req: NextRequest,
+  context: ApiContext,
+  params: { itemId: string },
+) {
+  const { itemId } = params;
+  const items = context.recordManager("my-app", "items");
+  const existing = await items.readRecord(itemId);
+
+  if (!existing) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  await items.deleteRecord(itemId);
+  return NextResponse.json({ success: true });
+}
+```
+
+Multiple parameters work across nested paths. Each segment name maps to a camelCase key:
+
+```
+[project-id]  →  params.projectId
+[task-id]     →  params.taskId
+```
+
+```typescript
+// src/api/projects/[project-id]/tasks/[task-id].ts
+
+export async function GET(
+  _req: NextRequest,
+  context: ApiContext,
+  params: { projectId: string; taskId: string },
+) {
+  const { projectId, taskId } = params;
+  // ...
+}
+```
 
 ---
 
@@ -391,26 +482,26 @@ export async function POST(req: NextRequest, context: Context) {
 
 ### PUT - Update Existing
 
+Using a parameterized route (preferred — `src/api/items/[item-id].ts`):
+
 ```typescript
-export async function PUT(req: NextRequest, context: Context) {
-  const { searchParams } = new URL(req.url);
-  const id = searchParams.get("id");
-
-  if (!id) {
-    return NextResponse.json({ error: "ID required" }, { status: 400 });
-  }
-
+export async function PUT(
+  req: NextRequest,
+  context: ApiContext,
+  params: { itemId: string },
+) {
   try {
+    const { itemId } = params;
     const body = await req.json();
     const items = context.recordManager("my-app", "items");
     const table = await items.getTable();
-    const existing = await items.readRecord(id);
+    const existing = await items.readRecord(itemId);
 
     if (!existing) {
       return NextResponse.json({ error: "Not found" }, { status: 404 });
     }
 
-    const updated = await items.updateRecord(table, id, body);
+    const updated = await items.updateRecord(table, itemId, body);
     return NextResponse.json(updated);
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });
@@ -420,8 +511,35 @@ export async function PUT(req: NextRequest, context: Context) {
 
 ### DELETE - Remove Record
 
+Using a parameterized route (preferred — `src/api/items/[item-id].ts`):
+
 ```typescript
-export async function DELETE(req: NextRequest, context: Context) {
+export async function DELETE(
+  _req: NextRequest,
+  context: ApiContext,
+  params: { itemId: string },
+) {
+  try {
+    const { itemId } = params;
+    const items = context.recordManager("my-app", "items");
+    const existing = await items.readRecord(itemId);
+
+    if (!existing) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    await items.deleteRecord(itemId);
+    return NextResponse.json({ success: true });
+  } catch (error: any) {
+    return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+}
+```
+
+Using a query parameter (for non-resource-oriented routes):
+
+```typescript
+export async function DELETE(req: NextRequest, context: ApiContext) {
   const { searchParams } = new URL(req.url);
   const id = searchParams.get("id");
 
@@ -429,19 +547,7 @@ export async function DELETE(req: NextRequest, context: Context) {
     return NextResponse.json({ error: "ID required" }, { status: 400 });
   }
 
-  try {
-    const items = context.recordManager("my-app", "items");
-    const existing = await items.readRecord(id);
-
-    if (!existing) {
-      return NextResponse.json({ error: "Not found" }, { status: 404 });
-    }
-
-    await items.deleteRecord(id);
-    return NextResponse.json({ success: true });
-  } catch (error: any) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
+  // ...same delete logic
 }
 ```
 
