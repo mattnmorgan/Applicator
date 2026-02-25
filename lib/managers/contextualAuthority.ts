@@ -173,38 +173,10 @@ export default class ContextualAuthorityManager extends CRUD<ContextualAuthority
     appId: string,
     recordId: string,
   ): Promise<TableRecord<ContextualAuthority>[]> {
-    // Use readRecords with no filter and manually filter by ID prefix,
-    // or use the underlying storage directly for efficiency
-    const { getClient } = await import("@/lib/database/connections/postgresql");
-
-    const sqlTable = "contextual_authorities";
-
-    const client = await getClient();
-    try {
-      const prefix = `${appId}:${recordId}:`;
-      // Query with LIKE to find matching records by ID prefix
-      const result = await client.query(
-        `SELECT * FROM ${sqlTable} WHERE id LIKE $1 ORDER BY created_at ASC`,
-        [`${prefix}%`],
-      );
-
-      return result.rows.map((row) => ({
-        id: row.id as string,
-        data: {
-          permission: row.permission,
-          user: row.user,
-          authority: row.authority,
-          password: row.password,
-          app: row.app,
-          created_at: Number(row.created_at),
-          created_by: row.created_by,
-          context: row.context,
-        } as ContextualAuthority,
-        created_at: Number(row.created_at),
-        updated_at: Number(row.updated_at),
-      }));
-    } finally {
-      client.release();
-    }
+    const prefix = `${appId}:${recordId}:`;
+    const result = await this.readRecords({
+      filters: [{ field: "id", operator: "LIKE", value: `${prefix}%` }],
+    });
+    return result.records;
   }
 }
