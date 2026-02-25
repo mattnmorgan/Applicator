@@ -8,10 +8,13 @@ Routes are accessible at `/api/{appId}/{path}`.
 
 ### File Location
 
+Each route is a `route.ts` file inside a directory that mirrors the route path. The compiled `route.js` is what the system loads at runtime. This mirrors the Next.js App Router convention.
+
 ```
-src/api/my-route.ts         →  /api/{appId}/my-route
-src/api/items/list.ts       →  /api/{appId}/items/list
-src/api/items/[item-id].ts  →  /api/{appId}/items/:item-id
+src/api/items/route.ts                        →  /api/{appId}/items
+src/api/items/list/route.ts                   →  /api/{appId}/items/list
+src/api/items/[item-id]/route.ts              →  /api/{appId}/items/:item-id
+src/api/projects/[project-id]/tasks/route.ts  →  /api/{appId}/projects/:project-id/tasks
 ```
 
 ### Declaring Routes
@@ -21,7 +24,6 @@ Routes must be declared in `app.json`. Wrap a path segment in `[brackets]` to ma
 ```json
 {
   "apiRoutes": [
-    { "path": "my-route", "method": "GET", "description": "My endpoint" },
     { "path": "items", "method": "GET", "description": "List items" },
     { "path": "items", "method": "POST", "description": "Create item" },
     { "path": "items/[item-id]", "method": "GET", "description": "Get item by ID" },
@@ -31,7 +33,7 @@ Routes must be declared in `app.json`. Wrap a path segment in `[brackets]` to ma
 }
 ```
 
-Parameters are matched in-order left-to-right. Any segment of any depth can be parameterized:
+Parameters are matched in-order left-to-right. Any segment at any depth can be parameterized:
 
 ```json
 { "path": "projects/[project-id]/tasks/[task-id]", "method": "GET" }
@@ -41,34 +43,23 @@ Parameters are matched in-order left-to-right. Any segment of any depth can be p
 
 ## Handler Export Convention
 
-Handlers export named functions matching HTTP methods. Import the `Context` type from `@applicator/sdk` for autocompletion:
+Handlers export named functions matching HTTP methods. Each handler file is named `route.ts` and lives in a directory that matches the route path.
 
 ```typescript
+// src/api/items/route.ts  →  handles GET /api/{appId}/items, POST /api/{appId}/items
 import { NextRequest, NextResponse } from "next/server";
 import { ApiContext } from "@applicator/sdk/context";
 
-// GET /api/{appId}/my-route
 export async function GET(req: NextRequest, context: ApiContext) {
   return NextResponse.json({ message: "Hello" });
 }
 
-// POST /api/{appId}/my-route
 export async function POST(req: NextRequest, context: ApiContext) {
   const body = await req.json();
   return NextResponse.json({ received: body });
 }
 
-// PUT /api/{appId}/my-route
-export async function PUT(req: NextRequest, context: ApiContext) {
-  // Update logic
-}
-
-// DELETE /api/{appId}/my-route
-export async function DELETE(req: NextRequest, context: ApiContext) {
-  // Delete logic
-}
-
-// For parameterized routes: src/api/items/[item-id].ts
+// src/api/items/[item-id]/route.ts  →  handles PATCH /api/{appId}/items/:itemId
 export async function PATCH(
   req: NextRequest,
   context: ApiContext,
@@ -96,16 +87,16 @@ import { ApiContext } from "@applicator/sdk/context";
 
 ## Parameterized Routes
 
-Bracket segments in a route path declare URL parameters. The file name should match the segment name:
+Bracket segments in a route path declare URL parameters. Name the directory with the bracket segment; place `route.ts` inside it:
 
 ```
-src/api/items/[item-id].ts  →  handles /api/{appId}/items/{any-value}
+src/api/items/[item-id]/route.ts  →  handles /api/{appId}/items/{any-value}
 ```
 
 The matched value is available in `params`, with the segment name camelCased:
 
 ```typescript
-// src/api/items/[item-id].ts
+// src/api/items/[item-id]/route.ts
 
 export async function GET(
   _req: NextRequest,
@@ -149,7 +140,7 @@ Multiple parameters work across nested paths. Each segment name maps to a camelC
 ```
 
 ```typescript
-// src/api/projects/[project-id]/tasks/[task-id].ts
+// src/api/projects/[project-id]/tasks/[task-id]/route.ts
 
 export async function GET(
   _req: NextRequest,
@@ -633,37 +624,59 @@ export async function POST(req: NextRequest, context: Context) {
 
 ## Webpack Configuration
 
-API handlers need a separate webpack config for Node.js:
+API handlers need a separate webpack config for Node.js. The `findRouteHandlers` function discovers all `route.ts` files in the `src/api/` directory tree, while `findHandlers` is used for other directories (`system/`, `tables/`, `agents/`) that use named files:
 
 ```javascript
 // webpack.api.config.js
 const path = require("path");
 const fs = require("fs");
 
-function findTsFiles(dir, prefix = "") {
+// Find route.ts handler files (Next.js-style routing for src/api/)
+function findRouteHandlers(dir, baseDir, prefix) {
   const entries = {};
-  if (!fs.existsSync(dir)) return entries;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      Object.assign(entries, findRouteHandlers(fullPath, baseDir, prefix));
+    } else if (entry.name === "route.ts") {
+      const relative = path.relative(baseDir, fullPath).replace(/\\/g, "/");
+      const name = relative.replace(".ts", "");
+      entries[`${prefix}/${name}`] =
+        `./${path.relative(__dirname, fullPath).replace(/\\/g, "/")}`;
+    }
+  }
+  return entries;
+}
 
-  for (const file of fs.readdirSync(dir)) {
-    const fullPath = path.join(dir, file);
-    const stat = fs.statSync(fullPath);
-
-    if (stat.isDirectory()) {
-      Object.assign(
-        entries,
-        findTsFiles(fullPath, prefix ? `${prefix}/${file}` : file),
-      );
-    } else if (file.endsWith(".ts") && file !== "index.ts") {
-      const name = file.replace(".ts", "");
-      const entryName = prefix ? `${prefix}/${name}` : name;
-      entries[`api/${entryName}`] = path.join(dir, file);
+// Find named .ts handler files (for system/, tables/, agents/)
+function findHandlers(dir, baseDir, prefix) {
+  const entries = {};
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      Object.assign(entries, findHandlers(fullPath, baseDir, prefix));
+    } else if (entry.name.endsWith(".ts") && entry.name !== "index.ts") {
+      const relative = path.relative(baseDir, fullPath).replace(/\\/g, "/");
+      const name = relative.replace(".ts", "");
+      entries[`${prefix}/${name}`] =
+        `./${path.relative(__dirname, fullPath).replace(/\\/g, "/")}`;
     }
   }
   return entries;
 }
 
 const apiDir = path.resolve(__dirname, "src/api");
-const handlers = findTsFiles(apiDir);
+const handlers = fs.existsSync(apiDir) ? findRouteHandlers(apiDir, apiDir, "api") : {};
+
+const systemDir = path.resolve(__dirname, "src/system");
+if (fs.existsSync(systemDir)) {
+  Object.assign(handlers, findHandlers(systemDir, systemDir, "system"));
+}
+
+const agentsDir = path.resolve(__dirname, "src/agents");
+if (fs.existsSync(agentsDir)) {
+  Object.assign(handlers, findHandlers(agentsDir, agentsDir, "agents"));
+}
 
 module.exports = {
   entry: handlers,
@@ -676,22 +689,25 @@ module.exports = {
   resolve: {
     extensions: [".tsx", ".ts", ".js"],
     alias: {},
+    symlinks: true,
   },
   module: {
     rules: [
       {
         test: /\.tsx?$/,
-        use: "ts-loader",
+        use: {
+          loader: "ts-loader",
+          options: { configFile: "tsconfig.webpack.json", transpileOnly: true },
+        },
         exclude: /node_modules/,
       },
     ],
   },
   externals: {
     "next/server": "commonjs2 next/server",
-  },
-  optimization: {
-    splitChunks: false,
-    runtimeChunk: false,
+    ioredis: "commonjs2 ioredis",
+    uuid: "commonjs2 uuid",
+    bcryptjs: "commonjs2 bcryptjs",
   },
   mode: "production",
 };
