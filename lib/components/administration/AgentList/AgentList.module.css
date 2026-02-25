@@ -88,13 +88,69 @@
   color: #94a3b8;
 }
 
-.errorMessage {
+.successIcon {
+  margin-left: 6px;
+  color: #34d399;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.lastRunStatus {
+  position: relative;
+  display: inline-block;
+  margin-left: 6px;
+}
+
+.failIcon {
+  color: #ef4444;
+  font-size: 11px;
+  font-weight: 700;
+  cursor: default;
+}
+
+.errorPopover {
+  display: none;
+  position: absolute;
+  bottom: calc(100% + 6px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #1e293b;
+  border: 1px solid #475569;
+  border-radius: 6px;
+  padding: 10px 12px;
+  min-width: 220px;
+  max-width: 320px;
+  z-index: 100;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+}
+
+.lastRunStatus:hover .errorPopover {
+  display: block;
+}
+
+.errorPopoverTitle {
   color: #ef4444;
   font-size: 12px;
-  margin-top: 4px;
-  padding: 4px 8px;
-  background: rgba(239, 68, 68, 0.1);
-  border-radius: 4px;
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.errorPopoverMessage {
+  color: #94a3b8;
+  font-size: 11px;
+  line-height: 1.5;
+  word-break: break-word;
+  margin-bottom: 8px;
+}
+
+.errorPopoverLink {
+  color: #3b82f6;
+  font-size: 11px;
+  text-decoration: none;
+}
+
+.errorPopoverLink:hover {
+  text-decoration: underline;
 }
 
 .actionsColumn {

@@ -165,14 +165,23 @@ export default function AgentList() {
                   {agent.lastRun && (
                     <span className={styles.metaItem}>
                       Last run: {formatLastRun(agent.lastRun)}
+                      {agent.lastError ? (
+                        <span className={styles.lastRunStatus}>
+                          <span className={styles.failIcon}>✕</span>
+                          <div className={styles.errorPopover}>
+                            <div className={styles.errorPopoverTitle}>Last run failed</div>
+                            <div className={styles.errorPopoverMessage}>{agent.lastError}</div>
+                            <a href="/system/settings/debug/logs" className={styles.errorPopoverLink}>
+                              View system logs →
+                            </a>
+                          </div>
+                        </span>
+                      ) : (
+                        <span className={styles.successIcon}>✓</span>
+                      )}
                     </span>
                   )}
                 </div>
-                {agent.lastError && (
-                  <div className={styles.errorMessage}>
-                    Error: {agent.lastError}
-                  </div>
-                )}
               </div>
             </div>
             <div className={styles.actionsColumn}>

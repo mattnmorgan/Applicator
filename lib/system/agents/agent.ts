@@ -511,6 +511,10 @@ export default class Agent {
     } catch (error: any) {
       executionContext.success = false;
       executionContext.error = error.message || String(error);
+      await new LogManager().error(
+        this.appId,
+        `Agent '${this.agentName}' execution failed: ${executionContext.error}`,
+      );
     } finally {
       Agent.executingAgents.delete(this.id);
       executionContext.executionTime = Date.now() - executionStart;
