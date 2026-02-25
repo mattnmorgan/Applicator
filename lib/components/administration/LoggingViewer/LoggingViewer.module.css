@@ -1,5 +1,9 @@
 .container {
   position: relative;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
 }
 
 .header {
@@ -74,11 +78,16 @@
   border-radius: 8px;
   border: 1px solid #334155;
   overflow: hidden;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
 }
 
 .logsScroll {
-  max-height: 600px;
+  flex: 1;
   overflow-y: auto;
+  min-height: 0;
 }
 
 .emptyState {
@@ -100,7 +109,13 @@
 
 .logContent {
   display: flex;
-  align-items: flex-start;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.logMeta {
+  display: flex;
+  align-items: center;
   gap: 12px;
 }
 
@@ -132,7 +147,7 @@
 
 .logMessage {
   color: #f1f5f9;
-  flex: 1;
+  padding-left: 4px;
 }
 
 .loadMore {

@@ -178,26 +178,26 @@ export default function LoggingViewer() {
               {logs.map((log, index) => (
                 <div key={index} className={styles.logEntry}>
                   <div className={styles.logContent}>
-                    <span
-                      className={styles.logLevel}
-                      style={{ color: getLevelColor(log.data.level) }}
-                    >
-                      {log.data.level}
-                    </span>
-                    <span className={styles.logTimestamp}>
-                      {formatTimestamp(log.data.timestamp)}
-                    </span>
-                    <span className={styles.logSender}>
-                      [{log.data.sender}]
-                    </span>
-                    {log.data.user_id && (
-                      <span className={styles.logUserId}>
-                        {log.data.user_id
-                          ? userMap[log.data.user_id] ||
-                            log.data.user_id.substring(0, 8)
-                          : ""}
+                    <div className={styles.logMeta}>
+                      <span
+                        className={styles.logLevel}
+                        style={{ color: getLevelColor(log.data.level) }}
+                      >
+                        {log.data.level}
                       </span>
-                    )}
+                      <span className={styles.logTimestamp}>
+                        {formatTimestamp(log.data.timestamp)}
+                      </span>
+                      <span className={styles.logSender}>
+                        [{log.data.sender}]
+                      </span>
+                      {log.data.user_id && (
+                        <span className={styles.logUserId}>
+                          {userMap[log.data.user_id] ||
+                            log.data.user_id.substring(0, 8)}
+                        </span>
+                      )}
+                    </div>
                     <span className={styles.logMessage}>
                       {log.data.message}
                     </span>
