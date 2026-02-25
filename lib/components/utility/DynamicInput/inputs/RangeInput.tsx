@@ -1,5 +1,6 @@
 "use client";
 
+import { useRef, useEffect } from "react";
 import type { DynamicInputProps } from "../DynamicInput";
 import styles from "../DynamicInput.module.css";
 
@@ -9,6 +10,10 @@ export default function RangeInput({ input, value, onChange }: DynamicInputProps
   const step = input.step !== undefined ? parseFloat(input.step) : 1;
   const current = typeof value === "number" ? value : min;
   const disabled = input.disabled ?? false;
+
+  const inputRef = useRef<HTMLInputElement>(null);
+  const stateRef = useRef({ current, min, max, step, disabled, input, onChange });
+  stateRef.current = { current, min, max, step, disabled, input, onChange };
 
   function increment() {
     const next = Math.min(current + step, max);
@@ -31,6 +36,24 @@ export default function RangeInput({ input, value, onChange }: DynamicInputProps
     onChange(input.id, num);
   }
 
+  useEffect(() => {
+    const el = inputRef.current;
+    if (!el) return;
+
+    const handleWheel = (e: WheelEvent) => {
+      e.preventDefault();
+      const { current, min, max, step, disabled, input, onChange } = stateRef.current;
+      if (disabled) return;
+      const next = e.deltaY < 0
+        ? Math.min(current + step, max)
+        : Math.max(current - step, min);
+      onChange(input.id, parseFloat(next.toFixed(10)));
+    };
+
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, []);
+
   return (
     <div className={styles.wrapper}>
       <label className={styles.label}>
@@ -47,6 +70,7 @@ export default function RangeInput({ input, value, onChange }: DynamicInputProps
           &minus;
         </button>
         <input
+          ref={inputRef}
           type="number"
           className={`${styles.input} ${styles.rangeValue} ${styles.rangeValueInput}`}
           value={current}
