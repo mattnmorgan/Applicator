@@ -51,6 +51,15 @@ async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
     });
   }
 
+  homeMenuItems.sort((a, b) => {
+    if (a.label == "Home") {
+      return -1;
+    } else if (b.label == "Home") {
+      return 1;
+    }
+    return a.label.localeCompare(b.label);
+  });
+
   return homeMenuItems;
 }
 
