@@ -484,6 +484,40 @@ export async function updateAppComponents(
       }
     }
   }
+
+  // Update authorities (add new, skip existing to preserve customizations)
+  if (appAttributes.authorities && Array.isArray(appAttributes.authorities)) {
+    const authorityManager = new AuthorityManager();
+    const existingAuthoritiesResult = await authorityManager.readRecords(
+      { fields: { app: appId } },
+      client,
+    );
+    const existingAuthorityIds = new Set(
+      existingAuthoritiesResult.records.map((a) => a.id),
+    );
+    const authorityTable = await authorityManager.getTable();
+
+    for (const authority of appAttributes.authorities) {
+      const authorityId = `${appId}:${authority.id}`;
+      if (!existingAuthorityIds.has(authorityId)) {
+        const authorizations = (authority.authorizations || []).map(
+          (authId: string) => `${appId}:${authId}`,
+        );
+        await authorityManager.createRecord(
+          authorityTable,
+          {
+            name: authority.name,
+            icon: authority.icon,
+            authorizations,
+            apps: [],
+            contextual: true,
+            app: appId,
+          },
+          { id: authorityId, client },
+        );
+      }
+    }
+  }
 }
 
 /**

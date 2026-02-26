@@ -4,13 +4,19 @@ import React, { useState, useRef, useEffect, ReactNode, cloneElement, isValidEle
 import { createPortal } from 'react-dom';
 import styles from './ButtonMenu.module.css';
 
+type ButtonMenuOption =
+  | { type: 'separator' }
+  | {
+      type?: 'item';
+      label: string;
+      icon: ReactNode;
+      onClick: () => void;
+      active?: boolean;
+    };
+
 interface ButtonMenuProps {
-  children: ReactNode;
-  options?: {
-    label: string;
-    icon: ReactNode;
-    onClick: () => void;
-  }[];
+  children?: ReactNode;
+  options?: ButtonMenuOption[];
   trigger?: ReactNode;
   disabled?: boolean;
   alignment?: 'left' | 'right';
@@ -125,21 +131,25 @@ export default function ButtonMenu({ children, options, trigger, disabled = fals
       }}
     >
       {options ? (
-        options.map((option, index) => (
-          <button
-            key={index}
-            onClick={() => {
-              option.onClick();
-              setIsOpen(false);
-            }}
-            className={styles.menuItem}
-          >
-            <span className={styles.menuItemIcon}>
-              {option.icon}
-            </span>
-            <span>{option.label}</span>
-          </button>
-        ))
+        options.map((option, index) =>
+          option.type === 'separator' ? (
+            <div key={index} className={styles.separator} />
+          ) : (
+            <button
+              key={index}
+              onClick={() => {
+                option.onClick();
+                setIsOpen(false);
+              }}
+              className={`${styles.menuItem} ${option.active ? styles.menuItemActive : ''}`}
+            >
+              <span className={styles.menuItemIcon}>
+                {option.icon}
+              </span>
+              <span>{option.label}</span>
+            </button>
+          )
+        )
       ) : (
         <div onClick={() => setIsOpen(false)}>
           {children}
