@@ -28,7 +28,8 @@ export type IconName =
   | 'trash'
   | 'upload'
   | 'user'
-  | 'warning';
+  | 'warning'
+  | 'word-wrap';
 
 interface IconProps {
   name: IconName;
@@ -277,6 +278,14 @@ export default function Icon({ name, size = 16 }: IconProps) {
           <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" />
           <line x1="12" y1="9" x2="12" y2="13" />
           <line x1="12" y1="17" x2="12.01" y2="17" />
+        </svg>
+      );
+
+    case 'word-wrap':
+      return (
+        <svg {...base}>
+          <path d="M4 6h16M4 12h12a3.5 3.5 0 0 1 0 7h-2" />
+          <path d="M16 17l-2 2.5 2 2.5" />
         </svg>
       );
 
