@@ -1,0 +1,8 @@
+.scrollArea {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scrollArea::-webkit-scrollbar {
+  display: none;
+}

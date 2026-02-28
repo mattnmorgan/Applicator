@@ -1,18 +1,19 @@
 import React, { useState, useRef, useEffect } from "react";
+import styles from "./SearchableCombobox.module.css";
 
 export interface SearchableComboboxProps<T> {
   items: T[];
-  renderItem: (item: T) => React.ReactNode;
+  renderItem: (item: T, context: "dropdown" | "pill") => React.ReactNode;
   filterItem: (item: T, searchTerm: string) => boolean;
   selectedItems: T[];
   onSelectionChange: (items: T[]) => void;
   getItemKey: (item: T) => string;
   multiSelect?: boolean;
   placeholder?: string;
-  renderSelected?: (item: T) => React.ReactNode;
   minSearchLength?: number;
   debounceMs?: number;
   onSearchChange?: (term: string) => void;
+  disabled?: boolean;
 }
 
 export default function SearchableCombobox<T>({
@@ -24,16 +25,41 @@ export default function SearchableCombobox<T>({
   getItemKey,
   multiSelect = false,
   placeholder = "Search...",
-  renderSelected,
   minSearchLength = 0,
   debounceMs = 0,
   onSearchChange,
+  disabled = false,
 }: SearchableComboboxProps<T>) {
   const [searchTerm, setSearchTerm] = useState("");
   const [debouncedTerm, setDebouncedTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [hasOverflow, setHasOverflow] = useState(false);
+
+  // Scroll pills area to end and check overflow when selection changes
+  useEffect(() => {
+    const el = scrollAreaRef.current;
+    if (el) {
+      el.scrollLeft = el.scrollWidth;
+      setHasOverflow(el.scrollWidth > el.offsetWidth);
+    }
+  }, [selectedItems.length]);
+
+  // Remap vertical wheel to horizontal scroll
+  useEffect(() => {
+    const el = scrollAreaRef.current;
+    if (!el) return;
+    const handleWheel = (e: WheelEvent) => {
+      if (el.scrollWidth > el.offsetWidth) {
+        e.preventDefault();
+        el.scrollLeft += e.deltaY;
+      }
+    };
+    el.addEventListener("wheel", handleWheel, { passive: false });
+    return () => el.removeEventListener("wheel", handleWheel);
+  }, []);
 
   // Debounce the search term and notify parent
   useEffect(() => {
@@ -73,14 +99,14 @@ export default function SearchableCombobox<T>({
   }, []);
 
   const handleSelect = (item: T) => {
+    if (disabled) return;
     const key = getItemKey(item);
     if (multiSelect) {
       if (selectedKeys.has(key)) {
-        onSelectionChange(
-          selectedItems.filter((s) => getItemKey(s) !== key),
-        );
+        onSelectionChange(selectedItems.filter((s) => getItemKey(s) !== key));
       } else {
         onSelectionChange([...selectedItems, item]);
+        setSearchTerm("");
       }
     } else {
       if (selectedKeys.has(key)) {
@@ -94,26 +120,62 @@ export default function SearchableCombobox<T>({
   };
 
   const handleRemove = (item: T) => {
+    if (disabled) return;
     onSelectionChange(
       selectedItems.filter((s) => getItemKey(s) !== getItemKey(item)),
     );
   };
 
   const handleClearAll = () => {
+    if (disabled) return;
     onSelectionChange([]);
     setSearchTerm("");
   };
 
   return (
-    <div ref={containerRef} style={{ position: "relative" }}>
-      {/* Selected items display */}
-      {selectedItems.length > 0 && (
+    <div
+      ref={containerRef}
+      style={{ position: "relative", opacity: disabled ? 0.5 : 1, width: "100%" }}
+    >
+      {/* Input container with inline pills */}
+      <div
+        style={{
+          position: "relative",
+          display: "flex",
+          alignItems: "center",
+          background: "#0f172a",
+          border: "1px solid #334155",
+          borderRadius: "4px",
+          minHeight: "38px",
+          overflow: "hidden",
+          cursor: disabled ? "not-allowed" : "text",
+        }}
+        onClick={() => {
+          if (!disabled) {
+            inputRef.current?.focus();
+            setIsOpen(true);
+          }
+        }}
+      >
+        {/* Scrollable pills + input area */}
         <div
+          ref={scrollAreaRef}
+          className={styles.scrollArea}
           style={{
             display: "flex",
-            flexWrap: "wrap",
+            alignItems: "center",
             gap: "4px",
-            marginBottom: "8px",
+            flex: 1,
+            minWidth: 0,
+            overflowX: "auto",
+            overflowY: "hidden",
+            padding: "4px 8px",
+            maskImage: hasOverflow
+              ? "linear-gradient(to right, black calc(100% - 24px), transparent 100%)"
+              : undefined,
+            WebkitMaskImage: hasOverflow
+              ? "linear-gradient(to right, black calc(100% - 24px), transparent 100%)"
+              : undefined,
           }}
         >
           {selectedItems.map((item) => (
@@ -124,27 +186,28 @@ export default function SearchableCombobox<T>({
                 alignItems: "center",
                 gap: "4px",
                 background: "#334155",
-                borderRadius: "4px",
-                padding: "4px 8px",
-                fontSize: "13px",
+                borderRadius: "12px",
+                padding: "2px 8px 2px 10px",
+                fontSize: "12px",
                 color: "#e2e8f0",
+                whiteSpace: "nowrap",
+                flexShrink: 0,
               }}
             >
-              <span>
-                {renderSelected ? renderSelected(item) : renderItem(item)}
-              </span>
+              <span>{renderItem(item, "pill")}</span>
               <button
                 onClick={(e) => {
                   e.stopPropagation();
                   handleRemove(item);
                 }}
+                disabled={disabled}
                 style={{
                   background: "none",
                   border: "none",
                   color: "#94a3b8",
-                  cursor: "pointer",
-                  padding: "0 2px",
-                  fontSize: "14px",
+                  cursor: disabled ? "not-allowed" : "pointer",
+                  padding: "0 0 0 2px",
+                  fontSize: "13px",
                   lineHeight: 1,
                   display: "flex",
                   alignItems: "center",
@@ -155,64 +218,50 @@ export default function SearchableCombobox<T>({
               </button>
             </div>
           ))}
-          <button
-            onClick={handleClearAll}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#94a3b8",
-              cursor: "pointer",
-              padding: "4px 6px",
-              fontSize: "12px",
+          <input
+            ref={inputRef}
+            type="text"
+            value={searchTerm}
+            disabled={disabled}
+            onChange={(e) => {
+              setSearchTerm(e.target.value);
+              if (!isOpen) setIsOpen(true);
             }}
-            title="Clear all"
-          >
-            ✕ Clear
-          </button>
-        </div>
-      )}
-
-      {/* Search input */}
-      <div style={{ position: "relative" }}>
-        <input
-          ref={inputRef}
-          type="text"
-          value={searchTerm}
-          onChange={(e) => {
-            setSearchTerm(e.target.value);
-            if (!isOpen) setIsOpen(true);
-          }}
-          onFocus={() => setIsOpen(true)}
-          placeholder={placeholder}
-          style={{
-            width: "100%",
-            padding: "8px",
-            paddingRight: selectedItems.length > 0 ? "32px" : "8px",
-            background: "#0f172a",
-            border: "1px solid #334155",
-            borderRadius: "4px",
-            color: "#f1f5f9",
-            boxSizing: "border-box",
-            fontSize: "14px",
-          }}
-        />
-        {selectedItems.length > 0 && (
-          <button
-            onClick={handleClearAll}
+            onFocus={() => { if (!disabled) setIsOpen(true); }}
+            placeholder={selectedItems.length === 0 ? placeholder : ""}
             style={{
-              position: "absolute",
-              right: "8px",
-              top: "50%",
-              transform: "translateY(-50%)",
+              flex: 1,
+              minWidth: "60px",
+              background: "transparent",
+              border: "none",
+              outline: "none",
+              color: "#f1f5f9",
+              fontSize: "14px",
+              cursor: disabled ? "not-allowed" : "text",
+              padding: "0",
+            }}
+          />
+        </div>
+
+        {/* Clear all button */}
+        {selectedItems.length > 0 && !disabled && (
+          <button
+            onClick={(e) => {
+              e.stopPropagation();
+              handleClearAll();
+            }}
+            style={{
+              flexShrink: 0,
               background: "none",
               border: "none",
               color: "#94a3b8",
               cursor: "pointer",
-              padding: "0",
+              padding: "0 10px",
               fontSize: "16px",
               lineHeight: 1,
               display: "flex",
               alignItems: "center",
+              alignSelf: "stretch",
             }}
             title="Clear selection"
           >
@@ -222,7 +271,7 @@ export default function SearchableCombobox<T>({
       </div>
 
       {/* Dropdown */}
-      {isOpen && (
+      {isOpen && !disabled && (
         <div
           style={{
             position: "absolute",
@@ -301,7 +350,7 @@ export default function SearchableCombobox<T>({
                       {isSelected ? "☑" : "☐"}
                     </span>
                   )}
-                  <div style={{ flex: 1, minWidth: 0 }}>{renderItem(item)}</div>
+                  <div style={{ flex: 1, minWidth: 0 }}>{renderItem(item, "dropdown")}</div>
                   {!multiSelect && isSelected && (
                     <span style={{ color: "#3b82f6", fontSize: "14px", flexShrink: 0 }}>
                       ✓

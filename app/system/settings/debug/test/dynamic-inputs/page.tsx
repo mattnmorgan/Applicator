@@ -3,6 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import DynamicInput from "@/lib/components/utility/DynamicInput";
 import type { DynamicInputDefinition } from "@/lib/components/utility/DynamicInput";
+import SearchableCombobox from "@/lib/components/utility/SearchableCombobox";
 
 const SAMPLE_INPUTS: DynamicInputDefinition[] = [
   {
@@ -137,6 +138,35 @@ const SAMPLE_INPUTS: DynamicInputDefinition[] = [
     label: "Password",
     type: "password",
   },
+];
+
+interface ComboItem {
+  value: string;
+  label: string;
+  category: string;
+}
+
+const SAMPLE_COMBOBOX_ITEMS: ComboItem[] = [
+  { value: "ts", label: "TypeScript", category: "Language" },
+  { value: "js", label: "JavaScript", category: "Language" },
+  { value: "py", label: "Python", category: "Language" },
+  { value: "rs", label: "Rust", category: "Language" },
+  { value: "go", label: "Go", category: "Language" },
+  { value: "java", label: "Java", category: "Language" },
+  { value: "cs", label: "C#", category: "Language" },
+  { value: "cpp", label: "C++", category: "Language" },
+  { value: "rb", label: "Ruby", category: "Language" },
+  { value: "swift", label: "Swift", category: "Language" },
+  { value: "react", label: "React", category: "Framework" },
+  { value: "vue", label: "Vue", category: "Framework" },
+  { value: "angular", label: "Angular", category: "Framework" },
+  { value: "svelte", label: "Svelte", category: "Framework" },
+  { value: "nextjs", label: "Next.js", category: "Framework" },
+  { value: "nuxt", label: "Nuxt", category: "Framework" },
+  { value: "express", label: "Express", category: "Framework" },
+  { value: "django", label: "Django", category: "Framework" },
+  { value: "rails", label: "Rails", category: "Framework" },
+  { value: "spring", label: "Spring", category: "Framework" },
 ];
 
 interface SettingsState {
@@ -500,6 +530,12 @@ export default function DynamicInputsTestPage() {
   const [editingInput, setEditingInput] = useState<string | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
+  // SearchableCombobox demo state
+  const [comboSingle, setComboSingle] = useState<ComboItem[]>([]);
+  const [comboMulti, setComboMulti] = useState<ComboItem[]>([]);
+  const [comboDebounced, setComboDebounced] = useState<ComboItem[]>([]);
+  const [comboDisabled, setComboDisabled] = useState(false);
+
   useEffect(() => {
     if (logRef.current) {
       logRef.current.scrollTop = logRef.current.scrollHeight;
@@ -631,6 +667,187 @@ export default function DynamicInputsTestPage() {
             </div>
           );
         })}
+      </div>
+
+      {/* SearchableCombobox demos */}
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: "8px" }}>
+        <h2
+          style={{
+            fontSize: "18px",
+            fontWeight: 600,
+            color: "#f1f5f9",
+            margin: 0,
+          }}
+        >
+          Searchable Combobox
+        </h2>
+        <label style={{ display: "flex", alignItems: "center", gap: "6px", cursor: "pointer" }}>
+          <input
+            type="checkbox"
+            checked={comboDisabled}
+            onChange={(e) => setComboDisabled(e.target.checked)}
+            style={{ accentColor: "#3b82f6" }}
+          />
+          <span style={{ fontSize: "13px", color: "#94a3b8" }}>Disabled</span>
+        </label>
+      </div>
+      <p style={{ color: "#94a3b8", marginBottom: "16px", fontSize: "14px" }}>
+        Standalone combobox component with filtering, single/multi-select, and optional debounced min-length search.
+      </p>
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)",
+          gap: "16px",
+          marginBottom: "24px",
+        }}
+      >
+        {/* Single-select */}
+        <div
+          style={{
+            background: "#1e293b",
+            border: "1px solid #334155",
+            borderRadius: "8px",
+            padding: "16px",
+          }}
+        >
+          <div style={{ marginBottom: "12px" }}>
+            <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
+              single-select
+            </span>
+            <p style={{ margin: "4px 0 0", color: "#94a3b8", fontSize: "12px" }}>
+              Select one item. Deselect by clicking again.
+            </p>
+          </div>
+          <SearchableCombobox
+            items={SAMPLE_COMBOBOX_ITEMS}
+            selectedItems={comboSingle}
+            onSelectionChange={(items) => {
+              setComboSingle(items);
+              const time = new Date().toLocaleTimeString();
+              setLogs((prev) => [...prev, `[${time}] combobox-single changed to: ${items.map((i) => i.label).join(", ") || "none"}`]);
+            }}
+            getItemKey={(item) => item.value}
+            filterItem={(item, term) =>
+              item.label.toLowerCase().includes(term.toLowerCase()) ||
+              item.category.toLowerCase().includes(term.toLowerCase())
+            }
+            renderItem={(item, context) => context === "pill" ? (
+              <span>{item.label}</span>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontSize: "11px", color: "#60a5fa", minWidth: "64px" }}>{item.category}</span>
+                <span style={{ color: "#f1f5f9", fontSize: "13px" }}>{item.label}</span>
+              </div>
+            )}
+            placeholder="Search languages & frameworks..."
+            disabled={comboDisabled}
+          />
+          {comboSingle.length > 0 && (
+            <p style={{ margin: "8px 0 0", fontSize: "12px", color: "#64748b" }}>
+              Selected: <span style={{ color: "#e2e8f0" }}>{comboSingle[0].label}</span>
+            </p>
+          )}
+        </div>
+
+        {/* Multi-select */}
+        <div
+          style={{
+            background: "#1e293b",
+            border: "1px solid #334155",
+            borderRadius: "8px",
+            padding: "16px",
+          }}
+        >
+          <div style={{ marginBottom: "12px" }}>
+            <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
+              multi-select
+            </span>
+            <p style={{ margin: "4px 0 0", color: "#94a3b8", fontSize: "12px" }}>
+              Select multiple items. Selected items shown as chips.
+            </p>
+          </div>
+          <SearchableCombobox
+            items={SAMPLE_COMBOBOX_ITEMS}
+            selectedItems={comboMulti}
+            onSelectionChange={(items) => {
+              setComboMulti(items);
+              const time = new Date().toLocaleTimeString();
+              setLogs((prev) => [...prev, `[${time}] combobox-multi changed to: ${items.map((i) => i.label).join(", ") || "none"}`]);
+            }}
+            getItemKey={(item) => item.value}
+            filterItem={(item, term) =>
+              item.label.toLowerCase().includes(term.toLowerCase()) ||
+              item.category.toLowerCase().includes(term.toLowerCase())
+            }
+            renderItem={(item, context) => context === "pill" ? (
+              <span>{item.label}</span>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontSize: "11px", color: "#60a5fa", minWidth: "64px" }}>{item.category}</span>
+                <span style={{ color: "#f1f5f9", fontSize: "13px" }}>{item.label}</span>
+              </div>
+            )}
+            multiSelect
+            placeholder="Search languages & frameworks..."
+            disabled={comboDisabled}
+          />
+          {comboMulti.length > 0 && (
+            <p style={{ margin: "8px 0 0", fontSize: "12px", color: "#64748b" }}>
+              {comboMulti.length} selected
+            </p>
+          )}
+        </div>
+
+        {/* Debounced + min search length */}
+        <div
+          style={{
+            background: "#1e293b",
+            border: "1px solid #334155",
+            borderRadius: "8px",
+            padding: "16px",
+          }}
+        >
+          <div style={{ marginBottom: "12px" }}>
+            <span style={{ fontSize: "11px", color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>
+              debounced · min 3 chars
+            </span>
+            <p style={{ margin: "4px 0 0", color: "#94a3b8", fontSize: "12px" }}>
+              Filters only after 3 characters, with 300 ms debounce.
+            </p>
+          </div>
+          <SearchableCombobox
+            items={SAMPLE_COMBOBOX_ITEMS}
+            selectedItems={comboDebounced}
+            onSelectionChange={(items) => {
+              setComboDebounced(items);
+              const time = new Date().toLocaleTimeString();
+              setLogs((prev) => [...prev, `[${time}] combobox-debounced changed to: ${items.map((i) => i.label).join(", ") || "none"}`]);
+            }}
+            getItemKey={(item) => item.value}
+            filterItem={(item, term) =>
+              item.label.toLowerCase().includes(term.toLowerCase()) ||
+              item.category.toLowerCase().includes(term.toLowerCase())
+            }
+            renderItem={(item, context) => context === "pill" ? (
+              <span>{item.label}</span>
+            ) : (
+              <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+                <span style={{ fontSize: "11px", color: "#60a5fa", minWidth: "64px" }}>{item.category}</span>
+                <span style={{ color: "#f1f5f9", fontSize: "13px" }}>{item.label}</span>
+              </div>
+            )}
+            placeholder="Type 3+ characters..."
+            minSearchLength={3}
+            debounceMs={300}
+            disabled={comboDisabled}
+          />
+          {comboDebounced.length > 0 && (
+            <p style={{ margin: "8px 0 0", fontSize: "12px", color: "#64748b" }}>
+              Selected: <span style={{ color: "#e2e8f0" }}>{comboDebounced[0].label}</span>
+            </p>
+          )}
+        </div>
       </div>
 
       <div>
