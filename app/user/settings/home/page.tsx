@@ -10,6 +10,7 @@ import {
 import SettingManager from "@/lib/client/managers/setting";
 import AppletSettingManager from "@/lib/client/managers/appletSetting";
 import DynamicInput from "@/lib/components/utility/DynamicInput/DynamicInput";
+import Button from "@/lib/components/utility/Button/Button";
 import type { DynamicInputDefinition } from "@/lib/components/utility/DynamicInput/types/dynamic-input-definition";
 import styles from "./page.module.css";
 
@@ -135,22 +136,22 @@ function AddAppletModal({
                     style={{ marginTop: "6px" }}
                   />
                 </div>
-                <button
-                  className={styles.addAppletButton}
+                <Button
+                  variant="primary"
                   onClick={() =>
                     onAdd(applet.id, labels[applet.id] || applet.label)
                   }
                 >
                   Add
-                </button>
+                </Button>
               </div>
             ))
           )}
         </div>
         <div className={styles.modalFooter}>
-          <button className={styles.cancelButton} onClick={onClose}>
+          <Button variant="secondary" onClick={onClose}>
             Close
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -260,16 +261,12 @@ function SettingsModal({
           })}
         </div>
         <div className={styles.modalFooter}>
-          <button className={styles.cancelButton} onClick={onClose}>
+          <Button variant="secondary" onClick={onClose}>
             Cancel
-          </button>
-          <button
-            className={styles.confirmButton}
-            onClick={handleSave}
-            disabled={saving}
-          >
+          </Button>
+          <Button variant="primary" onClick={handleSave} disabled={saving}>
             {saving ? "Saving..." : "Save"}
-          </button>
+          </Button>
         </div>
       </div>
     </div>
@@ -531,10 +528,11 @@ export default function HomeSettingsPage() {
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h3 className={styles.sectionTitle}>Pinned Applets</h3>
-          <button
-            className={styles.addButton}
+          <Button
+            variant="secondary"
             onClick={() => setIsAddModalOpen(true)}
             title="Add applets"
+            style={{ padding: "0", width: "36px" }}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path
@@ -544,7 +542,7 @@ export default function HomeSettingsPage() {
                 strokeLinecap="round"
               />
             </svg>
-          </button>
+          </Button>
         </div>
 
         {pinnedInstances.length === 0 ? (
@@ -671,13 +669,9 @@ export default function HomeSettingsPage() {
       </section>
 
       <div className={styles.actions}>
-        <button
-          className={styles.saveButton}
-          onClick={handleSave}
-          disabled={saving}
-        >
+        <Button variant="primary" onClick={handleSave} disabled={saving}>
           {saving ? "Saving..." : "Save"}
-        </button>
+        </Button>
       </div>
 
       {isAddModalOpen && (
