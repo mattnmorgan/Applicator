@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 export interface ButtonProps {
   children: React.ReactNode;
@@ -10,6 +11,8 @@ export interface ButtonProps {
   disabled?: boolean;
   fullWidth?: boolean;
   title?: string;
+  /** Show a centered tooltip popover on hover */
+  popover?: string;
   style?: React.CSSProperties;
 }
 
@@ -30,10 +33,29 @@ export default function Button({
   disabled = false,
   fullWidth = false,
   title,
+  popover,
   style,
 }: ButtonProps) {
   const [isHovered, setIsHovered] = useState(false);
+  const [showPopover, setShowPopover] = useState(false);
+  const [popoverCoords, setPopoverCoords] = useState<{ top: number; left: number; position: 'above' | 'below' } | null>(null);
+  const buttonRef = useRef<HTMLButtonElement>(null);
   const colors = COLORS[variant];
+
+  useEffect(() => {
+    if (showPopover && popover && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      const spaceBelow = window.innerHeight - rect.bottom;
+      const centerX = rect.left + rect.width / 2;
+      if (spaceBelow < 42) {
+        setPopoverCoords({ top: rect.top - 8, left: centerX, position: 'above' });
+      } else {
+        setPopoverCoords({ top: rect.bottom + 8, left: centerX, position: 'below' });
+      }
+    } else {
+      setPopoverCoords(null);
+    }
+  }, [showPopover, popover]);
 
   const computedStyle: React.CSSProperties = {
     display: 'inline-flex',
@@ -58,15 +80,47 @@ export default function Button({
 
   return (
     <button
+      ref={buttonRef}
       type={type}
       style={computedStyle}
       onClick={disabled ? undefined : onClick}
-      onMouseEnter={() => !disabled && setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      onMouseEnter={() => {
+        if (!disabled) setIsHovered(true);
+        if (popover) setShowPopover(true);
+      }}
+      onMouseLeave={() => {
+        setIsHovered(false);
+        setShowPopover(false);
+      }}
       disabled={disabled}
-      title={title}
+      title={popover ? undefined : title}
+      aria-label={popover || title}
     >
       {children}
+      {showPopover && !disabled && popoverCoords && popover && typeof document !== 'undefined' &&
+        createPortal(
+          <div style={{
+            position: 'fixed',
+            top: popoverCoords.position === 'above' ? 'auto' : popoverCoords.top,
+            bottom: popoverCoords.position === 'above' ? window.innerHeight - popoverCoords.top : 'auto',
+            left: popoverCoords.left,
+            transform: 'translateX(-50%)',
+            background: '#1e293b',
+            color: '#f1f5f9',
+            padding: '6px 12px',
+            borderRadius: '4px',
+            fontSize: '12px',
+            whiteSpace: 'nowrap',
+            pointerEvents: 'none',
+            zIndex: 99999,
+            border: '1px solid #334155',
+            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+          }}>
+            {popover}
+          </div>,
+          document.body
+        )
+      }
     </button>
   );
 }

@@ -2,6 +2,8 @@
 
 export { default as Accordion } from "../lib/components/utility/Accordion";
 export { default as AccessDenied } from "../lib/components/utility/AccessDenied";
+export { default as Breadcrumb } from "../lib/components/utility/Breadcrumb";
+export type { BreadcrumbItem } from "../lib/components/utility/Breadcrumb";
 export { default as Button } from "../lib/components/utility/Button";
 export type { ButtonProps } from "../lib/components/utility/Button";
 export { default as Badge } from "../lib/components/utility/Badge/Badge";
