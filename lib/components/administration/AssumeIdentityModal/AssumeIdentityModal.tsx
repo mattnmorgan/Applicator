@@ -5,6 +5,7 @@ import styles from "./AssumeIdentityModal.module.css";
 import User from "@/lib/database/types/user";
 import TableRecord from "@/lib/database/crud/types/record";
 import UserManager from "@/lib/client/managers/user";
+import AuthorityManager from "@/lib/client/managers/authority";
 
 interface AssumeIdentityModalProps {
   onClose: () => void;
@@ -16,12 +17,14 @@ export default function AssumeIdentityModal({
   onAssumeIdentity,
 }: AssumeIdentityModalProps) {
   const [users, setUsers] = useState<TableRecord<User>[]>([]);
+  const [authorityNames, setAuthorityNames] = useState<Map<string, string>>(new Map());
   const [selectedUserId, setSelectedUserId] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [assuming, setAssuming] = useState(false);
 
   const userManager = new UserManager();
+  const authorityManager = new AuthorityManager();
 
   useEffect(() => {
     fetchUsers();
@@ -29,15 +32,24 @@ export default function AssumeIdentityModal({
 
   const fetchUsers = async () => {
     try {
-      const data = await userManager.readRecords({});
+      const [userData, authorityData] = await Promise.all([
+        userManager.readRecords({}),
+        authorityManager.readRecords({}),
+      ]);
 
-      for (const user of data.records) {
+      for (const user of userData.records) {
         if (user.data.icon) {
           user.data.icon = "/api/system/assets/icons/users/" + user.id;
         }
       }
 
-      setUsers(data.records);
+      const nameMap = new Map<string, string>();
+      for (const authority of authorityData.records) {
+        nameMap.set(authority.id, authority.data.name);
+      }
+
+      setUsers(userData.records);
+      setAuthorityNames(nameMap);
     } catch (error) {
       console.error("Failed to fetch users:", error);
     } finally {
@@ -172,7 +184,7 @@ export default function AssumeIdentityModal({
                         )}
                       </div>
                       <div style={{ fontSize: "12px", color: "#94a3b8" }}>
-                        @{user.data.username} • {user.data.authority_id}
+                        @{user.data.username}{user.data.authority_id ? ` • ${authorityNames.get(user.data.authority_id) ?? user.data.authority_id}` : ""}
                       </div>
                     </div>
                   </div>
