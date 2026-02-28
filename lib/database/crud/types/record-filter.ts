@@ -8,7 +8,9 @@ export type FilterOperator =
   | "IN"
   | "NOT IN"
   | "LIKE"
-  | "NOT LIKE";
+  | "NOT LIKE"
+  | "ILIKE"
+  | "NOT ILIKE";
 
 export interface FieldFilter {
   field: string;

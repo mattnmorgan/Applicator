@@ -10,6 +10,9 @@ export interface SearchableComboboxProps<T> {
   multiSelect?: boolean;
   placeholder?: string;
   renderSelected?: (item: T) => React.ReactNode;
+  minSearchLength?: number;
+  debounceMs?: number;
+  onSearchChange?: (term: string) => void;
 }
 
 export default function SearchableCombobox<T>({
@@ -22,17 +25,38 @@ export default function SearchableCombobox<T>({
   multiSelect = false,
   placeholder = "Search...",
   renderSelected,
+  minSearchLength = 0,
+  debounceMs = 0,
+  onSearchChange,
 }: SearchableComboboxProps<T>) {
   const [searchTerm, setSearchTerm] = useState("");
+  const [debouncedTerm, setDebouncedTerm] = useState("");
   const [isOpen, setIsOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
+  // Debounce the search term and notify parent
+  useEffect(() => {
+    if (debounceMs <= 0) {
+      setDebouncedTerm(searchTerm);
+      onSearchChange?.(searchTerm);
+      return;
+    }
+    const timer = setTimeout(() => {
+      setDebouncedTerm(searchTerm);
+      onSearchChange?.(searchTerm);
+    }, debounceMs);
+    return () => clearTimeout(timer);
+  }, [searchTerm, debounceMs]);
+
   const selectedKeys = new Set(selectedItems.map(getItemKey));
 
-  const filteredItems = searchTerm
-    ? items.filter((item) => filterItem(item, searchTerm))
-    : items;
+  const activeSearch = debouncedTerm.length >= minSearchLength ? debouncedTerm : "";
+  const filteredItems = activeSearch
+    ? items.filter((item) => filterItem(item, activeSearch))
+    : minSearchLength > 0
+      ? []
+      : items;
 
   // Close dropdown on outside click
   useEffect(() => {
@@ -214,7 +238,18 @@ export default function SearchableCombobox<T>({
             zIndex: 10,
           }}
         >
-          {filteredItems.length === 0 ? (
+          {minSearchLength > 0 && debouncedTerm.length < minSearchLength ? (
+            <div
+              style={{
+                padding: "12px",
+                textAlign: "center",
+                color: "#64748b",
+                fontSize: "13px",
+              }}
+            >
+              Type at least {minSearchLength} characters to search
+            </div>
+          ) : filteredItems.length === 0 ? (
             <div
               style={{
                 padding: "12px",
