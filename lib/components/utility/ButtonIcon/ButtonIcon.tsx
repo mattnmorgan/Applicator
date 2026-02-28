@@ -1,79 +1,51 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState } from 'react';
+import Tooltip, { type TooltipPlacement } from '../Tooltip';
+import Icon, { type IconName } from '../Icon';
 
 export interface ButtonIconProps {
-  icon: React.ReactNode;
+  /** Icon node to display. Optional when `name` is provided. */
+  icon?: React.ReactNode;
+  /** Icon name from the Icon component. Takes precedence over `icon`. */
+  name?: IconName;
+  /** Size for the named icon in pixels. Defaults to 16. */
+  iconSize?: number;
   label: string;
   onClick: () => void;
   variant?: 'bare' | 'bordered';
   subvariant?: 'danger' | 'warning' | 'info' | 'neutral';
   disabled?: boolean;
+  /** Tooltip placement. Defaults to 'bottom'. */
+  placement?: TooltipPlacement;
 }
 
 export default function ButtonIcon({
   icon,
+  name,
+  iconSize = 16,
   label,
   onClick,
   variant = 'bare',
   subvariant = 'neutral',
   disabled = false,
+  placement = 'bottom',
 }: ButtonIconProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const [showTooltip, setShowTooltip] = useState(false);
-  const [tooltipCoords, setTooltipCoords] = useState<{ top: number; left: number; position: 'above' | 'below' } | null>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-
-  useEffect(() => {
-    if (showTooltip && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      const tooltipHeight = 32; // Approximate tooltip height
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const centerX = rect.left + rect.width / 2;
-
-      // If there's not enough space below, show tooltip above
-      if (spaceBelow < tooltipHeight + 10) {
-        setTooltipCoords({
-          top: rect.top - 8,
-          left: centerX,
-          position: 'above',
-        });
-      } else {
-        setTooltipCoords({
-          top: rect.bottom + 8,
-          left: centerX,
-          position: 'below',
-        });
-      }
-    } else {
-      setTooltipCoords(null);
-    }
-  }, [showTooltip]);
 
   const getHoverColor = () => {
     switch (subvariant) {
-      case 'danger':
-        return '#ef4444'; // red-500
-      case 'warning':
-        return '#fbbf24'; // amber-400
-      case 'info':
-        return '#3b82f6'; // blue-500
-      case 'neutral':
-      default:
-        return '#94a3b8'; // slate-400
+      case 'danger':  return '#ef4444';
+      case 'warning': return '#fbbf24';
+      case 'info':    return '#3b82f6';
+      default:        return '#94a3b8';
     }
   };
 
   const getBorderColor = () => {
     switch (subvariant) {
-      case 'danger':
-        return '#ef4444'; // red-500
-      case 'warning':
-        return '#fbbf24'; // amber-400
-      case 'info':
-        return '#3b82f6'; // blue-500
-      case 'neutral':
-      default:
-        return '#334155'; // slate-700
+      case 'danger':  return '#ef4444';
+      case 'warning': return '#fbbf24';
+      case 'info':    return '#3b82f6';
+      default:        return '#334155';
     }
   };
 
@@ -89,53 +61,21 @@ export default function ButtonIcon({
     borderRadius: '4px',
     transition: 'color 0.2s ease, border-color 0.2s ease',
     opacity: disabled ? 0.5 : 1,
-    position: 'relative',
     fontSize: '16px',
   };
 
-  const tooltipStyle: React.CSSProperties = tooltipCoords ? {
-    position: 'fixed',
-    top: tooltipCoords.position === 'above' ? 'auto' : tooltipCoords.top,
-    bottom: tooltipCoords.position === 'above' ? window.innerHeight - tooltipCoords.top : 'auto',
-    left: tooltipCoords.left,
-    transform: 'translateX(-50%)',
-    background: '#1e293b',
-    color: '#f1f5f9',
-    padding: '6px 12px',
-    borderRadius: '4px',
-    fontSize: '12px',
-    whiteSpace: 'nowrap',
-    pointerEvents: 'none',
-    zIndex: 99999,
-    border: '1px solid #334155',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-  } : {};
-
   return (
-    <button
-      ref={buttonRef}
-      style={baseStyle}
-      onClick={disabled ? undefined : onClick}
-      onMouseEnter={() => {
-        setIsHovered(true);
-        setShowTooltip(true);
-      }}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        setShowTooltip(false);
-      }}
-      disabled={disabled}
-      aria-label={label}
-    >
-      {icon}
-      {showTooltip && !disabled && tooltipCoords && typeof document !== 'undefined' &&
-        createPortal(
-          <div style={tooltipStyle}>
-            {label}
-          </div>,
-          document.body
-        )
-      }
-    </button>
+    <Tooltip text={label} placement={placement}>
+      <button
+        style={baseStyle}
+        onClick={disabled ? undefined : onClick}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
+        disabled={disabled}
+        aria-label={label}
+      >
+        {name ? <Icon name={name} size={iconSize} /> : icon}
+      </button>
+    </Tooltip>
   );
 }

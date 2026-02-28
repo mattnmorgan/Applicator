@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import DynamicInput from "@/lib/components/utility/DynamicInput";
 import type { DynamicInputDefinition } from "@/lib/components/utility/DynamicInput";
 import SearchableCombobox from "@/lib/components/utility/SearchableCombobox";
+import ButtonIcon from "@/lib/components/utility/ButtonIcon";
 
 const SAMPLE_INPUTS: DynamicInputDefinition[] = [
   {
@@ -847,6 +848,61 @@ export default function DynamicInputsTestPage() {
               Selected: <span style={{ color: "#e2e8f0" }}>{comboDebounced[0].label}</span>
             </p>
           )}
+        </div>
+      </div>
+
+      <div>
+        <h2
+          style={{
+            fontSize: "16px",
+            fontWeight: 600,
+            color: "#f1f5f9",
+            marginBottom: "16px",
+          }}
+        >
+          Tooltip Placement
+        </h2>
+        <div style={{ display: "flex", gap: "24px", alignItems: "center", flexWrap: "wrap", marginBottom: "8px" }}>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "12px", color: "#64748b" }}>Top</span>
+            <ButtonIcon
+              name="bell"
+              label="Top tooltip"
+              placement="top"
+              variant="bordered"
+              onClick={() => {}}
+            />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "12px", color: "#64748b" }}>Bottom</span>
+            <ButtonIcon
+              name="folder"
+              label="Bottom tooltip"
+              placement="bottom"
+              variant="bordered"
+              onClick={() => {}}
+            />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "12px", color: "#64748b" }}>Left</span>
+            <ButtonIcon
+              name="info"
+              label="Left tooltip"
+              placement="left"
+              variant="bordered"
+              onClick={() => {}}
+            />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: "8px" }}>
+            <span style={{ fontSize: "12px", color: "#64748b" }}>Right</span>
+            <ButtonIcon
+              name="settings"
+              label="Right tooltip"
+              placement="right"
+              variant="bordered"
+              onClick={() => {}}
+            />
+          </div>
         </div>
       </div>
 

@@ -642,18 +642,20 @@ export default function AppList() {
               </div>
               {app.id === "system" ? (
                 <div className={styles.buttonGroup} onClick={(e) => e.stopPropagation()}>
-                  <Button
-                    variant="secondary"
-                    onClick={handleSystemUpgrade}
-                    disabled={upgradingSystem || !systemNeedsUpgrade}
-                    title={!systemNeedsUpgrade ? "System is up to date" : ""}
-                  >
-                    {upgradingSystem
-                      ? "Upgrading..."
-                      : systemNeedsUpgrade
-                        ? "Upgrade"
-                        : "Up to Date"}
-                  </Button>
+                  {systemNeedsUpgrade || upgradingSystem ? (
+                    <Button
+                      variant="secondary"
+                      onClick={handleSystemUpgrade}
+                      disabled={upgradingSystem}
+                      colors={{ base: 'transparent', hover: 'rgba(251,191,36,0.1)', active: 'rgba(251,191,36,0.2)', text: '#fbbf24', border: '1px solid #fbbf24' }}
+                    >
+                      {upgradingSystem ? "Upgrading..." : "Upgrade"}
+                    </Button>
+                  ) : (
+                    <span style={{ fontSize: '14px', fontWeight: 500, color: '#64748b', padding: '0 14px', lineHeight: '36px' }}>
+                      Up to Date
+                    </span>
+                  )}
                 </div>
               ) : (
                 (() => {
@@ -685,6 +687,7 @@ export default function AppList() {
                         variant="secondary"
                         onClick={() => handleUpgradeClick(app.id)}
                         disabled={upgrading === app.id}
+                        colors={{ base: 'transparent', hover: 'rgba(251,191,36,0.1)', active: 'rgba(251,191,36,0.2)', text: '#fbbf24', border: '1px solid #fbbf24' }}
                       >
                         {upgrading === app.id ? "Upgrading..." : "Upgrade"}
                       </Button>
@@ -695,7 +698,7 @@ export default function AppList() {
                         }}
                       >
                         <Button
-                          variant="danger"
+                          variant="secondary"
                           onClick={() => {
                             if (canUninstall) {
                               handleUninstallClick(app.id, app.label);
@@ -707,6 +710,7 @@ export default function AppList() {
                               ? `Required by: ${dependents.join(", ")}`
                               : ""
                           }
+                          colors={{ base: 'transparent', hover: 'rgba(239,68,68,0.1)', active: 'rgba(239,68,68,0.2)', text: '#ef4444', border: '1px solid #ef4444' }}
                         >
                           {uninstalling === app.id
                             ? "Uninstalling..."

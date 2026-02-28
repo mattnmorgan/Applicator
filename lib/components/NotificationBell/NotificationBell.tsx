@@ -125,6 +125,7 @@ export default function NotificationBell() {
       <Button
         variant="ghost"
         onClick={() => setIsOpen(!isOpen)}
+        popover="Notifications"
         style={{ position: "relative" }}
       >
         <svg

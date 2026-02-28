@@ -1,7 +1,15 @@
 'use client';
 
-import React, { useState, useRef, useEffect } from 'react';
-import { createPortal } from 'react-dom';
+import React, { useState } from 'react';
+import Tooltip, { type TooltipPlacement } from '../Tooltip';
+
+export interface ButtonColors {
+  base?: string;
+  hover?: string;
+  active?: string;
+  text?: string;
+  border?: string;
+}
 
 export interface ButtonProps {
   children: React.ReactNode;
@@ -11,18 +19,25 @@ export interface ButtonProps {
   disabled?: boolean;
   fullWidth?: boolean;
   title?: string;
-  /** Show a centered tooltip popover on hover */
+  /** Show a tooltip on hover */
   popover?: string;
+  /** Placement of the popover tooltip */
+  popoverPlacement?: TooltipPlacement;
+  /** Override individual color states */
+  colors?: ButtonColors;
   style?: React.CSSProperties;
 }
 
-const COLORS: Record<NonNullable<ButtonProps['variant']>, { base: string; hover: string; text: string; border: string }> = {
-  primary: { base: '#3b82f6', hover: '#2563eb', text: '#ffffff', border: 'none' },
-  secondary: { base: '#334155', hover: '#475569', text: '#f1f5f9', border: 'none' },
-  ghost: { base: '#1e293b', hover: '#334155', text: '#e2e8f0', border: '1px solid #334155' },
-  danger: { base: '#ef4444', hover: '#dc2626', text: '#ffffff', border: 'none' },
-  success: { base: '#10b981', hover: '#059669', text: '#ffffff', border: 'none' },
-  warning: { base: '#fbbf24', hover: '#f59e0b', text: '#0f172a', border: 'none' },
+const VARIANTS: Record<
+  NonNullable<ButtonProps['variant']>,
+  { base: string; hover: string; active: string; text: string; border: string }
+> = {
+  primary:   { base: '#3b82f6', hover: '#2563eb', active: '#1d4ed8', text: '#ffffff', border: 'none' },
+  secondary: { base: '#334155', hover: '#475569', active: '#1e293b', text: '#f1f5f9', border: 'none' },
+  ghost:     { base: '#1e293b', hover: '#334155', active: '#0f172a', text: '#e2e8f0', border: '1px solid #334155' },
+  danger:    { base: '#ef4444', hover: '#dc2626', active: '#b91c1c', text: '#ffffff', border: 'none' },
+  success:   { base: '#10b981', hover: '#059669', active: '#047857', text: '#ffffff', border: 'none' },
+  warning:   { base: '#fbbf24', hover: '#f59e0b', active: '#d97706', text: '#0f172a', border: 'none' },
 };
 
 export default function Button({
@@ -34,28 +49,21 @@ export default function Button({
   fullWidth = false,
   title,
   popover,
+  popoverPlacement,
+  colors,
   style,
 }: ButtonProps) {
   const [isHovered, setIsHovered] = useState(false);
-  const [showPopover, setShowPopover] = useState(false);
-  const [popoverCoords, setPopoverCoords] = useState<{ top: number; left: number; position: 'above' | 'below' } | null>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
-  const colors = COLORS[variant];
+  const [isActive, setIsActive] = useState(false);
+  const v = VARIANTS[variant];
 
-  useEffect(() => {
-    if (showPopover && popover && buttonRef.current) {
-      const rect = buttonRef.current.getBoundingClientRect();
-      const spaceBelow = window.innerHeight - rect.bottom;
-      const centerX = rect.left + rect.width / 2;
-      if (spaceBelow < 42) {
-        setPopoverCoords({ top: rect.top - 8, left: centerX, position: 'above' });
-      } else {
-        setPopoverCoords({ top: rect.bottom + 8, left: centerX, position: 'below' });
-      }
-    } else {
-      setPopoverCoords(null);
-    }
-  }, [showPopover, popover]);
+  const base   = colors?.base   ?? v.base;
+  const hover  = colors?.hover  ?? v.hover;
+  const active = colors?.active ?? colors?.hover ?? v.active;
+  const text   = colors?.text   ?? v.text;
+  const border = colors?.border ?? v.border;
+
+  const bg = disabled ? '#475569' : isActive ? active : isHovered ? hover : base;
 
   const computedStyle: React.CSSProperties = {
     display: 'inline-flex',
@@ -64,9 +72,9 @@ export default function Button({
     gap: '8px',
     height: '36px',
     padding: '0 14px',
-    background: disabled ? '#475569' : isHovered ? colors.hover : colors.base,
-    color: disabled ? '#94a3b8' : colors.text,
-    border: colors.border,
+    background: bg,
+    color: disabled ? '#94a3b8' : text,
+    border,
     borderRadius: '6px',
     fontSize: '14px',
     fontWeight: 500,
@@ -78,49 +86,30 @@ export default function Button({
     ...style,
   };
 
-  return (
+  const btn = (
     <button
-      ref={buttonRef}
       type={type}
       style={computedStyle}
       onClick={disabled ? undefined : onClick}
-      onMouseEnter={() => {
-        if (!disabled) setIsHovered(true);
-        if (popover) setShowPopover(true);
-      }}
-      onMouseLeave={() => {
-        setIsHovered(false);
-        setShowPopover(false);
-      }}
+      onMouseEnter={() => { if (!disabled) setIsHovered(true); }}
+      onMouseLeave={() => { setIsHovered(false); setIsActive(false); }}
+      onMouseDown={() => { if (!disabled) setIsActive(true); }}
+      onMouseUp={() => setIsActive(false)}
       disabled={disabled}
       title={popover ? undefined : title}
       aria-label={popover || title}
     >
       {children}
-      {showPopover && !disabled && popoverCoords && popover && typeof document !== 'undefined' &&
-        createPortal(
-          <div style={{
-            position: 'fixed',
-            top: popoverCoords.position === 'above' ? 'auto' : popoverCoords.top,
-            bottom: popoverCoords.position === 'above' ? window.innerHeight - popoverCoords.top : 'auto',
-            left: popoverCoords.left,
-            transform: 'translateX(-50%)',
-            background: '#1e293b',
-            color: '#f1f5f9',
-            padding: '6px 12px',
-            borderRadius: '4px',
-            fontSize: '12px',
-            whiteSpace: 'nowrap',
-            pointerEvents: 'none',
-            zIndex: 99999,
-            border: '1px solid #334155',
-            boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
-          }}>
-            {popover}
-          </div>,
-          document.body
-        )
-      }
     </button>
   );
+
+  if (popover) {
+    return (
+      <Tooltip text={popover} placement={popoverPlacement ?? 'bottom'}>
+        {btn}
+      </Tooltip>
+    );
+  }
+
+  return btn;
 }
