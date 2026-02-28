@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react';
 import styles from './ConfirmModal.module.css';
+import Button from '../Button';
 
 interface ConfirmModalProps {
   title: string;
@@ -49,15 +50,8 @@ export default function ConfirmModal({
           <p className={styles.message}>{message}</p>
         </div>
         <div className={styles.footer}>
-          <button className={styles.cancelButton} onClick={onCancel}>
-            {cancelText}
-          </button>
-          <button
-            className={danger ? styles.dangerButton : styles.confirmButton}
-            onClick={onConfirm}
-          >
-            {confirmText}
-          </button>
+          <Button variant="secondary" onClick={onCancel}>{cancelText}</Button>
+          <Button variant={danger ? "danger" : "primary"} onClick={onConfirm}>{confirmText}</Button>
         </div>
       </div>
     </div>

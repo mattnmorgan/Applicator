@@ -2,6 +2,8 @@
 
 import { useState, useEffect } from "react";
 import Toast from "@/lib/components/utility/Toast";
+import Button from "@/lib/components/utility/Button";
+import DynamicInput from "@/lib/components/utility/DynamicInput";
 
 export default function DevelopmentSettingsPage() {
   const [appInplaceEnabled, setAppInplaceEnabled] = useState(false);
@@ -77,29 +79,10 @@ export default function DevelopmentSettingsPage() {
           Development Settings
         </h1>
 
-        <button
+        <Button
+          variant="success"
           onClick={handleSave}
           disabled={!hasChanges || saving}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "10px 20px",
-            background: hasChanges ? "#10b981" : "#475569",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            fontSize: "14px",
-            fontWeight: 500,
-            cursor: hasChanges ? "pointer" : "not-allowed",
-            transition: "background 0.2s",
-          }}
-          onMouseOver={(e) => {
-            if (hasChanges) e.currentTarget.style.background = "#059669";
-          }}
-          onMouseOut={(e) => {
-            if (hasChanges) e.currentTarget.style.background = "#10b981";
-          }}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path
@@ -124,7 +107,7 @@ export default function DevelopmentSettingsPage() {
             />
           </svg>
           {saving ? "Saving..." : "Save"}
-        </button>
+        </Button>
       </div>
 
       <div
@@ -142,31 +125,15 @@ export default function DevelopmentSettingsPage() {
             gap: "8px",
           }}
         >
-          <label
-            style={{
-              fontSize: "14px",
-              fontWeight: 500,
-              color: "#f1f5f9",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              cursor: "pointer",
-              userSelect: "none",
+          <DynamicInput
+            input={{
+              id: "appInplaceEnabled",
+              type: "checkbox",
+              label: "Enable App In-place Upgrade",
             }}
-          >
-            <input
-              type="checkbox"
-              checked={appInplaceEnabled}
-              onChange={(e) => setAppInplaceEnabled(e.target.checked)}
-              style={{
-                width: "18px",
-                height: "18px",
-                cursor: "pointer",
-                accentColor: "#3b82f6",
-              }}
-            />
-            Enable App In-place Upgrade
-          </label>
+            value={appInplaceEnabled}
+            onChange={(_, val) => setAppInplaceEnabled(val)}
+          />
           <p
             style={{
               fontSize: "12px",

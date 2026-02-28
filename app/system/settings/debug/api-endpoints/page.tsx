@@ -1,6 +1,8 @@
 "use client";
 
 import { useState } from "react";
+import Button from "@/lib/components/utility/Button";
+import DynamicInput from "@/lib/components/utility/DynamicInput";
 
 type HttpMethod = "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
 
@@ -158,33 +160,15 @@ export default function ApiEndpointsPage() {
 
             {/* URL Input */}
             <div style={{ marginBottom: "16px" }}>
-              <label
-                style={{
-                  display: "block",
-                  color: "#e2e8f0",
-                  fontSize: "14px",
-                  marginBottom: "8px",
-                  fontWeight: "500",
+              <DynamicInput
+                input={{
+                  id: "url",
+                  type: "text",
+                  label: "URL",
+                  placeholder: "/api/your-endpoint",
                 }}
-              >
-                URL
-              </label>
-              <input
-                type="text"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
-                placeholder="/api/your-endpoint"
-                style={{
-                  width: "100%",
-                  padding: "10px 12px",
-                  background: "#1e293b",
-                  color: "#f1f5f9",
-                  border: "1px solid #334155",
-                  borderRadius: "6px",
-                  fontSize: "14px",
-                  fontFamily: "monospace",
-                  boxSizing: "border-box",
-                }}
+                onChange={(_, val) => setUrl(val)}
               />
             </div>
 
@@ -205,35 +189,22 @@ export default function ApiEndpointsPage() {
                 {(
                   ["GET", "POST", "PUT", "PATCH", "DELETE"] as HttpMethod[]
                 ).map((m) => (
-                  <button
+                  <Button
                     key={m}
+                    variant="secondary"
                     onClick={() => setMethod(m)}
-                    style={{
-                      padding: "8px 16px",
-                      background: method === m ? methodColors[m] : "#1e293b",
-                      color: method === m ? "#fff" : "#94a3b8",
-                      border: `1px solid ${
-                        method === m ? methodColors[m] : "#334155"
-                      }`,
-                      borderRadius: "6px",
-                      fontSize: "13px",
-                      fontWeight: "600",
-                      cursor: "pointer",
-                      transition: "all 0.2s",
-                    }}
-                    onMouseEnter={(e) => {
-                      if (method !== m) {
-                        e.currentTarget.style.background = "#334155";
-                      }
-                    }}
-                    onMouseLeave={(e) => {
-                      if (method !== m) {
-                        e.currentTarget.style.background = "#1e293b";
-                      }
-                    }}
+                    style={
+                      method === m
+                        ? {
+                            background: methodColors[m],
+                            color: "#fff",
+                            border: "none",
+                          }
+                        : {}
+                    }
                   >
                     {m}
-                  </button>
+                  </Button>
                 ))}
               </div>
             </div>
@@ -254,7 +225,7 @@ export default function ApiEndpointsPage() {
               <textarea
                 value={requestBody}
                 onChange={(e) => setRequestBody(e.target.value)}
-                placeholder='{\n  "key": "value"\n}'
+                placeholder={'{\n  "key": "value"\n}'}
                 style={{
                   width: "100%",
                   minHeight: "200px",
@@ -273,35 +244,15 @@ export default function ApiEndpointsPage() {
             </div>
 
             {/* Submit Button */}
-            <button
+            <Button
+              variant="primary"
               onClick={handleSubmit}
               disabled={isLoading || !url.trim()}
-              style={{
-                marginTop: "16px",
-                padding: "12px 24px",
-                background: isLoading || !url.trim() ? "#334155" : "#3b82f6",
-                color: "#fff",
-                border: "none",
-                borderRadius: "6px",
-                fontSize: "14px",
-                fontWeight: "600",
-                cursor: isLoading || !url.trim() ? "not-allowed" : "pointer",
-                transition: "background 0.2s",
-                width: "100%",
-              }}
-              onMouseEnter={(e) => {
-                if (!isLoading && url.trim()) {
-                  e.currentTarget.style.background = "#2563eb";
-                }
-              }}
-              onMouseLeave={(e) => {
-                if (!isLoading && url.trim()) {
-                  e.currentTarget.style.background = "#3b82f6";
-                }
-              }}
+              fullWidth
+              style={{ marginTop: "16px" }}
             >
               {isLoading ? "Sending Request..." : "Send Request"}
-            </button>
+            </Button>
           </div>
         </div>
 

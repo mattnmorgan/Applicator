@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import FolderBrowser from "@/lib/components/utility/FolderBrowser";
 import Toast from "@/lib/components/utility/Toast";
+import Button from "@/lib/components/utility/Button";
 export default function SettingsPage() {
   const router = useRouter();
   const [storage, setStorage] = useState("");
@@ -167,29 +168,10 @@ export default function SettingsPage() {
           Settings
         </h1>
 
-        <button
+        <Button
+          variant="success"
           onClick={handleSave}
           disabled={!hasChanges || saving}
-          style={{
-            display: "flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "10px 20px",
-            background: hasChanges ? "#10b981" : "#475569",
-            color: "white",
-            border: "none",
-            borderRadius: "6px",
-            fontSize: "14px",
-            fontWeight: 500,
-            cursor: hasChanges ? "pointer" : "not-allowed",
-            transition: "background 0.2s",
-          }}
-          onMouseOver={(e) => {
-            if (hasChanges) e.currentTarget.style.background = "#059669";
-          }}
-          onMouseOut={(e) => {
-            if (hasChanges) e.currentTarget.style.background = "#10b981";
-          }}
         >
           <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
             <path
@@ -214,7 +196,7 @@ export default function SettingsPage() {
             />
           </svg>
           {saving ? "Saving..." : "Save"}
-        </button>
+        </Button>
       </div>
 
       <div
@@ -416,26 +398,12 @@ export default function SettingsPage() {
                 cursor: "not-allowed",
               }}
             />
-            <button
+            <Button
+              variant="primary"
               onClick={() => setIsBrowserOpen(true)}
-              style={{
-                padding: "10px 20px",
-                background: "#3b82f6",
-                color: "white",
-                border: "none",
-                borderRadius: "6px",
-                fontSize: "14px",
-                fontWeight: 500,
-                cursor: "pointer",
-                transition: "background 0.2s",
-              }}
-              onMouseOver={(e) =>
-                (e.currentTarget.style.background = "#2563eb")
-              }
-              onMouseOut={(e) => (e.currentTarget.style.background = "#3b82f6")}
             >
               Browse
-            </button>
+            </Button>
           </div>
           <p
             style={{

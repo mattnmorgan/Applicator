@@ -2,6 +2,7 @@
 
 import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Button from '@/lib/components/utility/Button';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -235,24 +236,14 @@ export default function RegisterPage() {
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
+            variant="primary"
             disabled={loading}
-            style={{
-              width: '100%',
-              padding: '12px',
-              background: loading ? '#475569' : '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'background 0.2s'
-            }}
+            fullWidth
           >
             {loading ? 'Creating account...' : 'Create Account'}
-          </button>
+          </Button>
 
           <p style={{
             textAlign: 'center',

@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
+import Button from "@/lib/components/utility/Button";
 export default function ProfilePage() {
   const router = useRouter();
   const [displayName, setDisplayName] = useState("");
@@ -248,13 +249,13 @@ export default function ProfilePage() {
         </div>
 
         <div className={styles.actions}>
-          <button
+          <Button
             type="submit"
-            className={styles.submitButton}
+            variant="primary"
             disabled={saving}
           >
             {saving ? "Saving..." : "Save Changes"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

@@ -2,6 +2,7 @@
 
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
+import Button from '@/lib/components/utility/Button';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -146,24 +147,14 @@ export default function LoginPage() {
             </div>
           )}
 
-          <button
+          <Button
             type="submit"
+            variant="primary"
             disabled={loading}
-            style={{
-              width: '100%',
-              padding: '12px',
-              background: loading ? '#475569' : '#3b82f6',
-              color: 'white',
-              border: 'none',
-              borderRadius: '5px',
-              fontSize: '16px',
-              fontWeight: '600',
-              cursor: loading ? 'not-allowed' : 'pointer',
-              transition: 'background 0.2s'
-            }}
+            fullWidth
           >
             {loading ? 'Signing in...' : 'Sign In'}
-          </button>
+          </Button>
         </form>
       </div>
     </div>

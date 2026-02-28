@@ -5,6 +5,7 @@ import Row from "../../utility/Row";
 import Badge from "../../utility/Badge/Badge";
 import styles from "./AgentList.module.css";
 import AgentManager from "@/lib/client/managers/agent";
+import Button from "../../utility/Button";
 
 interface Agent {
   id: string;
@@ -189,30 +190,30 @@ export default function AgentList() {
                 {agent.appLabel}
               </Badge>
               {agent.status === "scheduled" && (
-                <button
-                  className={styles.secondaryButton}
+                <Button
+                  variant="secondary"
                   onClick={() => handleRunNow(agent)}
                   disabled={actionInProgress === agent.id}
                 >
                   {actionInProgress === agent.id ? "..." : "Run Now"}
-                </button>
+                </Button>
               )}
               {agent.status === "running" || agent.status === "scheduled" ? (
-                <button
-                  className={styles.dangerButton}
+                <Button
+                  variant="danger"
                   onClick={() => handleStopAgent(agent)}
                   disabled={actionInProgress === agent.id}
                 >
                   {actionInProgress === agent.id ? "..." : agent.cron ? "Unschedule" : "Terminate"}
-                </button>
+                </Button>
               ) : (
-                <button
-                  className={styles.primaryButton}
+                <Button
+                  variant="primary"
                   onClick={() => handleStartAgent(agent)}
                   disabled={actionInProgress === agent.id}
                 >
                   {actionInProgress === agent.id ? "..." : agent.cron ? "Schedule" : "Launch"}
-                </button>
+                </Button>
               )}
             </div>
           </Row>

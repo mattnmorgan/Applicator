@@ -12,6 +12,7 @@ import TableRecord from "@/lib/database/crud/types/record";
 import User from "@/lib/database/types/user";
 import Authority from "@/lib/database/types/authority";
 import { uploadFile, getSystemSettings } from "@/lib/client/database/crud/";
+import Button from "@/lib/components/utility/Button";
 
 interface Authorization {
   id: string;
@@ -548,18 +549,10 @@ export default function UserCreate({
         </div>
 
         <div className={styles.actions}>
-          <button
-            type="button"
-            className={styles.cancelActionButton}
-            onClick={onCancel}
-          >
+          <Button type="button" variant="secondary" onClick={onCancel}>
             Cancel
-          </button>
-          <button
-            type="submit"
-            className={styles.submitButton}
-            disabled={creating}
-          >
+          </Button>
+          <Button type="submit" variant="primary" disabled={creating}>
             {creating
               ? isEditMode
                 ? "Updating..."
@@ -567,7 +560,7 @@ export default function UserCreate({
               : isEditMode
                 ? "Update User"
                 : "Create User"}
-          </button>
+          </Button>
         </div>
       </form>
     </div>

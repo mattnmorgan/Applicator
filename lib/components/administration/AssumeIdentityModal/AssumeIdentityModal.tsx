@@ -6,6 +6,7 @@ import User from "@/lib/database/types/user";
 import TableRecord from "@/lib/database/crud/types/record";
 import UserManager from "@/lib/client/managers/user";
 import AuthorityManager from "@/lib/client/managers/authority";
+import Button from "@/lib/components/utility/Button";
 
 interface AssumeIdentityModalProps {
   onClose: () => void;
@@ -195,16 +196,8 @@ export default function AssumeIdentityModal({
         </div>
 
         <div className={styles.footer}>
-          <button onClick={onClose} className={styles.cancelButton}>
-            Cancel
-          </button>
-          <button
-            onClick={handleAssumeIdentity}
-            disabled={!selectedUserId || assuming}
-            className={styles.confirmButton}
-          >
-            {assuming ? "Assuming Identity..." : "Assume Identity"}
-          </button>
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button variant="primary" onClick={handleAssumeIdentity} disabled={!selectedUserId || assuming}>{assuming ? "Assuming Identity..." : "Assume Identity"}</Button>
         </div>
       </div>
     </div>

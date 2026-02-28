@@ -5,6 +5,7 @@ import { useParams, useRouter } from "next/navigation";
 import DynamicAppLoader from "@/lib/components/utility/DynamicAppLoader";
 import AppletManager from "@/lib/client/managers/applet";
 import AppManager from "@/lib/client/managers/app";
+import Button from "@/lib/components/utility/Button";
 export default function SystemSettingsAppletPage() {
   const params = useParams();
   const router = useRouter();
@@ -69,21 +70,7 @@ export default function SystemSettingsAppletPage() {
   return (
     <>
       <div style={{ marginBottom: "24px" }}>
-        <button
-          onClick={() => router.push("/system/settings/apps")}
-          style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            padding: "8px 16px",
-            background: "#1e293b",
-            color: "#e2e8f0",
-            border: "1px solid #334155",
-            borderRadius: "6px",
-            cursor: "pointer",
-            fontSize: "14px",
-          }}
-        >
+        <Button variant="ghost" onClick={() => router.push("/system/settings/apps")}>
           <svg
             width="16"
             height="16"
@@ -95,7 +82,7 @@ export default function SystemSettingsAppletPage() {
             <path d="M19 12H5M12 19l-7-7 7-7" />
           </svg>
           Back to Apps
-        </button>
+        </Button>
       </div>
 
       {loading && (

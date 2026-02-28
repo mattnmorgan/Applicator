@@ -3,6 +3,7 @@
 import TableRecord from "@/lib/database/crud/types/record";
 import React, { useState, useEffect } from "react";
 import styles from "./LoggingViewer.module.css";
+import Button from "@/lib/components/utility/Button";
 import Log from "@/lib/database/types/log";
 import LogManager from "@/lib/client/managers/log";
 import UserManager from "@/lib/client/managers/user";
@@ -130,10 +131,10 @@ export default function LoggingViewer() {
         </div>
 
         <div className={styles.actions}>
-          <button
+          <Button
+            variant="secondary"
             onClick={refreshLogs}
             disabled={loading}
-            className={styles.refreshButton}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path
@@ -142,12 +143,12 @@ export default function LoggingViewer() {
               />
             </svg>
             Refresh
-          </button>
+          </Button>
 
-          <button
+          <Button
+            variant="danger"
             onClick={clearLogs}
             disabled={loading || logs.length === 0}
-            className={styles.clearButton}
           >
             <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
               <path
@@ -156,7 +157,7 @@ export default function LoggingViewer() {
               />
             </svg>
             Clear
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -207,13 +208,13 @@ export default function LoggingViewer() {
 
               {hasMore && (
                 <div className={styles.loadMore}>
-                  <button
+                  <Button
+                    variant="secondary"
                     onClick={loadMoreLogs}
                     disabled={loading}
-                    className={styles.loadMoreButton}
                   >
                     {loading ? "Loading..." : "Load More"}
-                  </button>
+                  </Button>
                 </div>
               )}
             </div>

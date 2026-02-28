@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import Notification from "@/lib/database/types/notification";
 import TableRecord from "@/lib/database/crud/types/record";
 import NotificationManager from "@/lib/client/managers/notification";
+import Button from "@/lib/components/utility/Button";
+import DynamicInput from "@/lib/components/utility/DynamicInput";
 
 export default function NotificationsPage() {
   const [notifications, setNotifications] = useState<
@@ -180,20 +182,10 @@ export default function NotificationsPage() {
     >
       <div style={{ maxWidth: "1200px", margin: "0 auto" }}>
         <div style={{ marginBottom: "24px" }}>
-          <button
+          <Button
+            variant="ghost"
             onClick={() => router.back()}
-            style={{
-              background: "transparent",
-              border: "none",
-              color: "#94a3b8",
-              cursor: "pointer",
-              display: "flex",
-              alignItems: "center",
-              gap: "8px",
-              fontSize: "14px",
-              marginBottom: "16px",
-              padding: "8px",
-            }}
+            style={{ marginBottom: "16px" }}
           >
             <svg
               width="16"
@@ -206,7 +198,7 @@ export default function NotificationsPage() {
               <path d="M19 12H5M12 19l-7-7 7-7" />
             </svg>
             Back
-          </button>
+          </Button>
 
           <h1
             style={{
@@ -219,70 +211,39 @@ export default function NotificationsPage() {
             Notifications
           </h1>
 
-          <div style={{ display: "flex", gap: "16px", flexWrap: "wrap" }}>
-            <input
-              type="text"
-              placeholder="Search notifications..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              style={{
-                flex: 1,
-                minWidth: "250px",
-                background: "#1e293b",
-                border: "1px solid #334155",
-                borderRadius: "6px",
-                padding: "12px 16px",
-                color: "#f1f5f9",
-                fontSize: "14px",
-              }}
-            />
+          <div style={{ display: "flex", gap: "16px", flexWrap: "wrap", alignItems: "flex-end" }}>
+            <div style={{ flex: 1, minWidth: "250px" }}>
+              <DynamicInput
+                input={{
+                  id: "search",
+                  type: "text",
+                  label: "Search",
+                  placeholder: "Search notifications...",
+                }}
+                value={searchQuery}
+                onChange={(_, val) => setSearchQuery(val)}
+              />
+            </div>
 
             <div style={{ display: "flex", gap: "8px" }}>
-              <button
+              <Button
+                variant={filterType === "all" ? "primary" : "secondary"}
                 onClick={() => setFilterType("all")}
-                style={{
-                  background: filterType === "all" ? "#3b82f6" : "#1e293b",
-                  border: "1px solid #334155",
-                  borderRadius: "6px",
-                  padding: "12px 16px",
-                  color: filterType === "all" ? "#fff" : "#94a3b8",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                }}
               >
                 All
-              </button>
-              <button
+              </Button>
+              <Button
+                variant={filterType === "unread" ? "primary" : "secondary"}
                 onClick={() => setFilterType("unread")}
-                style={{
-                  background: filterType === "unread" ? "#3b82f6" : "#1e293b",
-                  border: "1px solid #334155",
-                  borderRadius: "6px",
-                  padding: "12px 16px",
-                  color: filterType === "unread" ? "#fff" : "#94a3b8",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                }}
               >
                 Unread
-              </button>
-              <button
+              </Button>
+              <Button
+                variant={filterType === "archived" ? "primary" : "secondary"}
                 onClick={() => setFilterType("archived")}
-                style={{
-                  background: filterType === "archived" ? "#3b82f6" : "#1e293b",
-                  border: "1px solid #334155",
-                  borderRadius: "6px",
-                  padding: "12px 16px",
-                  color: filterType === "archived" ? "#fff" : "#94a3b8",
-                  cursor: "pointer",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                }}
               >
                 Archived
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -426,32 +387,25 @@ export default function NotificationsPage() {
                       </div>
                     </div>
 
-                    <div style={{ display: "flex", gap: "8px", flexShrink: 0 }}>
+                    <div
+                      style={{ display: "flex", gap: "8px", flexShrink: 0 }}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {!notification.data.archived && (
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
+                        <Button
+                          variant="secondary"
+                          onClick={() =>
                             handleMarkRead(
                               notification.id,
                               !notification.data.read,
-                            );
-                          }}
-                          style={{
-                            background: "#334155",
-                            border: "none",
-                            borderRadius: "6px",
-                            padding: "8px",
-                            cursor: "pointer",
-                            display: "flex",
-                            alignItems: "center",
-                            justifyContent: "center",
-                            color: "#94a3b8",
-                          }}
+                            )
+                          }
                           title={
                             notification.data.read
                               ? "Mark as unread"
                               : "Mark as read"
                           }
+                          style={{ padding: "0", width: "36px" }}
                         >
                           {notification.data.read ? (
                             <svg
@@ -478,32 +432,22 @@ export default function NotificationsPage() {
                               <line x1="1" y1="1" x2="23" y2="23" />
                             </svg>
                           )}
-                        </button>
+                        </Button>
                       )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
+                      <Button
+                        variant="secondary"
+                        onClick={() =>
                           handleArchive(
                             notification.id,
                             notification.data.archived,
-                          );
-                        }}
-                        style={{
-                          background: "#334155",
-                          border: "none",
-                          borderRadius: "6px",
-                          padding: "8px",
-                          cursor: "pointer",
-                          display: "flex",
-                          alignItems: "center",
-                          justifyContent: "center",
-                          color: "#94a3b8",
-                        }}
+                          )
+                        }
                         title={
                           notification.data.archived
                             ? "Delete notification"
                             : "Archive notification"
                         }
+                        style={{ padding: "0", width: "36px" }}
                       >
                         <svg
                           width="16"
@@ -516,7 +460,7 @@ export default function NotificationsPage() {
                           <polyline points="3 6 5 6 21 6" />
                           <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
                         </svg>
-                      </button>
+                      </Button>
                     </div>
                   </div>
                 </div>

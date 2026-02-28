@@ -9,6 +9,7 @@ import Badge from "@/lib/components/utility/Badge/Badge";
 import styles from "./AppList.module.css";
 import AppManager from "@/lib/client/managers/app";
 import ApiRouteManager from "@/lib/client/managers/apiRoute";
+import Button from "@/lib/components/utility/Button";
 
 interface Widget {
   id: string;
@@ -552,38 +553,12 @@ export default function AppList() {
                 borderTop: "1px solid #334155",
               }}
             >
-              <button
-                onClick={handlePermissionsCancel}
-                style={{
-                  padding: "8px 16px",
-                  borderRadius: "6px",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  background: "transparent",
-                  color: "#94a3b8",
-                  border: "1px solid #334155",
-                  transition: "all 0.15s ease",
-                }}
-              >
+              <Button variant="secondary" onClick={handlePermissionsCancel}>
                 Cancel
-              </button>
-              <button
-                onClick={handlePermissionsConfirm}
-                style={{
-                  padding: "8px 16px",
-                  borderRadius: "6px",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  background: "#3b82f6",
-                  color: "#f1f5f9",
-                  border: "none",
-                  transition: "all 0.15s ease",
-                }}
-              >
+              </Button>
+              <Button variant="primary" onClick={handlePermissionsConfirm}>
                 Install
-              </button>
+              </Button>
             </div>
           </div>
         </div>
@@ -597,13 +572,9 @@ export default function AppList() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <button
-          onClick={handleInstallClick}
-          disabled={installing}
-          className={styles.installButton}
-        >
+        <Button variant="primary" onClick={handleInstallClick} disabled={installing}>
           {installing ? "Installing..." : "+ Install App"}
-        </button>
+        </Button>
         <input
           ref={fileInputRef}
           type="file"
@@ -670,14 +641,11 @@ export default function AppList() {
                 </div>
               </div>
               {app.id === "system" ? (
-                <div className={styles.buttonGroup}>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      handleSystemUpgrade();
-                    }}
+                <div className={styles.buttonGroup} onClick={(e) => e.stopPropagation()}>
+                  <Button
+                    variant="secondary"
+                    onClick={handleSystemUpgrade}
                     disabled={upgradingSystem || !systemNeedsUpgrade}
-                    className={styles.upgradeButton}
                     title={!systemNeedsUpgrade ? "System is up to date" : ""}
                   >
                     {upgradingSystem
@@ -685,7 +653,7 @@ export default function AppList() {
                       : systemNeedsUpgrade
                         ? "Upgrade"
                         : "Up to Date"}
-                  </button>
+                  </Button>
                 </div>
               ) : (
                 (() => {
@@ -694,14 +662,14 @@ export default function AppList() {
                     apps,
                   );
                   return (
-                    <div className={styles.buttonGroup}>
+                    <div className={styles.buttonGroup} onClick={(e) => e.stopPropagation()}>
                       {app.widgets &&
                         app.widgets.some(
                           (w) => w.target === "system-settings",
                         ) && (
-                          <button
-                            onClick={(e) => {
-                              e.stopPropagation();
+                          <Button
+                            variant="secondary"
+                            onClick={() => {
                               const systemWidget = app.widgets!.find(
                                 (w) => w.target === "system-settings",
                               );
@@ -709,36 +677,31 @@ export default function AppList() {
                                 window.location.href = `/system/settings/applet/${systemWidget.id}`;
                               }
                             }}
-                            className={styles.settingsButton}
                           >
                             Settings
-                          </button>
+                          </Button>
                         )}
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          handleUpgradeClick(app.id);
-                        }}
+                      <Button
+                        variant="secondary"
+                        onClick={() => handleUpgradeClick(app.id)}
                         disabled={upgrading === app.id}
-                        className={styles.upgradeButton}
                       >
                         {upgrading === app.id ? "Upgrading..." : "Upgrade"}
-                      </button>
+                      </Button>
                       <div
                         style={{
                           position: "relative",
                           display: "inline-block",
                         }}
                       >
-                        <button
-                          onClick={(e) => {
-                            e.stopPropagation();
+                        <Button
+                          variant="danger"
+                          onClick={() => {
                             if (canUninstall) {
                               handleUninstallClick(app.id, app.label);
                             }
                           }}
                           disabled={uninstalling === app.id || !canUninstall}
-                          className={styles.uninstallButton}
                           title={
                             !canUninstall
                               ? `Required by: ${dependents.join(", ")}`
@@ -748,7 +711,7 @@ export default function AppList() {
                           {uninstalling === app.id
                             ? "Uninstalling..."
                             : "Uninstall"}
-                        </button>
+                        </Button>
                         {!canUninstall && (
                           <span
                             style={{

@@ -6,6 +6,7 @@ import Notification from "@/lib/database/types/notification";
 import NotificationItem from "./NotificationItem";
 import TableRecord from "@/lib/database/crud/types/record";
 import NotificationManager from "@/lib/client/managers/notification";
+import Button from "@/lib/components/utility/Button";
 
 export default function NotificationBell() {
   const [isOpen, setIsOpen] = useState(false);
@@ -13,8 +14,7 @@ export default function NotificationBell() {
     TableRecord<Notification>[]
   >([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const popoverRef = useRef<HTMLDivElement>(null);
-  const buttonRef = useRef<HTMLButtonElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const notificationManager = new NotificationManager();
 
@@ -42,10 +42,8 @@ export default function NotificationBell() {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        popoverRef.current &&
-        buttonRef.current &&
-        !popoverRef.current.contains(event.target as Node) &&
-        !buttonRef.current.contains(event.target as Node)
+        containerRef.current &&
+        !containerRef.current.contains(event.target as Node)
       ) {
         setIsOpen(false);
       }
@@ -123,22 +121,11 @@ export default function NotificationBell() {
   };
 
   return (
-    <div style={{ position: "relative" }}>
-      <button
-        ref={buttonRef}
+    <div ref={containerRef} style={{ position: "relative" }}>
+      <Button
+        variant="ghost"
         onClick={() => setIsOpen(!isOpen)}
-        style={{
-          background: "#1e293b",
-          border: "1px solid #334155",
-          borderRadius: "6px",
-          padding: "8px 12px",
-          cursor: "pointer",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          position: "relative",
-          transition: "all 0.2s",
-        }}
+        style={{ position: "relative" }}
       >
         <svg
           width="20"
@@ -175,11 +162,10 @@ export default function NotificationBell() {
             {unreadCount > 99 ? "99+" : unreadCount}
           </div>
         )}
-      </button>
+      </Button>
 
       {isOpen && (
         <div
-          ref={popoverRef}
           style={{
             position: "absolute",
             top: "calc(100% + 8px)",

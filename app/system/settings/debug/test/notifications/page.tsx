@@ -3,6 +3,7 @@
 import { useState } from "react";
 import NotificationManager from "@/lib/client/managers/notification";
 import { getCurrentUser } from "@/lib/client/managers/user";
+import Button from "@/lib/components/utility/Button";
 type NotificationType = "info" | "success" | "warning" | "error";
 
 export default function TestNotificationsPage() {
@@ -35,32 +36,6 @@ export default function TestNotificationsPage() {
     }
   };
 
-  const getButtonStyle = (type: NotificationType) => {
-    const baseStyle = {
-      border: "none",
-      borderRadius: "6px",
-      padding: "12px 24px",
-      fontSize: "14px",
-      fontWeight: 500,
-      cursor: isLoading ? "not-allowed" : "pointer",
-      transition: "all 0.2s",
-      opacity: isLoading && isLoading !== type ? 0.5 : 1,
-    };
-
-    const colors: Record<NotificationType, { bg: string; hover: string }> = {
-      info: { bg: "#3b82f6", hover: "#2563eb" },
-      success: { bg: "#10b981", hover: "#059669" },
-      warning: { bg: "#fbbf24", hover: "#f59e0b" },
-      error: { bg: "#ef4444", hover: "#dc2626" },
-    };
-
-    return {
-      ...baseStyle,
-      background: isLoading === type ? "#334155" : colors[type].bg,
-      color: "#fff",
-    };
-  };
-
   return (
     <div>
       <h1
@@ -80,77 +55,13 @@ export default function TestNotificationsPage() {
       </p>
 
       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-        <button
-          onClick={() => handleSendNotification("info")}
-          disabled={!!isLoading}
-          style={getButtonStyle("info")}
-          onMouseEnter={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.background = "#2563eb";
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.background = "#3b82f6";
-            }
-          }}
-        >
-          {isLoading === "info" ? "Sending..." : "Send Info Notification"}
-        </button>
+        <Button variant="primary" onClick={() => handleSendNotification("info")} disabled={!!isLoading} style={{opacity: isLoading && isLoading !== "info" ? 0.5 : 1}}>{isLoading === "info" ? "Sending..." : "Send Info Notification"}</Button>
 
-        <button
-          onClick={() => handleSendNotification("success")}
-          disabled={!!isLoading}
-          style={getButtonStyle("success")}
-          onMouseEnter={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.background = "#059669";
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.background = "#10b981";
-            }
-          }}
-        >
-          {isLoading === "success" ? "Sending..." : "Send Success Notification"}
-        </button>
+        <Button variant="success" onClick={() => handleSendNotification("success")} disabled={!!isLoading} style={{opacity: isLoading && isLoading !== "success" ? 0.5 : 1}}>{isLoading === "success" ? "Sending..." : "Send Success Notification"}</Button>
 
-        <button
-          onClick={() => handleSendNotification("warning")}
-          disabled={!!isLoading}
-          style={getButtonStyle("warning")}
-          onMouseEnter={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.background = "#f59e0b";
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.background = "#fbbf24";
-            }
-          }}
-        >
-          {isLoading === "warning" ? "Sending..." : "Send Warning Notification"}
-        </button>
+        <Button variant="warning" onClick={() => handleSendNotification("warning")} disabled={!!isLoading} style={{opacity: isLoading && isLoading !== "warning" ? 0.5 : 1}}>{isLoading === "warning" ? "Sending..." : "Send Warning Notification"}</Button>
 
-        <button
-          onClick={() => handleSendNotification("error")}
-          disabled={!!isLoading}
-          style={getButtonStyle("error")}
-          onMouseEnter={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.background = "#dc2626";
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.background = "#ef4444";
-            }
-          }}
-        >
-          {isLoading === "error" ? "Sending..." : "Send Error Notification"}
-        </button>
+        <Button variant="danger" onClick={() => handleSendNotification("error")} disabled={!!isLoading} style={{opacity: isLoading && isLoading !== "error" ? 0.5 : 1}}>{isLoading === "error" ? "Sending..." : "Send Error Notification"}</Button>
       </div>
 
       {message && (

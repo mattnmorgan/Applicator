@@ -10,6 +10,7 @@ import styles from "./AuthorityList.module.css";
 import AuthorityManager from "@/lib/client/managers/authority";
 import UserManager from "@/lib/client/managers/user";
 import AppManager from "@/lib/client/managers/app";
+import Button from "../../utility/Button";
 
 interface Authority {
   id: string;
@@ -275,46 +276,13 @@ export default function AuthorityList() {
       )}
 
       <div className={styles.toolbar}>
-        <button
-          className={styles.addButton}
-          onClick={() => setShowCreateAuthority(true)}
-        >
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-            <path
-              d="M8 3V13M3 8H13"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-            />
-          </svg>
-        </button>
+        <Button variant="secondary" onClick={() => setShowCreateAuthority(true)} style={{padding: "0", width: "36px"}}><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg></Button>
 
         <ButtonMenu
           disabled={!someSelected}
           alignment="left"
           trigger={
-            <button
-              className={`${styles.actionButton} ${
-                !someSelected ? styles.actionButtonDisabled : ""
-              }`}
-            >
-              <span>Actions</span>
-              <svg
-                width="12"
-                height="12"
-                viewBox="0 0 12 12"
-                fill="none"
-                style={{ transition: "transform 0.2s" }}
-              >
-                <path
-                  d="M3 4.5L6 7.5L9 4.5"
-                  stroke="currentColor"
-                  strokeWidth="1.5"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
-            </button>
+            <Button variant="ghost" disabled={!someSelected}><span>Actions</span><svg width="12" height="12" viewBox="0 0 12 12" fill="none" style={{transition: "transform 0.2s"}}><path d="M3 4.5L6 7.5L9 4.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" /></svg></Button>
           }
         >
           <div className={styles.menuItem} onClick={handleDelete}>

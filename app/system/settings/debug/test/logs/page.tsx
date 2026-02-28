@@ -3,6 +3,7 @@
 import { useState } from "react";
 import LogManager from "@/lib/client/managers/log";
 import { getCurrentUser } from "@/lib/client/managers/user";
+import Button from "@/lib/components/utility/Button";
 type LogLevel = "info" | "debug" | "error" | "warning";
 
 export default function TestLogsPage() {
@@ -29,32 +30,6 @@ export default function TestLogsPage() {
     }
   };
 
-  const getButtonStyle = (level: LogLevel) => {
-    const baseStyle = {
-      border: "none",
-      borderRadius: "6px",
-      padding: "12px 24px",
-      fontSize: "14px",
-      fontWeight: 500,
-      cursor: isLoading ? "not-allowed" : "pointer",
-      transition: "all 0.2s",
-      opacity: isLoading && isLoading !== level ? 0.5 : 1,
-    };
-
-    const colors: Record<LogLevel, { bg: string; hover: string }> = {
-      info: { bg: "#3b82f6", hover: "#2563eb" },
-      debug: { bg: "#8b5cf6", hover: "#7c3aed" },
-      error: { bg: "#ef4444", hover: "#dc2626" },
-      warning: { bg: "#fbbf24", hover: "#f59e0b" },
-    };
-
-    return {
-      ...baseStyle,
-      background: isLoading === level ? "#334155" : colors[level].bg,
-      color: "#fff",
-    };
-  };
-
   return (
     <div>
       <h1
@@ -75,77 +50,13 @@ export default function TestLogsPage() {
       </p>
 
       <div style={{ display: "flex", gap: "12px", flexWrap: "wrap" }}>
-        <button
-          onClick={() => handleCreateLog("info")}
-          disabled={!!isLoading}
-          style={getButtonStyle("info")}
-          onMouseEnter={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.background = "#2563eb";
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.background = "#3b82f6";
-            }
-          }}
-        >
-          {isLoading === "info" ? "Creating..." : "Create Info Log"}
-        </button>
+        <Button variant="primary" onClick={() => handleCreateLog("info")} disabled={!!isLoading} style={{opacity: isLoading && isLoading !== "info" ? 0.5 : 1}}>{isLoading === "info" ? "Creating..." : "Create Info Log"}</Button>
 
-        <button
-          onClick={() => handleCreateLog("debug")}
-          disabled={!!isLoading}
-          style={getButtonStyle("debug")}
-          onMouseEnter={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.background = "#7c3aed";
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.background = "#8b5cf6";
-            }
-          }}
-        >
-          {isLoading === "debug" ? "Creating..." : "Create Debug Log"}
-        </button>
+        <Button variant="secondary" onClick={() => handleCreateLog("debug")} disabled={!!isLoading} style={{opacity: isLoading && isLoading !== "debug" ? 0.5 : 1, background: isLoading !== "debug" ? "#8b5cf6" : undefined}}>{isLoading === "debug" ? "Creating..." : "Create Debug Log"}</Button>
 
-        <button
-          onClick={() => handleCreateLog("error")}
-          disabled={!!isLoading}
-          style={getButtonStyle("error")}
-          onMouseEnter={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.background = "#dc2626";
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.background = "#ef4444";
-            }
-          }}
-        >
-          {isLoading === "error" ? "Creating..." : "Create Error Log"}
-        </button>
+        <Button variant="danger" onClick={() => handleCreateLog("error")} disabled={!!isLoading} style={{opacity: isLoading && isLoading !== "error" ? 0.5 : 1}}>{isLoading === "error" ? "Creating..." : "Create Error Log"}</Button>
 
-        <button
-          onClick={() => handleCreateLog("warning")}
-          disabled={!!isLoading}
-          style={getButtonStyle("warning")}
-          onMouseEnter={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.background = "#f59e0b";
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (!isLoading) {
-              e.currentTarget.style.background = "#fbbf24";
-            }
-          }}
-        >
-          {isLoading === "warning" ? "Creating..." : "Create Warning Log"}
-        </button>
+        <Button variant="warning" onClick={() => handleCreateLog("warning")} disabled={!!isLoading} style={{opacity: isLoading && isLoading !== "warning" ? 0.5 : 1}}>{isLoading === "warning" ? "Creating..." : "Create Warning Log"}</Button>
       </div>
 
       {message && (
