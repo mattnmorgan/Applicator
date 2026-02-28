@@ -271,7 +271,7 @@ export default function GuestPage() {
               path,
               guest: {
                 id: contextId,
-                data: JSON.stringify(contextData),
+                data: contextData,
                 password: validatedPassword || "",
               },
             },
