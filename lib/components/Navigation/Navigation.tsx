@@ -6,6 +6,7 @@ import ButtonMenu from "../utility/ButtonMenu";
 import ProfileIndicator from "../utility/ProfileIndicator";
 import NotificationBell from "../NotificationBell";
 import AssumeIdentityModal from "../administration/AssumeIdentityModal/AssumeIdentityModal";
+import Icon from "../utility/Icon";
 import styles from "./Navigation.module.css";
 
 interface NavigationProps {
@@ -77,38 +78,14 @@ export default function Navigation({
   const menuOptions = [
     {
       label: "User Settings",
-      icon: (
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2" />
-          <circle cx="12" cy="7" r="4" />
-        </svg>
-      ),
+      icon: <Icon name="user" size={16} />,
       onClick: () => router.push("/user/settings"),
     },
     ...(isAdmin
       ? [
           {
             label: "System Settings",
-            icon: (
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <circle cx="12" cy="12" r="3" />
-                <path d="M12 1v6m0 6v6m5.2-13.2l-4.2 4.2m0 6l4.2 4.2M23 12h-6m-6 0H1m18.2-5.2l-4.2 4.2m0 6l4.2 4.2" />
-              </svg>
-            ),
+            icon: <Icon name="settings" size={16} />,
             onClick: () => router.push("/system/settings"),
           },
         ]
@@ -117,41 +94,14 @@ export default function Navigation({
       ? [
           {
             label: "Assume Identity",
-            icon: (
-              <svg
-                width="16"
-                height="16"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-              >
-                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" />
-                <circle cx="9" cy="7" r="4" />
-                <path d="M23 21v-2a4 4 0 0 0-3-3.87" />
-                <path d="M16 3.13a4 4 0 0 1 0 7.75" />
-              </svg>
-            ),
+            icon: <Icon name="users" size={16} />,
             onClick: () => setShowAssumeModal(true),
           },
         ]
       : []),
     {
       label: isAssumedIdentity ? "Logout (Unassume Identity)" : "Logout",
-      icon: (
-        <svg
-          width="16"
-          height="16"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2"
-        >
-          <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" />
-          <polyline points="16 17 21 12 16 7" />
-          <line x1="21" y1="12" x2="9" y2="12" />
-        </svg>
-      ),
+      icon: <Icon name="logout" size={16} />,
       onClick: handleLogout,
     },
   ];

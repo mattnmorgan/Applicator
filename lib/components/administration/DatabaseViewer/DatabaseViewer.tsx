@@ -1,6 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import ButtonIcon from "@/lib/components/utility/ButtonIcon";
+import Icon from "@/lib/components/utility/Icon";
 import styles from "./DatabaseViewer.module.css";
 
 interface TreeNode {
@@ -46,15 +48,7 @@ function TreeItem({ node, selectedKey, onSelect }: TreeItemProps) {
                 : styles.expandIconCollapsed
             }`}
           >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-              <path
-                d="M5 3L9 7L5 11"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
+            <Icon name="chevron-right" size={14} />
           </span>
         ) : (
           <span style={{ width: "14px" }} />
@@ -321,65 +315,17 @@ export default function DatabaseViewer() {
           <div className={styles.header}>
             <span className={styles.title}>Keys</span>
             <div className={styles.headerButtons}>
-              <button
-                className={styles.flushButton}
+              <ButtonIcon
+                name="trash"
+                label="Flush Database"
                 onClick={() => setShowFlushModal(true)}
-                title="Flush Database"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M2 4H14"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M6 2H10"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M3 4V13C3 13.5523 3.44772 14 4 14H12C12.5523 14 13 13.5523 13 13V4"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M6.5 7V11"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M9.5 7V11"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                  />
-                </svg>
-              </button>
-              <button
-                className={styles.refreshButton}
+                subvariant="danger"
+              />
+              <ButtonIcon
+                name="refresh"
+                label="Refresh"
                 onClick={fetchKeys}
-                title="Refresh"
-              >
-                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-                  <path
-                    d="M14 8C14 11.3137 11.3137 14 8 14C4.68629 14 2 11.3137 2 8C2 4.68629 4.68629 2 8 2C9.84838 2 11.5 2.84506 12.5974 4.18869"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                  />
-                  <path
-                    d="M10 4H14V0"
-                    stroke="currentColor"
-                    strokeWidth="1.5"
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                  />
-                </svg>
-              </button>
+              />
             </div>
           </div>
           <div className={styles.treeContainer}>

@@ -4,6 +4,7 @@ import TableRecord from "@/lib/database/crud/types/record";
 import React, { useState, useEffect } from "react";
 import styles from "./LoggingViewer.module.css";
 import Button from "@/lib/components/utility/Button";
+import Icon from "@/lib/components/utility/Icon";
 import Log from "@/lib/database/types/log";
 import LogManager from "@/lib/client/managers/log";
 import UserManager from "@/lib/client/managers/user";
@@ -136,12 +137,7 @@ export default function LoggingViewer() {
             onClick={refreshLogs}
             disabled={loading}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path
-                d="M13.65 2.35C12.2 0.9 10.21 0 8 0 3.58 0 0 3.58 0 8h2c0-3.31 2.69-6 6-6 1.66 0 3.14.69 4.22 1.78L9 7h7V0l-2.35 2.35z"
-                fill="currentColor"
-              />
-            </svg>
+            <Icon name="refresh" size={16} />
             Refresh
           </Button>
 
@@ -150,12 +146,7 @@ export default function LoggingViewer() {
             onClick={clearLogs}
             disabled={loading || logs.length === 0}
           >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path
-                d="M2 4h12v10c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V4zm3-3h6l1 1H2l1-1z"
-                fill="currentColor"
-              />
-            </svg>
+            <Icon name="trash" size={16} />
             Clear
           </Button>
         </div>

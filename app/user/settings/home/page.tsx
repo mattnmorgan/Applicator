@@ -11,6 +11,8 @@ import SettingManager from "@/lib/client/managers/setting";
 import AppletSettingManager from "@/lib/client/managers/appletSetting";
 import DynamicInput from "@/lib/components/utility/DynamicInput/DynamicInput";
 import Button from "@/lib/components/utility/Button/Button";
+import ButtonIcon from "@/lib/components/utility/ButtonIcon";
+import Icon from "@/lib/components/utility/Icon";
 import type { DynamicInputDefinition } from "@/lib/components/utility/DynamicInput/types/dynamic-input-definition";
 import styles from "./page.module.css";
 
@@ -100,16 +102,7 @@ function AddAppletModal({
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h3 className={styles.modalTitle}>Add Applet</h3>
-          <button className={styles.closeButton} onClick={onClose}>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path
-                d="M15 5L5 15M5 5L15 15"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
+          <ButtonIcon name="close" label="Close" onClick={onClose} iconSize={20} />
         </div>
         <div className={styles.modalBody}>
           {availableApplets.length === 0 ? (
@@ -208,16 +201,7 @@ function SettingsModal({
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
           <h3 className={styles.modalTitle}>{instance.label} Settings</h3>
-          <button className={styles.closeButton} onClick={onClose}>
-            <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-              <path
-                d="M15 5L5 15M5 5L15 15"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-              />
-            </svg>
-          </button>
+          <ButtonIcon name="close" label="Close" onClick={onClose} iconSize={20} />
         </div>
         <div className={styles.modalBody}>
           <div className={styles.settingField}>
@@ -528,21 +512,12 @@ export default function HomeSettingsPage() {
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h3 className={styles.sectionTitle}>Pinned Applets</h3>
-          <Button
-            variant="secondary"
+          <ButtonIcon
+            name="plus"
+            label="Add applets"
             onClick={() => setIsAddModalOpen(true)}
-            title="Add applets"
-            style={{ padding: "0", width: "36px" }}
-          >
-            <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
-              <path
-                d="M8 3V13M3 8H13"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-              />
-            </svg>
-          </Button>
+            variant="bordered"
+          />
         </div>
 
         {pinnedInstances.length === 0 ? (
@@ -570,40 +545,9 @@ export default function HomeSettingsPage() {
                             snapshot.isDragging ? styles.dragging : ""
                           }`}
                         >
-                          <svg
-                            className={styles.dragHandle}
-                            width="16"
-                            height="16"
-                            viewBox="0 0 16 16"
-                            fill="none"
-                          >
-                            <circle cx="5" cy="4" r="1.5" fill="currentColor" />
-                            <circle
-                              cx="11"
-                              cy="4"
-                              r="1.5"
-                              fill="currentColor"
-                            />
-                            <circle cx="5" cy="8" r="1.5" fill="currentColor" />
-                            <circle
-                              cx="11"
-                              cy="8"
-                              r="1.5"
-                              fill="currentColor"
-                            />
-                            <circle
-                              cx="5"
-                              cy="12"
-                              r="1.5"
-                              fill="currentColor"
-                            />
-                            <circle
-                              cx="11"
-                              cy="12"
-                              r="1.5"
-                              fill="currentColor"
-                            />
-                          </svg>
+                          <span className={styles.dragHandle}>
+                            <Icon name="drag" size={16} />
+                          </span>
                           <div className={styles.appletContent}>
                             <div className={styles.appletInfo}>
                               <span className={styles.appletTitle}>
@@ -617,45 +561,18 @@ export default function HomeSettingsPage() {
                               {instance.appLabel}
                             </div>
                           </div>
-                          <button
-                            className={styles.editButton}
-                            onClick={() => setEditingInstance(instance)}
-                            title="Edit settings"
-                          >
-                            <svg
-                              width="16"
-                              height="16"
-                              viewBox="0 0 16 16"
-                              fill="none"
-                            >
-                              <path
-                                d="M11.5 2.5L13.5 4.5M10 4L3 11V13H5L12 6L10 4Z"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                                strokeLinejoin="round"
-                              />
-                            </svg>
-                          </button>
-                          <button
-                            className={styles.removeButton}
-                            onClick={() => handleRemove(instance.instanceId)}
-                            title="Remove applet"
-                          >
-                            <svg
-                              width="16"
-                              height="16"
-                              viewBox="0 0 16 16"
-                              fill="none"
-                            >
-                              <path
-                                d="M2 4H14M5 4V3C5 2.44772 5.44772 2 6 2H10C10.5523 2 11 2.44772 11 3V4M13 4V13C13 13.5523 12.5523 14 12 14H4C3.44772 14 3 13.5523 3 13V4"
-                                stroke="currentColor"
-                                strokeWidth="1.5"
-                                strokeLinecap="round"
-                              />
-                            </svg>
-                          </button>
+                          <div style={{ display: "flex", gap: "4px", marginLeft: "12px" }}>
+                            <ButtonIcon
+                              name="edit"
+                              label="Edit settings"
+                              onClick={() => setEditingInstance(instance)}
+                            />
+                            <ButtonIcon
+                              name="trash"
+                              label="Remove applet"
+                              onClick={() => handleRemove(instance.instanceId)}
+                            />
+                          </div>
                         </div>
                       )}
                     </Draggable>
