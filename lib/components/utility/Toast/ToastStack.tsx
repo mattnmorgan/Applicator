@@ -1,5 +1,6 @@
 'use client';
 
+import { createPortal } from 'react-dom';
 import Toast from './Toast';
 import styles from './Toast.module.css';
 
@@ -19,17 +20,22 @@ export default function ToastStack({ toasts, onClose }: ToastStackProps) {
   if (toasts.length === 0) return null;
 
   return (
-    <div className={styles.toastStack}>
-      {toasts.map((toast, index) => (
-        <Toast
-          key={index}
-          message={toast.message}
-          title={toast.title}
-          type={toast.type}
-          duration={toast.duration}
-          onClose={() => onClose(index)}
-        />
-      ))}
-    </div>
+    <>
+      {createPortal(
+        <div className={styles.toastStack}>
+          {toasts.map((toast, index) => (
+            <Toast
+              key={index}
+              message={toast.message}
+              title={toast.title}
+              type={toast.type}
+              duration={toast.duration}
+              onClose={() => onClose(index)}
+            />
+          ))}
+        </div>,
+        document.body,
+      )}
+    </>
   );
 }
