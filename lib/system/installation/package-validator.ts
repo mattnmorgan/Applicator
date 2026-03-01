@@ -246,10 +246,10 @@ export async function validateAppPackage(
   if (appAttributes.authorizations) {
     const authorizationNames = new Set<string>();
     for (const authorization of appAttributes.authorizations) {
-      if (authorizationNames.has(authorization.name)) {
+      if (authorizationNames.has(authorization.id)) {
         errors.push({
           field: "authorizations",
-          error: `Duplicate authorization name: ${authorization.name}`,
+          error: `Duplicate authorization: ${authorization.name}`,
           context: { authorizationName: authorization.name },
         });
       }
