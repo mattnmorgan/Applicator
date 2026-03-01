@@ -3,7 +3,7 @@ export const SYSTEM_APP_METADATA = {
   name: "System",
   version: {
     major: 0,
-    minor: 0,
+    minor: 1,
     dev: 7,
   },
   author: "Matthew Morgan",
@@ -590,6 +590,32 @@ export const SYSTEM_APP_METADATA = {
           description:
             "For picklist/multipicklist fields - the available options",
           type: "json",
+        },
+      ],
+    },
+    {
+      name: "records",
+      description: "App-defined data records stored as JSONB, keyed by app, table, and record ID",
+      fields: [
+        {
+          name: "app_id",
+          description: "App that owns this record",
+          type: "relationship",
+          relatedTo: "system:apps",
+          required: true,
+        },
+        {
+          name: "table_name",
+          description: "Table within the app this record belongs to",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "data",
+          description: "Record data as a JSONB object",
+          type: "json",
+          required: true,
+          defaultValue: {},
         },
       ],
     },
