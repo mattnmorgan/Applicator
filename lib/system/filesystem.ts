@@ -67,7 +67,10 @@ export class Filesystem {
    * Converts an absolute path back to a relative path from the root.
    */
   private toRelative(absolutePath: string): string {
-    return absolutePath.replace(this.rootPath, "").replace(/^[\/\\]/, "");
+    return absolutePath
+      .replace(this.rootPath, "")
+      .replace(/^[\/\\]/, "")
+      .replace(/\\/g, "/");
   }
 
   // ============================================
