@@ -11,6 +11,7 @@ import {
 import {
   deleteRecordWrapper,
   bulkDeleteRecordsWrapper,
+  deleteFilteredRecordsWrapper,
   deleteAll,
 } from "@/lib/database/crud/delete";
 import {
@@ -56,6 +57,9 @@ export default abstract class CRUD<T = any> {
   }
   get bulkDeleteRecords() {
     return bulkDeleteRecordsWrapper<T>(this.appId, this.tableName);
+  }
+  get deleteFilteredRecords() {
+    return deleteFilteredRecordsWrapper<T>(this.appId, this.tableName);
   }
   get readRecord() {
     return readRecordWrapper<T>(this.appId, this.tableName);

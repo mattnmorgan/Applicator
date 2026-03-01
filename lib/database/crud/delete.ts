@@ -1,7 +1,8 @@
 import { PoolClient } from "pg";
 import BulkResult from "@/lib/database/crud/types/bulk-result";
-import { readRecord } from "@/lib/database/crud/read";
+import { readRecord, sqlReadAll } from "@/lib/database/crud/read";
 import { withTransaction } from "@/lib/database/connections/postgresql";
+import RecordFilter from "@/lib/database/crud/types/record-filter";
 
 export interface DeleteOptions {
   cascade?: boolean;
@@ -221,4 +222,46 @@ export async function deleteAll(
   return withTransaction(async (txClient) => {
     await sqlDeleteAll(txClient, appId, tableName);
   });
+}
+
+export function deleteFilteredRecordsWrapper<T = any>(
+  appId: string,
+  tableName: string,
+) {
+  return (
+    filter: Omit<RecordFilter<T>, "includeRelated">,
+    options: DeleteOptions = {},
+  ) => deleteFilteredRecords<T>(appId, tableName, filter, options);
+}
+
+/**
+ * Delete all records matching the given filter.
+ * Uses the same filter mechanics as readRecords (including JSONB field support).
+ * Returns the number of records deleted.
+ */
+export async function deleteFilteredRecords<T = any>(
+  appId: string,
+  tableName: string,
+  filter: Omit<RecordFilter<T>, "includeRelated">,
+  options: DeleteOptions = {},
+): Promise<number> {
+  const doWork = async (client: PoolClient): Promise<number> => {
+    const result = await sqlReadAll<T>(client, appId, tableName, {
+      ids: filter.ids,
+      fields: filter.fields as Record<string, any> | undefined,
+      filters: filter.filters,
+      condition: filter.condition,
+    });
+
+    const ids = result.records.map((r) => r.id);
+    if (ids.length === 0) return 0;
+
+    await bulkDeleteRecords(appId, tableName, ids, { ...options, client });
+    return ids.length;
+  };
+
+  if (options.client) {
+    return doWork(options.client);
+  }
+  return withTransaction(doWork);
 }
