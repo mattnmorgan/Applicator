@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import styles from "./AuthorityCreate.module.css";
-import Toast from "@/lib/components/utility/Toast";
+import ToastStack, { ToastItem } from "@/lib/components/utility/Toast";
 import Badge from "@/lib/components/utility/Badge/Badge";
 import AuthorityManager from "@/lib/client/managers/authority";
 import AppManager from "@/lib/client/managers/app";
@@ -64,10 +64,8 @@ export default function AuthorityCreate({
     new Set(editAuthority?.apps || []),
   );
   const [appletSearch, setAppletSearch] = useState("");
-  const [toast, setToast] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const addToast = (toast: ToastItem) => setToasts((prev) => [...prev, toast]);
   const [requiredPermissions, setRequiredPermissions] = useState<Set<string>>(
     new Set(),
   );
@@ -177,7 +175,7 @@ export default function AuthorityCreate({
       authorizationId === "system:admin" &&
       selectedAuthorizations.has(authorizationId)
     ) {
-      setToast({
+      addToast({
         message:
           "Cannot remove Administrator authorization from admin authority",
         type: "error",
@@ -190,7 +188,7 @@ export default function AuthorityCreate({
       requiredPermissions.has(authorizationId) &&
       selectedAuthorizations.has(authorizationId)
     ) {
-      setToast({
+      addToast({
         message:
           "This permission is required by the application and cannot be removed",
         type: "error",
@@ -389,15 +387,10 @@ export default function AuthorityCreate({
 
   return (
     <div className={styles.container}>
-      {toast && (
-        <div className={styles.toastContainer}>
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        </div>
-      )}
+      <ToastStack
+        toasts={toasts}
+        onClose={(i) => setToasts((prev) => prev.filter((_, idx) => idx !== i))}
+      />
 
       <div className={styles.header}>
         <h2 className={styles.title}>

@@ -1,7 +1,17 @@
-.toast {
+.toastStack {
   position: fixed;
-  bottom: 24px;
-  right: 24px;
+  top: 24px;
+  left: 0;
+  right: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  align-items: center;
+  z-index: 3000;
+  pointer-events: none;
+}
+
+.toast {
   display: flex;
   align-items: center;
   gap: 12px;
@@ -9,8 +19,9 @@
   border-radius: 8px;
   box-shadow: 0 10px 25px rgba(0, 0, 0, 0.5);
   min-width: 300px;
+  max-width: 50%;
   animation: slideIn 0.3s ease-out;
-  z-index: 3000;
+  pointer-events: all;
 }
 
 @keyframes slideIn {
@@ -41,12 +52,24 @@
   align-items: center;
   justify-content: center;
   flex-shrink: 0;
+  align-self: center;
+}
+
+.content {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  font-size: 14px;
+  font-weight: 700;
 }
 
 .message {
-  flex: 1;
   font-size: 14px;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .closeButton {
@@ -62,6 +85,7 @@
   opacity: 0.7;
   transition: opacity 0.2s;
   flex-shrink: 0;
+  align-self: center;
 }
 
 .closeButton:hover {

@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import AppView from "../AppView/AppView";
 import Row from "@/lib/components/utility/Row";
-import Toast from "@/lib/components/utility/Toast";
+import ToastStack, { ToastItem } from "@/lib/components/utility/Toast";
 import ConfirmModal from "@/lib/components/utility/ConfirmModal";
 import Badge from "@/lib/components/utility/Badge/Badge";
 import styles from "./AppList.module.css";
@@ -65,10 +65,8 @@ export default function AppList() {
   const [upgrading, setUpgrading] = useState<string | null>(null);
   const [uninstalling, setUninstalling] = useState<string | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
-  const [toast, setToast] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const addToast = (toast: ToastItem) => setToasts((prev) => [...prev, toast]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const upgradeFileInputRef = useRef<HTMLInputElement>(null);
   const [upgradeAppId, setUpgradeAppId] = useState<string | null>(null);
@@ -172,9 +170,11 @@ export default function AppList() {
       const previewData = await previewResponse.json();
 
       if (!previewResponse.ok) {
-        setToast({
+        addToast({
           message: previewData.error || "Failed to preview app",
           type: "error",
+          title: "App Install Failed",
+          duration: 0,
         });
         setInstalling(false);
         if (fileInputRef.current) {
@@ -198,7 +198,7 @@ export default function AppList() {
       await performInstall(file);
     } catch (error) {
       console.error("Error installing app:", error);
-      setToast({ message: "Failed to install app", type: "error" });
+      addToast({ message: "Failed to install app", type: "error", title: "App Install Failed", duration: 0 });
       setInstalling(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -226,20 +226,14 @@ export default function AppList() {
       const data = await response.json();
 
       if (response.ok) {
-        setToast({
-          message: `App "${data.name}" installed successfully!`,
-          type: "success",
-        });
+        addToast({ message: `App "${data.name}" installed successfully!`, type: "success" });
         await fetchApps();
       } else {
-        setToast({
-          message: data.error || "Failed to install app",
-          type: "error",
-        });
+        addToast({ message: data.error || "Failed to install app", type: "error", title: "App Install Failed", duration: 0 });
       }
     } catch (error) {
       console.error("Error installing app:", error);
-      setToast({ message: "Failed to install app", type: "error" });
+      addToast({ message: "Failed to install app", type: "error", title: "App Install Failed", duration: 0 });
     } finally {
       setInstalling(false);
       setPendingInstall(null);
@@ -257,7 +251,7 @@ export default function AppList() {
 
   const handlePermissionsCancel = () => {
     setPendingInstall(null);
-    setToast({ message: "Installation cancelled", type: "error" });
+    addToast({ message: "Installation cancelled", type: "error" });
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -290,20 +284,14 @@ export default function AppList() {
       const data = await response.json();
 
       if (response.ok) {
-        setToast({
-          message: `App "${data.name}" upgraded successfully from v${data.oldVersion} to v${data.newVersion}!`,
-          type: "success",
-        });
+        addToast({ message: `App "${data.name}" upgraded successfully from v${data.oldVersion} to v${data.newVersion}!`, type: "success" });
         await fetchApps();
       } else {
-        setToast({
-          message: data.error || "Failed to upgrade app",
-          type: "error",
-        });
+        addToast({ message: data.error || "Failed to upgrade app", type: "error", title: "App Upgrade Failed", duration: 0 });
       }
     } catch (error) {
       console.error("Error upgrading app:", error);
-      setToast({ message: "Failed to upgrade app", type: "error" });
+      addToast({ message: "Failed to upgrade app", type: "error", title: "App Upgrade Failed", duration: 0 });
     } finally {
       setUpgrading(null);
       setUpgradeAppId(null);
@@ -334,17 +322,14 @@ export default function AppList() {
       const data = await response.json();
 
       if (response.ok) {
-        setToast({ message: "App uninstalled successfully!", type: "success" });
+        addToast({ message: "App uninstalled successfully!", type: "success" });
         await fetchApps();
       } else {
-        setToast({
-          message: data.error || "Failed to uninstall app",
-          type: "error",
-        });
+        addToast({ message: data.error || "Failed to uninstall app", type: "error" });
       }
     } catch (error) {
       console.error("Error uninstalling app:", error);
-      setToast({ message: "Failed to uninstall app", type: "error" });
+      addToast({ message: "Failed to uninstall app", type: "error" });
     } finally {
       setUninstalling(null);
     }
@@ -365,21 +350,15 @@ export default function AppList() {
       const data = await response.json();
 
       if (response.ok) {
-        setToast({
-          message: `System upgraded successfully from v${data.oldVersion} to v${data.newVersion}!`,
-          type: "success",
-        });
+        addToast({ message: `System upgraded successfully from v${data.oldVersion} to v${data.newVersion}!`, type: "success" });
         await fetchApps();
         await checkSystemVersion();
       } else {
-        setToast({
-          message: data.error || "Failed to upgrade system",
-          type: "error",
-        });
+        addToast({ message: data.error || "Failed to upgrade system", type: "error" });
       }
     } catch (error) {
       console.error("Error upgrading system:", error);
-      setToast({ message: "Failed to upgrade system", type: "error" });
+      addToast({ message: "Failed to upgrade system", type: "error" });
     } finally {
       setUpgradingSystem(false);
     }
@@ -400,13 +379,10 @@ export default function AppList() {
 
   return (
     <div className={styles.container}>
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      <ToastStack
+        toasts={toasts}
+        onClose={(i) => setToasts((prev) => prev.filter((_, idx) => idx !== i))}
+      />
 
       {confirmUninstall && (
         <ConfirmModal

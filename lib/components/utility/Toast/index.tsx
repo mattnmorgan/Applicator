@@ -1,1 +1,2 @@
-export { default } from './Toast';
+export { default } from './ToastStack';
+export type { ToastItem } from './ToastStack';

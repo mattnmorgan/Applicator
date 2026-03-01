@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Toast from "@/lib/components/utility/Toast";
+import ToastStack, { ToastItem } from "@/lib/components/utility/Toast";
 import Button from "@/lib/components/utility/Button";
 import DynamicInput from "@/lib/components/utility/DynamicInput";
 
@@ -10,10 +10,8 @@ export default function DevelopmentSettingsPage() {
   const [originalAppInplaceEnabled, setOriginalAppInplaceEnabled] =
     useState(false);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const addToast = (toast: ToastItem) => setToasts((prev) => [...prev, toast]);
 
   useEffect(() => {
     fetchSettings();
@@ -44,13 +42,13 @@ export default function DevelopmentSettingsPage() {
 
       if (response.ok) {
         setOriginalAppInplaceEnabled(appInplaceEnabled);
-        setToast({ message: "Settings saved successfully", type: "success" });
+        addToast({ message: "Settings saved successfully", type: "success" });
       } else {
-        setToast({ message: "Failed to save settings", type: "error" });
+        addToast({ message: "Failed to save settings", type: "error" });
       }
     } catch (error) {
       console.error("Failed to save settings:", error);
-      setToast({ message: "Failed to save settings", type: "error" });
+      addToast({ message: "Failed to save settings", type: "error" });
     } finally {
       setSaving(false);
     }
@@ -146,13 +144,10 @@ export default function DevelopmentSettingsPage() {
         </div>
       </div>
 
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      <ToastStack
+        toasts={toasts}
+        onClose={(i) => setToasts((prev) => prev.filter((_, idx) => idx !== i))}
+      />
     </div>
   );
 }

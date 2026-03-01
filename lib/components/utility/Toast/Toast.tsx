@@ -3,15 +3,17 @@
 import { useEffect } from 'react';
 import styles from './Toast.module.css';
 
-interface ToastProps {
+export interface ToastProps {
   message: string;
+  title?: string;
   type: 'success' | 'error';
   onClose: () => void;
   duration?: number;
 }
 
-export default function Toast({ message, type, onClose, duration = 3000 }: ToastProps) {
+export default function Toast({ message, title, type, onClose, duration = 3000 }: ToastProps) {
   useEffect(() => {
+    if (duration === 0) return;
     const timer = setTimeout(() => {
       onClose();
     }, duration);
@@ -32,7 +34,10 @@ export default function Toast({ message, type, onClose, duration = 3000 }: Toast
           </svg>
         )}
       </div>
-      <span className={styles.message}>{message}</span>
+      <div className={styles.content}>
+        {title && <span className={styles.title}>{title}</span>}
+        <span className={styles.message}>{message}</span>
+      </div>
       <button className={styles.closeButton} onClick={onClose}>
         <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
           <path d="M12 4L4 12M4 4L12 12" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />

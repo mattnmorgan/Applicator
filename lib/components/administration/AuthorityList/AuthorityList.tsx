@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import ButtonMenu from "../../utility/ButtonMenu";
 import Row from "../../utility/Row";
-import Toast from "../../utility/Toast";
+import ToastStack, { ToastItem } from "../../utility/Toast";
 import AuthorityCreate from "../AuthorityCreate";
 import Badge from "../../utility/Badge/Badge";
 import styles from "./AuthorityList.module.css";
@@ -35,10 +35,8 @@ export default function AuthorityList() {
   const [editingAuthority, setEditingAuthority] = useState<Authority | null>(
     null,
   );
-  const [toast, setToast] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const addToast = (toast: ToastItem) => setToasts((prev) => [...prev, toast]);
 
   const authorityManager = new AuthorityManager();
   const userManager = new UserManager();
@@ -127,7 +125,7 @@ export default function AuthorityList() {
       );
 
       if (systemAuthorityAttempts.length > 0) {
-        setToast({
+        addToast({
           message:
             "Cannot delete system authorities (Administrator, User, or Guest)",
           type: "error",
@@ -159,7 +157,7 @@ export default function AuthorityList() {
             return auth?.name || id;
           })
           .join(", ");
-        setToast({
+        addToast({
           message: `Cannot delete authorities with assigned users: ${violatedNames}`,
           type: "error",
         });
@@ -170,7 +168,7 @@ export default function AuthorityList() {
       // Delete authorities
       await authorityManager.deleteRecords(authorityIdsArray);
 
-      setToast({
+      addToast({
         message: `Successfully deleted ${authorityIdsArray.length} ${
           authorityIdsArray.length === 1 ? "authority" : "authorities"
         }`,
@@ -179,7 +177,7 @@ export default function AuthorityList() {
       await fetchAuthorities();
       setSelectedAuthorityIds(new Set());
     } catch (error) {
-      setToast({ message: "Failed to delete authorities", type: "error" });
+      addToast({ message: "Failed to delete authorities", type: "error" });
     } finally {
       setLoading(false);
     }
@@ -201,7 +199,7 @@ export default function AuthorityList() {
     const authority = authorities.find((a) => a.id === authorityId);
     // Prevent editing contextual authorities (but allow app-specific)
     if (authority?.contextual && !authority?.isAppSpecific) {
-      setToast({
+      addToast({
         message: "Contextual authorities cannot be edited",
         type: "error",
       });
@@ -231,7 +229,7 @@ export default function AuthorityList() {
       }
     } catch (error) {
       console.error("Failed to fetch authority:", error);
-      setToast({
+      addToast({
         message: "Failed to load authority for editing",
         type: "error",
       });
@@ -265,15 +263,10 @@ export default function AuthorityList() {
 
   return (
     <div className={styles.container}>
-      {toast && (
-        <div className={styles.toastContainer}>
-          <Toast
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-          />
-        </div>
-      )}
+      <ToastStack
+        toasts={toasts}
+        onClose={(i) => setToasts((prev) => prev.filter((_, idx) => idx !== i))}
+      />
 
       <div className={styles.toolbar}>
         <Button variant="secondary" onClick={() => setShowCreateAuthority(true)} style={{padding: "0", width: "36px"}}><svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 3V13M3 8H13" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg></Button>

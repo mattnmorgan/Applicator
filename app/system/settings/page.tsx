@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import FolderBrowser from "@/lib/components/utility/FolderBrowser";
-import Toast from "@/lib/components/utility/Toast";
+import ToastStack, { ToastItem } from "@/lib/components/utility/Toast";
 import Button from "@/lib/components/utility/Button";
 export default function SettingsPage() {
   const router = useRouter();
@@ -20,10 +20,8 @@ export default function SettingsPage() {
   const [originalSelfregistrationEnabled, setOriginalSelfregistrationEnabled] = useState(false);
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [toast, setToast] = useState<{
-    message: string;
-    type: "success" | "error";
-  } | null>(null);
+  const [toasts, setToasts] = useState<ToastItem[]>([]);
+  const addToast = (toast: ToastItem) => setToasts((prev) => [...prev, toast]);
 
   useEffect(() => {
     fetchSettings();
@@ -95,7 +93,7 @@ export default function SettingsPage() {
         });
 
         if (!brandResponse.ok) {
-          setToast({ message: "Failed to save brand settings", type: "error" });
+          addToast({ message: "Failed to save brand settings", type: "error" });
           return;
         }
       }
@@ -119,7 +117,7 @@ export default function SettingsPage() {
         setOriginalSelfregistrationEnabled(selfregistrationEnabled);
         setBrandIcon(null);
         setClearBrandIcon(false);
-        setToast({ message: "Settings saved successfully", type: "success" });
+        addToast({ message: "Settings saved successfully", type: "success" });
 
         // Refetch settings to update UI
         await fetchSettings();
@@ -129,11 +127,11 @@ export default function SettingsPage() {
           router.refresh();
         }, 500);
       } else {
-        setToast({ message: "Failed to save settings", type: "error" });
+        addToast({ message: "Failed to save settings", type: "error" });
       }
     } catch (error) {
       console.error("Failed to save settings:", error);
-      setToast({ message: "Failed to save settings", type: "error" });
+      addToast({ message: "Failed to save settings", type: "error" });
     } finally {
       setSaving(false);
     }
@@ -512,13 +510,10 @@ export default function SettingsPage() {
         initialPath={storage}
       />
 
-      {toast && (
-        <Toast
-          message={toast.message}
-          type={toast.type}
-          onClose={() => setToast(null)}
-        />
-      )}
+      <ToastStack
+        toasts={toasts}
+        onClose={(i) => setToasts((prev) => prev.filter((_, idx) => idx !== i))}
+      />
     </div>
   );
 }

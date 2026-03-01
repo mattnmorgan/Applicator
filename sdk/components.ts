@@ -28,4 +28,5 @@ export { default as SearchableCombobox } from "../lib/components/utility/Searcha
 export type { SearchableComboboxProps } from "../lib/components/utility/SearchableCombobox";
 export { default as Tabset } from "../lib/components/utility/Tabset";
 export type { TabsetItem } from "../lib/components/utility/Tabset";
-export { default as Toast } from "../lib/components/utility/Toast";
+export { default as ToastStack } from "../lib/components/utility/Toast";
+export type { ToastItem } from "../lib/components/utility/Toast";
