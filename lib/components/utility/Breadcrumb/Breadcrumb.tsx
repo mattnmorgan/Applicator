@@ -6,6 +6,8 @@ export interface BreadcrumbItem {
   onClick?: () => void;
   /** Mark as the current/active location — renders bold + blue */
   active?: boolean;
+  /** Prevent clicking even if onClick is provided — renders as inaccessible */
+  disabled?: boolean;
 }
 
 interface BreadcrumbProps {
@@ -26,14 +28,15 @@ export default function Breadcrumb({ items, separator = '>', style }: Breadcrumb
             </span>
           )}
           <button
-            onClick={item.onClick}
-            disabled={!item.onClick}
+            onClick={item.disabled ? undefined : item.onClick}
+            disabled={!item.onClick || item.disabled}
+            title={item.disabled ? 'You do not have access to this location' : undefined}
             style={{
               background: 'none',
               border: 'none',
-              color: item.active || item.onClick ? '#3b82f6' : '#e2e8f0',
+              color: item.disabled ? '#475569' : item.active || item.onClick ? '#3b82f6' : '#e2e8f0',
               fontWeight: item.active ? 'bold' : 'normal',
-              cursor: item.onClick ? 'pointer' : 'default',
+              cursor: item.onClick && !item.disabled ? 'pointer' : 'default',
               padding: '4px 8px',
               borderRadius: '4px',
               fontSize: '14px',
