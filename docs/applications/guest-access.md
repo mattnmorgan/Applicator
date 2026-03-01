@@ -4,41 +4,9 @@ Guest access allows unauthenticated users to interact with your app through shar
 
 ## Prerequisites
 
-Your app must have the `system:guest-accessible` authorization granted to its app-specific authority. This is an app-target permission that administrators assign through the authority management UI.
+Your app must have `system:guest-accessible` granted to its app-specific authority. Declare it in `requiredPermissions` so it is automatically granted and locked. You also need an applet with `target: "guest"` to define which component renders for guest users.
 
-### Declaring the Authorization Dependency
-
-If your app requires guest access to function, declare `system:guest-accessible` in your `requiredPermissions` so it's automatically granted and cannot be removed:
-
-```json
-{
-  "id": "my-app",
-  "name": "My App",
-  "requiredPermissions": ["system:guest-accessible"]
-}
-```
-
-See [Required Permissions](./required-permissions.md) for details.
-
-### Defining a Guest Applet
-
-You need an applet with `target: "guest"` to define which component renders for guest users:
-
-```json
-{
-  "applets": [
-    {
-      "id": "viewer",
-      "label": "Shared Viewer",
-      "description": "Public view for shared content",
-      "target": "guest",
-      "component": "GuestViewer"
-    }
-  ]
-}
-```
-
-Only one guest applet per app is used. If multiple exist, the first one found is selected.
+> **Metadata reference** — for `requiredPermissions` and the `guest` applet target (including the `UiContext` type and guest API headers), see [metadata/applet-contexts/guest.md](./metadata/applet-contexts/guest.md).
 
 ---
 
@@ -92,45 +60,7 @@ The platform handles the entire validation flow:
 
 ### 3. Guest Applet Receives Context
 
-Your guest component receives a single `context` prop from the platform, typed as `UiContext` from `@applicator/sdk`:
-
-```typescript
-import { UiContext } from "@applicator/sdk/context";
-```
-
-The `UIContext` interface is generic and defined as:
-
-```typescript
-interface UIContext<T = any> {
-  appId: string; // App identifier being accessed
-  path: string[]; // URL path segments after the appId
-  guest?: {
-    // Present for guest applets
-    id: string; // Contextual authority record ID
-    data: T; // Data stored by the contextual authority (JSON-stringified)
-    password: string; // Password used to access (empty string if none)
-  };
-}
-```
-
-```typescript
-// src/apps/GuestViewer.tsx
-import { UiContext } from "@applicator/sdk/context";
-
-interface GuestViewerProps {
-  context?: UiContext<{ documentId: string; viewMode: string }>;
-}
-
-export default function GuestViewer({ context }: GuestViewerProps) {
-  const contextId = context?.guest?.id;
-  const contextData = context?.guest?.data;
-  const guestPassword = context?.guest?.password;
-
-  // contextData contains whatever you stored in the contextual authority's context field
-  // Use contextId and guestPassword for authenticated API calls
-  // ...
-}
-```
+Your guest component receives a `context` prop (type `UiContext`) with `context.guest.id`, `context.guest.data`, and `context.guest.password`. See [metadata/applet-contexts/guest.md](./metadata/applet-contexts/guest.md) for the full interface and usage.
 
 ---
 

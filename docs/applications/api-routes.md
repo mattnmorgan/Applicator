@@ -2,42 +2,7 @@
 
 API routes allow your app to expose HTTP endpoints. Each route is implemented as a handler function that receives a request and a context object with SDK utilities.
 
-## Route Structure
-
-Routes are accessible at `/api/{appId}/{path}`.
-
-### File Location
-
-Each route is a `route.ts` file inside a directory that mirrors the route path. The compiled `route.js` is what the system loads at runtime. This mirrors the Next.js App Router convention.
-
-```
-src/api/items/route.ts                        →  /api/{appId}/items
-src/api/items/list/route.ts                   →  /api/{appId}/items/list
-src/api/items/[item-id]/route.ts              →  /api/{appId}/items/:item-id
-src/api/projects/[project-id]/tasks/route.ts  →  /api/{appId}/projects/:project-id/tasks
-```
-
-### Declaring Routes
-
-Routes must be declared in `app.json`. Wrap a path segment in `[brackets]` to make it a named parameter:
-
-```json
-{
-  "apiRoutes": [
-    { "path": "items", "method": "GET", "description": "List items" },
-    { "path": "items", "method": "POST", "description": "Create item" },
-    { "path": "items/[item-id]", "method": "GET", "description": "Get item by ID" },
-    { "path": "items/[item-id]", "method": "PATCH", "description": "Update item" },
-    { "path": "items/[item-id]", "method": "DELETE", "description": "Delete item" }
-  ]
-}
-```
-
-Parameters are matched in-order left-to-right. Any segment at any depth can be parameterized:
-
-```json
-{ "path": "projects/[project-id]/tasks/[task-id]", "method": "GET" }
-```
+> **Metadata reference** — for declaring routes in `app.json` (path syntax, method, parameterized segments), see [metadata/api-routes.md](./metadata/api-routes.md).
 
 ---
 
@@ -288,6 +253,12 @@ const upserted = await items.upsertRecord(table, "record-id", {
 
 // Delete a record
 await items.deleteRecord("record-id");
+
+// Delete all records matching a filter (same filter syntax as readRecords)
+await items.deleteFilteredRecords({ fields: { status: "archived" } });
+await items.deleteFilteredRecords({
+  filters: [{ field: "shareId", operator: "=", value: linkId }],
+});
 
 // Bulk operations
 const bulkCreated = await items.bulkCreateRecords(table, [
