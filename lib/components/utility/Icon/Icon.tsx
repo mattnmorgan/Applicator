@@ -9,6 +9,7 @@ export type IconName =
   | 'chevron-right'
   | 'close'
   | 'copy'
+  | 'crown'
   | 'download'
   | 'drag'
   | 'edit'
@@ -105,6 +106,14 @@ export default function Icon({ name, size = 16 }: IconProps) {
         <svg {...base}>
           <rect x="9" y="9" width="13" height="13" rx="2" ry="2" />
           <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" />
+        </svg>
+      );
+
+    case 'crown':
+      return (
+        <svg {...base}>
+          <path d="M2 20h20" />
+          <path d="M2 20L5 10L9 15L12 5L15 15L19 10L22 20" />
         </svg>
       );
 
