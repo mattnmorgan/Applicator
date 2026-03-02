@@ -26,6 +26,7 @@ All components are exported from a single barrel file. Use named imports to pick
 | [ButtonIcon](./components/button-icon.md) | Icon-only button with hover tooltip |
 | [ButtonMenu](./components/button-menu.md) | Dropdown menu opened from a trigger element |
 | [ConfirmModal](./components/confirm-modal.md) | Confirmation dialog with cancel and confirm buttons |
+| [Modal](./components/modal.md) | Flexible modal with header/body/footer slots and optional close behavior |
 | [DynamicInput](./components/dynamic-input.md) | Form input rendered from a declarative definition; supports 18 input types |
 | [FolderBrowser](./components/folder-browser.md) | Modal directory picker for the server filesystem |
 | [Icon](./components/icon.md) | Named SVG icon at a configurable size |

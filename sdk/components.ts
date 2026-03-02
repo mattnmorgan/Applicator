@@ -15,6 +15,8 @@ export { default as ButtonIcon } from "../lib/components/utility/ButtonIcon";
 export type { ButtonIconProps } from "../lib/components/utility/ButtonIcon";
 export { default as ButtonMenu } from "../lib/components/utility/ButtonMenu";
 export { default as ConfirmModal } from "../lib/components/utility/ConfirmModal";
+export { default as Modal } from "../lib/components/utility/Modal";
+export type { ModalProps } from "../lib/components/utility/Modal";
 export { default as DynamicInput } from "../lib/components/utility/DynamicInput";
 export type {
   DynamicInputDefinition,
