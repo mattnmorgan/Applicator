@@ -1,15 +1,23 @@
-'use client';
+"use client";
 
-import React, { useState, useRef, useEffect, ReactNode, cloneElement, isValidElement } from 'react';
-import { createPortal } from 'react-dom';
-import styles from './ButtonMenu.module.css';
+import React, {
+  useState,
+  useRef,
+  useEffect,
+  ReactNode,
+  cloneElement,
+  isValidElement,
+} from "react";
+import { createPortal } from "react-dom";
+import styles from "./ButtonMenu.module.css";
+import Icon from "../Icon";
 
 type ButtonMenuOption =
-  | { type: 'separator' }
+  | { type: "separator" }
   | {
-      type?: 'item';
+      type?: "item";
       label: string;
-      icon: ReactNode;
+      icon: ReactNode | string;
       onClick: () => void;
       active?: boolean;
     };
@@ -19,13 +27,23 @@ interface ButtonMenuProps {
   options?: ButtonMenuOption[];
   trigger?: ReactNode;
   disabled?: boolean;
-  alignment?: 'left' | 'right';
+  alignment?: "left" | "right";
 }
 
-export default function ButtonMenu({ children, options, trigger, disabled = false, alignment = 'right' }: ButtonMenuProps) {
+export default function ButtonMenu({
+  children,
+  options,
+  trigger,
+  disabled = false,
+  alignment = "right",
+}: ButtonMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
-  const [menuPosition, setMenuPosition] = useState({ top: 0, left: 0, right: 0 });
+  const [menuPosition, setMenuPosition] = useState({
+    top: 0,
+    left: 0,
+    right: 0,
+  });
   const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLDivElement>(null);
@@ -47,11 +65,11 @@ export default function ButtonMenu({ children, options, trigger, disabled = fals
     }
 
     if (isOpen) {
-      document.addEventListener('mousedown', handleClickOutside);
+      document.addEventListener("mousedown", handleClickOutside);
     }
 
     return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutside);
     };
   }, [isOpen]);
 
@@ -67,19 +85,22 @@ export default function ButtonMenu({ children, options, trigger, disabled = fals
       const updatePosition = () => {
         setMenuPosition({
           top: rect.bottom + window.scrollY + 4,
-          left: alignment === 'left' ? rect.left + window.scrollX : 0,
-          right: alignment === 'right' ? window.innerWidth - rect.right - window.scrollX : 0,
+          left: alignment === "left" ? rect.left + window.scrollX : 0,
+          right:
+            alignment === "right"
+              ? window.innerWidth - rect.right - window.scrollX
+              : 0,
         });
       };
       updatePosition();
 
       // Also update on scroll/resize
-      window.addEventListener('scroll', updatePosition);
-      window.addEventListener('resize', updatePosition);
+      window.addEventListener("scroll", updatePosition);
+      window.addEventListener("resize", updatePosition);
 
       return () => {
-        window.removeEventListener('scroll', updatePosition);
-        window.removeEventListener('resize', updatePosition);
+        window.removeEventListener("scroll", updatePosition);
+        window.removeEventListener("resize", updatePosition);
       };
     }
   }, [isOpen, alignment]);
@@ -98,12 +119,12 @@ export default function ButtonMenu({ children, options, trigger, disabled = fals
     if (!isValidElement(element)) return element;
 
     // Check if this is an SVG element (the caret)
-    if (element.type === 'svg') {
+    if (element.type === "svg") {
       return cloneElement(element as React.ReactElement<any>, {
         style: {
           ...((element.props as any).style || {}),
-          transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)',
-          transition: 'transform 0.2s',
+          transform: isOpen ? "rotate(180deg)" : "rotate(0deg)",
+          transition: "transform 0.2s",
         },
       });
     }
@@ -111,7 +132,10 @@ export default function ButtonMenu({ children, options, trigger, disabled = fals
     // Recursively process children
     if ((element as any).props?.children) {
       return cloneElement(element as React.ReactElement<any>, {
-        children: React.Children.map((element as any).props.children, addCaretRotation),
+        children: React.Children.map(
+          (element as any).props.children,
+          addCaretRotation,
+        ),
       });
     }
 
@@ -125,14 +149,16 @@ export default function ButtonMenu({ children, options, trigger, disabled = fals
       ref={menuRef}
       className={styles.dropdown}
       style={{
-        position: 'fixed',
+        position: "fixed",
         top: `${menuPosition.top}px`,
-        ...(alignment === 'left' ? { left: `${menuPosition.left}px` } : { right: `${menuPosition.right}px` }),
+        ...(alignment === "left"
+          ? { left: `${menuPosition.left}px` }
+          : { right: `${menuPosition.right}px` }),
       }}
     >
       {options ? (
         options.map((option, index) =>
-          option.type === 'separator' ? (
+          option.type === "separator" ? (
             <div key={index} className={styles.separator} />
           ) : (
             <button
@@ -141,19 +167,21 @@ export default function ButtonMenu({ children, options, trigger, disabled = fals
                 option.onClick();
                 setIsOpen(false);
               }}
-              className={`${styles.menuItem} ${option.active ? styles.menuItemActive : ''}`}
+              className={`${styles.menuItem} ${option.active ? styles.menuItemActive : ""}`}
             >
-              <span className={styles.menuItemIcon}>
-                {option.icon}
-              </span>
-              <span>{option.label}</span>
+              <div className={styles.menuItemIcon}>
+                {typeof option.icon === "string" ? (
+                  <Icon name={option.icon} />
+                ) : (
+                  option.icon
+                )}
+              </div>
+              <div>{option.label}</div>
             </button>
-          )
+          ),
         )
       ) : (
-        <div onClick={() => setIsOpen(false)}>
-          {children}
-        </div>
+        <div onClick={() => setIsOpen(false)}>{children}</div>
       )}
     </div>
   );
@@ -165,12 +193,14 @@ export default function ButtonMenu({ children, options, trigger, disabled = fals
         onClick={handleToggle}
         onMouseEnter={() => !disabled && setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
-        className={`${styles.trigger} ${disabled ? '' : (isOpen || isHovered ? styles.triggerActive : styles.triggerDefault)}`}
+        className={`${styles.trigger} ${disabled ? "" : isOpen || isHovered ? styles.triggerActive : styles.triggerDefault}`}
       >
         {triggerWithProps}
       </div>
 
-      {mounted && typeof window !== 'undefined' && createPortal(dropdownContent, document.body)}
+      {mounted &&
+        typeof window !== "undefined" &&
+        createPortal(dropdownContent, document.body)}
     </div>
   );
 }
