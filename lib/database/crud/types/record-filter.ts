@@ -19,6 +19,15 @@ export interface FieldFilter {
   value: string | number | boolean | (string | number)[];
 }
 
+export interface JoinSpec {
+  /** System table to join (e.g. "apps", "users") */
+  table: string;
+  /** Column (system tables) or JSONB data key (app tables) in the primary record that holds the joined record's id */
+  on: string;
+  /** Alias used to store the joined data in `record.joined[as]` */
+  as: string;
+}
+
 export default interface RecordFilter<T = object> {
   ids?: string[];
   fields?: Partial<{ [K in keyof T]: T[K] }>;
@@ -37,4 +46,6 @@ export default interface RecordFilter<T = object> {
   limit?: number;
   offset?: number;
   includeRelated?: string[];
+  /** SQL LEFT JOINs to execute alongside the main query, results stored in `record.joined[as]` */
+  joins?: JoinSpec[];
 }

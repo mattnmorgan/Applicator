@@ -2,6 +2,7 @@ import { PoolClient } from "pg";
 import ReadResult from "@/lib/database/crud/types/read-result";
 import RecordFilter, {
   FieldFilter,
+  JoinSpec,
 } from "@/lib/database/crud/types/record-filter";
 import TableRecord from "@/lib/database/crud/types/record";
 import Field from "@/lib/database/types/field";
@@ -13,33 +14,52 @@ import {
   applyFilters,
 } from "@/lib/database/crud/processor";
 
-export function readRecordWrapper<T = any>(appId: string, tableName: string) {
-  return (id: string, client?: PoolClient) =>
-    readRecord<T>(appId, tableName, id, client);
+export function readRecordWrapper<T = any, J = Record<string, any>>(
+  appId: string,
+  tableName: string,
+) {
+  return (id: string, client?: PoolClient, joins?: JoinSpec[]) =>
+    readRecord<T, J>(appId, tableName, id, client, joins);
 }
 
 /**
  * Low-level SQL read for a single record.
  */
-export async function sqlRead<T = any>(
+export async function sqlRead<T = any, J = Record<string, any>>(
   client: PoolClient,
   appId: string,
   tableName: string,
   id: string,
-): Promise<TableRecord<T> | null> {
+  joins?: JoinSpec[],
+): Promise<TableRecord<T, J> | null> {
   if (appId === "system") {
-    const result = await client.query(
-      `SELECT * FROM ${tableName} WHERE id = $1`,
-      [id],
-    );
+    let query: string;
+    if (joins && joins.length > 0) {
+      const joinSelects = joins
+        .map((j, i) => `row_to_json(__j${i}.*) AS "__joined_${j.as}"`)
+        .join(", ");
+      const joinClauses = joins
+        .map((j, i) => `LEFT JOIN ${j.table} __j${i} ON __j${i}.id = r.${j.on}`)
+        .join("\n");
+      query = `SELECT r.*, ${joinSelects} FROM ${tableName} r\n${joinClauses}\nWHERE r.id = $1`;
+    } else {
+      query = `SELECT * FROM ${tableName} WHERE id = $1`;
+    }
+
+    const result = await client.query(query, [id]);
     if (result.rows.length === 0) return null;
 
     const row = result.rows[0];
-    const data: Record<string, any> = {};
+    const data: { [k: string]: unknown } = {};
+    const joined: { [k: string]: unknown } = {};
     for (const [col, value] of Object.entries(row)) {
       if (col === "id" || col === "created_at" || col === "updated_at")
         continue;
-      data[col] = value;
+      if (col.startsWith("__joined_")) {
+        joined[col.slice("__joined_".length)] = value;
+      } else {
+        data[col] = value;
+      }
     }
 
     return {
@@ -47,20 +67,42 @@ export async function sqlRead<T = any>(
       data: data as T,
       created_at: Number(row.created_at),
       updated_at: Number(row.updated_at),
+      ...(Object.keys(joined).length > 0 ? { joined: joined as any } : {}),
     };
   } else {
-    const result = await client.query(
-      `SELECT id, data, created_at, updated_at FROM records WHERE app_id = $1 AND table_name = $2 AND id = $3`,
-      [appId, tableName, id],
-    );
+    let query: string;
+    if (joins && joins.length > 0) {
+      const joinSelects = joins
+        .map((j, i) => `row_to_json(__j${i}.*) AS "__joined_${j.as}"`)
+        .join(", ");
+      const joinClauses = joins
+        .map(
+          (j, i) =>
+            `LEFT JOIN ${j.table} __j${i} ON __j${i}.id = (r.data->>'${j.on}')`,
+        )
+        .join("\n");
+      query = `SELECT r.id, r.data, r.created_at, r.updated_at, ${joinSelects} FROM records r\n${joinClauses}\nWHERE r.app_id = $1 AND r.table_name = $2 AND r.id = $3`;
+    } else {
+      query = `SELECT id, data, created_at, updated_at FROM records WHERE app_id = $1 AND table_name = $2 AND id = $3`;
+    }
+
+    const result = await client.query(query, [appId, tableName, id]);
     if (result.rows.length === 0) return null;
 
     const row = result.rows[0];
+    const joined: { [k: string]: unknown } = {};
+    for (const [col, value] of Object.entries(row)) {
+      if (col.startsWith("__joined_")) {
+        joined[col.slice("__joined_".length)] = value;
+      }
+    }
+
     return {
       id: row.id,
       data: row.data as T,
       created_at: Number(row.created_at),
       updated_at: Number(row.updated_at),
+      ...(Object.keys(joined).length > 0 ? { joined: joined as any } : {}),
     };
   }
 }
@@ -68,19 +110,20 @@ export async function sqlRead<T = any>(
 /**
  * Low-level SQL read for multiple records with filtering and pagination.
  */
-export async function sqlReadAll<T = any>(
+export async function sqlReadAll<T = any, J = Record<string, any>>(
   client: PoolClient,
   appId: string,
   tableName: string,
   filter?: {
     ids?: string[];
-    fields?: Record<string, any>;
+    fields?: { [k: string]: unknown };
     filters?: FieldFilter[];
     condition?: string;
     limit?: number;
     offset?: number;
+    joins?: JoinSpec[];
   },
-): Promise<{ records: TableRecord<T>[]; total: number }> {
+): Promise<{ records: TableRecord<T, J>[]; total: number }> {
   if (appId === "system") {
     const conditions: string[] = [];
     const params: any[] = [];
@@ -123,34 +166,56 @@ export async function sqlReadAll<T = any>(
     );
     const total = parseInt(countResult.rows[0].count, 10);
 
-    let query = `SELECT * FROM ${tableName} ${whereClause} ORDER BY created_at ASC`;
+    const joins = filter?.joins;
     const paginationParams = [...params];
 
+    let innerQuery = `SELECT * FROM ${tableName} ${whereClause} ORDER BY created_at ASC`;
     if (filter?.limit !== undefined) {
-      query += ` LIMIT $${paramIdx}`;
+      innerQuery += ` LIMIT $${paramIdx}`;
       paginationParams.push(filter.limit);
       paramIdx++;
     }
     if (filter?.offset !== undefined) {
-      query += ` OFFSET $${paramIdx}`;
+      innerQuery += ` OFFSET $${paramIdx}`;
       paginationParams.push(filter.offset);
       paramIdx++;
+    }
+
+    let query: string;
+    if (joins && joins.length > 0) {
+      const joinSelects = joins
+        .map((j, i) => `row_to_json(__j${i}.*) AS "__joined_${j.as}"`)
+        .join(", ");
+      const joinClauses = joins
+        .map(
+          (j, i) => `LEFT JOIN ${j.table} __j${i} ON __j${i}.id = base.${j.on}`,
+        )
+        .join("\n");
+      query = `SELECT base.*, ${joinSelects}\nFROM (\n  ${innerQuery}\n) base\n${joinClauses}`;
+    } else {
+      query = innerQuery;
     }
 
     const result = await client.query(query, paginationParams);
 
     const records = result.rows.map((row) => {
-      const data: Record<string, any> = {};
+      const data: { [k: string]: unknown } = {};
+      const joined: { [k: string]: unknown } = {};
       for (const [col, value] of Object.entries(row)) {
         if (col === "id" || col === "created_at" || col === "updated_at")
           continue;
-        data[col] = value;
+        if (col.startsWith("__joined_")) {
+          joined[col.slice("__joined_".length)] = value;
+        } else {
+          data[col] = value;
+        }
       }
       return {
         id: row.id as string,
         data: data as T,
         created_at: Number(row.created_at),
         updated_at: Number(row.updated_at),
+        ...(Object.keys(joined).length > 0 ? { joined: joined as any } : {}),
       };
     });
 
@@ -196,29 +261,55 @@ export async function sqlReadAll<T = any>(
     );
     const total = parseInt(countResult.rows[0].count, 10);
 
-    let query = `SELECT id, data, created_at, updated_at FROM records ${whereClause} ORDER BY created_at ASC`;
+    const joins = filter?.joins;
     const paginationParams = [...params];
 
+    let innerQuery = `SELECT id, data, created_at, updated_at FROM records ${whereClause} ORDER BY created_at ASC`;
     if (filter?.limit !== undefined) {
-      query += ` LIMIT $${paramIdx}`;
+      innerQuery += ` LIMIT $${paramIdx}`;
       paginationParams.push(filter.limit);
       paramIdx++;
     }
     if (filter?.offset !== undefined) {
-      query += ` OFFSET $${paramIdx}`;
+      innerQuery += ` OFFSET $${paramIdx}`;
       paginationParams.push(filter.offset);
       paramIdx++;
+    }
+
+    let query: string;
+    if (joins && joins.length > 0) {
+      const joinSelects = joins
+        .map((j, i) => `row_to_json(__j${i}.*) AS "__joined_${j.as}"`)
+        .join(", ");
+      const joinClauses = joins
+        .map(
+          (j, i) =>
+            `LEFT JOIN ${j.table} __j${i} ON __j${i}.id = (base.data->>'${j.on}')`,
+        )
+        .join("\n");
+      query = `SELECT base.id, base.data, base.created_at, base.updated_at, ${joinSelects}\nFROM (\n  ${innerQuery}\n) base\n${joinClauses}`;
+    } else {
+      query = innerQuery;
     }
 
     const result = await client.query(query, paginationParams);
 
     return {
-      records: result.rows.map((row) => ({
-        id: row.id,
-        data: row.data as T,
-        created_at: Number(row.created_at),
-        updated_at: Number(row.updated_at),
-      })),
+      records: result.rows.map((row) => {
+        const joined: { [k: string]: unknown } = {};
+        for (const [col, value] of Object.entries(row)) {
+          if (col.startsWith("__joined_")) {
+            joined[col.slice("__joined_".length)] = value;
+          }
+        }
+        return {
+          id: row.id,
+          data: row.data as T,
+          created_at: Number(row.created_at),
+          updated_at: Number(row.updated_at),
+          ...(Object.keys(joined).length > 0 ? { joined: joined as any } : {}),
+        };
+      }),
       total,
     };
   }
@@ -228,19 +319,20 @@ export async function sqlReadAll<T = any>(
  * Read a single record. If a PoolClient is provided, uses it (for within-transaction reads).
  * Otherwise, acquires a new client for the read.
  */
-export async function readRecord<T = any>(
+export async function readRecord<T = any, J = Record<string, any>>(
   appId: string,
   tableName: string,
   recordId: string,
   client?: PoolClient,
-): Promise<TableRecord<T> | null> {
+  joins?: JoinSpec[],
+): Promise<TableRecord<T, J> | null> {
   if (client) {
-    return sqlRead<T>(client, appId, tableName, recordId);
+    return sqlRead<T, J>(client, appId, tableName, recordId, joins);
   }
 
   const ownClient = await getClient();
   try {
-    return await sqlRead<T>(ownClient, appId, tableName, recordId);
+    return await sqlRead<T, J>(ownClient, appId, tableName, recordId, joins);
   } finally {
     ownClient.release();
   }
@@ -250,13 +342,13 @@ export async function readRecord<T = any>(
  * Read multiple records with filtering, pagination, and optional related record inclusion.
  * If a PoolClient is provided, uses it (for within-transaction reads).
  */
-export async function readRecords<T = any>(
+export async function readRecords<T = any, J = Record<string, any>>(
   appId: string,
   tableName: string,
   tableFields: Field[],
   filter: RecordFilter<T> = {},
   client?: PoolClient,
-): Promise<ReadResult<T>> {
+): Promise<ReadResult<T, J>> {
   const {
     ids,
     fields,
@@ -265,9 +357,10 @@ export async function readRecords<T = any>(
     limit,
     offset = 0,
     includeRelated,
+    joins,
   } = filter;
 
-  const doRead = async (c: PoolClient): Promise<ReadResult<T>> => {
+  const doRead = async (c: PoolClient): Promise<ReadResult<T, J>> => {
     const storageFilter: {
       ids?: string[];
       fields?: Record<string, any>;
@@ -291,7 +384,7 @@ export async function readRecords<T = any>(
     }
 
     // Get total without pagination
-    const totalResult = await sqlReadAll<T>(c, appId, tableName, {
+    const totalResult = await sqlReadAll<T, J>(c, appId, tableName, {
       ids: storageFilter.ids,
       fields: storageFilter.fields,
       filters: storageFilter.filters,
@@ -307,7 +400,10 @@ export async function readRecords<T = any>(
       storageFilter.offset = offset;
     }
 
-    const result = await sqlReadAll<T>(c, appId, tableName, storageFilter);
+    const result = await sqlReadAll<T, J>(c, appId, tableName, {
+      ...storageFilter,
+      joins,
+    });
     const paginatedRecords = result.records;
 
     // Fetch related records if requested
@@ -351,7 +447,7 @@ export async function readRecords<T = any>(
                   relatedId,
                 );
                 if (relatedRecord) {
-                  relatedRecords.push(relatedRecord);
+                  relatedRecords.push(relatedRecord as any);
                 }
               }
 

@@ -113,6 +113,7 @@ export async function GET(
     const limitParam = searchParams.get("limit");
     const offsetParam = searchParams.get("offset");
     const includeRelatedParam = searchParams.get("includeRelated");
+    const joinsParam = searchParams.get("joins");
 
     const options: any = {};
 
@@ -156,6 +157,17 @@ export async function GET(
 
     if (includeRelatedParam) {
       options.includeRelated = includeRelatedParam === "true";
+    }
+
+    if (joinsParam) {
+      try {
+        options.joins = JSON.parse(joinsParam);
+      } catch (e) {
+        return NextResponse.json(
+          { error: "Invalid joins parameter - must be valid JSON" },
+          { status: 400 },
+        );
+      }
     }
 
     const result = await readRecords(appId, tableId, fieldRecords, options);

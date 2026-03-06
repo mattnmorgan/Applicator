@@ -1,12 +1,18 @@
 import ReadResult from "@/lib/database/crud/types/read-result";
-import { FieldFilter } from "@/lib/database/crud/types/record-filter";
+import { FieldFilter, JoinSpec } from "@/lib/database/crud/types/record-filter";
 
-export function readRecordWrapper<T = any>(appId: string, tableId: string) {
+export function readRecordWrapper<T = any, J = Record<string, any>>(
+  appId: string,
+  tableId: string,
+) {
   return (params: { id?: string; fields?: { [field: string]: any } }) =>
-    readRecord<T>(appId, tableId, params);
+    readRecord<T, J>(appId, tableId, params);
 }
 
-export function readRecordsWrapper<T = any>(appId: string, tableId: string) {
+export function readRecordsWrapper<T = any, J = Record<string, any>>(
+  appId: string,
+  tableId: string,
+) {
   return (params: {
     ids?: string[];
     fields?: { [field: string]: any };
@@ -15,15 +21,20 @@ export function readRecordsWrapper<T = any>(appId: string, tableId: string) {
     limit?: number;
     offset?: number;
     includeRelated?: string[];
-  }) => readRecords<T>(appId, tableId, params);
+    joins?: JoinSpec[];
+  }) => readRecords<T, J>(appId, tableId, params);
 }
 
-export async function readRecord<T = any>(
+export async function readRecord<T = any, J = Record<string, any>>(
   appId: string,
   tableId: string,
-  params: { id?: string; fields?: { [field: string]: any }; includeRelated?: string[] }
+  params: {
+    id?: string;
+    fields?: { [field: string]: any };
+    includeRelated?: string[];
+  },
 ) {
-  const result = await readRecords<T>(appId, tableId, {
+  const result = await readRecords<T, J>(appId, tableId, {
     ids: params.id ? [params.id] : undefined,
     fields: params.fields ?? undefined,
     limit: 1,
@@ -33,7 +44,7 @@ export async function readRecord<T = any>(
   return result.records?.[0] || null;
 }
 
-export async function readRecords<T = any>(
+export async function readRecords<T = any, J = Record<string, any>>(
   appId: string,
   tableId: string,
   params: {
@@ -44,8 +55,9 @@ export async function readRecords<T = any>(
     limit?: number;
     offset?: number;
     includeRelated?: string[];
-  }
-): Promise<ReadResult<T>> {
+    joins?: JoinSpec[];
+  },
+): Promise<ReadResult<T, J>> {
   const paramBits = [
     params.ids ? `ids=${params.ids.join(",")}` : "",
     params.fields ? `fields=${JSON.stringify(params.fields)}` : "",
@@ -53,23 +65,26 @@ export async function readRecords<T = any>(
     params.condition ? `condition=${encodeURIComponent(params.condition)}` : "",
     params.limit ? `limit=${params.limit}` : "",
     params.offset ? `offset=${params.offset}` : "",
-    params.includeRelated ? `includeRelated=${params.includeRelated.join(",")}` : "",
+    params.includeRelated
+      ? `includeRelated=${params.includeRelated.join(",")}`
+      : "",
+    params.joins
+      ? `joins=${encodeURIComponent(JSON.stringify(params.joins))}`
+      : "",
   ];
   const paramUrl = paramBits.filter((b) => b.length).join("&");
   const response = await fetch(
-    `/api/${appId}/tables/${tableId}${
-      paramUrl.length ? "?" + paramUrl : ""
-    }`,
+    `/api/${appId}/tables/${tableId}${paramUrl.length ? "?" + paramUrl : ""}`,
     {
       method: "GET",
       headers: { "Content-Type": "application/json" },
-    }
+    },
   );
 
   if (!response.ok) {
     const json = await response.json();
     throw new Error(
-      `Error reading records: [${response.status}] ${json.error}`
+      `Error reading records: [${response.status}] ${json.error}`,
     );
   }
 
