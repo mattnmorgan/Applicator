@@ -185,7 +185,7 @@ export default function ApiEndpointsPage() {
               >
                 Method
               </label>
-              <div style={{ display: "flex", gap: "8px", flexWrap: "wrap" }}>
+              <div style={{ display: "flex", gap: "4px", flexWrap: "wrap" }}>
                 {(
                   ["GET", "POST", "PUT", "PATCH", "DELETE"] as HttpMethod[]
                 ).map((m) => (

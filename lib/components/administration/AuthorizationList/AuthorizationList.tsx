@@ -48,6 +48,8 @@ export default function AuthorizationList() {
         target: record.data.target,
       }));
 
+      authorizationsList.sort((a, b) => a.name.localeCompare(b.name));
+
       setAuthorizations(authorizationsList);
     } catch (error) {
       console.error("Failed to fetch authorizations:", error);
