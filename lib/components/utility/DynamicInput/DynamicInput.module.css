@@ -583,7 +583,7 @@
 .toggle {
   position: relative;
   display: inline-flex;
-  width: 40px;
+  width: 34px;
   height: 22px;
   flex-shrink: 0;
   cursor: pointer;
@@ -600,7 +600,7 @@
   position: absolute;
   inset: 0;
   background: #334155;
-  border-radius: 11px;
+  border-radius: 7px;
   transition: background 0.2s;
 }
 
@@ -612,7 +612,7 @@
   left: 3px;
   top: 3px;
   background: #94a3b8;
-  border-radius: 50%;
+  border-radius: 4px;
   transition: transform 0.2s, background 0.2s;
 }
 
@@ -621,7 +621,7 @@
 }
 
 .toggleInput:checked + .toggleTrack::before {
-  transform: translateX(18px);
+  transform: translateX(12px);
   background: #fff;
 }
 
