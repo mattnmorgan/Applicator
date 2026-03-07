@@ -9,6 +9,8 @@ import * as path from "path";
 import * as fs from "fs";
 import { loadModule } from "@/lib/system/source";
 import { toCamelCase } from "@/lib/system/utility";
+import { versionDir } from "@/lib/system/version";
+import { JoinSpec } from "@/lib/database/crud/types/record-filter";
 import bcrypt from "bcryptjs";
 
 export async function GET(
@@ -83,15 +85,21 @@ async function handleRequest(
     const apiRouteManager = new ApiRouteManager();
     let routeParams: Record<string, string> = {};
 
+    // Join the apps table to get the app version in the same query
+    const appJoin: JoinSpec[] = [{ table: "apps", on: "app", as: "app" }];
+
     // Try exact match first (fast path for non-parameterized routes)
     let apiRouteRecord = await apiRouteManager.readRecord(
       `${appId}:${route}:${method}`,
+      undefined,
+      appJoin,
     );
 
     // If no exact match, scan routes for this app+method and pattern-match
     if (!apiRouteRecord) {
       const candidates = await apiRouteManager.readRecords({
         fields: { app: appId, method },
+        joins: appJoin,
       });
       for (const candidate of candidates.records) {
         const matched = matchRoute(candidate.data.path, route);
@@ -123,6 +131,15 @@ async function handleRequest(
       );
     }
 
+    // Resolve the versioned app directory from the joined app record
+    const appVersion = (apiRouteRecord.joined as any)?.app?.version;
+    if (!appVersion) {
+      return NextResponse.json(
+        { error: "App version not found" },
+        { status: 500 },
+      );
+    }
+
     // Derive handler file path from the registered route pattern.
     // Each path segment maps to a directory, with route.js as the handler.
     // e.g. "items/[item-id]" → api/items/[item-id]/route.js
@@ -132,6 +149,7 @@ async function handleRequest(
       storagePath,
       "apps",
       appId,
+      versionDir(appVersion),
       "api",
       ...registeredParts,
       "route.js",

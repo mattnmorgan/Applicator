@@ -100,7 +100,9 @@ export async function POST(request: NextRequest) {
       const storageRecord = await settingManager.readRecord("storage");
       const storagePath = storageRecord?.data.value;
       if (storagePath) {
-        const appDir = path.join(storagePath, "apps", appId);
+        const v = app.data.version;
+        const vDir = `v${v.major}.${v.minor}.${v.dev}`;
+        const appDir = path.join(storagePath, "apps", appId, vDir);
         const uninstallationHookPath = path.join(
           appDir,
           "system",

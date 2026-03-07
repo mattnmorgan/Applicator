@@ -8,6 +8,14 @@ export function formatVersion(version: AppVersion): string {
 }
 
 /**
+ * Return the versioned subdirectory name for an app version.
+ * e.g. { major: 1, minor: 2, dev: 3 } → "v1.2.3"
+ */
+export function versionDir(version: AppVersion): string {
+  return `v${version.major}.${version.minor}.${version.dev}`;
+}
+
+/**
  * Check if version1 is greater than or equal to version2
  */
 export function isVersionGreaterOrEqual(

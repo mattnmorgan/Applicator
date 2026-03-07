@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSystemSettings } from "@/lib/managers/setting";
+import AppManager from "@/lib/managers/app";
+import { versionDir } from "@/lib/system/version";
 import path from "path";
 import fs from "fs/promises";
 
@@ -59,12 +61,19 @@ export async function GET(
         return NextResponse.json({ error: "Invalid path" }, { status: 403 });
       }
     } else {
+      // Look up the app record to resolve the active version directory
+      const appRecord = await new AppManager().readRecord(appId);
+      if (!appRecord) {
+        return NextResponse.json({ error: "App not found" }, { status: 404 });
+      }
+      const vDir = versionDir(appRecord.data.version);
+
       if (pathSegments.length === 1 && pathSegments[0] === "icon") {
-        filePath = path.join(storagePath, "apps", appId, "app.png");
+        filePath = path.join(storagePath, "apps", appId, vDir, "app.png");
       } else if (pathSegments.length === 1 && pathSegments[0] === "source") {
-        filePath = path.join(storagePath, "apps", appId, "app.js");
+        filePath = path.join(storagePath, "apps", appId, vDir, "app.js");
       } else {
-        filePath = path.join(storagePath, "apps", appId, ...pathSegments);
+        filePath = path.join(storagePath, "apps", appId, vDir, ...pathSegments);
       }
     }
 

@@ -4,7 +4,9 @@ import bcrypt from "bcryptjs";
 import { PoolClient } from "pg";
 import { withTransaction } from "@/lib/database/connections/postgresql";
 import { loadModule } from "@/lib/system/source";
-import { formatVersion } from "@/lib/system/version";
+import { formatVersion, versionDir } from "@/lib/system/version";
+import type AppVersion from "@/lib/database/types/appVersion";
+import Context from "@/lib/sdk/plugin-context";
 import AppManager from "@/lib/managers/app";
 import TableManager from "@/lib/managers/table";
 import FieldManager from "@/lib/managers/field";
@@ -31,8 +33,9 @@ export async function saveAppFiles(
   appId: string,
   storagePath: string,
   packageData: AppPackage,
-): Promise<void> {
-  const appDir = path.join(storagePath, "apps", appId);
+): Promise<string> {
+  const vDir = versionDir(packageData.appAttributes.version);
+  const appDir = path.join(storagePath, "apps", appId, vDir);
   await fs.mkdir(appDir, { recursive: true });
 
   // Create api directory
@@ -86,6 +89,8 @@ export async function saveAppFiles(
     const iconPath = path.join(appDir, "app.png");
     await fs.writeFile(iconPath, packageData.iconData);
   }
+
+  return appDir;
 }
 
 /**
@@ -520,6 +525,209 @@ export async function updateAppComponents(
   }
 }
 
+interface UpgradeSnapshot {
+  apiRoutes: Array<{ id: string; data: any }>;
+  applets: Array<{ id: string; data: any }>;
+  tables: Array<{ id: string; data: any; fields: Array<{ id: string; data: any }> }>;
+  agents: Array<{ id: string; data: any }>;
+  /** IDs of authorizations that existed before the upgrade */
+  authorizationIds: string[];
+  /** IDs of authorities that existed before the upgrade */
+  authorityIds: string[];
+}
+
+/**
+ * Capture a snapshot of all component records for an app before an upgrade.
+ */
+async function captureUpgradeSnapshot(appId: string): Promise<UpgradeSnapshot> {
+  const apiRouteManager = new ApiRouteManager();
+  const appletManager = new AppletManager();
+  const tableManager = new TableManager();
+  const fieldManager = new FieldManager();
+  const agentManager = new AgentManager();
+  const authorizationManager = new AuthorizationManager();
+  const authorityManager = new AuthorityManager();
+
+  const [routesResult, appletsResult, tablesResult, agentsResult, authsResult, authoritiesResult] =
+    await Promise.all([
+      apiRouteManager.readRecords({ fields: { app: appId } }),
+      appletManager.readRecords({}),
+      tableManager.readRecords({}),
+      agentManager.readRecords({ fields: { app: appId } }),
+      authorizationManager.readRecords({ fields: { app: appId } }),
+      authorityManager.readRecords({ fields: { app: appId } }),
+    ]);
+
+  const appApplets = appletsResult.records.filter((a) => a.data.app === appId);
+  const appTables = tablesResult.records.filter((t) => t.data.app === appId);
+
+  const tablesWithFields = await Promise.all(
+    appTables.map(async (table) => {
+      const fieldsResult = await fieldManager.readRecords({});
+      const tableFields = fieldsResult.records.filter(
+        (f) => (f.data as any).app === appId && (f.data as any).table_name === table.data.table_name,
+      );
+      return {
+        id: table.id,
+        data: table.data,
+        fields: tableFields.map((f) => ({ id: f.id, data: f.data })),
+      };
+    }),
+  );
+
+  return {
+    apiRoutes: routesResult.records.map((r) => ({ id: r.id, data: r.data })),
+    applets: appApplets.map((a) => ({ id: a.id, data: a.data })),
+    tables: tablesWithFields,
+    agents: agentsResult.records.map((a) => ({ id: a.id, data: a.data })),
+    authorizationIds: authsResult.records.map((a) => a.id),
+    authorityIds: authoritiesResult.records.map((a) => a.id),
+  };
+}
+
+/**
+ * Restore all component records for an app to a previously captured snapshot.
+ * Called when the install hook fails after the upgrade transaction has committed.
+ */
+async function rollbackUpgrade(
+  appId: string,
+  existingApp: { data: any },
+  snapshot: UpgradeSnapshot,
+): Promise<void> {
+  const appManager = new AppManager();
+  const apiRouteManager = new ApiRouteManager();
+  const appletManager = new AppletManager();
+  const tableManager = new TableManager();
+  const fieldManager = new FieldManager();
+  const agentManager = new AgentManager();
+  const authorizationManager = new AuthorizationManager();
+  const authorityManager = new AuthorityManager();
+
+  await withTransaction(async (client) => {
+    // Restore app metadata
+    await appManager.updateRecord(await appManager.getTable(), appId, existingApp.data, { client });
+
+    // Restore API routes: delete current, recreate old
+    const currentRoutes = await apiRouteManager.readRecords({ fields: { app: appId } }, client);
+    for (const route of currentRoutes.records) {
+      await apiRouteManager.deleteRecord(route.id, { client });
+    }
+    const apiRouteTable = await apiRouteManager.getTable();
+    for (const route of snapshot.apiRoutes) {
+      await apiRouteManager.createRecord(apiRouteTable, route.data, { id: route.id, client });
+    }
+
+    // Restore applets: delete current, recreate old
+    const currentApplets = await appletManager.readRecords({}, client);
+    for (const applet of currentApplets.records.filter((a) => a.data.app === appId)) {
+      await appletManager.deleteRecord(applet.id, { client });
+    }
+    const appletTable = await appletManager.getTable();
+    for (const applet of snapshot.applets) {
+      await appletManager.createRecord(appletTable, applet.data, { id: applet.id, client });
+    }
+
+    // Restore tables and fields: delete current, recreate old
+    const currentTables = await tableManager.readRecords({}, client);
+    for (const table of currentTables.records.filter((t) => t.data.app === appId)) {
+      await fieldManager.deleteTableFields(appId, table.data.table_name, client);
+      await tableManager.deleteTable(appId, table.data.table_name, client);
+    }
+    for (const { data: tableData, fields } of snapshot.tables) {
+      await tableManager.createTable(appId, tableData.table_name, tableData, client);
+      const fieldTable = await fieldManager.getTable();
+      for (const field of fields) {
+        await fieldManager.createRecord(fieldTable, field.data, { id: field.id, client });
+      }
+    }
+
+    // Restore agents: delete current, recreate old (preserving runtime state)
+    const currentAgents = await agentManager.readRecords({ fields: { app: appId } }, client);
+    for (const agent of currentAgents.records) {
+      await agentManager.deleteRecord(agent.id, { client });
+    }
+    const agentTable = await agentManager.getTable();
+    for (const agent of snapshot.agents) {
+      await agentManager.createRecord(agentTable, agent.data, { id: agent.id, client });
+    }
+
+    // Delete any authorizations that were added during the upgrade
+    const snapshotAuthIds = new Set(snapshot.authorizationIds);
+    const currentAuths = await authorizationManager.readRecords({ fields: { app: appId } }, client);
+    for (const auth of currentAuths.records) {
+      if (!snapshotAuthIds.has(auth.id)) {
+        await authorizationManager.deleteRecord(auth.id, { client });
+      }
+    }
+
+    // Delete any authorities that were added during the upgrade
+    const snapshotAuthorityIds = new Set(snapshot.authorityIds);
+    const currentAuthorities = await authorityManager.readRecords({ fields: { app: appId } }, client);
+    for (const authority of currentAuthorities.records) {
+      if (!snapshotAuthorityIds.has(authority.id)) {
+        await authorityManager.deleteRecord(authority.id, { client });
+      }
+    }
+  });
+}
+
+/**
+ * Roll back a failed installation by removing all DB records created during install.
+ * Mirrors the inverse of installAppComponents + the app record itself, all in one transaction.
+ */
+async function rollbackInstallation(appId: string): Promise<void> {
+  await withTransaction(async (client) => {
+    // Agents
+    const agentManager = new AgentManager();
+    const agentsResult = await agentManager.readRecords({ fields: { app: appId } }, client);
+    for (const agent of agentsResult.records) {
+      await agentManager.deleteRecord(agent.id, { client });
+    }
+
+    // Tables and fields (no user records yet on fresh install)
+    const tableManager = new TableManager();
+    const fieldManager = new FieldManager();
+    const tablesResult = await tableManager.readRecords({}, client);
+    for (const table of tablesResult.records.filter((t) => t.data.app === appId)) {
+      await fieldManager.deleteTableFields(appId, table.data.table_name, client);
+      await tableManager.deleteTable(appId, table.data.table_name, client);
+    }
+
+    // API routes
+    const apiRouteManager = new ApiRouteManager();
+    const routesResult = await apiRouteManager.readRecords({ fields: { app: appId } }, client);
+    for (const route of routesResult.records) {
+      await apiRouteManager.deleteRecord(route.id, { client });
+    }
+
+    // Applets
+    const appletManager = new AppletManager();
+    const appletsResult = await appletManager.readRecords({}, client);
+    for (const applet of appletsResult.records.filter((a) => a.data.app === appId)) {
+      await appletManager.deleteRecord(applet.id, { client });
+    }
+
+    // Authorizations
+    const authorizationManager = new AuthorizationManager();
+    const authsResult = await authorizationManager.readRecords({ fields: { app: appId } }, client);
+    for (const auth of authsResult.records) {
+      await authorizationManager.deleteRecord(auth.id, { client });
+    }
+
+    // App-specific authority and any contextual authorities created by this app
+    const authorityManager = new AuthorityManager();
+    await authorityManager.deleteAppSpecificAuthority(appId, { client });
+    const authoritiesResult = await authorityManager.readRecords({ fields: { app: appId } }, client);
+    for (const authority of authoritiesResult.records) {
+      await authorityManager.deleteRecord(authority.id, { client });
+    }
+
+    // App record itself
+    const appManager = new AppManager();
+    await appManager.deleteRecord(appId, { client });
+  });
+}
+
 /**
  * Execute the OnInstallation hook if it exists
  * @param appId The app ID
@@ -530,13 +738,14 @@ export async function updateAppComponents(
 export async function executeInstallHook(
   appId: string,
   storagePath: string,
+  version: AppVersion,
   context: {
     priorVersion?: string;
     currentVersion: string;
     appId: string;
   },
 ): Promise<void> {
-  const appDir = path.join(storagePath, "apps", appId);
+  const appDir = path.join(storagePath, "apps", appId, versionDir(version));
   const installationHookPath = path.join(appDir, "system", "install.js");
 
   const installationHookExists = await fs
@@ -560,7 +769,24 @@ export async function executeInstallHook(
     installationHook.OnInstallation &&
     typeof installationHook.OnInstallation === "function"
   ) {
-    await installationHook.OnInstallation(context);
+    // Read admin user ID so the hook can perform ownership operations
+    const adminUserIdRecord = await new SettingManager().readRecord("administratorUserId");
+    const adminUserId = adminUserIdRecord?.data.value ?? null;
+
+    // Create an SDK context so the hook can interact with records and the filesystem
+    let ctx: Context | null = null;
+    try {
+      ctx = await Context.create(appId, adminUserId);
+    } catch {
+      // Non-fatal — the hook can handle a null ctx
+    }
+
+    await installationHook.OnInstallation({
+      ...context,
+      storagePath,
+      adminUserId,
+      ctx,
+    });
   }
 }
 
@@ -643,16 +869,16 @@ export async function installApp(
 
   // Execute installation hook (outside transaction — needs committed data)
   try {
-    await executeInstallHook(appAttributes.id, storagePath, {
+    await executeInstallHook(appAttributes.id, storagePath, appAttributes.version, {
       priorVersion: undefined,
       currentVersion: formatVersion(appAttributes.version),
       appId: appAttributes.id,
     });
   } catch (error: any) {
-    // Clean up on hook failure
-    const appDir = path.join(storagePath, "apps", appAttributes.id);
-    await appManager.deleteRecord(appAttributes.id, { cascade: true });
-    await fs.rm(appDir, { recursive: true, force: true });
+    // Clean up on hook failure — roll back all DB records and delete the versioned dir
+    const vDir = path.join(storagePath, "apps", appAttributes.id, versionDir(appAttributes.version));
+    await rollbackInstallation(appAttributes.id);
+    await fs.rm(vDir, { recursive: true, force: true });
     throw new Error(`Installation hook failed: ${error.message}`);
   }
 
@@ -956,59 +1182,34 @@ export async function upgradeApp(
     throw new Error("System storage not configured");
   }
 
-  // Stop running agents and mark them for restart
+  // Stop running agents before upgrade
   const agentManager = new AgentManager();
-  const allAgents = await agentManager.readRecords();
-  const appAgents = allAgents.records.filter((a) => a.data.app === appId);
-  const runningAgentIds: string[] = [];
+  const appAgentsResult = await agentManager.readRecords({ fields: { app: appId } });
+  const appAgents = appAgentsResult.records;
 
   for (const agentRecord of appAgents) {
     if (agentRecord.data.status === "running") {
-      runningAgentIds.push(agentRecord.id);
-      // Stop the agent
       const [agentAppId, agentName] = agentRecord.id.split(":");
       await new Agent(agentAppId, agentName).stop();
     }
   }
 
-  // Backup old version
-  const appDir = path.join(storagePath, "apps", appId);
-  const apiDir = path.join(appDir, "api");
-  const tablesDir = path.join(appDir, "tables");
-  const agentsDir = path.join(appDir, "agents");
-  const backupApiDir = path.join(appDir, `api.backup.${Date.now()}`);
-  const backupTablesDir = path.join(appDir, `tables.backup.${Date.now()}`);
-  const backupAgentsDir = path.join(appDir, `agents.backup.${Date.now()}`);
+  // Versioned directory paths — old version stays untouched until success
+  const oldVDir = versionDir(existingApp.data.version);
+  const newVDir = versionDir(appAttributes.version);
+  const appBaseDir = path.join(storagePath, "apps", appId);
+  const newAppDir = path.join(appBaseDir, newVDir);
+
+  // Snapshot current component state before the transaction so we can fully
+  // restore it if the install hook fails after the DB has already committed
+  const snapshot = await captureUpgradeSnapshot(appId);
+
+  // Write new files into the new version subdirectory
+  await saveAppFiles(appId, storagePath, packageData);
 
   try {
-    await fs.rename(apiDir, backupApiDir);
-  } catch (error) {
-    // If api directory doesn't exist, that's okay
-  }
-
-  try {
-    await fs.rename(tablesDir, backupTablesDir);
-  } catch (error) {
-    // If tables directory doesn't exist, that's okay
-  }
-
-  try {
-    await fs.rename(agentsDir, backupAgentsDir);
-  } catch (error) {
-    // If agents directory doesn't exist, that's okay
-  }
-
-  // Create new directories
-  await fs.mkdir(apiDir, { recursive: true });
-  await fs.mkdir(tablesDir, { recursive: true });
-
-  try {
-    // Save files (filesystem, outside transaction)
-    await saveAppFiles(appId, storagePath, packageData);
-
     // All DB operations in a single transaction
     await withTransaction(async (client) => {
-      // Update app record
       await appManager.updateRecord(await appManager.getTable(), appId, {
         label: appAttributes.name,
         version: appAttributes.version,
@@ -1019,54 +1220,30 @@ export async function upgradeApp(
         required_permissions: appAttributes.requiredPermissions || [],
       }, { client });
 
-      // Update components
       await updateAppComponents(appId, appAttributes, client);
     });
 
-    // Delete backups after successful upgrade
+    // Execute installation hook (outside transaction — needs committed data)
     try {
-      await fs.rm(backupApiDir, { recursive: true, force: true });
-    } catch (error) {
-      // Ignore
-    }
-
-    try {
-      await fs.rm(backupTablesDir, { recursive: true, force: true });
-    } catch (error) {
-      // Ignore
-    }
-
-    try {
-      await fs.rm(backupAgentsDir, { recursive: true, force: true });
-    } catch (error) {
-      // Ignore
-    }
-
-    // Execute installation hook
-    try {
-      await executeInstallHook(appId, storagePath, {
+      await executeInstallHook(appId, storagePath, appAttributes.version, {
         priorVersion: formatVersion(existingApp.data.version),
         currentVersion: formatVersion(appAttributes.version),
         appId,
       });
     } catch (error: any) {
-      // Rollback - restore backups
+      // Hook failed — fully restore the DB to pre-upgrade state, then delete the new version dir
       try {
-        await fs.rm(apiDir, { recursive: true, force: true });
-        await fs.rename(backupApiDir, apiDir);
-
-        await fs.rm(tablesDir, { recursive: true, force: true });
-        await fs.rename(backupTablesDir, tablesDir);
-
-        await fs.rm(agentsDir, { recursive: true, force: true });
-        await fs.rename(backupAgentsDir, agentsDir);
+        await rollbackUpgrade(appId, existingApp, snapshot);
       } catch (rollbackError) {
-        console.error(
-          "Failed to rollback after installation hook failure:",
-          rollbackError,
-        );
+        console.error("Failed to roll back upgrade after hook failure:", rollbackError);
       }
+      await fs.rm(newAppDir, { recursive: true, force: true });
       throw new Error(`Installation hook failed: ${error.message}`);
+    }
+
+    // Success — delete the old version directory if it differs from the new one
+    if (oldVDir !== newVDir) {
+      await fs.rm(path.join(appBaseDir, oldVDir), { recursive: true, force: true });
     }
 
     // Log upgrade
@@ -1084,28 +1261,8 @@ export async function upgradeApp(
       newVersion: formatVersion(appAttributes.version),
     };
   } catch (error) {
-    // Restore backups on error
-    try {
-      await fs.rm(apiDir, { recursive: true, force: true });
-      await fs.rename(backupApiDir, apiDir);
-    } catch (restoreError) {
-      console.error("Failed to restore API backup:", restoreError);
-    }
-
-    try {
-      await fs.rm(tablesDir, { recursive: true, force: true });
-      await fs.rename(backupTablesDir, tablesDir);
-    } catch (restoreError) {
-      console.error("Failed to restore tables backup:", restoreError);
-    }
-
-    try {
-      await fs.rm(agentsDir, { recursive: true, force: true });
-      await fs.rename(backupAgentsDir, agentsDir);
-    } catch (restoreError) {
-      console.error("Failed to restore agents backup:", restoreError);
-    }
-
+    // DB transaction failed or other error — delete the new version directory
+    await fs.rm(newAppDir, { recursive: true, force: true });
     throw error;
   }
 }
