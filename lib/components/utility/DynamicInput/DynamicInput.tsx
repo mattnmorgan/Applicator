@@ -20,6 +20,7 @@ import ChecklistInput from "./inputs/ChecklistInput";
 import IconInput from "./inputs/IconInput";
 import FileInput from "./inputs/FileInput";
 import PasswordInput from "./inputs/PasswordInput";
+import ToggleInput from "./inputs/ToggleInput";
 
 export type { DynamicInputOption } from "./types/dynamic-input-option";
 export type { DynamicInputDefinition } from "./types/dynamic-input-definition";
@@ -54,6 +55,7 @@ const INPUT_COMPONENTS: Record<
   icon: IconInput,
   file: FileInput,
   password: PasswordInput,
+  toggle: ToggleInput,
 };
 
 export default function DynamicInput({ input, value, onChange }: DynamicInputProps) {

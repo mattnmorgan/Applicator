@@ -16,7 +16,8 @@ export type CustomInputType =
   | "checklist"
   | "icon"
   | "file"
-  | "password";
+  | "password"
+  | "toggle";
 
 export default interface CustomInput {
   app: string;

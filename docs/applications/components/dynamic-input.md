@@ -1,6 +1,6 @@
 # DynamicInput
 
-Renders a fully-featured form input from a declarative definition object. Supports 18 input types — from plain text to date pickers, color selectors, file pickers, and searchable dropdowns. Useful for building data-entry forms driven by configuration rather than hardcoded JSX.
+Renders a fully-featured form input from a declarative definition object. Supports 19 input types — from plain text to date pickers, color selectors, file pickers, and searchable dropdowns. Useful for building data-entry forms driven by configuration rather than hardcoded JSX.
 
 ```typescript
 import { DynamicInput } from "@applicator/sdk/components";
@@ -33,6 +33,7 @@ interface DynamicInputDefinition {
   searchable?: boolean;            // enables live search in dropdown (select/multiselect/pseudoassignee)
   renderSearchItem?: (opt: DynamicInputOption) => ReactNode; // custom dropdown row (pseudoassignee types)
   renderPill?: (opt: DynamicInputOption) => ReactNode;       // custom selected-chip render (pseudoassignee types)
+  tooltip?: string;                // hover tooltip shown as (?) indicator next to the label
   // number / range / rangeslider
   min?: string;
   max?: string;
@@ -68,6 +69,7 @@ interface DynamicInputDefinition {
 | `multipseudoassignee` | Multi-select searchable dropdown with custom rendering  |
 | `icon`                | Icon picker                                            |
 | `file`                | File upload input                                      |
+| `toggle`              | On/off toggle switch                                   |
 
 ## Props
 

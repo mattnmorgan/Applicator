@@ -67,6 +67,12 @@ const SAMPLE_INPUTS: DynamicInputDefinition[] = [
     ],
   },
   {
+    id: "demo-toggle",
+    label: "Dark Mode",
+    type: "toggle",
+    tooltip: "Switch between light and dark interface themes.",
+  },
+  {
     id: "demo-checkbox",
     label: "Enable notifications",
     type: "checkbox",
