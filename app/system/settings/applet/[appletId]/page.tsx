@@ -69,8 +69,11 @@ export default function SystemSettingsAppletPage() {
 
   return (
     <>
-      <div style={{ marginBottom: "24px" }}>
-        <Button variant="ghost" onClick={() => router.push("/system/settings/apps")}>
+      <div style={{ marginBottom: "8px" }}>
+        <Button
+          variant="ghost"
+          onClick={() => router.push("/system/settings/apps")}
+        >
           <svg
             width="16"
             height="16"
