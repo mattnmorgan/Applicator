@@ -19,8 +19,21 @@ export async function OnInstallation(context: {
   priorVersion: string | undefined;  // undefined for fresh install, "1.0.0" for upgrades
   currentVersion: string;             // Current version being installed (e.g., "1.2.0")
   appId: string;                      // Your app's ID
+  storagePath: string;                // Absolute path to the system storage directory
+  adminUserId: string | null;         // User ID of the system administrator, if set
+  ctx: Context | null;                // SDK Context instance scoped to the installing user
 }): Promise<void>
 ```
+
+### Additional Context Properties
+
+| Property | Type | Description |
+|---|---|---|
+| `storagePath` | `string` | Absolute OS path to the system storage root. Useful for direct filesystem operations outside the SDK. |
+| `adminUserId` | `string \| null` | ID of the system administrator user configured at first-time setup. `null` if no admin has been set. |
+| `ctx` | `Context \| null` | SDK `Context` instance. Provides access to `ctx.user()`, `ctx.recordManager()`, `ctx.contextualAuthorityManager`, `ctx.systemFileManager`, etc. `null` if the context could not be created. |
+
+The `ctx` instance is scoped to the admin user (`adminUserId`). Call `await ctx.user()` to get the full user object.
 
 ### Example
 
@@ -31,13 +44,24 @@ export async function OnInstallation(context: {
   priorVersion: string | undefined;
   currentVersion: string;
   appId: string;
+  storagePath: string;
+  adminUserId: string | null;
+  ctx: any;
 }) {
   if (context.priorVersion === undefined) {
     // Fresh installation
     console.log(`[${context.appId}] Fresh install of v${context.currentVersion}`);
 
-    // Initialize default data, create initial records, etc.
-    await initializeDefaultData();
+    const { ctx } = context;
+    if (ctx) {
+      const user = await ctx.user();
+      if (user) {
+        // Use the SDK to create initial records owned by the installing user
+        const manager = ctx.recordManager("my-app", "settings");
+        const table = await manager.getTable();
+        await manager.createRecord(table, { owner: user.id, value: "default" });
+      }
+    }
 
   } else {
     // Upgrade from previous version
@@ -46,10 +70,6 @@ export async function OnInstallation(context: {
     // Run migrations based on version
     await runMigrations(context.priorVersion, context.currentVersion);
   }
-}
-
-async function initializeDefaultData() {
-  // Create default records, set up initial state, etc.
 }
 
 async function runMigrations(fromVersion: string, toVersion: string) {
@@ -76,13 +96,14 @@ The hook runs **after** the framework has:
 7. Configured agents
 
 If the hook throws an error during **fresh installation**, the framework will:
-- Delete the app record
-- Remove the app directory
+- Roll back all installed database records (routes, applets, tables, fields, authorizations, authorities, agents, and the app record itself) atomically
+- Delete the versioned app directory (e.g. `apps/{appId}/v1.0.0/`)
 - Throw the error to the installer
 
 If the hook throws an error during **upgrade**, the framework will:
-- Restore backups of the previous version
-- Keep the app at the prior version
+- Restore the full pre-upgrade database state atomically (routes, applets, tables, fields, authorizations, authorities, agents, and the app version) from a snapshot taken before the upgrade began
+- Delete the new versioned app directory
+- Keep the app running at the prior version
 
 ---
 
