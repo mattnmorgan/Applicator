@@ -75,6 +75,16 @@ export async function extractAppPackage(
     agents.set(agentName, entry.getData());
   }
 
+  // Extract system hook scripts (install.js, uninstall.js, etc.)
+  const system = new Map<string, Buffer>();
+  const systemEntries = zipEntries.filter(
+    (e) => e.entryName.startsWith("system/") && e.entryName.endsWith(".js")
+  );
+  for (const entry of systemEntries) {
+    const hookName = path.basename(entry.entryName, ".js");
+    system.set(hookName, entry.getData());
+  }
+
   return {
     appAttributes,
     uiBundle,
@@ -83,6 +93,7 @@ export async function extractAppPackage(
     assets,
     tables,
     agents,
+    system,
     zip,
   };
 }

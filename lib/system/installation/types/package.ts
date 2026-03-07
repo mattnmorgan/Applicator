@@ -9,5 +9,6 @@ export default interface AppPackage {
   assets: Map<string, Buffer>;
   tables: Map<string, Buffer>;
   agents: Map<string, Buffer>;
+  system: Map<string, Buffer>;
   zip: AdmZip;
 }
