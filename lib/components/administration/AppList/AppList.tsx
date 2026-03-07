@@ -245,8 +245,10 @@ export default function AppList() {
 
   const handlePermissionsConfirm = () => {
     if (!pendingInstall) return;
-    const permissionIds = pendingInstall.permissions.map((p) => p.id);
-    performInstall(pendingInstall.file, permissionIds);
+    const { file, permissions } = pendingInstall;
+    const permissionIds = permissions.map((p) => p.id);
+    setPendingInstall(null); // Dismiss popup immediately so install progress is visible
+    performInstall(file, permissionIds);
   };
 
   const handlePermissionsCancel = () => {
