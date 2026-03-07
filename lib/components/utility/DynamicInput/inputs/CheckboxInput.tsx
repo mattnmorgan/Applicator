@@ -2,6 +2,7 @@
 
 import type { DynamicInputProps } from "../DynamicInput";
 import styles from "../DynamicInput.module.css";
+import InfoTooltip from "../../InfoTooltip";
 
 export default function CheckboxInput({ input, value, onChange }: DynamicInputProps) {
   return (
@@ -16,6 +17,7 @@ export default function CheckboxInput({ input, value, onChange }: DynamicInputPr
         />
         <span className={styles.checkboxLabel}>{input.label}</span>
         {input.required && <span className={styles.required}>*</span>}
+        {input.tooltip && <InfoTooltip text={input.tooltip} />}
       </label>
     </div>
   );

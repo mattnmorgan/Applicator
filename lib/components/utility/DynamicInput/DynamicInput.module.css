@@ -5,6 +5,9 @@
 }
 
 .label {
+  display: flex;
+  align-items: center;
+  gap: 4px;
   font-size: 13px;
   font-weight: 500;
   color: #cbd5e1;

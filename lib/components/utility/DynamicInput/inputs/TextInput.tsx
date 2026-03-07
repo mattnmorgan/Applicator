@@ -2,6 +2,7 @@
 
 import type { DynamicInputProps } from "../DynamicInput";
 import styles from "../DynamicInput.module.css";
+import InputLabel from "../InputLabel";
 
 export default function TextInput({ input, value, onChange }: DynamicInputProps) {
   const placeholder = input.placeholder ?? `Enter ${input.label.toLowerCase()}...`;
@@ -9,10 +10,7 @@ export default function TextInput({ input, value, onChange }: DynamicInputProps)
 
   return (
     <div className={styles.wrapper}>
-      <label className={styles.label}>
-        {input.label}
-        {input.required && <span className={styles.required}>*</span>}
-      </label>
+      <InputLabel input={input} />
       {multiline ? (
         <textarea
           className={`${styles.input} ${styles.textarea}`}

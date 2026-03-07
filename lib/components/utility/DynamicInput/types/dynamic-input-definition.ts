@@ -26,4 +26,6 @@ export interface DynamicInputDefinition {
   renderSearchItem?: (opt: DynamicInputOption) => ReactNode;
   /** Custom renderer for selected pills / selected value display (pseudoassignee, multipseudoassignee) */
   renderPill?: (opt: DynamicInputOption) => ReactNode;
+  /** Tooltip text shown on a (?) indicator inline with the field label */
+  tooltip?: string;
 }

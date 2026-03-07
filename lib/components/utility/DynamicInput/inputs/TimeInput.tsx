@@ -2,6 +2,7 @@
 
 import type { DynamicInputProps } from "../DynamicInput";
 import styles from "../DynamicInput.module.css";
+import InfoTooltip from "../../InfoTooltip";
 
 export default function TimeInput({ input, value, onChange }: DynamicInputProps) {
   return (
@@ -10,10 +11,11 @@ export default function TimeInput({ input, value, onChange }: DynamicInputProps)
         {input.label}
         {input.required && <span className={styles.required}>*</span>}
         {input.format && (
-          <span style={{ fontWeight: 400, color: "#64748b", marginLeft: 6 }}>
+          <span style={{ fontWeight: 400, color: "#64748b" }}>
             ({input.format})
           </span>
         )}
+        {input.tooltip && <InfoTooltip text={input.tooltip} />}
       </label>
       <input
         type="time"

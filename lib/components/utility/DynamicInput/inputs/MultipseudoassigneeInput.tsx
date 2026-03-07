@@ -4,6 +4,7 @@ import { useState, useRef, useEffect } from "react";
 import type { DynamicInputProps } from "../DynamicInput";
 import type { DynamicInputOption } from "../types/dynamic-input-option";
 import styles from "../DynamicInput.module.css";
+import InputLabel from "../InputLabel";
 
 function defaultRenderPill(opt: DynamicInputOption) {
   return (
@@ -86,10 +87,7 @@ export default function MultipseudoassigneeInput({ input, value, onChange }: Dyn
 
   return (
     <div className={styles.wrapper}>
-      <label className={styles.label}>
-        {input.label}
-        {input.required && <span className={styles.required}>*</span>}
-      </label>
+      <InputLabel input={input} />
       <div
         className={`${styles.multiSelectContainer} ${disabled ? styles.containerDisabled : ""}`}
         ref={ref}

@@ -3,6 +3,7 @@
 import { useRef, useEffect } from "react";
 import type { DynamicInputProps } from "../DynamicInput";
 import styles from "../DynamicInput.module.css";
+import InputLabel from "../InputLabel";
 
 export default function RangeInput({ input, value, onChange }: DynamicInputProps) {
   const min = input.min !== undefined ? parseFloat(input.min) : 0;
@@ -56,10 +57,7 @@ export default function RangeInput({ input, value, onChange }: DynamicInputProps
 
   return (
     <div className={styles.wrapper}>
-      <label className={styles.label}>
-        {input.label}
-        {input.required && <span className={styles.required}>*</span>}
-      </label>
+      <InputLabel input={input} />
       <div className={styles.rangeRow}>
         <button
           className={styles.rangeButton}

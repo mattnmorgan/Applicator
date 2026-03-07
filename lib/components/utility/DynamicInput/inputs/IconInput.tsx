@@ -3,6 +3,7 @@
 import { useRef } from "react";
 import type { DynamicInputProps } from "../DynamicInput";
 import styles from "../DynamicInput.module.css";
+import InputLabel from "../InputLabel";
 
 const MAX_SIZE = 1024 * 1024; // 1 MB
 
@@ -31,10 +32,7 @@ export default function IconInput({ input, value, onChange }: DynamicInputProps)
 
   return (
     <div className={styles.wrapper}>
-      <label className={styles.label}>
-        {input.label}
-        {input.required && <span className={styles.required}>*</span>}
-      </label>
+      <InputLabel input={input} />
       <input
         ref={fileRef}
         type="file"

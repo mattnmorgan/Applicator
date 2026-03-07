@@ -8,6 +8,7 @@ export { default as Icon } from "../lib/components/utility/Icon";
 export type { IconName } from "../lib/components/utility/Icon";
 export { default as Tooltip } from "../lib/components/utility/Tooltip";
 export type { TooltipPlacement } from "../lib/components/utility/Tooltip";
+export { default as InfoTooltip } from "../lib/components/utility/InfoTooltip";
 export { default as Button } from "../lib/components/utility/Button";
 export type { ButtonProps } from "../lib/components/utility/Button";
 export { default as Badge } from "../lib/components/utility/Badge/Badge";
