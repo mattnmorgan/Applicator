@@ -55,6 +55,12 @@
   background: #334155;
 }
 
+.menuItemDisabled {
+  color: #475569;
+  cursor: default;
+  pointer-events: none;
+}
+
 .separator {
   border-top: 1px solid #475569;
   margin: 4px 0;

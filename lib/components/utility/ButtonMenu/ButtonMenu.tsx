@@ -20,6 +20,7 @@ type ButtonMenuOption =
       icon: ReactNode | string;
       onClick: () => void;
       active?: boolean;
+      disabled?: boolean;
     };
 
 interface ButtonMenuProps {
@@ -163,11 +164,12 @@ export default function ButtonMenu({
           ) : (
             <button
               key={index}
-              onClick={() => {
+              onClick={option.disabled ? undefined : () => {
                 option.onClick();
                 setIsOpen(false);
               }}
-              className={`${styles.menuItem} ${option.active ? styles.menuItemActive : ""}`}
+              disabled={option.disabled}
+              className={`${styles.menuItem} ${option.active ? styles.menuItemActive : ""} ${option.disabled ? styles.menuItemDisabled : ""}`}
             >
               <div className={styles.menuItemIcon}>
                 {typeof option.icon === "string" ? (

@@ -94,6 +94,7 @@ export default function Breadcrumb({ items, separator = '>', style, collapsible 
             label: item.label,
             icon: '',
             onClick: item.onClick ?? (() => {}),
+            disabled: item.disabled || !item.onClick,
           }))}
         />
 
