@@ -41,7 +41,7 @@ export default class LogManager extends CRUD<Log> {
           sender,
         },
         {
-          id: `${now}`,
+          id: `${now}-${Math.random().toString(36).slice(2, 8)}`,
         },
       );
       return record;
