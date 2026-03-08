@@ -3,7 +3,9 @@ import path from "path";
 import Logger from "@/lib/system/logger";
 import fs from "fs/promises";
 import AgentManager from "@/lib/managers/agent";
+import AppManager from "@/lib/managers/app";
 import LogManager from "@/lib/managers/log";
+import { versionDir } from "@/lib/system/version";
 import {
   formatNextExecution,
   getNextCronExecution,
@@ -75,7 +77,6 @@ export default class Agent {
 
     await agentManager.updateRecord(await agentManager.getTable(), this.id, {
       status: agent.data.cron ? "scheduled" : "running",
-      was_running: true,
       last_error: undefined,
     });
 
@@ -136,7 +137,6 @@ export default class Agent {
               this.id,
               {
                 status: "stopped",
-                was_running: false,
               },
             );
           }
@@ -191,7 +191,6 @@ export default class Agent {
     if (agent) {
       await agentManager.updateRecord(await agentManager.getTable(), this.id, {
         status: "stopped",
-        was_running: false,
         pid: undefined,
       });
 
@@ -336,10 +335,16 @@ export default class Agent {
       return null;
     }
 
+    const appRecord = await new AppManager().readRecord(this.appId);
+    if (!appRecord) {
+      return null;
+    }
+
     return path.join(
       this.storagePath,
       "apps",
       this.appId,
+      versionDir(appRecord.data.version),
       "agents",
       `${this.agentName}.js`,
     );
@@ -525,7 +530,7 @@ export default class Agent {
         `${this.appId}:${this.agentName}`,
         {
           last_run: Date.now(),
-          last_error: executionContext?.error,
+          last_error: executionContext?.error ?? null,
         },
       );
     }

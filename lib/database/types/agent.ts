@@ -8,5 +8,4 @@ export default interface Agent {
   pid?: number;
   last_run?: number;
   last_error?: string;
-  was_running?: boolean;
 }

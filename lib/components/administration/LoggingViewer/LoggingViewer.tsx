@@ -102,6 +102,9 @@ export default function LoggingViewer() {
         setUserMap(map);
       })
       .catch(() => {});
+
+    const interval = setInterval(() => fetchLogs(true), 15000);
+    return () => clearInterval(interval);
   }, []);
 
   const getLevelColor = (level: string): string => {

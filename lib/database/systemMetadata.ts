@@ -680,13 +680,6 @@ export const SYSTEM_APP_METADATA = {
           type: "string",
           required: false,
         },
-        {
-          name: "was_running",
-          description: "Whether agent was running before server restart",
-          type: "boolean",
-          required: false,
-          defaultValue: false,
-        },
       ],
     },
   ],

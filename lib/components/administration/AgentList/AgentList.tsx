@@ -5,7 +5,9 @@ import Row from "../../utility/Row";
 import Badge from "../../utility/Badge/Badge";
 import styles from "./AgentList.module.css";
 import AgentManager from "@/lib/client/managers/agent";
-import Button from "../../utility/Button";
+import ButtonIcon from "../../utility/ButtonIcon";
+import Tooltip from "../../utility/Tooltip";
+import Icon from "../../utility/Icon";
 
 interface Agent {
   id: string;
@@ -145,6 +147,71 @@ export default function AgentList() {
                 <div className={styles.agentHeader}>
                   <div className={styles.agentName}>{agent.label || agent.name}</div>
                   {getStatusBadge(agent.status)}
+                  {agent.status === "scheduled" && agent.nextRunFormatted && (
+                    <Tooltip text={`Next run: ${agent.nextRunFormatted}`} placement="top">
+                      <span style={{ color: "#64748b", display: "inline-flex" }}>
+                        <Icon name="info" size={13} />
+                      </span>
+                    </Tooltip>
+                  )}
+                  {agent.lastRun && (
+                    <Tooltip
+                      placement="top"
+                      render={() => (
+                        <div>
+                          <div className={styles.lastRunPopoverLabel} style={{ color: agent.lastError ? "#ef4444" : "#34d399" }}>
+                            {agent.lastError ? "Last run failed" : "Last run succeeded"}
+                          </div>
+                          <div className={styles.lastRunPopoverDate}>
+                            {formatLastRun(agent.lastRun)}
+                          </div>
+                          {agent.lastError && (
+                            <div className={styles.lastRunPopoverError}>
+                              {agent.lastError}
+                            </div>
+                          )}
+                          <a href="/system/settings/debug/logs" className={styles.lastRunPopoverLink}>
+                            View system logs →
+                          </a>
+                        </div>
+                      )}
+                    >
+                      <span style={{ color: agent.lastError ? "#ef4444" : "#34d399", display: "inline-flex" }}>
+                        <Icon name={agent.lastError ? "close" : "check"} size={13} />
+                      </span>
+                    </Tooltip>
+                  )}
+                  <div className={styles.headerActions}>
+                    {agent.status === "scheduled" && (
+                      <ButtonIcon
+                        name="play"
+                        label="Run Now"
+                        onClick={() => handleRunNow(agent)}
+                        disabled={actionInProgress === agent.id}
+                        subvariant="info"
+                        placement="top"
+                      />
+                    )}
+                    {agent.status === "running" || agent.status === "scheduled" ? (
+                      <ButtonIcon
+                        name="square-stop"
+                        label={agent.cron ? "Unschedule" : "Terminate"}
+                        onClick={() => handleStopAgent(agent)}
+                        disabled={actionInProgress === agent.id}
+                        subvariant="danger"
+                        placement="top"
+                      />
+                    ) : (
+                      <ButtonIcon
+                        name="calendar"
+                        label={agent.cron ? "Schedule" : "Launch"}
+                        onClick={() => handleStartAgent(agent)}
+                        disabled={actionInProgress === agent.id}
+                        subvariant="info"
+                        placement="top"
+                      />
+                    )}
+                  </div>
                 </div>
                 <div className={styles.agentDescription}>
                   {agent.description}
@@ -158,63 +225,13 @@ export default function AgentList() {
                   {!agent.cron && (
                     <span className={styles.metaItem}>Continuous</span>
                   )}
-                  {(agent.status === "running" || agent.status === "scheduled") && agent.nextRunFormatted && (
-                    <span className={styles.metaItem}>
-                      Next run: {agent.nextRunFormatted}
-                    </span>
-                  )}
-                  {agent.lastRun && (
-                    <span className={styles.metaItem}>
-                      Last run: {formatLastRun(agent.lastRun)}
-                      {agent.lastError ? (
-                        <span className={styles.lastRunStatus}>
-                          <span className={styles.failIcon}>✕</span>
-                          <div className={styles.errorPopover}>
-                            <div className={styles.errorPopoverTitle}>Last run failed</div>
-                            <div className={styles.errorPopoverMessage}>{agent.lastError}</div>
-                            <a href="/system/settings/debug/logs" className={styles.errorPopoverLink}>
-                              View system logs →
-                            </a>
-                          </div>
-                        </span>
-                      ) : (
-                        <span className={styles.successIcon}>✓</span>
-                      )}
-                    </span>
-                  )}
+                  <span className={styles.appBadge}>
+                    <Badge variant={agent.app === "system" ? "purple" : "blue"}>
+                      {agent.appLabel}
+                    </Badge>
+                  </span>
                 </div>
               </div>
-            </div>
-            <div className={styles.actionsColumn}>
-              <Badge variant={agent.app === "system" ? "purple" : "blue"}>
-                {agent.appLabel}
-              </Badge>
-              {agent.status === "scheduled" && (
-                <Button
-                  variant="secondary"
-                  onClick={() => handleRunNow(agent)}
-                  disabled={actionInProgress === agent.id}
-                >
-                  {actionInProgress === agent.id ? "..." : "Run Now"}
-                </Button>
-              )}
-              {agent.status === "running" || agent.status === "scheduled" ? (
-                <Button
-                  variant="danger"
-                  onClick={() => handleStopAgent(agent)}
-                  disabled={actionInProgress === agent.id}
-                >
-                  {actionInProgress === agent.id ? "..." : agent.cron ? "Unschedule" : "Terminate"}
-                </Button>
-              ) : (
-                <Button
-                  variant="primary"
-                  onClick={() => handleStartAgent(agent)}
-                  disabled={actionInProgress === agent.id}
-                >
-                  {actionInProgress === agent.id ? "..." : agent.cron ? "Schedule" : "Launch"}
-                </Button>
-              )}
             </div>
           </Row>
         ))}

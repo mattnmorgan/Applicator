@@ -263,7 +263,6 @@ export async function installAppComponents(
           app: appId,
           cron: agent.cron,
           status: "stopped",
-          was_running: false,
         },
         { id: `${appId}:${agent.name}`, client },
       );
@@ -456,7 +455,7 @@ export async function updateAppComponents(
             description: agent.description || "",
             app: appId,
             cron: agent.cron,
-            // Preserve: status, pid, last_run, last_error, was_running
+            // Preserve: status, pid, last_run, last_error
           },
           { client },
         );
@@ -471,7 +470,6 @@ export async function updateAppComponents(
             app: appId,
             cron: agent.cron,
             status: "stopped",
-            was_running: false,
           },
           { id: `${appId}:${agent.name}`, client },
         );

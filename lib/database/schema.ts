@@ -135,7 +135,6 @@ const schema = new Schema({
         new Field({ name: "pid", type: "int", nillable: true }),
         new Field({ name: "last_run", type: "bigint", nillable: true }),
         new Field({ name: "last_error", type: "text", nillable: true }),
-        new Field({ name: "was_running", type: "boolean", nillable: true }),
         new Field({ name: "created_at", type: "bigint" }),
         new Field({ name: "updated_at", type: "bigint" }),
       ],

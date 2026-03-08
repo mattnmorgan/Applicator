@@ -47,8 +47,8 @@ class AgentSystem {
 
       this.registerShutdownHandlers();
 
-      // Restart agents that were running before
-      await this.restartPreviouslyRunningAgents();
+      // Restart agents that were active before shutdown
+      await this.restartActiveAgents();
 
       await new LogManager().info("system", "Agent system initialized");
     } catch (error: any) {
@@ -144,14 +144,16 @@ class AgentSystem {
   }
 
   /**
-   * Restart agents that were running before server shutdown.
+   * Restart agents that were active (scheduled or running) before server shutdown.
+   * Uses the agent's status as the sole source of truth — no separate was_running flag.
    */
-  public async restartPreviouslyRunningAgents(): Promise<void> {
+  public async restartActiveAgents(): Promise<void> {
     const agentManager = new AgentManager();
     const allAgents = await agentManager.readRecords();
 
     const agentsToRestart = allAgents.records.filter(
-      (agent) => agent.data.was_running === true,
+      (agent) =>
+        agent.data.status === "scheduled" || agent.data.status === "running",
     );
 
     for (const agentRecord of agentsToRestart) {
@@ -170,7 +172,6 @@ class AgentSystem {
             agentRecord.id,
             {
               status: "stopped",
-              was_running: false,
               last_error: "Storage not configured",
             },
           );

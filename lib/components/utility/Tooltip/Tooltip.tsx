@@ -1,17 +1,18 @@
 'use client';
 
-import React, { useState, useLayoutEffect, useRef } from 'react';
+import React, { useState, useLayoutEffect, useRef, useCallback } from 'react';
 import { createPortal } from 'react-dom';
 
 export type TooltipPlacement = 'top' | 'bottom' | 'left' | 'right';
 
 interface TooltipProps {
-  text: string;
+  text?: string;
+  render?: () => React.ReactNode;
   placement?: TooltipPlacement;
   children: React.ReactNode;
 }
 
-export default function Tooltip({ text, placement = 'bottom', children }: TooltipProps) {
+export default function Tooltip({ text, render, placement = 'bottom', children }: TooltipProps) {
   const [show, setShow] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number; visible: boolean }>({
     top: 0,
@@ -20,6 +21,20 @@ export default function Tooltip({ text, placement = 'bottom', children }: Toolti
   });
   const triggerRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
+  const hideTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const isCustom = !!render;
+
+  const scheduleHide = useCallback(() => {
+    hideTimeoutRef.current = setTimeout(() => setShow(false), 100);
+  }, []);
+
+  const cancelHide = useCallback(() => {
+    if (hideTimeoutRef.current) {
+      clearTimeout(hideTimeoutRef.current);
+      hideTimeoutRef.current = null;
+    }
+  }, []);
 
   React.useEffect(() => {
     if (!show) return;
@@ -81,16 +96,19 @@ export default function Tooltip({ text, placement = 'bottom', children }: Toolti
       ref={triggerRef}
       style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
       onMouseEnter={() => {
+        cancelHide();
         setPos({ top: 0, left: 0, visible: false });
         setShow(true);
       }}
-      onMouseLeave={() => setShow(false)}
+      onMouseLeave={isCustom ? scheduleHide : () => setShow(false)}
     >
       {children}
       {show && typeof document !== 'undefined' &&
         createPortal(
           <div
             ref={tooltipRef}
+            onMouseEnter={isCustom ? cancelHide : undefined}
+            onMouseLeave={isCustom ? scheduleHide : undefined}
             style={{
               position: 'fixed',
               top: pos.top,
@@ -98,17 +116,19 @@ export default function Tooltip({ text, placement = 'bottom', children }: Toolti
               visibility: pos.visible ? 'visible' : 'hidden',
               background: '#1e293b',
               color: '#f1f5f9',
-              padding: '6px 12px',
-              borderRadius: '4px',
+              padding: isCustom ? '10px 12px' : '6px 12px',
+              borderRadius: isCustom ? '6px' : '4px',
               fontSize: '12px',
-              whiteSpace: 'nowrap',
-              pointerEvents: 'none',
+              whiteSpace: isCustom ? 'normal' : 'nowrap',
+              pointerEvents: isCustom ? 'auto' : 'none',
               zIndex: 99999,
               border: '1px solid #334155',
-              boxShadow: '0 2px 8px rgba(0, 0, 0, 0.3)',
+              boxShadow: isCustom ? '0 4px 12px rgba(0, 0, 0, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.3)',
+              minWidth: isCustom ? '220px' : undefined,
+              maxWidth: isCustom ? '320px' : undefined,
             }}
           >
-            {text}
+            {render ? render() : text}
           </div>,
           document.body,
         )}
