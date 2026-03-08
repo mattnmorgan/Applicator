@@ -1,8 +1,11 @@
 .next/
 .claude/
 node_modules/
+dist/
 production/
 .env
-.env.local
-dist/
+.env.*
+tsconfig.tsbuildinfo
 *.log
+NOTES.md
+nul
