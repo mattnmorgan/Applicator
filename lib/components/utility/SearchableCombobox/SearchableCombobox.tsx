@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import styles from "./SearchableCombobox.module.css";
 
 export interface SearchableComboboxProps<T> {
@@ -36,7 +37,10 @@ export default function SearchableCombobox<T>({
   const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
   const [hasOverflow, setHasOverflow] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [dropdownPosition, setDropdownPosition] = useState({ top: 0, left: 0, width: 0 });
 
   // Scroll pills area to end and check overflow when selection changes
   useEffect(() => {
@@ -84,12 +88,32 @@ export default function SearchableCombobox<T>({
       ? []
       : items;
 
+  useEffect(() => { setMounted(true); }, []);
+
+  // Compute portal dropdown position whenever it opens
+  useEffect(() => {
+    if (!isOpen || !containerRef.current) return;
+    const update = () => {
+      if (!containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      setDropdownPosition({ top: rect.bottom + 4, left: rect.left, width: rect.width });
+    };
+    update();
+    window.addEventListener("scroll", update, { capture: true, passive: true });
+    window.addEventListener("resize", update);
+    return () => {
+      window.removeEventListener("scroll", update, { capture: true });
+      window.removeEventListener("resize", update);
+    };
+  }, [isOpen]);
+
   // Close dropdown on outside click
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
       if (
         containerRef.current &&
-        !containerRef.current.contains(e.target as Node)
+        !containerRef.current.contains(e.target as Node) &&
+        (!dropdownRef.current || !dropdownRef.current.contains(e.target as Node))
       ) {
         setIsOpen(false);
       }
@@ -270,21 +294,21 @@ export default function SearchableCombobox<T>({
         )}
       </div>
 
-      {/* Dropdown */}
-      {isOpen && !disabled && (
+      {/* Dropdown — portal-rendered to escape modal overflow clipping */}
+      {mounted && isOpen && !disabled && createPortal(
         <div
+          ref={dropdownRef}
           style={{
-            position: "absolute",
-            top: "100%",
-            left: 0,
-            right: 0,
+            position: "fixed",
+            top: `${dropdownPosition.top}px`,
+            left: `${dropdownPosition.left}px`,
+            width: `${dropdownPosition.width}px`,
             background: "#1e293b",
             border: "1px solid #334155",
             borderRadius: "4px",
-            marginTop: "4px",
             maxHeight: "200px",
             overflow: "auto",
-            zIndex: 10,
+            zIndex: 9999,
           }}
         >
           {minSearchLength > 0 && debouncedTerm.length < minSearchLength ? (
@@ -361,7 +385,7 @@ export default function SearchableCombobox<T>({
             })
           )}
         </div>
-      )}
+      , document.body)}
     </div>
   );
 }
