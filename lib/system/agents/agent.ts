@@ -9,7 +9,6 @@ import { versionDir } from "@/lib/system/version";
 import {
   formatNextExecution,
   getNextCronExecution,
-  matchesCronSchedule,
 } from "@/lib/system/cron";
 import { ChildProcess, fork } from "child_process";
 import AgentState from "@/lib/system/agents/types/state";
@@ -71,73 +70,51 @@ export default class Agent {
       throw new Error(`Agent not found: ${this.id}`);
     }
 
-    if (this.isRunning) {
+    const alreadyActive =
+      agent.data.status === "scheduled" || agent.data.status === "running";
+    if (alreadyActive) {
       return true;
     }
 
-    await agentManager.updateRecord(await agentManager.getTable(), this.id, {
-      status: agent.data.cron ? "scheduled" : "running",
-      last_error: undefined,
-    });
-
-    const agentState: AgentState = {};
-
     if (agent.data.cron) {
+      // CRON agents are driven by the central AgentSystem scheduler.
+      // Just mark as scheduled in the DB — the scheduler will execute on the next tick.
+      await agentManager.updateRecord(await agentManager.getTable(), this.id, {
+        status: "scheduled",
+      });
+
       await new LogManager().info(
         this.appId,
-        `Starting CRON agent '${agent.data.name}' with schedule: ${agent.data.cron}`,
+        `Scheduled CRON agent '${agent.data.name}' with schedule: ${agent.data.cron}`,
       );
-
-      agentState.cronInterval = setInterval(async () => {
-        try {
-          if (matchesCronSchedule(agent.data.cron!, new Date())) {
-            const now = new Date();
-            now.setSeconds(0, 0);
-            if (agentState.lastExecution?.getTime() === now.getTime()) {
-              return;
-            }
-            agentState.lastExecution = now;
-            await new Agent(
-              this.appId,
-              this.agentName,
-              new Logger({ filename: "" }),
-            ).execute();
-          }
-        } catch (error: any) {
-          await new LogManager().error(
-            this.appId,
-            `CRON agent '${agent.data.name}' execution failed: ${error.message}`,
-          );
-        }
-      }, 60000);
     } else {
+      // Continuous agent: fork the process and track it in the static map.
+      await agentManager.updateRecord(await agentManager.getTable(), this.id, {
+        status: "running",
+      });
+
       await new LogManager().info(
         this.appId,
         `Starting continuous agent '${agent.data.name}' as child process`,
       );
 
       const { child, exitPromise } = await this.forkAgentProcess("continuous");
+      const agentState: AgentState = { process: child };
 
-      agentState.process = child;
+      Agent.runningAgents.set(this.id, agentState);
 
-      // Handle process exit asynchronously
       exitPromise
         .then(async (code) => {
-          // Only log if agent was still supposed to be running
           if (Agent.runningAgents.has(this.id)) {
             await new LogManager().info(
               this.appId,
               `Continuous agent '${agent.data.name}' process exited with code ${code}`,
             );
             Agent.runningAgents.delete(this.id);
-
-            // Update status in database
             await agentManager.updateRecord(
               await agentManager.getTable(),
               this.id,
-              {
-                status: "stopped",
-              },
+              { status: "stopped" },
             );
           }
         })
@@ -149,7 +126,6 @@ export default class Agent {
         });
     }
 
-    Agent.runningAgents.set(this.id, agentState);
     return true;
   }
 
@@ -159,28 +135,22 @@ export default class Agent {
   public async stop(): Promise<boolean> {
     const agentState = Agent.runningAgents.get(this.id);
 
-    if (agentState) {
-      if (agentState.cronInterval) {
-        clearInterval(agentState.cronInterval);
+    if (agentState?.process) {
+      // Send shutdown message via IPC (works on Windows where SIGTERM doesn't)
+      if (agentState.process.connected) {
+        agentState.process.send({ type: "shutdown" });
       }
 
-      if (agentState.process) {
-        // Send shutdown message via IPC (works on Windows where SIGTERM doesn't)
-        if (agentState.process.connected) {
-          agentState.process.send({ type: "shutdown" });
-        }
-
-        // Give the process a moment to shut down gracefully, then force kill
-        setTimeout(() => {
-          try {
-            if (agentState.process && !agentState.process.killed) {
-              agentState.process.kill("SIGKILL");
-            }
-          } catch {
-            // Process may already be gone
+      // Give the process a moment to shut down gracefully, then force kill
+      setTimeout(() => {
+        try {
+          if (agentState.process && !agentState.process.killed) {
+            agentState.process.kill("SIGKILL");
           }
-        }, 3000);
-      }
+        } catch {
+          // Process may already be gone
+        }
+      }, 3000);
 
       Agent.runningAgents.delete(this.id);
     }

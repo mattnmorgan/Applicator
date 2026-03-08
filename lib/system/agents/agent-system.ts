@@ -1,6 +1,8 @@
 import Agent from "@/lib/system/agents/agent";
 import AgentManager from "@/lib/managers/agent";
 import LogManager from "@/lib/managers/log";
+import Logger from "@/lib/system/logger";
+import { matchesCronSchedule } from "@/lib/system/cron";
 
 /**
  * Singleton class to manage the agent system lifecycle.
@@ -11,6 +13,7 @@ class AgentSystem {
   private initialized: boolean = false;
   private shutdownHandlersRegistered: boolean = false;
   private isShuttingDown: boolean = false;
+  private schedulerInterval: NodeJS.Timeout | null = null;
 
   private constructor() {}
 
@@ -47,8 +50,11 @@ class AgentSystem {
 
       this.registerShutdownHandlers();
 
-      // Restart agents that were active before shutdown
+      // Restart continuous agents that were running before shutdown.
+      // CRON agents are automatically picked up by the scheduler below.
       await this.restartActiveAgents();
+
+      this.startScheduler();
 
       await new LogManager().info("system", "Agent system initialized");
     } catch (error: any) {
@@ -58,6 +64,63 @@ class AgentSystem {
         `Failed to initialize agent system: ${error.message}`,
       );
     }
+  }
+
+  /**
+   * Start the central CRON scheduler. Fires every 60 seconds and executes
+   * any scheduled agent whose cron expression matches the current time.
+   * The DB is the sole source of truth — stopping an agent just updates its
+   * status to "stopped" and the scheduler will skip it on the next tick.
+   */
+  private startScheduler(): void {
+    const tick = async () => {
+      try {
+        const agentManager = new AgentManager();
+        const allAgents = await agentManager.readRecords();
+        const now = new Date();
+
+        let started = 0;
+
+        for (const record of allAgents.records) {
+          if (record.data.status !== "scheduled" || !record.data.cron) {
+            continue;
+          }
+
+          if (!matchesCronSchedule(record.data.cron, now)) {
+            continue;
+          }
+
+          const agentId = `${record.data.app}:${record.data.name}`;
+          if (Agent.isAgentExecuting(agentId)) {
+            continue;
+          }
+
+          const agent = new Agent(
+            record.data.app,
+            record.data.name,
+            new Logger({ filename: "" }),
+          );
+
+          agent.execute().catch(async (error: any) => {
+            await new LogManager().error(
+              record.data.app,
+              `Scheduler failed to execute agent '${record.data.name}': ${error.message}`,
+            );
+          });
+
+          started++;
+        }
+
+        await new LogManager().debug(
+          "system",
+          `Agent scheduler tick: started ${started} agent${started !== 1 ? "s" : ""}`,
+        );
+      } catch (error: any) {
+        console.error("Agent scheduler tick failed:", error);
+      }
+    };
+
+    this.schedulerInterval = setInterval(tick, 60000);
   }
 
   /**
@@ -121,6 +184,11 @@ class AgentSystem {
       return;
     }
 
+    if (this.schedulerInterval) {
+      clearInterval(this.schedulerInterval);
+      this.schedulerInterval = null;
+    }
+
     try {
       await new LogManager().info("system", "Shutting down agent system...");
       await Agent.stopAll();
@@ -144,23 +212,22 @@ class AgentSystem {
   }
 
   /**
-   * Restart agents that were active (scheduled or running) before server shutdown.
-   * Uses the agent's status as the sole source of truth — no separate was_running flag.
+   * Restart continuous agents that were running before server shutdown.
+   * CRON agents with status "scheduled" are skipped — the scheduler handles them.
    */
   public async restartActiveAgents(): Promise<void> {
     const agentManager = new AgentManager();
     const allAgents = await agentManager.readRecords();
 
+    // Only restart continuous (non-cron) agents; CRON agents are driven by the scheduler.
     const agentsToRestart = allAgents.records.filter(
-      (agent) =>
-        agent.data.status === "scheduled" || agent.data.status === "running",
+      (agent) => agent.data.status === "running" && !agent.data.cron,
     );
 
     for (const agentRecord of agentsToRestart) {
       try {
         const agent = new Agent(agentRecord.data.app, agentRecord.data.name);
 
-        // Check if the agent script file exists before trying to start
         const scriptPath = await agent.getScriptPath();
         if (!scriptPath) {
           await new LogManager().warn(
@@ -187,14 +254,13 @@ class AgentSystem {
             agentRecord.data.app,
             `Cannot auto-restart agent '${agentRecord.data.name}': script file not found (app may have been uninstalled)`,
           );
-          // Clean up the orphaned agent record
           await agentManager.deleteRecord(agentRecord.id);
           continue;
         }
 
         await new LogManager().info(
           agentRecord.data.app,
-          `Auto-restarting agent '${agentRecord.data.name}'`,
+          `Auto-restarting continuous agent '${agentRecord.data.name}'`,
         );
 
         await agent.start();
@@ -204,7 +270,6 @@ class AgentSystem {
           `Failed to auto-restart agent '${agentRecord.data.name}': ${error.message}`,
         );
 
-        // Update agent with error status
         await agentManager.updateRecord(
           await agentManager.getTable(),
           agentRecord.id,
