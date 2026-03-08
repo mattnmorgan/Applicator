@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, useEffect, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import Button from '@/lib/components/utility/Button';
 
@@ -12,6 +12,14 @@ export default function LoginPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+  const [brandName, setBrandName] = useState('');
+
+  useEffect(() => {
+    fetch('/api/system/settings')
+      .then((r) => r.json())
+      .then((data) => setBrandName(data.settings?.brandName || 'Applicator'))
+      .catch(() => setBrandName('Applicator'));
+  }, []);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -67,7 +75,7 @@ export default function LoginPage() {
           marginBottom: '10px',
           color: '#f1f5f9'
         }}>
-          Applicator
+          {brandName}
         </h1>
         <p style={{
           color: '#94a3b8',

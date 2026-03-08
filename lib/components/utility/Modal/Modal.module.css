@@ -13,8 +13,12 @@
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to   { opacity: 1; }
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
 }
 
 .modal {
@@ -22,7 +26,9 @@
   border: 1px solid #334155;
   border-radius: 12px;
   width: 90%;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.4), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.4),
+    0 10px 10px -5px rgba(0, 0, 0, 0.2);
   animation: slideIn 0.2s ease-out;
   display: flex;
   flex-direction: column;
@@ -89,4 +95,12 @@
   padding: 16px 24px;
   border-top: 1px solid #334155;
   flex-shrink: 0;
+}
+
+@media (max-width: 768px) {
+  .modal {
+    width: 100%;
+    max-width: 100% !important;
+    max-height: 95vh;
+  }
 }

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import styles from "./Tabset.module.css";
 
@@ -133,9 +133,24 @@ export default function Tabset({
     router.push(path);
   };
 
+  const horizontalRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (variant !== "horizontal") return;
+    const el = horizontalRef.current;
+    if (!el) return;
+    const onWheel = (e: WheelEvent) => {
+      if (e.deltaY === 0) return;
+      e.preventDefault();
+      el.scrollLeft += e.deltaY;
+    };
+    el.addEventListener("wheel", onWheel, { passive: false });
+    return () => el.removeEventListener("wheel", onWheel);
+  }, [variant]);
+
   if (variant === "horizontal") {
     return (
-      <div className={styles.tabsetHorizontal}>
+      <div ref={horizontalRef} className={styles.tabsetHorizontal}>
         {items.map((item, index) => {
           const isActive = item.path === pathname;
           const isClickable =
