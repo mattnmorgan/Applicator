@@ -12,6 +12,7 @@ import AppletSettingManager from "@/lib/client/managers/appletSetting";
 import DynamicInput from "@/lib/components/utility/DynamicInput/DynamicInput";
 import Button from "@/lib/components/utility/Button/Button";
 import ButtonIcon from "@/lib/components/utility/ButtonIcon";
+import StickyFooter from "@/lib/components/utility/StickyFooter";
 import Icon from "@/lib/components/utility/Icon";
 import type { DynamicInputDefinition } from "@/lib/components/utility/DynamicInput/types/dynamic-input-definition";
 import styles from "./page.module.css";
@@ -585,11 +586,11 @@ export default function HomeSettingsPage() {
         )}
       </section>
 
-      <div className={styles.actions}>
+      <StickyFooter bleed={20}>
         <Button variant="primary" onClick={handleSave} disabled={saving}>
           {saving ? "Saving..." : "Save"}
         </Button>
-      </div>
+      </StickyFooter>
 
       {isAddModalOpen && (
         <AddAppletModal

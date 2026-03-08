@@ -120,6 +120,9 @@
   color: #f1f5f9;
   font-size: 14px;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .statusColumn {

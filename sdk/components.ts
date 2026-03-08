@@ -1,6 +1,10 @@
 // Utility components for Applicator app development
 
 export { default as Accordion } from "../lib/components/utility/Accordion";
+export { default as DrawerLayout } from "../lib/components/utility/DrawerLayout";
+export type { DrawerLayoutProps, DrawerPanelConfig } from "../lib/components/utility/DrawerLayout";
+export { default as StickyFooter } from "../lib/components/utility/StickyFooter";
+export type { StickyFooterProps } from "../lib/components/utility/StickyFooter";
 export { default as AccessDenied } from "../lib/components/utility/AccessDenied";
 export { default as Breadcrumb } from "../lib/components/utility/Breadcrumb";
 export type { BreadcrumbItem } from "../lib/components/utility/Breadcrumb";

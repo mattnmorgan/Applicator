@@ -13,6 +13,7 @@ import User from "@/lib/database/types/user";
 import Authority from "@/lib/database/types/authority";
 import { uploadFile, getSystemSettings } from "@/lib/client/database/crud/";
 import Button from "@/lib/components/utility/Button";
+import StickyFooter from "@/lib/components/utility/StickyFooter";
 
 interface Authorization {
   id: string;
@@ -548,7 +549,7 @@ export default function UserCreate({
           </div>
         </div>
 
-        <div className={styles.actions}>
+        <StickyFooter bleed={20}>
           <Button type="button" variant="secondary" onClick={onCancel}>
             Cancel
           </Button>
@@ -561,7 +562,7 @@ export default function UserCreate({
                 ? "Update User"
                 : "Create User"}
           </Button>
-        </div>
+        </StickyFooter>
       </form>
     </div>
   );

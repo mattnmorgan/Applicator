@@ -6,6 +6,7 @@
   border-radius: 8px;
   cursor: pointer;
   transition: background 0.2s;
+  min-width: 0;
 }
 
 .avatar {
@@ -43,6 +44,10 @@
   color: #e2e8f0;
   font-size: 14px;
   font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .caret {

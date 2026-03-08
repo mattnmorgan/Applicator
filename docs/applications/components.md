@@ -26,6 +26,7 @@ All components are exported from a single barrel file. Use named imports to pick
 | [ButtonIcon](./components/button-icon.md) | Icon-only button with hover tooltip |
 | [ButtonMenu](./components/button-menu.md) | Dropdown menu opened from a trigger element |
 | [ConfirmModal](./components/confirm-modal.md) | Confirmation dialog with cancel and confirm buttons |
+| [DrawerLayout](./components/drawer-layout.md) | Responsive layout with collapsible inline or overlay side panels |
 | [Modal](./components/modal.md) | Flexible modal with header/body/footer slots and optional close behavior |
 | [DynamicInput](./components/dynamic-input.md) | Form input rendered from a declarative definition; supports 19 input types |
 | [InfoTooltip](./components/info-tooltip.md) | Inline `(?)` indicator that shows a hover tooltip |
@@ -34,6 +35,7 @@ All components are exported from a single barrel file. Use named imports to pick
 | [ProfileIndicator](./components/profile-indicator.md) | User avatar with display name |
 | [Row](./components/row.md) | Styled row container with optional click handler |
 | [SearchableCombobox](./components/searchable-combobox.md) | Generic searchable single- or multi-select dropdown |
+| [StickyFooter](./components/sticky-footer.md) | Sticky action bar that anchors to the bottom of its scroll container |
 | [Tabset](./components/tabset.md) | Vertical tree or horizontal tab navigation |
 | [ToastStack](./components/toast-stack.md) | Multi-toast notification manager rendered via portal |
 | [Tooltip](./components/tooltip.md) | Hover tooltip wrapper with auto-flip positioning |

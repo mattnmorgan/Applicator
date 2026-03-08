@@ -4,6 +4,7 @@ import Context from "@/lib/database/validation/types/formula-context";
 import path from "path";
 import fs from "fs";
 import vm from "vm";
+import { versionDir } from "@/lib/system/version";
 
 /**
  * Execute a formula script for a field
@@ -33,11 +34,19 @@ export async function executeFormula(
       throw new Error("System storage not configured");
     }
 
-    // Build the formula script path from system storage
+    // Resolve the active version of the app
+    const { default: AppManager } = await import("@/lib/managers/app");
+    const appRecord = await new AppManager().readRecord(appId);
+    if (!appRecord) {
+      throw new Error(`App not found: ${appId}`);
+    }
+
+    // Build the formula script path from system storage using the versioned directory
     const formulaPath = path.join(
       storagePath,
       "apps",
       appId,
+      versionDir(appRecord.data.version),
       "tables",
       tableName,
       field.name,

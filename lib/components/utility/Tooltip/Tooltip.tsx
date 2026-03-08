@@ -21,6 +21,13 @@ export default function Tooltip({ text, placement = 'bottom', children }: Toolti
   const triggerRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLDivElement>(null);
 
+  React.useEffect(() => {
+    if (!show) return;
+    const hide = () => setShow(false);
+    window.addEventListener('scroll', hide, { capture: true, passive: true });
+    return () => window.removeEventListener('scroll', hide, { capture: true });
+  }, [show]);
+
   useLayoutEffect(() => {
     if (!show || !triggerRef.current || !tooltipRef.current) return;
 

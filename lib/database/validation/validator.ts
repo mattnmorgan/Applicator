@@ -4,6 +4,7 @@ import Context from "@/lib/database/validation/types/validator-context";
 import path from "path";
 import fs from "fs";
 import vm from "vm";
+import { versionDir } from "@/lib/system/version";
 
 /**
  * Execute a validator script for a field
@@ -31,11 +32,20 @@ export async function executeValidator(
       return { field: field.name, valid: true };
     }
 
-    // Build the validator script path from system storage
+    // Resolve the active version of the app
+    const { default: AppManager } = await import("@/lib/managers/app");
+    const appRecord = await new AppManager().readRecord(appId);
+    if (!appRecord) {
+      // App not found — treat as no validator
+      return { field: field.name, valid: true };
+    }
+
+    // Build the validator script path from system storage using the versioned directory
     const validatorPath = path.join(
       storagePath,
       "apps",
       appId,
+      versionDir(appRecord.data.version),
       "tables",
       tableName,
       field.name,

@@ -1,8 +1,8 @@
-'use client';
+"use client";
 
-import { useState } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
-import styles from './Tabset.module.css';
+import { useState } from "react";
+import { useRouter, usePathname } from "next/navigation";
+import styles from "./Tabset.module.css";
 
 export interface TabsetItem {
   label: string;
@@ -13,7 +13,7 @@ export interface TabsetItem {
 
 interface TabsetProps {
   items: TabsetItem[];
-  variant?: 'vertical' | 'horizontal';
+  variant?: "vertical" | "horizontal";
   searchable?: boolean;
   autoExpand?: boolean;
 }
@@ -26,7 +26,13 @@ interface TreeItemProps {
   autoExpand?: boolean;
 }
 
-function TreeItem({ item, currentPath, searchTerm, onNavigate, autoExpand = false }: TreeItemProps) {
+function TreeItem({
+  item,
+  currentPath,
+  searchTerm,
+  onNavigate,
+  autoExpand = false,
+}: TreeItemProps) {
   const [isExpanded, setIsExpanded] = useState(autoExpand);
   const hasChildren = item.children && item.children.length > 0;
   const isClickable = item.clickable !== false && item.path !== undefined;
@@ -36,17 +42,20 @@ function TreeItem({ item, currentPath, searchTerm, onNavigate, autoExpand = fals
   const getFilteredChildren = () => {
     if (!hasChildren || !searchTerm) return item.children;
 
-    return item.children!.filter(child => {
-      const matchesLabel = child.label.toLowerCase().includes(searchTerm.toLowerCase());
-      const hasMatchingChildren = child.children?.some(grandchild =>
-        grandchild.label.toLowerCase().includes(searchTerm.toLowerCase())
+    return item.children!.filter((child) => {
+      const matchesLabel = child.label
+        .toLowerCase()
+        .includes(searchTerm.toLowerCase());
+      const hasMatchingChildren = child.children?.some((grandchild) =>
+        grandchild.label.toLowerCase().includes(searchTerm.toLowerCase()),
       );
       return matchesLabel || hasMatchingChildren;
     });
   };
 
   const filteredChildren = getFilteredChildren();
-  const shouldShow = !searchTerm ||
+  const shouldShow =
+    !searchTerm ||
     item.label.toLowerCase().includes(searchTerm.toLowerCase()) ||
     (filteredChildren && filteredChildren.length > 0);
 
@@ -66,13 +75,15 @@ function TreeItem({ item, currentPath, searchTerm, onNavigate, autoExpand = fals
       <div
         className={`
           ${styles.itemContent}
-          ${isActive ? styles.itemContentActive : ''}
-          ${!isClickable ? styles.itemContentNonClickable : ''}
+          ${isActive ? styles.itemContentActive : ""}
+          ${!isClickable ? styles.itemContentNonClickable : ""}
         `}
         onClick={handleClick}
       >
         {hasChildren && (
-          <span className={`${styles.expandIcon} ${isExpanded ? styles.expandIconExpanded : styles.expandIconCollapsed}`}>
+          <span
+            className={`${styles.expandIcon} ${isExpanded ? styles.expandIconExpanded : styles.expandIconCollapsed}`}
+          >
             <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
               <path
                 d="M4 2L8 6L4 10"
@@ -84,49 +95,60 @@ function TreeItem({ item, currentPath, searchTerm, onNavigate, autoExpand = fals
             </svg>
           </span>
         )}
-        {!hasChildren && <span style={{ width: '16px' }} />}
+        {!hasChildren && <span style={{ width: "16px" }} />}
         <span>{item.label}</span>
       </div>
-      {hasChildren && isExpanded && filteredChildren && filteredChildren.length > 0 && (
-        <div className={styles.children}>
-          {filteredChildren.map((child, index) => (
-            <TreeItem
-              key={index}
-              item={child}
-              currentPath={currentPath}
-              searchTerm={searchTerm}
-              onNavigate={onNavigate}
-              autoExpand={autoExpand}
-            />
-          ))}
-        </div>
-      )}
+      {hasChildren &&
+        isExpanded &&
+        filteredChildren &&
+        filteredChildren.length > 0 && (
+          <div className={styles.children}>
+            {filteredChildren.map((child, index) => (
+              <TreeItem
+                key={index}
+                item={child}
+                currentPath={currentPath}
+                searchTerm={searchTerm}
+                onNavigate={onNavigate}
+                autoExpand={autoExpand}
+              />
+            ))}
+          </div>
+        )}
     </div>
   );
 }
 
-export default function Tabset({ items, variant = 'vertical', searchable = false, autoExpand = false }: TabsetProps) {
+export default function Tabset({
+  items,
+  variant = "vertical",
+  searchable = false,
+  autoExpand = false,
+}: TabsetProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const [searchTerm, setSearchTerm] = useState('');
+  const [searchTerm, setSearchTerm] = useState("");
 
   const handleNavigate = (path: string) => {
     router.push(path);
   };
 
-  if (variant === 'horizontal') {
+  if (variant === "horizontal") {
     return (
       <div className={styles.tabsetHorizontal}>
         {items.map((item, index) => {
           const isActive = item.path === pathname;
-          const isClickable = item.clickable !== false && item.path !== undefined;
+          const isClickable =
+            item.clickable !== false && item.path !== undefined;
 
           return (
             <div
               key={index}
-              className={`${styles.horizontalTab} ${isActive ? styles.horizontalTabActive : ''}`}
-              onClick={() => isClickable && item.path && handleNavigate(item.path)}
-              style={{ cursor: isClickable ? 'pointer' : 'default' }}
+              className={`${styles.horizontalTab} ${isActive ? styles.horizontalTabActive : ""}`}
+              onClick={() =>
+                isClickable && item.path && handleNavigate(item.path)
+              }
+              style={{ cursor: isClickable ? "pointer" : "default" }}
             >
               {item.label}
             </div>

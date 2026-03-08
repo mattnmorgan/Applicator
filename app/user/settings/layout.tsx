@@ -5,6 +5,7 @@ import AppletManager from "@/lib/managers/applet";
 import AuthorityManager from "@/lib/managers/authority";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/utility/Tabset";
+import SettingsDrawerLayout from "@/lib/components/administration/SettingsDrawerLayout";
 
 // Inlined helper functions
 async function getCurrentUser() {
@@ -160,52 +161,31 @@ export default async function UserSettingsLayout({
       />
       <div
         style={{
-          minHeight: "calc(100vh - 64px)",
+          height: "100vh",
           background: "#0f172a",
           paddingTop: "84px",
           paddingLeft: "20px",
           paddingRight: "20px",
           paddingBottom: "20px",
           boxSizing: "border-box",
+          display: "flex",
+          flexDirection: "column",
+          overflow: "hidden",
         }}
       >
-        <div
-          style={{
-            display: "flex",
-            gap: "20px",
-            height: "calc(100vh - 104px)",
-          }}
-        >
-          <aside
-            style={{
-              width: "250px",
-              background: "#1e293b",
-              padding: "20px",
-              borderRadius: "10px",
-              border: "1px solid #334155",
-              overflowY: "auto",
-            }}
-          >
+        <SettingsDrawerLayout
+          navTitle="User Settings"
+          nav={
             <Tabset
               items={userSettingsMenuItems}
               variant="vertical"
               searchable
               autoExpand
             />
-          </aside>
-          <main
-            style={{
-              flex: 1,
-              background: "#1e293b",
-              padding: "20px",
-              borderRadius: "10px",
-              border: "1px solid #334155",
-              overflowY: "auto",
-            }}
-          >
-            {children}
-          </main>
-        </div>
+          }
+        >
+          {children}
+        </SettingsDrawerLayout>
       </div>
     </>
   );

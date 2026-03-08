@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
+import ReactDOM from "react-dom";
 import { useRouter } from "next/navigation";
 import Notification from "@/lib/database/types/notification";
 import NotificationItem from "./NotificationItem";
@@ -15,6 +16,7 @@ export default function NotificationBell() {
     TableRecord<Notification>[]
   >([]);
   const [unreadCount, setUnreadCount] = useState(0);
+  const [paneStyle, setPaneStyle] = useState<React.CSSProperties | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const notificationManager = new NotificationManager();
@@ -41,6 +43,7 @@ export default function NotificationBell() {
   }, []);
 
   useEffect(() => {
+    if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
       if (
         containerRef.current &&
@@ -49,15 +52,22 @@ export default function NotificationBell() {
         setIsOpen(false);
       }
     };
-
-    if (isOpen) {
-      document.addEventListener("mousedown", handleClickOutside);
-    }
-
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [isOpen]);
+
+  const computePaneStyle = (): React.CSSProperties => {
+    if (!containerRef.current) return {};
+    const rect = containerRef.current.getBoundingClientRect();
+    const paneWidth = Math.min(400, window.innerWidth - 16);
+    const rightAlignedLeft = rect.right - paneWidth;
+    const top = rect.bottom + 8;
+    if (rightAlignedLeft < 8) {
+      const left = (window.innerWidth - paneWidth) / 2;
+      return { position: "fixed", top, left, width: paneWidth };
+    }
+    return { position: "fixed", top, left: rightAlignedLeft, width: paneWidth };
+  };
 
   const handleMarkAllRead = async () => {
     const unreadNotifications = notifications.filter((n) => !n.data.read);
@@ -125,7 +135,10 @@ export default function NotificationBell() {
     <div ref={containerRef} style={{ position: "relative" }}>
       <Button
         variant="ghost"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={() => {
+          if (!isOpen) setPaneStyle(computePaneStyle());
+          setIsOpen(!isOpen);
+        }}
         popover="Notifications"
         style={{ position: "relative" }}
       >
@@ -166,21 +179,18 @@ export default function NotificationBell() {
         )}
       </Button>
 
-      {isOpen && (
+      {isOpen && paneStyle && ReactDOM.createPortal(
         <div
           style={{
-            position: "absolute",
-            top: "calc(100% + 8px)",
-            right: 0,
+            ...paneStyle,
             background: "#0f172a",
             border: "1px solid #334155",
             borderRadius: "8px",
             boxShadow: "0 10px 25px rgba(0, 0, 0, 0.5)",
-            width: "400px",
             maxHeight: "500px",
             display: "flex",
             flexDirection: "column",
-            zIndex: 1000,
+            zIndex: 9999,
           }}
         >
           <div
@@ -249,7 +259,8 @@ export default function NotificationBell() {
               ))
             )}
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

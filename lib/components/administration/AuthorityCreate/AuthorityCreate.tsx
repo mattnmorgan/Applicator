@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import styles from "./AuthorityCreate.module.css";
 import ToastStack, { ToastItem } from "@/lib/components/utility/Toast";
+import StickyFooter from "@/lib/components/utility/StickyFooter";
 import Badge from "@/lib/components/utility/Badge/Badge";
 import AuthorityManager from "@/lib/client/managers/authority";
 import AppManager from "@/lib/client/managers/app";
@@ -576,7 +577,7 @@ export default function AuthorityCreate({
           </div>
         )}
 
-        <div className={styles.actions}>
+        <StickyFooter bleed={20}>
           <button
             type="button"
             className={styles.cancelActionButton}
@@ -597,7 +598,7 @@ export default function AuthorityCreate({
                 ? "Update Authority"
                 : "Create Authority"}
           </button>
-        </div>
+        </StickyFooter>
       </form>
     </div>
   );

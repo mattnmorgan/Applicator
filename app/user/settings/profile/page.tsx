@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 import Button from "@/lib/components/utility/Button";
+import StickyFooter from "@/lib/components/utility/StickyFooter";
 export default function ProfilePage() {
   const router = useRouter();
   const [displayName, setDisplayName] = useState("");
@@ -248,7 +249,7 @@ export default function ProfilePage() {
           />
         </div>
 
-        <div className={styles.actions}>
+        <StickyFooter bleed={20}>
           <Button
             type="submit"
             variant="primary"
@@ -256,7 +257,7 @@ export default function ProfilePage() {
           >
             {saving ? "Saving..." : "Save Changes"}
           </Button>
-        </div>
+        </StickyFooter>
       </form>
     </div>
   );

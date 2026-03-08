@@ -87,6 +87,7 @@
 .logsScroll {
   flex: 1;
   overflow-y: auto;
+  overflow-x: hidden;
   min-height: 0;
 }
 
@@ -148,6 +149,8 @@
 .logMessage {
   color: #f1f5f9;
   padding-left: 4px;
+  word-break: break-word;
+  overflow-wrap: break-word;
 }
 
 .loadMore {

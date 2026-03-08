@@ -615,7 +615,7 @@ export default function DynamicInputsTestPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "1fr 1fr",
+          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
           gap: "16px",
           marginBottom: "24px",
         }}
@@ -722,7 +722,7 @@ export default function DynamicInputsTestPage() {
       <div
         style={{
           display: "grid",
-          gridTemplateColumns: "minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1fr)",
+          gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
           gap: "16px",
           marginBottom: "24px",
         }}
