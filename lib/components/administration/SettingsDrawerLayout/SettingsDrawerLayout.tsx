@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { usePathname } from "next/navigation";
 import DrawerLayout from "@/lib/components/utility/DrawerLayout";
 import { IconName } from "@/lib/components/utility/Icon";
 
@@ -18,6 +19,11 @@ export default function SettingsDrawerLayout({
   navIconName = "hamburger",
 }: SettingsDrawerLayoutProps) {
   const [navOpen, setNavOpen] = useState(false);
+  const pathname = usePathname();
+
+  useEffect(() => {
+    setNavOpen(false);
+  }, [pathname]);
 
   return (
     <DrawerLayout
