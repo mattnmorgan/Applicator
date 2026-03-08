@@ -502,6 +502,9 @@ export class Filesystem {
     authorized: boolean;
     error?: string;
     status?: number;
+    /** Set when storage is configured and caller is an app (X-App-Id present).
+     *  All paths should be treated as relative to this root. */
+    storagePath?: string;
   }> {
     const cookieHeader = request.headers.get("cookie");
     const sessionId = cookieHeader?.match(/session=([^;]+)/)?.[1];
@@ -549,7 +552,8 @@ export class Filesystem {
         appAuthority &&
         appAuthority.data.authorizations.includes("system:fs-access")
       ) {
-        return { authorized: true };
+        const storagePath = ((storageRecord?.data.value as string) || "").replace(/\\/g, "/");
+        return { authorized: true, storagePath };
       }
       return {
         authorized: false,

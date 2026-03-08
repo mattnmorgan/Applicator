@@ -4,6 +4,103 @@ import fs from "fs";
 import path from "path";
 import os from "os";
 
+class AppPathError extends Error {
+  constructor(
+    message: string,
+    public status: number = 400,
+  ) {
+    super(message);
+  }
+}
+
+/**
+ * Resolve a storage-relative path to an absolute path, preventing traversal.
+ * Throws AppPathError if the path is absolute or attempts traversal.
+ */
+function resolveAppPath(storagePath: string, relPath: string): string {
+  if (!relPath) return path.resolve(storagePath);
+  if (path.isAbsolute(relPath) || /^[A-Za-z]:[\\/]/.test(relPath)) {
+    throw new AppPathError("Absolute paths are not allowed in app mode");
+  }
+  const normalized = path.normalize(relPath).replace(/^(\.\.[\\/])+/, "");
+  const resolved = path.resolve(storagePath, normalized);
+  const base = path.resolve(storagePath);
+  if (resolved !== base && !resolved.startsWith(base + path.sep)) {
+    throw new AppPathError("Path traversal detected");
+  }
+  return resolved;
+}
+
+/**
+ * Convert an absolute path back to a storage-relative path (forward slashes).
+ */
+function toRelPath(storagePath: string, absolutePath: string): string {
+  const base = path.resolve(storagePath);
+  const abs = path.resolve(absolutePath);
+  if (abs === base) return "";
+  return abs.startsWith(base + path.sep)
+    ? abs.slice(base.length + 1).replace(/\\/g, "/")
+    : abs.replace(/\\/g, "/");
+}
+
+/**
+ * Shared directory listing logic.
+ * @param absoluteDir Absolute path to the directory to list.
+ * @param storagePath If set, paths in the response are returned relative to this root.
+ */
+function listDirectoryContents(
+  absoluteDir: string,
+  storagePath?: string,
+): NextResponse {
+  if (!fs.existsSync(absoluteDir)) {
+    const currentPath = storagePath
+      ? toRelPath(storagePath, absoluteDir)
+      : absoluteDir.replace(/\\/g, "/");
+    return NextResponse.json({ files: [], currentPath });
+  }
+
+  const entries = fs.readdirSync(absoluteDir, { withFileTypes: true });
+  const files = entries.map((entry) => {
+    const fullPath = path.join(absoluteDir, entry.name);
+    const isDirectory = entry.isDirectory();
+    let size = 0;
+    let modifiedAt = new Date().toISOString();
+
+    try {
+      const stats = fs.statSync(fullPath);
+      size = stats.size;
+      modifiedAt = stats.mtime.toISOString();
+    } catch {
+      // Ignore stat errors
+    }
+
+    const returnPath = storagePath
+      ? toRelPath(storagePath, fullPath)
+      : fullPath.replace(/\\/g, "/");
+
+    return {
+      name: entry.name,
+      path: returnPath,
+      size: isDirectory ? 0 : size,
+      modifiedAt,
+      isDirectory,
+    };
+  });
+
+  files.sort((a, b) => {
+    if (a.isDirectory && !b.isDirectory) return -1;
+    if (!a.isDirectory && b.isDirectory) return 1;
+    return a.name.localeCompare(b.name);
+  });
+
+  const currentPath = storagePath
+    ? toRelPath(storagePath, absoluteDir)
+    : absoluteDir.replace(/\\/g, "/");
+
+  return NextResponse.json({ files, currentPath });
+}
+
+// GET — admin-only filesystem browser (absolute paths, no X-App-Id required)
 export async function GET(request: Request) {
   const access = await Filesystem.checkFsAccess(request);
   if (!access.authorized) {
@@ -13,16 +110,22 @@ export async function GET(request: Request) {
     );
   }
 
+  // App-mode callers must use POST { operation: "list", path } instead.
+  if (access.storagePath) {
+    return NextResponse.json(
+      { error: "App-mode requests must use POST with operation: 'list'" },
+      { status: 405 },
+    );
+  }
+
   try {
     const { searchParams } = new URL(request.url);
     const dir = searchParams.get("path");
 
-    // If no path provided, return drives on Windows or root on Unix
+    // No path → list drives / root
     if (!dir) {
       const platform = os.platform();
-
       if (platform === "win32") {
-        // Get available drives on Windows
         const drives: string[] = [];
         for (let i = 65; i <= 90; i++) {
           const drive = String.fromCharCode(i) + ":";
@@ -35,50 +138,11 @@ export async function GET(request: Request) {
         }
         return NextResponse.json({ drives, platform: "win32" });
       } else {
-        // Unix-like systems start at root
         return NextResponse.json({ drives: ["/"], platform: "unix" });
       }
     }
 
-    // Check if directory exists
-    if (!fs.existsSync(dir)) {
-      return NextResponse.json({ files: [], currentPath: dir });
-    }
-
-    // Read directory contents with full metadata
-    const entries = fs.readdirSync(dir, { withFileTypes: true });
-    const files = entries.map((entry) => {
-      const fullPath = path.join(dir, entry.name);
-      const isDirectory = entry.isDirectory();
-
-      let size = 0;
-      let modifiedAt = new Date().toISOString();
-
-      try {
-        const stats = fs.statSync(fullPath);
-        size = stats.size;
-        modifiedAt = stats.mtime.toISOString();
-      } catch {
-        // Ignore stat errors
-      }
-
-      return {
-        name: entry.name,
-        path: fullPath.replace(/\\/g, "/"),
-        size: isDirectory ? 0 : size,
-        modifiedAt,
-        isDirectory,
-      };
-    });
-
-    // Sort: directories first, then by name
-    files.sort((a, b) => {
-      if (a.isDirectory && !b.isDirectory) return -1;
-      if (!a.isDirectory && b.isDirectory) return 1;
-      return a.name.localeCompare(b.name);
-    });
-
-    return NextResponse.json({ files, currentPath: dir });
+    return listDirectoryContents(dir);
   } catch (error) {
     console.error("Failed to read directory:", error);
     return NextResponse.json(
@@ -107,53 +171,87 @@ export async function PUT(request: Request) {
       const parentPath = formData.get("path") as string | null;
       const name = formData.get("name") as string | null;
 
-      if (!file || !parentPath || !name) {
+      if (!file || parentPath === null || !name) {
         return NextResponse.json(
           { error: "File, path, and name are required" },
           { status: 400 },
         );
       }
 
-      const newPath = path.join(parentPath, name);
+      let absParent: string;
+      if (access.storagePath) {
+        try {
+          absParent = resolveAppPath(access.storagePath, parentPath);
+        } catch (e: any) {
+          return NextResponse.json(
+            { error: e.message },
+            { status: e.status || 400 },
+          );
+        }
+      } else {
+        absParent = parentPath;
+      }
 
-      // Create parent directory if it doesn't exist
+      const newPath = path.join(absParent, name);
       const directory = path.dirname(newPath);
       if (!fs.existsSync(directory)) {
         fs.mkdirSync(directory, { recursive: true });
       }
 
-      // Write binary file
       const buffer = Buffer.from(await file.arrayBuffer());
       fs.writeFileSync(newPath, buffer);
 
-      return NextResponse.json({ success: true, path: newPath, type: "file" });
+      const returnPath = access.storagePath
+        ? toRelPath(access.storagePath, newPath)
+        : newPath;
+      return NextResponse.json({ success: true, path: returnPath, type: "file" });
     }
 
-    // Handle JSON-based file/directory creation (text content only)
+    // Handle JSON-based file/directory creation
     const body = await request.json();
     const { path: parentPath, name, type = "directory", content = "" } = body;
 
-    if (!parentPath || !name) {
+    if (!name) {
       return NextResponse.json(
         { error: "Path and name are required" },
         { status: 400 },
       );
     }
 
-    const newPath = path.join(parentPath, name);
+    let absParent: string;
+    if (access.storagePath) {
+      try {
+        absParent = resolveAppPath(access.storagePath, parentPath || "");
+      } catch (e: any) {
+        return NextResponse.json(
+          { error: e.message },
+          { status: e.status || 400 },
+        );
+      }
+    } else {
+      if (!parentPath) {
+        return NextResponse.json(
+          { error: "Path and name are required" },
+          { status: 400 },
+        );
+      }
+      absParent = parentPath;
+    }
+
+    const newPath = path.join(absParent, name);
 
     if (type === "file") {
-      // Create file with optional content
       fs.writeFileSync(newPath, content, "utf8");
-      return NextResponse.json({ success: true, path: newPath, type: "file" });
+      const returnPath = access.storagePath
+        ? toRelPath(access.storagePath, newPath)
+        : newPath;
+      return NextResponse.json({ success: true, path: returnPath, type: "file" });
     } else if (type === "directory") {
-      // Create directory
       fs.mkdirSync(newPath, { recursive: true });
-      return NextResponse.json({
-        success: true,
-        path: newPath,
-        type: "directory",
-      });
+      const returnPath = access.storagePath
+        ? toRelPath(access.storagePath, newPath)
+        : newPath;
+      return NextResponse.json({ success: true, path: returnPath, type: "directory" });
     } else {
       return NextResponse.json(
         { error: 'Invalid type. Must be "file" or "directory"' },
@@ -186,16 +284,27 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ error: "Path is required" }, { status: 400 });
     }
 
-    // Check if path exists
-    const stats = fs.statSync(targetPath);
+    let absTargetPath: string;
+    if (access.storagePath) {
+      try {
+        absTargetPath = resolveAppPath(access.storagePath, targetPath);
+      } catch (e: any) {
+        return NextResponse.json(
+          { error: e.message },
+          { status: e.status || 400 },
+        );
+      }
+    } else {
+      absTargetPath = targetPath;
+    }
+
+    const stats = fs.statSync(absTargetPath);
 
     if (stats.isDirectory()) {
-      // Delete directory (recursively)
-      fs.rmSync(targetPath, { recursive: true, force: true });
+      fs.rmSync(absTargetPath, { recursive: true, force: true });
       return NextResponse.json({ success: true, type: "directory" });
     } else if (stats.isFile()) {
-      // Delete file
-      fs.unlinkSync(targetPath);
+      fs.unlinkSync(absTargetPath);
       return NextResponse.json({ success: true, type: "file" });
     } else {
       return NextResponse.json(
@@ -212,7 +321,7 @@ export async function DELETE(request: Request) {
   }
 }
 
-// POST handler for rename, move, and copy operations
+// POST — directory listing (operation: "list") + rename/move/copy operations
 export async function POST(request: Request) {
   const access = await Filesystem.checkFsAccess(request);
   if (!access.authorized) {
@@ -224,7 +333,7 @@ export async function POST(request: Request) {
 
   try {
     const body = await request.json();
-    const { operation, sourcePath, destinationPath, newName } = body;
+    const { operation, path: listPath, sourcePath, destinationPath, newName } = body;
 
     if (!operation) {
       return NextResponse.json(
@@ -233,16 +342,54 @@ export async function POST(request: Request) {
       );
     }
 
+    // Resolve paths for app mode
+    let absSourcePath = sourcePath;
+    let absDestPath = destinationPath;
+    if (access.storagePath) {
+      try {
+        if (sourcePath) absSourcePath = resolveAppPath(access.storagePath, sourcePath);
+        if (destinationPath) absDestPath = resolveAppPath(access.storagePath, destinationPath);
+      } catch (e: any) {
+        return NextResponse.json(
+          { error: e.message },
+          { status: e.status || 400 },
+        );
+      }
+    }
+
     switch (operation) {
+      case "list": {
+        let absoluteDir: string;
+        if (access.storagePath) {
+          try {
+            absoluteDir = resolveAppPath(access.storagePath, listPath || "");
+          } catch (e: any) {
+            return NextResponse.json(
+              { error: e.message },
+              { status: e.status || 400 },
+            );
+          }
+        } else {
+          if (!listPath) {
+            return NextResponse.json(
+              { error: "Path is required for list operation in admin mode" },
+              { status: 400 },
+            );
+          }
+          absoluteDir = listPath;
+        }
+        return listDirectoryContents(absoluteDir, access.storagePath);
+      }
+
       case "rename": {
-        if (!sourcePath || !newName) {
+        if (!absSourcePath || !newName) {
           return NextResponse.json(
             { error: "sourcePath and newName are required for rename" },
             { status: 400 },
           );
         }
 
-        const parentDir = path.dirname(sourcePath);
+        const parentDir = path.dirname(absSourcePath);
         const newPath = path.join(parentDir, newName);
 
         if (fs.existsSync(newPath)) {
@@ -252,23 +399,25 @@ export async function POST(request: Request) {
           );
         }
 
-        fs.renameSync(sourcePath, newPath);
-        return NextResponse.json({ success: true, path: newPath });
+        fs.renameSync(absSourcePath, newPath);
+        const returnPath = access.storagePath
+          ? toRelPath(access.storagePath, newPath)
+          : newPath;
+        return NextResponse.json({ success: true, path: returnPath });
       }
 
       case "move": {
-        if (!sourcePath || !destinationPath) {
+        if (!absSourcePath || !absDestPath) {
           return NextResponse.json(
             { error: "sourcePath and destinationPath are required for move" },
             { status: 400 },
           );
         }
 
-        // Check if source is a directory and destination is inside it
-        const normalizedSource = path.resolve(sourcePath).replace(/\\/g, "/");
-        const normalizedDest = path.resolve(destinationPath).replace(/\\/g, "/");
+        const normalizedSource = path.resolve(absSourcePath).replace(/\\/g, "/");
+        const normalizedDest = path.resolve(absDestPath).replace(/\\/g, "/");
 
-        if (fs.existsSync(sourcePath) && fs.statSync(sourcePath).isDirectory()) {
+        if (fs.existsSync(absSourcePath) && fs.statSync(absSourcePath).isDirectory()) {
           if (
             normalizedDest === normalizedSource ||
             normalizedDest.startsWith(normalizedSource + "/")
@@ -280,8 +429,8 @@ export async function POST(request: Request) {
           }
         }
 
-        const fileName = path.basename(sourcePath);
-        const newPath = path.join(destinationPath, fileName);
+        const fileName = path.basename(absSourcePath);
+        const newPath = path.join(absDestPath, fileName);
 
         if (fs.existsSync(newPath)) {
           return NextResponse.json(
@@ -290,28 +439,29 @@ export async function POST(request: Request) {
           );
         }
 
-        // Ensure destination directory exists
-        if (!fs.existsSync(destinationPath)) {
-          fs.mkdirSync(destinationPath, { recursive: true });
+        if (!fs.existsSync(absDestPath)) {
+          fs.mkdirSync(absDestPath, { recursive: true });
         }
 
-        fs.renameSync(sourcePath, newPath);
-        return NextResponse.json({ success: true, path: newPath });
+        fs.renameSync(absSourcePath, newPath);
+        const returnPath = access.storagePath
+          ? toRelPath(access.storagePath, newPath)
+          : newPath;
+        return NextResponse.json({ success: true, path: returnPath });
       }
 
       case "copy": {
-        if (!sourcePath || !destinationPath) {
+        if (!absSourcePath || !absDestPath) {
           return NextResponse.json(
             { error: "sourcePath and destinationPath are required for copy" },
             { status: 400 },
           );
         }
 
-        // Check if source is a directory and destination is inside it
-        const normalizedCopySource = path.resolve(sourcePath).replace(/\\/g, "/");
-        const normalizedCopyDest = path.resolve(destinationPath).replace(/\\/g, "/");
+        const normalizedCopySource = path.resolve(absSourcePath).replace(/\\/g, "/");
+        const normalizedCopyDest = path.resolve(absDestPath).replace(/\\/g, "/");
 
-        if (fs.existsSync(sourcePath) && fs.statSync(sourcePath).isDirectory()) {
+        if (fs.existsSync(absSourcePath) && fs.statSync(absSourcePath).isDirectory()) {
           if (
             normalizedCopyDest === normalizedCopySource ||
             normalizedCopyDest.startsWith(normalizedCopySource + "/")
@@ -323,23 +473,24 @@ export async function POST(request: Request) {
           }
         }
 
-        const sourceFileName = path.basename(sourcePath);
-        const newPath = path.join(destinationPath, sourceFileName);
+        const sourceFileName = path.basename(absSourcePath);
+        const newPath = path.join(absDestPath, sourceFileName);
 
-        // Ensure destination directory exists
-        if (!fs.existsSync(destinationPath)) {
-          fs.mkdirSync(destinationPath, { recursive: true });
+        if (!fs.existsSync(absDestPath)) {
+          fs.mkdirSync(absDestPath, { recursive: true });
         }
 
-        const stats = fs.statSync(sourcePath);
+        const stats = fs.statSync(absSourcePath);
         if (stats.isDirectory()) {
-          // Recursive copy for directories
-          copyDirectorySync(sourcePath, newPath);
+          copyDirectorySync(absSourcePath, newPath);
         } else {
-          fs.copyFileSync(sourcePath, newPath);
+          fs.copyFileSync(absSourcePath, newPath);
         }
 
-        return NextResponse.json({ success: true, path: newPath });
+        const returnPath = access.storagePath
+          ? toRelPath(access.storagePath, newPath)
+          : newPath;
+        return NextResponse.json({ success: true, path: returnPath });
       }
 
       default:
