@@ -29,7 +29,11 @@ interface ButtonMenuProps {
   trigger?: ReactNode;
   disabled?: boolean;
   alignment?: "left" | "right";
+  visibleOptions?: number;
 }
+
+// Height of a single menu item: 12px top padding + ~20px line height + 12px bottom padding
+const ITEM_HEIGHT = 44;
 
 export default function ButtonMenu({
   children,
@@ -37,6 +41,7 @@ export default function ButtonMenu({
   trigger,
   disabled = false,
   alignment = "right",
+  visibleOptions,
 }: ButtonMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -145,6 +150,35 @@ export default function ButtonMenu({
 
   const triggerWithProps = addCaretRotation(triggerElement);
 
+  const optionsList = options ? (
+    options.map((option, index) =>
+      option.type === "separator" ? (
+        <div key={index} className={styles.separator} />
+      ) : (
+        <button
+          key={index}
+          onClick={option.disabled ? undefined : () => {
+            option.onClick();
+            setIsOpen(false);
+          }}
+          disabled={option.disabled}
+          className={`${styles.menuItem} ${option.active ? styles.menuItemActive : ""} ${option.disabled ? styles.menuItemDisabled : ""}`}
+        >
+          <div className={styles.menuItemIcon}>
+            {typeof option.icon === "string" ? (
+              <Icon name={option.icon} />
+            ) : (
+              option.icon
+            )}
+          </div>
+          <div>{option.label}</div>
+        </button>
+      ),
+    )
+  ) : (
+    <div onClick={() => setIsOpen(false)}>{children}</div>
+  );
+
   const dropdownContent = isOpen && !disabled && (
     <div
       ref={menuRef}
@@ -157,34 +191,15 @@ export default function ButtonMenu({
           : { right: `${menuPosition.right}px` }),
       }}
     >
-      {options ? (
-        options.map((option, index) =>
-          option.type === "separator" ? (
-            <div key={index} className={styles.separator} />
-          ) : (
-            <button
-              key={index}
-              onClick={option.disabled ? undefined : () => {
-                option.onClick();
-                setIsOpen(false);
-              }}
-              disabled={option.disabled}
-              className={`${styles.menuItem} ${option.active ? styles.menuItemActive : ""} ${option.disabled ? styles.menuItemDisabled : ""}`}
-            >
-              <div className={styles.menuItemIcon}>
-                {typeof option.icon === "string" ? (
-                  <Icon name={option.icon} />
-                ) : (
-                  option.icon
-                )}
-              </div>
-              <div>{option.label}</div>
-            </button>
-          ),
-        )
-      ) : (
-        <div onClick={() => setIsOpen(false)}>{children}</div>
-      )}
+      <div
+        style={
+          visibleOptions != null
+            ? { maxHeight: `${visibleOptions * ITEM_HEIGHT}px`, overflowY: "auto" }
+            : undefined
+        }
+      >
+        {optionsList}
+      </div>
     </div>
   );
 

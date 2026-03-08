@@ -10,6 +10,7 @@ import styles from "./AppList.module.css";
 import AppManager from "@/lib/client/managers/app";
 import ApiRouteManager from "@/lib/client/managers/apiRoute";
 import Button from "@/lib/components/utility/Button";
+import { Icon } from "@/sdk/components";
 
 interface Widget {
   id: string;
@@ -198,7 +199,12 @@ export default function AppList() {
       await performInstall(file);
     } catch (error) {
       console.error("Error installing app:", error);
-      addToast({ message: "Failed to install app", type: "error", title: "App Install Failed", duration: 0 });
+      addToast({
+        message: "Failed to install app",
+        type: "error",
+        title: "App Install Failed",
+        duration: 0,
+      });
       setInstalling(false);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
@@ -226,14 +232,27 @@ export default function AppList() {
       const data = await response.json();
 
       if (response.ok) {
-        addToast({ message: `App "${data.name}" installed successfully!`, type: "success" });
+        addToast({
+          message: `App "${data.name}" installed successfully!`,
+          type: "success",
+        });
         await fetchApps();
       } else {
-        addToast({ message: data.error || "Failed to install app", type: "error", title: "App Install Failed", duration: 0 });
+        addToast({
+          message: data.error || "Failed to install app",
+          type: "error",
+          title: "App Install Failed",
+          duration: 0,
+        });
       }
     } catch (error) {
       console.error("Error installing app:", error);
-      addToast({ message: "Failed to install app", type: "error", title: "App Install Failed", duration: 0 });
+      addToast({
+        message: "Failed to install app",
+        type: "error",
+        title: "App Install Failed",
+        duration: 0,
+      });
     } finally {
       setInstalling(false);
       setPendingInstall(null);
@@ -286,14 +305,27 @@ export default function AppList() {
       const data = await response.json();
 
       if (response.ok) {
-        addToast({ message: `App "${data.name}" upgraded successfully from v${data.oldVersion} to v${data.newVersion}!`, type: "success" });
+        addToast({
+          message: `App "${data.name}" upgraded successfully from ${data.oldVersion} to ${data.newVersion}!`,
+          type: "success",
+        });
         await fetchApps();
       } else {
-        addToast({ message: data.error || "Failed to upgrade app", type: "error", title: "App Upgrade Failed", duration: 0 });
+        addToast({
+          message: data.error || "Failed to upgrade app",
+          type: "error",
+          title: "App Upgrade Failed",
+          duration: 0,
+        });
       }
     } catch (error) {
       console.error("Error upgrading app:", error);
-      addToast({ message: "Failed to upgrade app", type: "error", title: "App Upgrade Failed", duration: 0 });
+      addToast({
+        message: "Failed to upgrade app",
+        type: "error",
+        title: "App Upgrade Failed",
+        duration: 0,
+      });
     } finally {
       setUpgrading(null);
       setUpgradeAppId(null);
@@ -327,7 +359,10 @@ export default function AppList() {
         addToast({ message: "App uninstalled successfully!", type: "success" });
         await fetchApps();
       } else {
-        addToast({ message: data.error || "Failed to uninstall app", type: "error" });
+        addToast({
+          message: data.error || "Failed to uninstall app",
+          type: "error",
+        });
       }
     } catch (error) {
       console.error("Error uninstalling app:", error);
@@ -352,11 +387,17 @@ export default function AppList() {
       const data = await response.json();
 
       if (response.ok) {
-        addToast({ message: `System upgraded successfully from v${data.oldVersion} to v${data.newVersion}!`, type: "success" });
+        addToast({
+          message: `System upgraded successfully from v${data.oldVersion} to v${data.newVersion}!`,
+          type: "success",
+        });
         await fetchApps();
         await checkSystemVersion();
       } else {
-        addToast({ message: data.error || "Failed to upgrade system", type: "error" });
+        addToast({
+          message: data.error || "Failed to upgrade system",
+          type: "error",
+        });
       }
     } catch (error) {
       console.error("Error upgrading system:", error);
@@ -550,8 +591,12 @@ export default function AppList() {
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
         />
-        <Button variant="primary" onClick={handleInstallClick} disabled={installing}>
-          {installing ? "Installing..." : "+ Install App"}
+        <Button
+          variant="primary"
+          onClick={handleInstallClick}
+          disabled={installing}
+        >
+          {installing ? "..." : "Install"}
         </Button>
         <input
           ref={fileInputRef}
@@ -619,18 +664,40 @@ export default function AppList() {
                 </div>
               </div>
               {app.id === "system" ? (
-                <div className={styles.buttonGroup} onClick={(e) => e.stopPropagation()}>
+                <div
+                  className={styles.buttonGroup}
+                  onClick={(e) => e.stopPropagation()}
+                >
                   {systemNeedsUpgrade || upgradingSystem ? (
                     <Button
                       variant="secondary"
                       onClick={handleSystemUpgrade}
                       disabled={upgradingSystem}
-                      colors={{ base: 'transparent', hover: 'rgba(251,191,36,0.1)', active: 'rgba(251,191,36,0.2)', text: '#fbbf24', border: '1px solid #fbbf24' }}
+                      colors={{
+                        base: "transparent",
+                        hover: "rgba(251,191,36,0.1)",
+                        active: "rgba(251,191,36,0.2)",
+                        text: "#fbbf24",
+                        border: "1px solid #fbbf24",
+                      }}
+                      popover="Upgrade"
                     >
-                      {upgradingSystem ? "Upgrading..." : "Upgrade"}
+                      {upgradingSystem ? (
+                        "..."
+                      ) : (
+                        <Icon name="refresh" size={16} />
+                      )}
                     </Button>
                   ) : (
-                    <span style={{ fontSize: '14px', fontWeight: 500, color: '#64748b', padding: '0 14px', lineHeight: '36px' }}>
+                    <span
+                      style={{
+                        fontSize: "14px",
+                        fontWeight: 500,
+                        color: "#64748b",
+                        padding: "0 14px",
+                        lineHeight: "36px",
+                      }}
+                    >
                       Up to Date
                     </span>
                   )}
@@ -642,7 +709,10 @@ export default function AppList() {
                     apps,
                   );
                   return (
-                    <div className={styles.buttonGroup} onClick={(e) => e.stopPropagation()}>
+                    <div
+                      className={styles.buttonGroup}
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       {app.widgets &&
                         app.widgets.some(
                           (w) => w.target === "system-settings",
@@ -665,9 +735,20 @@ export default function AppList() {
                         variant="secondary"
                         onClick={() => handleUpgradeClick(app.id)}
                         disabled={upgrading === app.id}
-                        colors={{ base: 'transparent', hover: 'rgba(251,191,36,0.1)', active: 'rgba(251,191,36,0.2)', text: '#fbbf24', border: '1px solid #fbbf24' }}
+                        colors={{
+                          base: "transparent",
+                          hover: "rgba(251,191,36,0.1)",
+                          active: "rgba(251,191,36,0.2)",
+                          text: "#fbbf24",
+                          border: "1px solid #fbbf24",
+                        }}
+                        popover="Upgrade"
                       >
-                        {upgrading === app.id ? "Upgrading..." : "Upgrade"}
+                        {upgrading === app.id ? (
+                          "..."
+                        ) : (
+                          <Icon name="refresh" size={16} />
+                        )}
                       </Button>
                       <div
                         style={{
@@ -688,11 +769,20 @@ export default function AppList() {
                               ? `Required by: ${dependents.join(", ")}`
                               : ""
                           }
-                          colors={{ base: 'transparent', hover: 'rgba(239,68,68,0.1)', active: 'rgba(239,68,68,0.2)', text: '#ef4444', border: '1px solid #ef4444' }}
+                          colors={{
+                            base: "transparent",
+                            hover: "rgba(239,68,68,0.1)",
+                            active: "rgba(239,68,68,0.2)",
+                            text: "#ef4444",
+                            border: "1px solid #ef4444",
+                          }}
+                          popover="Uninstall"
                         >
-                          {uninstalling === app.id
-                            ? "Uninstalling..."
-                            : "Uninstall"}
+                          {uninstalling === app.id ? (
+                            "..."
+                          ) : (
+                            <Icon name="trash" size={16} />
+                          )}
                         </Button>
                         {!canUninstall && (
                           <span

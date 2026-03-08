@@ -78,6 +78,10 @@
   color: #f1f5f9;
   font-size: 14px;
   font-weight: 500;
+  text-overflow: ellipsis;
+  max-width: 140px;
+  text-wrap: nowrap;
+  overflow: hidden;
 }
 
 .appDescription {
