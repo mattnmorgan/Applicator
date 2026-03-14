@@ -11,6 +11,7 @@ import React, {
 import { createPortal } from "react-dom";
 import styles from "./ButtonMenu.module.css";
 import Icon from "../Icon";
+import Tooltip from "../Tooltip";
 
 type ButtonMenuOption =
   | { type: "separator" }
@@ -30,6 +31,8 @@ interface ButtonMenuProps {
   disabled?: boolean;
   alignment?: "left" | "right";
   visibleOptions?: number;
+  /** Show a tooltip on hover over the trigger */
+  popover?: string;
 }
 
 // Height of a single menu item: 12px top padding + ~20px line height + 12px bottom padding
@@ -42,6 +45,7 @@ export default function ButtonMenu({
   disabled = false,
   alignment = "right",
   visibleOptions,
+  popover,
 }: ButtonMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const [isHovered, setIsHovered] = useState(false);
@@ -203,17 +207,27 @@ export default function ButtonMenu({
     </div>
   );
 
+  const triggerDiv = (
+    <div
+      ref={triggerRef}
+      onClick={handleToggle}
+      onMouseEnter={() => !disabled && setIsHovered(true)}
+      onMouseLeave={() => setIsHovered(false)}
+      className={`${styles.trigger} ${disabled ? "" : isOpen || isHovered ? styles.triggerActive : styles.triggerDefault}`}
+    >
+      {triggerWithProps}
+    </div>
+  );
+
   return (
     <div className={styles.menuContainer}>
-      <div
-        ref={triggerRef}
-        onClick={handleToggle}
-        onMouseEnter={() => !disabled && setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        className={`${styles.trigger} ${disabled ? "" : isOpen || isHovered ? styles.triggerActive : styles.triggerDefault}`}
-      >
-        {triggerWithProps}
-      </div>
+      {popover ? (
+        <Tooltip text={popover} placement="bottom">
+          {triggerDiv}
+        </Tooltip>
+      ) : (
+        triggerDiv
+      )}
 
       {mounted &&
         typeof window !== "undefined" &&
