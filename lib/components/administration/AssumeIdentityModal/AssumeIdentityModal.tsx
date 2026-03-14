@@ -49,7 +49,7 @@ export default function AssumeIdentityModal({
         nameMap.set(authority.id, authority.data.name);
       }
 
-      setUsers(userData.records);
+      setUsers(userData.records as TableRecord<User>[]);
       setAuthorityNames(nameMap);
     } catch (error) {
       console.error("Failed to fetch users:", error);

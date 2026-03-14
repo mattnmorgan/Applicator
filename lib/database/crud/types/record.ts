@@ -1,4 +1,4 @@
-export default interface Record<T = any, J = Record<string, any>> {
+export default interface TableRecord<T = any, J = Record<string, any>> {
   id: string;
   data: T;
   created_at: number;

@@ -57,6 +57,7 @@ export default function LoggingViewer() {
         setOffset(newLogs.records.length);
       } else {
         setLogs([...logs, ...newLogs.records]);
+
         setOffset(offset + newLogs.records.length);
       }
       setTotalCount(newLogs.total);
@@ -135,11 +136,7 @@ export default function LoggingViewer() {
         </div>
 
         <div className={styles.actions}>
-          <Button
-            variant="secondary"
-            onClick={refreshLogs}
-            disabled={loading}
-          >
+          <Button variant="secondary" onClick={refreshLogs} disabled={loading}>
             <Icon name="refresh" size={16} />
             Refresh
           </Button>

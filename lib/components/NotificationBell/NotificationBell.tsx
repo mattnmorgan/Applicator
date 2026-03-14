@@ -179,89 +179,91 @@ export default function NotificationBell() {
         )}
       </Button>
 
-      {isOpen && paneStyle && ReactDOM.createPortal(
-        <div
-          style={{
-            ...paneStyle,
-            background: "#0f172a",
-            border: "1px solid #334155",
-            borderRadius: "8px",
-            boxShadow: "0 10px 25px rgba(0, 0, 0, 0.5)",
-            maxHeight: "500px",
-            display: "flex",
-            flexDirection: "column",
-            zIndex: 9999,
-          }}
-        >
+      {isOpen &&
+        paneStyle &&
+        ReactDOM.createPortal(
           <div
             style={{
-              padding: "16px",
-              borderBottom: "1px solid #334155",
+              ...paneStyle,
+              background: "#0f172a",
+              border: "1px solid #334155",
+              borderRadius: "8px",
+              boxShadow: "0 10px 25px rgba(0, 0, 0, 0.5)",
+              maxHeight: "500px",
               display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
+              flexDirection: "column",
+              zIndex: 9999,
             }}
           >
-            <h3
+            <div
               style={{
-                margin: 0,
-                color: "#f1f5f9",
-                fontSize: "16px",
-                fontWeight: 600,
+                padding: "16px",
+                borderBottom: "1px solid #334155",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
               }}
             >
-              Notifications
-            </h3>
-            <div style={{ display: "flex", gap: "4px" }}>
-              <ButtonIcon
-                name="check"
-                label="Mark all as read"
-                onClick={handleMarkAllRead}
-                iconSize={18}
-              />
-              <ButtonIcon
-                name="trash"
-                label="Clear all notifications"
-                onClick={handleClearAll}
-                iconSize={18}
-              />
-              <ButtonIcon
-                name="external-link"
-                label="View all notifications"
-                onClick={() => {
-                  setIsOpen(false);
-                  router.push("/user/notifications");
-                }}
-                iconSize={18}
-              />
-            </div>
-          </div>
-
-          <div style={{ overflowY: "auto", flex: 1 }}>
-            {notifications.length === 0 ? (
-              <div
+              <h3
                 style={{
-                  padding: "32px",
-                  textAlign: "center",
-                  color: "#94a3b8",
+                  margin: 0,
+                  color: "#f1f5f9",
+                  fontSize: "16px",
+                  fontWeight: 600,
                 }}
               >
-                No notifications
-              </div>
-            ) : (
-              notifications.map((notification) => (
-                <NotificationItem
-                  key={notification.id}
-                  notification={notification}
-                  onMarkRead={handleMarkRead}
-                  onArchive={handleArchive}
+                Notifications
+              </h3>
+              <div style={{ display: "flex", gap: "4px" }}>
+                <ButtonIcon
+                  name="check"
+                  label="Mark all as read"
+                  onClick={handleMarkAllRead}
+                  iconSize={18}
                 />
-              ))
-            )}
-          </div>
-        </div>,
-        document.body
-      )}
+                <ButtonIcon
+                  name="trash"
+                  label="Clear all notifications"
+                  onClick={handleClearAll}
+                  iconSize={18}
+                />
+                <ButtonIcon
+                  name="external-link"
+                  label="View all notifications"
+                  onClick={() => {
+                    setIsOpen(false);
+                    router.push("/user/notifications");
+                  }}
+                  iconSize={18}
+                />
+              </div>
+            </div>
+
+            <div style={{ overflowY: "auto", flex: 1 }}>
+              {notifications.length === 0 ? (
+                <div
+                  style={{
+                    padding: "32px",
+                    textAlign: "center",
+                    color: "#94a3b8",
+                  }}
+                >
+                  No notifications
+                </div>
+              ) : (
+                notifications.map((notification) => (
+                  <NotificationItem
+                    key={notification.id}
+                    notification={notification}
+                    onMarkRead={handleMarkRead}
+                    onArchive={handleArchive}
+                  />
+                ))
+              )}
+            </div>
+          </div>,
+          document.body,
+        )}
     </div>
   );
 }
