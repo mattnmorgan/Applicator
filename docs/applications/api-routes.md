@@ -341,7 +341,19 @@ const user = await context.user();
 
 // Get a specific user's info
 const otherUser = await context.user("user-id");
+```
 
+When listing users for selection (e.g., an assignee picker), always filter for active users only:
+
+```typescript
+const userManager = context.recordManager("system", "users");
+const result = await userManager.readRecords({
+  filters: [{ field: "active", operator: "=", value: true }],
+  limit: 500,
+});
+```
+
+```typescript
 // Get current app's info (cached after first call)
 const app = await context.app();
 // { name, version, authority: { name, authorizations } }

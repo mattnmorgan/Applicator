@@ -117,3 +117,16 @@ Keys are the stored values; values are the display labels shown in the UI.
 - `system:user` — references a system user record
 - `table` (no prefix) — references a table in the same app
 - `appId:table` — references a table in another app
+
+---
+
+## Use Platform Features Instead of Custom Tables
+
+Avoid defining tables for functionality the platform already provides:
+
+| Instead of a custom table for… | Use… |
+|---------------------------------|------|
+| Sharing / access grants per user | [Contextual Authorities](../../contextual-authorities.md) |
+| Notification history / delivery | `notifications.send` in agent SDK (see [agents.md](../../agents.md)) |
+
+Creating custom tables for these purposes duplicates platform functionality, bypasses built-in delivery guarantees, and adds unnecessary data management overhead.

@@ -265,22 +265,55 @@ Recommended organization:
 src/
 ├── index.tsx           # Entry point with exports
 ├── meta/               # App metadata (app.json, app.png)
-├── apps/               # Main application views
+├── apps/               # Top-level applet views only (one per applet)
 │   ├── Dashboard.tsx
-│   └── ItemDetail.tsx
-├── widgets/            # Widgets for home/settings (optional)
+│   └── Dashboard.module.css
+├── widgets/            # Widget applet views (home, settings targets)
 │   ├── HomeWidget.tsx
 │   ├── UserSettings.tsx
 │   └── SystemSettings.tsx
-├── components/         # Shared components (optional)
-│   ├── Button.tsx
-│   ├── Card.tsx
-│   └── Modal.tsx
+├── components/         # Reusable sub-components used by applet views
+│   ├── ItemList.tsx
+│   ├── ItemDetail.tsx
+│   └── ShareModal.tsx
 ├── lib/                # Shared library code (optional)
 │   └── api.ts
-└── types/              # TypeScript types (optional)
-    └── index.ts
+└── types/              # TypeScript types — one file per type
+    ├── Item.ts
+    ├── ItemRecord.ts
+    └── SystemUser.ts
 ```
+
+---
+
+## Conventions
+
+### Folder Responsibilities
+
+- **`apps/`** — contains only top-level applet view components (one per `target: "app"` applet). Sub-views, modals, and reusable sections go in `components/`, not here.
+- **`widgets/`** — same as `apps/` but for `target: "home"`, `target: "user-settings"`, etc.
+- **`components/`** — reusable UI pieces composed into applet views. Any component referenced from more than one place, or that represents a self-contained UI section, belongs here.
+- **`types/`** — one TypeScript file per type or interface. Do not bundle multiple unrelated interfaces into a single `types.ts` file. Both frontend and API types can live here.
+
+### Naming
+
+- **Applet view components** should have descriptive names reflecting the feature, not generic names like `App` or `Widget`. Use names like `Dashboard`, `Taskboard`, `InvoiceEditor`, `TaskboardWidget`, `CalendarHomeWidget`.
+- The component name must match the `component` field in `app.json` applets exactly.
+- Widget component exports should include the word "Widget" to distinguish them from full app views.
+
+### Icons
+
+Use the platform `Icon` component instead of inline SVG functions. This keeps icons consistent with the platform theme and eliminates repeated SVG markup.
+
+```typescript
+import { Icon } from "@applicator/sdk/components";
+
+// Usage
+<Icon name="trash" size={16} />
+<Icon name="plus" size={14} />
+```
+
+See [components/icon.md](./components/icon.md) for the full list of available icon names.
 
 ---
 

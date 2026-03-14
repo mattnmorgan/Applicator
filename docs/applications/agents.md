@@ -85,6 +85,26 @@ All paths are scoped to your app's data directory.
 "system.checkAuthorization" // params: { userId: string, authorization: string }
 ```
 
+`system.getUsers` returns all users by default; pass `includeInactive: false` to get only active users. **Always filter for active users before sending notifications** — deactivated users should not receive messages.
+
+#### Notifications
+
+```typescript
+"system.sendNotification" // params: { userId: string, title: string, message: string, type?: "info" | "warning" | "error" | "success", url?: string }
+```
+
+Sends a system notification to a user. The notification appears in the platform's notification center.
+
+| Param | Type | Description |
+|-------|------|-------------|
+| `userId` | `string` | Recipient's user ID |
+| `title` | `string` | Short notification title |
+| `message` | `string` | Full notification body |
+| `type` | `string` | Visual severity: `"info"` (default), `"warning"`, `"error"`, or `"success"` |
+| `url` | `string` | Optional deep-link URL opened when the notification is clicked |
+
+Do **not** create a custom `notification_log` table — use this method to send notifications and let the system manage delivery and history.
+
 #### System Files
 
 Paths are relative to the system file storage root (`{storagePath}/files`). Requires `system:fs-access` in the app's `requiredPermissions`.

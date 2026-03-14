@@ -6,6 +6,7 @@ import FieldManager from "@/lib/managers/field";
 import UserManager from "@/lib/managers/user";
 import Logger from "@/lib/system/logger";
 import AuthorityManager from "@/lib/managers/authority";
+import NotificationManager from "@/lib/managers/notification";
 import { createRecord } from "@/lib/database/crud/create";
 import { readRecord, readRecords } from "@/lib/database/crud/read";
 import { updateRecord } from "@/lib/database/crud/update";
@@ -56,6 +57,7 @@ export default async function executeMethod(
     "files.stat": files_stat,
     "system.getUser": system_getUser,
     "system.getUsers": system_getUsers,
+    "system.sendNotification": system_sendNotification,
     "system.checkAuthorization": system_checkAuthorization,
     "sysfiles.list": sysfiles_list,
     "sysfiles.stat": sysfiles_stat,
@@ -379,6 +381,22 @@ async function sysfiles_resize({ params }: SdkParams): Promise<any> {
     .toFile(destAbs);
 
   return { generated: true };
+}
+
+async function system_sendNotification({ appId, params }: SdkParams): Promise<any> {
+  const manager = new NotificationManager();
+  await manager.createRecord(null, {
+    type: params.type || "info",
+    app: appId,
+    title: params.title,
+    message: params.message,
+    url: params.url,
+    timestamp: Date.now(),
+    read: false,
+    archived: false,
+    user_id: params.userId,
+  });
+  return true;
 }
 
 async function system_checkAuthorization({ params }: SdkParams): Promise<any> {
