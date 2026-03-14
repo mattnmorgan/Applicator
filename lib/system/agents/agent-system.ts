@@ -114,11 +114,6 @@ class AgentSystem {
 
           started++;
         }
-
-        await new LogManager().debug(
-          "system",
-          `Agent scheduler tick: started ${started} agent${started !== 1 ? "s" : ""}`,
-        );
       } catch (error: any) {
         console.error("Agent scheduler tick failed:", error);
       }

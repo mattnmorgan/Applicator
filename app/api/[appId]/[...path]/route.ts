@@ -13,6 +13,45 @@ import { versionDir } from "@/lib/system/version";
 import { JoinSpec } from "@/lib/database/crud/types/record-filter";
 import bcrypt from "bcryptjs";
 
+// In-process rate limiter for guest password attempts.
+// Keyed by contextual authority ID (share link ID).
+const _guestPasswordAttempts = new Map<
+  string,
+  { count: number; resetAt: number }
+>();
+const GUEST_MAX_ATTEMPTS = 10;
+const GUEST_LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
+
+function _checkGuestRateLimit(
+  contextId: string,
+): { allowed: boolean; retryAfterMs?: number } {
+  const now = Date.now();
+  const entry = _guestPasswordAttempts.get(contextId);
+  if (entry && now < entry.resetAt) {
+    if (entry.count >= GUEST_MAX_ATTEMPTS) {
+      return { allowed: false, retryAfterMs: entry.resetAt - now };
+    }
+  }
+  return { allowed: true };
+}
+
+function _recordGuestFailure(contextId: string): void {
+  const now = Date.now();
+  const entry = _guestPasswordAttempts.get(contextId);
+  if (!entry || now >= entry.resetAt) {
+    _guestPasswordAttempts.set(contextId, {
+      count: 1,
+      resetAt: now + GUEST_LOCKOUT_MS,
+    });
+  } else {
+    entry.count += 1;
+  }
+}
+
+function _clearGuestAttempts(contextId: string): void {
+  _guestPasswordAttempts.delete(contextId);
+}
+
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ appId: string; path: string[] }> },
@@ -193,6 +232,21 @@ async function handleRequest(
 
       // Validate password if required
       if (ca.password) {
+        const rateLimit = _checkGuestRateLimit(guestContextId);
+        if (!rateLimit.allowed) {
+          return NextResponse.json(
+            { error: "Too many incorrect attempts. Please try again later." },
+            {
+              status: 429,
+              headers: {
+                "Retry-After": String(
+                  Math.ceil(rateLimit.retryAfterMs! / 1000),
+                ),
+              },
+            },
+          );
+        }
+
         const guestPassword = request.headers.get("X-Guest-Password");
         if (!guestPassword) {
           return NextResponse.json(
@@ -202,11 +256,13 @@ async function handleRequest(
         }
         const passwordMatch = await bcrypt.compare(guestPassword, ca.password);
         if (!passwordMatch) {
+          _recordGuestFailure(guestContextId);
           return NextResponse.json(
             { error: "Incorrect password" },
             { status: 403 },
           );
         }
+        _clearGuestAttempts(guestContextId);
       }
 
       // Check app has guest-accessible permission
