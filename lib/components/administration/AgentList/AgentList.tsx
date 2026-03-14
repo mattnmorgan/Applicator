@@ -17,6 +17,7 @@ interface Agent {
   app: string;
   appLabel: string;
   cron?: string;
+  manual?: boolean;
   status: "stopped" | "running" | "scheduled" | "error";
   lastRun?: number;
   lastError?: string;
@@ -182,34 +183,47 @@ export default function AgentList() {
                     </Tooltip>
                   )}
                   <div className={styles.headerActions}>
-                    {agent.status === "scheduled" && (
+                    {agent.manual ? (
                       <ButtonIcon
                         name="play"
                         label="Run Now"
                         onClick={() => handleRunNow(agent)}
-                        disabled={actionInProgress === agent.id}
+                        disabled={actionInProgress === agent.id || agent.status === "running"}
                         subvariant="info"
-                        placement="top"
-                      />
-                    )}
-                    {agent.status === "running" || agent.status === "scheduled" ? (
-                      <ButtonIcon
-                        name="square-stop"
-                        label={agent.cron ? "Unschedule" : "Terminate"}
-                        onClick={() => handleStopAgent(agent)}
-                        disabled={actionInProgress === agent.id}
-                        subvariant="danger"
                         placement="top"
                       />
                     ) : (
-                      <ButtonIcon
-                        name="calendar"
-                        label={agent.cron ? "Schedule" : "Launch"}
-                        onClick={() => handleStartAgent(agent)}
-                        disabled={actionInProgress === agent.id}
-                        subvariant="info"
-                        placement="top"
-                      />
+                      <>
+                        {agent.status === "scheduled" && (
+                          <ButtonIcon
+                            name="play"
+                            label="Run Now"
+                            onClick={() => handleRunNow(agent)}
+                            disabled={actionInProgress === agent.id}
+                            subvariant="info"
+                            placement="top"
+                          />
+                        )}
+                        {agent.status === "running" || agent.status === "scheduled" ? (
+                          <ButtonIcon
+                            name="square-stop"
+                            label={agent.cron ? "Unschedule" : "Terminate"}
+                            onClick={() => handleStopAgent(agent)}
+                            disabled={actionInProgress === agent.id}
+                            subvariant="danger"
+                            placement="top"
+                          />
+                        ) : (
+                          <ButtonIcon
+                            name="calendar"
+                            label={agent.cron ? "Schedule" : "Launch"}
+                            onClick={() => handleStartAgent(agent)}
+                            disabled={actionInProgress === agent.id}
+                            subvariant="info"
+                            placement="top"
+                          />
+                        )}
+                      </>
                     )}
                   </div>
                 </div>
@@ -222,8 +236,11 @@ export default function AgentList() {
                       CRON: <code>{agent.cron}</code>
                     </span>
                   )}
-                  {!agent.cron && (
+                  {!agent.cron && !agent.manual && (
                     <span className={styles.metaItem}>Continuous</span>
+                  )}
+                  {agent.manual && (
+                    <span className={styles.metaItem}>Manual</span>
                   )}
                   <span className={styles.appBadge}>
                     <Badge variant={agent.app === "system" ? "purple" : "blue"}>

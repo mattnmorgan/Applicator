@@ -21,6 +21,7 @@ export default class Context {
   private _systemFiles?: Filesystem;
   private _context: { id: string; data: any; password?: string } | null = null;
   private _contextualAuthorityManager: ContextualAuthorityManager | null = null;
+  private _storagePath: string = "";
 
   private constructor(
     appId: string,
@@ -36,6 +37,13 @@ export default class Context {
     this.contextApp = null;
     this._files = files;
     this._systemFiles = systemFiles;
+  }
+
+  /**
+   * @returns The system storage root path
+   */
+  public get storagePath(): string {
+    return this._storagePath;
   }
 
   /**
@@ -134,6 +142,7 @@ export default class Context {
     }
 
     const instance = new Context(appId, userId, logManager, files, systemFiles);
+    instance._storagePath = storagePath;
     if (context) {
       instance._context = context;
     }

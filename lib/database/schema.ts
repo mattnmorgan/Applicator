@@ -131,6 +131,7 @@ const schema = new Schema({
         new Field({ name: "label", type: "text", nillable: true }),
         new Field({ name: "description", type: "text" }),
         new Field({ name: "cron", type: "text", nillable: true }),
+        new Field({ name: "manual", type: "boolean", defaultValue: false }),
         new Field({ name: "status", type: "text", defaultValue: "stopped" }),
         new Field({ name: "pid", type: "int", nillable: true }),
         new Field({ name: "last_run", type: "bigint", nillable: true }),
@@ -419,6 +420,9 @@ export async function initializeSchema(): Promise<void> {
   await pool.query(`ALTER TABLE logs ALTER COLUMN user_id DROP NOT NULL`);
   await pool.query(
     `ALTER TABLE applets ADD COLUMN IF NOT EXISTS settings jsonb DEFAULT '[]'`,
+  );
+  await pool.query(
+    `ALTER TABLE agents ADD COLUMN IF NOT EXISTS manual boolean DEFAULT false`,
   );
 }
 

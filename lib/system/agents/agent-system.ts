@@ -86,6 +86,10 @@ class AgentSystem {
             continue;
           }
 
+          if (record.data.manual) {
+            continue;
+          }
+
           if (!matchesCronSchedule(record.data.cron, now)) {
             continue;
           }

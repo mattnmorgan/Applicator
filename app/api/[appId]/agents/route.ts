@@ -84,6 +84,7 @@ export async function GET(
         app: agent.data.app,
         appLabel: appLabels[agent.data.app] || agent.data.app,
         cron: agent.data.cron,
+        manual: agent.data.manual ?? false,
         status,
         lastRun: agent.data.last_run ? Number(agent.data.last_run) : undefined,
         lastError: agent.data.last_error,

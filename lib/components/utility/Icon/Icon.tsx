@@ -35,7 +35,10 @@ export type IconName =
   | "user"
   | "users"
   | "warning"
-  | "word-wrap";
+  | "word-wrap"
+  | "list-view"
+  | "grid-view"
+  | "grid-view-small";
 
 interface IconProps {
   name: IconName | string;
@@ -349,6 +352,43 @@ export default function Icon({ name, size = 16 }: IconProps) {
         <svg {...base}>
           <path d="M4 6h16M4 12h12a3.5 3.5 0 0 1 0 7h-2" />
           <path d="M16 17l-2 2.5 2 2.5" />
+        </svg>
+      );
+
+    case "list-view":
+      return (
+        <svg {...base}>
+          <line x1="9" y1="6" x2="21" y2="6" />
+          <line x1="9" y1="12" x2="21" y2="12" />
+          <line x1="9" y1="18" x2="21" y2="18" />
+          <rect x="3" y="4.5" width="3" height="3" rx="0.5" />
+          <rect x="3" y="10.5" width="3" height="3" rx="0.5" />
+          <rect x="3" y="16.5" width="3" height="3" rx="0.5" />
+        </svg>
+      );
+
+    case "grid-view":
+      return (
+        <svg {...base}>
+          <rect x="3" y="3" width="7" height="7" rx="1" />
+          <rect x="14" y="3" width="7" height="7" rx="1" />
+          <rect x="3" y="14" width="7" height="7" rx="1" />
+          <rect x="14" y="14" width="7" height="7" rx="1" />
+        </svg>
+      );
+
+    case "grid-view-small":
+      return (
+        <svg {...base}>
+          <rect x="2" y="2" width="6" height="6" rx="1" />
+          <rect x="9" y="2" width="6" height="6" rx="1" />
+          <rect x="16" y="2" width="6" height="6" rx="1" />
+          <rect x="2" y="9" width="6" height="6" rx="1" />
+          <rect x="9" y="9" width="6" height="6" rx="1" />
+          <rect x="16" y="9" width="6" height="6" rx="1" />
+          <rect x="2" y="16" width="6" height="6" rx="1" />
+          <rect x="9" y="16" width="6" height="6" rx="1" />
+          <rect x="16" y="16" width="6" height="6" rx="1" />
         </svg>
       );
 

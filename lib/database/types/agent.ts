@@ -4,6 +4,7 @@ export default interface Agent {
   label?: string;
   description: string;
   cron?: string;
+  manual?: boolean;
   status: "stopped" | "running" | "scheduled" | "error";
   pid?: number;
   last_run?: number;

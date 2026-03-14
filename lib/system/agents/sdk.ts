@@ -57,6 +57,12 @@ export default async function executeMethod(
     "system.getUser": system_getUser,
     "system.getUsers": system_getUsers,
     "system.checkAuthorization": system_checkAuthorization,
+    "sysfiles.list": sysfiles_list,
+    "sysfiles.stat": sysfiles_stat,
+    "sysfiles.exists": sysfiles_exists,
+    "sysfiles.mkdir": sysfiles_mkdir,
+    "sysfiles.delete": sysfiles_delete,
+    "sysfiles.resize": sysfiles_resize,
   };
 
   if (!(method in sdk)) {
@@ -274,6 +280,105 @@ async function system_getUsers({ params }: SdkParams): Promise<any> {
   }
 
   return users;
+}
+
+/**
+ * Get the sysFileManager root path ({storagePath}/files)
+ */
+async function getSysFilesRoot(): Promise<string> {
+  const storage = (await getSystemSettings())?.storage;
+  if (!storage) throw new Error("Storage is not configured");
+  return path.join(storage, "files");
+}
+
+async function sysfiles_list({ params }: SdkParams): Promise<any> {
+  const root = await getSysFilesRoot();
+  const filePath = path.join(root, params.path);
+  const entries = await fs.readdir(filePath, { withFileTypes: true });
+  return {
+    entries: await Promise.all(
+      entries.map(async (entry) => {
+        let size = 0;
+        try {
+          if (!entry.isDirectory()) {
+            const stat = await fs.stat(path.join(filePath, entry.name));
+            size = stat.size;
+          }
+        } catch {}
+        return {
+          name: entry.name,
+          isDirectory: entry.isDirectory(),
+          size,
+        };
+      }),
+    ),
+  };
+}
+
+async function sysfiles_stat({ params }: SdkParams): Promise<any> {
+  const root = await getSysFilesRoot();
+  const filePath = path.join(root, params.path);
+  const stats = await fs.stat(filePath);
+  return {
+    size: stats.size,
+    modifiedAt: stats.mtime.toISOString(),
+    isDirectory: stats.isDirectory(),
+  };
+}
+
+async function sysfiles_exists({ params }: SdkParams): Promise<any> {
+  const root = await getSysFilesRoot();
+  const filePath = path.join(root, params.path);
+  try {
+    await fs.access(filePath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function sysfiles_mkdir({ params }: SdkParams): Promise<any> {
+  const root = await getSysFilesRoot();
+  const filePath = path.join(root, params.path);
+  await fs.mkdir(filePath, { recursive: true });
+  return true;
+}
+
+async function sysfiles_delete({ params }: SdkParams): Promise<any> {
+  const root = await getSysFilesRoot();
+  const filePath = path.join(root, params.path);
+  await fs.rm(filePath, { recursive: params.recursive ?? false, force: true });
+  return true;
+}
+
+async function sysfiles_resize({ params }: SdkParams): Promise<any> {
+  const sharp = (await import("sharp")).default;
+  const root = await getSysFilesRoot();
+  const srcAbs = path.join(root, params.sourcePath);
+  const destAbs = path.join(root, params.destPath);
+  const width: number = params.width ?? 320;
+  const height: number = params.height ?? 320;
+
+  // Staleness check: skip if dest already exists and is at least as new as src
+  try {
+    const [srcStat, destStat] = await Promise.all([
+      fs.stat(srcAbs),
+      fs.stat(destAbs),
+    ]);
+    if (destStat.mtime >= srcStat.mtime) {
+      return { generated: false };
+    }
+  } catch {
+    // dest doesn't exist — proceed
+  }
+
+  await fs.mkdir(path.dirname(destAbs), { recursive: true });
+  await sharp(srcAbs)
+    .resize(width, height, { fit: "inside", withoutEnlargement: true })
+    .jpeg({ quality: 80 })
+    .toFile(destAbs);
+
+  return { generated: true };
 }
 
 async function system_checkAuthorization({ params }: SdkParams): Promise<any> {
