@@ -55,11 +55,13 @@ Agents run as separate Node.js processes and communicate with the framework via 
 
 ```typescript
 "records.create"  // params: { table: string, data: object }
-"records.list"    // params: { table: string, limit?: number, offset?: number }
+"records.list"    // params: { table: string, appId?: string, limit?: number, offset?: number, filters?: object, condition?: "AND" | "OR" }
 "records.get"     // params: { table: string, id: string }
 "records.update"  // params: { table: string, id: string, data: object }
 "records.delete"  // params: { table: string, id: string }
 ```
+
+`appId` defaults to the calling app — set it to read from another app's table.
 
 #### Files
 
@@ -82,6 +84,21 @@ All paths are scoped to your app's data directory.
 "system.getUsers"           // params: { includeInactive?: boolean }
 "system.checkAuthorization" // params: { userId: string, authorization: string }
 ```
+
+#### System Files
+
+Paths are relative to the system file storage root (`{storagePath}/files`). Requires `system:fs-access` in the app's `requiredPermissions`.
+
+```typescript
+"sysfiles.list"    // params: { path: string } → Returns { entries: { name: string, isDirectory: boolean, size: number }[] }
+"sysfiles.stat"    // params: { path: string } → Returns { size: number, modifiedAt: string, isDirectory: boolean }
+"sysfiles.exists"  // params: { path: string } → Returns boolean
+"sysfiles.mkdir"   // params: { path: string }
+"sysfiles.delete"  // params: { path: string, recursive?: boolean }
+"sysfiles.resize"  // params: { sourcePath: string, destPath: string, width?: number, height?: number } → Returns { generated: boolean }
+```
+
+`sysfiles.resize` resizes an image (max fit within `width`×`height`, default 320×320) and saves it as JPEG at `destPath`. Skips if `destPath` already exists and is at least as new as `sourcePath`.
 
 ---
 
@@ -358,7 +375,49 @@ Agent status is tracked:
 
 ### Auto-Restart
 
-Agents with `wasRunning: true` are automatically restarted when the server starts. If the agent script is missing (app uninstalled), the agent record is cleaned up automatically.
+Continuous agents that had `status: "running"` when the server shut down are automatically restarted on startup. CRON agents are not restarted — the scheduler picks them up on the next tick. If the agent script is missing (app uninstalled), the agent record is cleaned up automatically.
+
+---
+
+## Manual Agents
+
+A **manual agent** has a `cron` expression but is excluded from the automatic scheduler. It only runs when explicitly triggered via the execute API.
+
+### Declaring a Manual Agent
+
+Set `"manual": true` alongside a `cron` expression in `app.json`:
+
+```json
+{
+  "name": "report",
+  "label": "Generate Report",
+  "description": "Generates a report on demand",
+  "cron": "0 * * * *",
+  "manual": true
+}
+```
+
+The scheduler skips agents with `manual: true` even when the `cron` expression matches. The `cron` field is still used for display purposes (e.g., "next run" time in the admin UI).
+
+### Triggering a Manual Agent
+
+**`POST /api/{appId}/agents/{agentId}/execute`**
+
+Starts the agent immediately in run-once mode. The script receives `AGENT_MODE=cron` and should exit when finished (same as a scheduled CRON agent).
+
+**Authorization**: Requires an authenticated session plus either system admin access or the request originating from the same app (`X-App-Id: {appId}` header).
+
+**Success response**:
+```json
+{ "success": true, "message": "Agent 'Generate Report' execution started" }
+```
+
+**409 response** — if the agent is already executing:
+```json
+{ "error": "Agent is already executing" }
+```
+
+Execution is fire-and-forget: the endpoint returns immediately while the agent runs in the background.
 
 ---
 

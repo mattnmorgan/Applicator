@@ -264,23 +264,22 @@ Recommended organization:
 ```
 src/
 ├── index.tsx           # Entry point with exports
+├── meta/               # App metadata (app.json, app.png)
 ├── apps/               # Main application views
 │   ├── Dashboard.tsx
 │   └── ItemDetail.tsx
-├── widgets/            # Widgets for home/settings
+├── widgets/            # Widgets for home/settings (optional)
 │   ├── HomeWidget.tsx
 │   ├── UserSettings.tsx
 │   └── SystemSettings.tsx
-├── components/         # Shared components
+├── components/         # Shared components (optional)
 │   ├── Button.tsx
 │   ├── Card.tsx
 │   └── Modal.tsx
-├── hooks/              # Custom hooks
-│   └── useApi.ts
-├── types/              # TypeScript types
-│   └── index.ts
-└── utils/              # Utility functions
-    └── api.ts
+├── lib/                # Shared library code (optional)
+│   └── api.ts
+└── types/              # TypeScript types (optional)
+    └── index.ts
 ```
 
 ---

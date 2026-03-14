@@ -20,13 +20,14 @@ Assets are served through the route pattern:
 
 ## App Icon
 
-Place your app icon as `app.png` in your app's root directory:
+Place your app icon as `app.png` in `src/meta/`:
 
 ```
 my-app/
-├── app.json
-├── app.png        ← App icon (256x256 recommended)
 └── src/
+    └── meta/
+        ├── app.json
+        └── app.png    ← App icon (256x256 recommended)
 ```
 
 The icon is displayed in:
@@ -45,7 +46,6 @@ Place static assets in an `assets/` directory:
 
 ```
 my-app/
-├── app.json
 ├── assets/
 │   ├── logo.svg
 │   ├── banner.png

@@ -8,22 +8,33 @@ import { ButtonMenu } from "@applicator/sdk/components";
 
 ## Props
 
-| Prop        | Type                | Default   | Description                               |
-| ----------- | ------------------- | --------- | ----------------------------------------- |
-| `children`  | `ReactNode`         | required  | Legacy trigger or custom dropdown content |
-| `options`   | `array`             | -         | Menu items (see below)                    |
-| `trigger`   | `ReactNode`         | -         | Trigger element (preferred over children) |
-| `disabled`  | `boolean`           | `false`   | Disabled state                            |
-| `alignment` | `"left" \| "right"` | `"right"` | Dropdown alignment relative to trigger    |
+| Prop             | Type                | Default   | Description                                          |
+| ---------------- | ------------------- | --------- | ---------------------------------------------------- |
+| `children`       | `ReactNode`         | -         | Legacy trigger or custom dropdown content            |
+| `options`        | `array`             | -         | Menu items (see below)                               |
+| `trigger`        | `ReactNode`         | -         | Trigger element (preferred over children)            |
+| `disabled`       | `boolean`           | `false`   | Disabled state                                       |
+| `alignment`      | `"left" \| "right"` | `"right"` | Dropdown alignment relative to trigger               |
+| `visibleOptions` | `number`            | -         | Max visible items before scrolling                   |
+| `popover`        | `string`            | -         | Tooltip text shown on hover over the trigger         |
 
 ## Options Array
 
+Each entry is either a menu item or a separator:
+
 ```typescript
+// Menu item
 {
-  label: string;        // Menu item text
-  icon: ReactNode;      // Menu item icon
-  onClick: () => void;  // Click handler
-}[]
+  type?: "item";         // Optional, defaults to item
+  label: string;         // Menu item text
+  icon: ReactNode | string; // Icon element or icon name string (e.g. "edit")
+  onClick: () => void;   // Click handler
+  active?: boolean;      // Highlight item as active/selected
+  disabled?: boolean;    // Disable the item
+}
+
+// Separator
+{ type: "separator" }
 ```
 
 ## Usage
@@ -34,13 +45,15 @@ import { ButtonMenu } from "@applicator/sdk/components";
   options={[
     {
       label: "Edit",
-      icon: <EditIcon />,
+      icon: "edit",
       onClick: () => handleEdit(),
     },
+    { type: "separator" },
     {
       label: "Delete",
-      icon: <DeleteIcon />,
+      icon: "trash",
       onClick: () => handleDelete(),
+      disabled: !canDelete,
     },
   ]}
 />

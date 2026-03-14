@@ -22,24 +22,26 @@ An Applicator app consists of:
 
 ```
 my-app/
-├── app.json              # App manifest (required)
-├── app.png               # App icon (optional, 256x256 recommended)
 ├── src/
 │   ├── index.tsx         # Frontend entry point - exports React components
+│   ├── meta/             # App metadata
+│   │   ├── app.json      # App manifest (required)
+│   │   └── app.png       # App icon (optional, 256x256 recommended)
 │   ├── api/              # API route handlers
-│   │   └── my-route.ts
+│   │   └── my-route/
+│   │       └── route.ts
 │   ├── agents/           # Background agents
 │   │   └── my-agent.ts
-|   ├── lib/              # Lib files for use in api, agents, components, apps, etc
-|   ├── components/       # Components used in applets
+│   ├── apps/             # React components for applets
+│   │   └── Dashboard.tsx
+│   ├── widgets/          # Widget components (optional)
+│   │   └── HomeWidget.tsx
+│   ├── components/       # Reusable components (optional)
+│   ├── lib/              # Shared library code (optional)
 │   ├── system/           # Lifecycle hooks
 │   │   ├── install.ts
 │   │   └── uninstall.ts
-│   ├── apps/             # React components for applets
-│   │   └── Dashboard.tsx
-│   └── widgets/          # Widget components
-│       └── HomeWidget.tsx
-├── tables/               # Table definition JSON files (optional)
+│   └── tables/           # Table formula and validation scripts (optional)
 ├── assets/               # Static assets (optional)
 ├── webpack.config.js     # Frontend build config
 ├── webpack.api.config.js # API/agents build config

@@ -30,10 +30,11 @@ For implementation details — IPC protocol, SDK methods, agent script patterns 
 
 | Property      | Type     | Required | Description                                                       |
 | ------------- | -------- | -------- | ----------------------------------------------------------------- |
-| `name`        | `string` | Yes      | Agent identifier. Must match the script filename (without `.js`). |
-| `label`       | `string` | No       | Human-readable name shown in the admin UI                         |
-| `description` | `string` | Yes      | What the agent does                                               |
-| `cron`        | `string` | No       | CRON schedule expression. If omitted, the agent runs continuously. |
+| `name`        | `string`  | Yes      | Agent identifier. Must match the script filename (without `.js`). |
+| `label`       | `string`  | No       | Human-readable name shown in the admin UI                         |
+| `description` | `string`  | Yes      | What the agent does                                               |
+| `cron`        | `string`  | No       | CRON schedule expression. If omitted, the agent runs continuously. |
+| `manual`      | `boolean` | No       | If `true`, skips automatic scheduling. Agent only runs when triggered via the execute API. Requires `cron` to be set. |
 
 ---
 
@@ -58,6 +59,16 @@ Include a `cron` expression to run the agent on a schedule. The process is start
 ```
 
 Use for: periodic cleanup, scheduled reports, daily/hourly tasks.
+
+### Manual (On-Demand)
+
+Combine `cron` with `"manual": true` to create an agent that has a schedule defined but is never triggered automatically. It only runs when explicitly triggered via the execute API.
+
+```json
+{ "name": "report", "description": "On-demand report", "cron": "0 * * * *", "manual": true }
+```
+
+Use for: admin-triggered jobs, on-demand exports, user-initiated background tasks.
 
 #### CRON Syntax
 

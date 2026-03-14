@@ -19,7 +19,22 @@ import { Button } from "@applicator/sdk/components";
 | `title`            | `string`                                                                     | -           | Native HTML title attribute     |
 | `popover`          | `string`                                                                     | -           | Tooltip text shown on hover     |
 | `popoverPlacement` | `"top" \| "bottom" \| "left" \| "right"`                                    | `"bottom"`  | Tooltip placement               |
+| `colors`           | `ButtonColors`                                                               | -           | Override individual color states (see below) |
 | `style`            | `CSSProperties`                                                              | -           | Inline style override           |
+
+## ButtonColors
+
+Overrides individual color states. Unset fields fall back to the variant defaults.
+
+```typescript
+interface ButtonColors {
+  base?: string;   // Background color at rest
+  hover?: string;  // Background color on hover
+  active?: string; // Background color when pressed (falls back to hover if unset)
+  text?: string;   // Text color
+  border?: string; // Border value (e.g. "1px solid #334155")
+}
+```
 
 ## Usage
 

@@ -12,11 +12,11 @@ import type { IconName } from "@applicator/sdk/components";
 | Prop   | Type       | Default  | Description                |
 | ------ | ---------- | -------- | -------------------------- |
 | `name` | `IconName` | required | Icon identifier            |
-| `size` | `number`   | `24`     | Width and height in pixels |
+| `size` | `number`   | `16`     | Width and height in pixels |
 
 ## Available Icons
 
-`bell`, `check`, `chevron-down`, `chevron-up`, `chevron-left`, `chevron-right`, `close`, `copy`, `crown`, `download`, `drag`, `edit`, `external-link`, `eye`, `eye-off`, `file`, `folder`, `hamburger`, `info`, `link`, `logout`, `move`, `plus`, `refresh`, `search`, `settings`, `trash`, `upload`, `user`, `users`, `warning`, `word-wrap`
+`bell`, `calendar`, `check`, `chevron-down`, `chevron-up`, `chevron-left`, `chevron-right`, `close`, `copy`, `crown`, `download`, `drag`, `edit`, `external-link`, `eye`, `eye-off`, `file`, `folder`, `hamburger`, `sandwich`, `info`, `link`, `logout`, `move`, `play`, `plus`, `refresh`, `search`, `settings`, `square-stop`, `trash`, `upload`, `user`, `users`, `warning`, `word-wrap`, `list-view`, `grid-view`, `grid-view-small`
 
 ## Usage
 
