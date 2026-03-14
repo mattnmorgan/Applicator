@@ -195,12 +195,13 @@ export default async function HomePage() {
     return (
       <div
         style={{
-          minHeight: "100vh",
+          height: "100dvh",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           background: "#0f172a",
           padding: "20px",
+          overflow: "hidden",
         }}
       >
         <div
@@ -384,15 +385,6 @@ export default async function HomePage() {
                 >
                   Hello, {user.data.display_name}
                 </h1>
-                <p
-                  style={{
-                    color: "#94a3b8",
-                    fontSize: "16px",
-                    marginBottom: "16px",
-                  }}
-                >
-                  Welcome to Applicator
-                </p>
                 <p
                   style={{
                     color: "#64748b",

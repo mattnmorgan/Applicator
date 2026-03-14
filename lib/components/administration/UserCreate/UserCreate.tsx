@@ -251,13 +251,14 @@ export default function UserCreate({
       }
       // Note: If new icon file is selected, it will be uploaded and updated after this
 
-      console.log(JSON.stringify(record));
       if (isEditMode) {
         record = await manager.updateRecord(record.id, record.data);
       } else {
         record = await manager.createRecord(record.data);
       }
-      console.log(JSON.stringify(record));
+      if (!record) {
+        throw new Error("Failed to save user record");
+      }
 
       if (profilePicture && !clearProfilePicture) {
         try {

@@ -2,8 +2,10 @@ export const dynamic = "force-dynamic";
 import type { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Applicator",
-  description: "Dynamic application development framework platform",
+  title: process.env.SITE_NAME || "Applicator",
+  description:
+    process.env.SITE_DESCRIPTION ||
+    "Dynamic application development framework platform",
 };
 
 export default function RootLayout({
