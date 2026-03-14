@@ -30,9 +30,8 @@ export default function NotificationsPage() {
       setIsLoading(true);
       const result = await notificationManager.readRecords({});
       setNotifications(
-        result.records.sort(
-          (a: TableRecord<Notification>, b: TableRecord<Notification>) =>
-            b.created_at - a.created_at,
+        (result.records as TableRecord<Notification>[]).sort(
+          (a, b) => b.created_at - a.created_at,
         ),
       );
     } catch (error) {
