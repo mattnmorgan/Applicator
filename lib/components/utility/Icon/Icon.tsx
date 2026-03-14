@@ -20,6 +20,7 @@ export type IconName =
   | "file"
   | "folder"
   | "hamburger"
+  | "sandwich"
   | "info"
   | "link"
   | "logout"
@@ -210,6 +211,7 @@ export default function Icon({ name, size = 16 }: IconProps) {
       );
 
     case "hamburger":
+    case "sandwich":
       return (
         <svg {...base}>
           <line x1="3" y1="6" x2="21" y2="6" />
