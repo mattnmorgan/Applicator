@@ -136,6 +136,10 @@ export async function validateAppPackage(
     const zipEntries = zip.getEntries();
     const appletIds = new Set<string>();
 
+    // Extract the bundle text once for export validation
+    const bundleEntry = zipEntries.find((e) => e.entryName === "app.js");
+    const bundleText = bundleEntry ? bundleEntry.getData().toString("utf8") : null;
+
     for (let i = 0; i < appAttributes.applets.length; i++) {
       const applet = appAttributes.applets[i];
 
@@ -169,27 +173,18 @@ export async function validateAppPackage(
         );
       }
 
-      // Validate component file exists
-      const componentPaths = [
-        `apps/${applet.component}.tsx`,
-        `apps/${applet.component}.ts`,
-        `apps/${applet.component}.jsx`,
-        `apps/${applet.component}.js`,
-        `widgets/${applet.component}.tsx`,
-        `widgets/${applet.component}.ts`,
-        `widgets/${applet.component}.jsx`,
-        `widgets/${applet.component}.js`,
-      ];
-
-      const componentExists = componentPaths.some((p) =>
-        zipEntries.some((e) => e.entryName === p),
-      );
-
-      if (!componentExists) {
+      // Validate component is a named export in app.js
+      if (!bundleText) {
         throw new Error(
-          `Applet '${
-            applet.id
-          }' component not found. Expected one of: ${componentPaths.join(", ")}`,
+          `Applet '${applet.id}' validation failed: app.js not found in package`,
+        );
+      }
+
+      const exportPattern = new RegExp(`\\bexport\\s*\\{[^}]*\\b${applet.component}\\b`);
+      if (!exportPattern.test(bundleText)) {
+        throw new Error(
+          `Applet '${applet.id}' component '${applet.component}' is not a named export in app.js. ` +
+          `Ensure '${applet.component}' is exported from src/index.tsx.`,
         );
       }
     }
