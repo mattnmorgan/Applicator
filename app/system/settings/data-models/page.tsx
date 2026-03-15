@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import TableDefinition from "@/lib/database/types/table";
 import TableField from "@/lib/database/types/field";
 import Badge from "@/lib/components/utility/Badge/Badge";
+import DrawerLayout from "@/lib/components/utility/DrawerLayout";
 import TableManager from "@/lib/client/managers/table";
 import FieldManager from "@/lib/client/managers/field";
 import AppManager from "@/lib/client/managers/app";
@@ -21,6 +22,7 @@ export default function DataModelsPage() {
   const [selectedTable, setSelectedTable] = useState<TableSearchResult | null>(
     null,
   );
+  const [drawerOpen, setDrawerOpen] = useState(true);
 
   useEffect(() => {
     fetchTables();
@@ -205,33 +207,26 @@ export default function DataModelsPage() {
           Loading tables...
         </div>
       ) : (
-        <div
-          style={{
-            display: "flex",
-            flex: 1,
-            minHeight: 0,
-            border: "1px solid #334155",
-            borderRadius: "8px",
-            overflow: "hidden",
-          }}
-        >
-          <div
-            style={{
-              width: "400px",
-              flexShrink: 0,
-              overflowY: "auto",
-              padding: "16px",
-              borderRight: "1px solid #334155",
-            }}
-          >
-            <div
-              style={{
-                display: "flex",
-                flexDirection: "column",
-                gap: "12px",
-              }}
-            >
-              {filteredTables.length === 0 ? (
+        <DrawerLayout
+          leftPanel={{
+            type: "inline",
+            width: 35,
+            open: drawerOpen,
+            closeable: true,
+            openable: true,
+            iconName: "list-view",
+            title: "Tables",
+            onClose: () => setDrawerOpen(false),
+            onOpen: () => setDrawerOpen(true),
+            children: (
+              <div
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "12px",
+                }}
+              >
+                {filteredTables.length === 0 ? (
                 <div
                   style={{
                     padding: "24px",
@@ -249,7 +244,12 @@ export default function DataModelsPage() {
                 filteredTables.map((result) => (
                   <div
                     key={`${result.appId}:${result.table.table_name}`}
-                    onClick={() => setSelectedTable(result)}
+                    onClick={() => {
+                      setSelectedTable(result);
+                      if (typeof window !== "undefined" && window.innerWidth <= 768) {
+                        setDrawerOpen(false);
+                      }
+                    }}
                     style={{
                       padding: "16px",
                       background: "#1e293b",
@@ -325,8 +325,9 @@ export default function DataModelsPage() {
                 ))
               )}
             </div>
-          </div>
-
+            ),
+          }}
+        >
           <div
             style={{
               flex: 1,
@@ -552,7 +553,7 @@ export default function DataModelsPage() {
               </div>
             )}
           </div>
-        </div>
+        </DrawerLayout>
       )}
     </div>
   );

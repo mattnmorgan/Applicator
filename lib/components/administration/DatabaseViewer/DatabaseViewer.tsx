@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import ButtonIcon from "@/lib/components/utility/ButtonIcon";
 import Icon from "@/lib/components/utility/Icon";
+import DrawerLayout from "@/lib/components/utility/DrawerLayout";
 import styles from "./DatabaseViewer.module.css";
 
 interface TreeNode {
@@ -125,10 +126,11 @@ export default function DatabaseViewer() {
   const [isJsonValue, setIsJsonValue] = useState(true);
   const [loading, setLoading] = useState(false);
   const [showFlushModal, setShowFlushModal] = useState(false);
+  const [treeOpen, setTreeOpen] = useState(true);
 
   const fetchKeys = async () => {
     try {
-      const response = await fetch("/api/system/debug/redis/keys");
+      const response = await fetch("/api/system/debug/database/keys");
       const data = await response.json();
       setKeys(data.keys || []);
       setTreeData(buildTree(data.keys || []));
@@ -141,7 +143,7 @@ export default function DatabaseViewer() {
     setLoading(true);
     try {
       const response = await fetch(
-        `/api/system/debug/redis/value?key=${encodeURIComponent(key)}`
+        `/api/system/debug/database/value?key=${encodeURIComponent(key)}`
       );
       const data = await response.json();
 
@@ -191,7 +193,7 @@ export default function DatabaseViewer() {
       }
       // Otherwise, save as plain string
 
-      const response = await fetch("/api/system/debug/redis/value", {
+      const response = await fetch("/api/system/debug/database/value", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -215,7 +217,7 @@ export default function DatabaseViewer() {
 
     try {
       const response = await fetch(
-        `/api/system/debug/redis/value?key=${encodeURIComponent(selectedKey)}`,
+        `/api/system/debug/database/value?key=${encodeURIComponent(selectedKey)}`,
         {
           method: "DELETE",
         }
@@ -253,11 +255,14 @@ export default function DatabaseViewer() {
   const handleSelectKey = (key: string) => {
     setSelectedKey(key);
     fetchValue(key);
+    if (typeof window !== "undefined" && window.innerWidth <= 768) {
+      setTreeOpen(false);
+    }
   };
 
   const handleFlushDatabase = async () => {
     try {
-      const response = await fetch("/api/system/debug/redis/flush", {
+      const response = await fetch("/api/system/debug/database/flush", {
         method: "POST",
       });
 
@@ -282,6 +287,37 @@ export default function DatabaseViewer() {
   }, []);
 
   const hasChanges = value !== editedValue;
+
+  const treePanel = (
+    <>
+      <div className={styles.header}>
+        <span className={styles.title}>Keys</span>
+        <div className={styles.headerButtons}>
+          <ButtonIcon
+            name="trash"
+            label="Flush Database"
+            onClick={() => setShowFlushModal(true)}
+            subvariant="danger"
+          />
+          <ButtonIcon
+            name="refresh"
+            label="Refresh"
+            onClick={fetchKeys}
+          />
+        </div>
+      </div>
+      <div className={styles.treeContainer}>
+        {treeData.map((node, index) => (
+          <TreeItem
+            key={index}
+            node={node}
+            selectedKey={selectedKey}
+            onSelect={handleSelectKey}
+          />
+        ))}
+      </div>
+    </>
+  );
 
   return (
     <>
@@ -310,35 +346,20 @@ export default function DatabaseViewer() {
           </div>
         </div>
       )}
-      <div className={styles.container}>
-        <div className={styles.sidebar}>
-          <div className={styles.header}>
-            <span className={styles.title}>Keys</span>
-            <div className={styles.headerButtons}>
-              <ButtonIcon
-                name="trash"
-                label="Flush Database"
-                onClick={() => setShowFlushModal(true)}
-                subvariant="danger"
-              />
-              <ButtonIcon
-                name="refresh"
-                label="Refresh"
-                onClick={fetchKeys}
-              />
-            </div>
-          </div>
-          <div className={styles.treeContainer}>
-            {treeData.map((node, index) => (
-              <TreeItem
-                key={index}
-                node={node}
-                selectedKey={selectedKey}
-                onSelect={handleSelectKey}
-              />
-            ))}
-          </div>
-        </div>
+      <DrawerLayout
+        leftPanel={{
+          type: "inline",
+          width: 30,
+          open: treeOpen,
+          closeable: true,
+          openable: true,
+          iconName: "list-view",
+          onClose: () => setTreeOpen(false),
+          onOpen: () => setTreeOpen(true),
+          children: treePanel,
+        }}
+        style={{ height: "100%" }}
+      >
         <div className={styles.content}>
           {selectedKey ? (
             <>
@@ -376,7 +397,7 @@ export default function DatabaseViewer() {
             </div>
           )}
         </div>
-      </div>
+      </DrawerLayout>
     </>
   );
 }

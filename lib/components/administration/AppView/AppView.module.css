@@ -266,3 +266,14 @@
   color: #ef4444;
   font-weight: 500;
 }
+
+@media (max-width: 768px) {
+  .appInfo {
+    flex-direction: column;
+  }
+
+  .routeRow {
+    grid-template-columns: 1fr;
+    gap: 8px;
+  }
+}

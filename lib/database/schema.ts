@@ -424,6 +424,9 @@ export async function initializeSchema(): Promise<void> {
   await pool.query(
     `ALTER TABLE agents ADD COLUMN IF NOT EXISTS manual boolean DEFAULT false`,
   );
+  await pool.query(
+    `UPDATE fields SET related_to = 'system:users' WHERE related_to = 'system:user'`,
+  );
 }
 
 export default schema;

@@ -13,6 +13,10 @@ export interface ButtonIconProps {
   onClick: () => void;
   variant?: 'bare' | 'bordered';
   subvariant?: 'danger' | 'warning' | 'info' | 'neutral';
+  /** Button size affecting padding. 'sm' = compact, 'md' = default. */
+  size?: 'sm' | 'md';
+  /** When true, shows the subvariant color persistently (for toggle buttons). */
+  active?: boolean;
   disabled?: boolean;
   /** Tooltip placement. Defaults to 'bottom'. */
   placement?: TooltipPlacement;
@@ -26,6 +30,8 @@ export default function ButtonIcon({
   onClick,
   variant = 'bare',
   subvariant = 'neutral',
+  size = 'md',
+  active = false,
   disabled = false,
   placement = 'bottom',
 }: ButtonIconProps) {
@@ -49,12 +55,17 @@ export default function ButtonIcon({
     }
   };
 
+  const getPadding = () => {
+    if (size === 'sm') return variant === 'bordered' ? '4px' : '2px';
+    return variant === 'bordered' ? '6px' : '4px';
+  };
+
   const baseStyle: React.CSSProperties = {
     background: 'none',
     border: variant === 'bordered' ? `1px solid ${getBorderColor()}` : 'none',
-    padding: variant === 'bordered' ? '6px' : '4px',
+    padding: getPadding(),
     cursor: disabled ? 'not-allowed' : 'pointer',
-    color: isHovered && !disabled ? getHoverColor() : '#e2e8f0',
+    color: (isHovered || active) && !disabled ? getHoverColor() : '#e2e8f0',
     display: 'inline-flex',
     alignItems: 'center',
     justifyContent: 'center',

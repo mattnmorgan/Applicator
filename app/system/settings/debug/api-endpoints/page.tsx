@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Button from "@/lib/components/utility/Button";
 import DynamicInput from "@/lib/components/utility/DynamicInput";
 
@@ -16,12 +16,20 @@ interface RequestResult {
 }
 
 export default function ApiEndpointsPage() {
+  const [isMobile, setIsMobile] = useState(false);
   const [url, setUrl] = useState("/api/");
   const [method, setMethod] = useState<HttpMethod>("GET");
   const [requestBody, setRequestBody] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [result, setResult] = useState<RequestResult | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth <= 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   const handleSubmit = async () => {
     setIsLoading(true);
@@ -127,8 +135,9 @@ export default function ApiEndpointsPage() {
       <div
         style={{
           display: "flex",
+          flexDirection: isMobile ? "column" : "row",
           gap: "20px",
-          height: "calc(100vh - 280px)",
+          height: isMobile ? "auto" : "calc(100vh - 280px)",
         }}
       >
         {/* Input Column */}

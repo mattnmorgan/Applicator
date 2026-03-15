@@ -67,6 +67,9 @@ export default function AgentList() {
 
   const handleRunNow = async (agent: Agent) => {
     setActionInProgress(agent.id);
+    setAgents((prev) =>
+      prev.map((a) => (a.id === agent.id ? { ...a, status: "running" } : a)),
+    );
     try {
       const agentManager = new AgentManager();
       await agentManager.runAgentNow(agent.app, agent.name);
@@ -74,6 +77,7 @@ export default function AgentList() {
     } catch (error: any) {
       console.error("Failed to run agent:", error);
       alert(`Failed to run agent: ${error.message}`);
+      await fetchAgents();
     } finally {
       setActionInProgress(null);
     }

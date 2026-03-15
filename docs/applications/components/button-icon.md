@@ -17,6 +17,8 @@ import { ButtonIcon } from "@applicator/sdk/components";
 | `icon`       | `ReactNode`                                    | -           | Custom icon element (used when `name` is not set)    |
 | `variant`    | `"bare" \| "bordered"`                         | `"bare"`    | Visual style                                         |
 | `subvariant` | `"danger" \| "warning" \| "info" \| "neutral"` | `"neutral"` | Hover color theme                                    |
+| `size`       | `"sm" \| "md"`                                 | `"md"`      | Button padding. `"sm"` = 2px bare / 4px bordered, `"md"` = 4px bare / 6px bordered |
+| `active`     | `boolean`                                      | `false`     | When true, shows the subvariant color persistently (for toggle buttons) |
 | `disabled`   | `boolean`                                      | `false`     | Disabled state                                       |
 | `placement`  | `"top" \| "bottom" \| "left" \| "right"`       | `"bottom"`  | Tooltip placement                                    |
 
@@ -26,6 +28,18 @@ import { ButtonIcon } from "@applicator/sdk/components";
 // Using a named icon (preferred)
 <ButtonIcon name="trash" label="Delete" onClick={handleDelete} subvariant="danger" />
 <ButtonIcon name="refresh" label="Refresh" onClick={reload} variant="bordered" />
+
+// Compact size for dense UIs
+<ButtonIcon name="trash" label="Delete" onClick={handleDelete} size="sm" subvariant="danger" />
+
+// Active/toggle state (e.g. watch button)
+<ButtonIcon
+  name="eye"
+  label={watching ? "Unwatch" : "Watch"}
+  onClick={toggleWatch}
+  active={watching}
+  subvariant="info"
+/>
 
 // Using a custom icon element
 <ButtonIcon
