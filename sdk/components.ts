@@ -37,3 +37,5 @@ export { default as Tabset } from "../lib/components/utility/Tabset";
 export type { TabsetItem } from "../lib/components/utility/Tabset";
 export { default as ToastStack } from "../lib/components/utility/Toast";
 export type { ToastItem } from "../lib/components/utility/Toast";
+export { default as Spinner } from "../lib/components/utility/Spinner";
+export type { SpinnerProps } from "../lib/components/utility/Spinner";

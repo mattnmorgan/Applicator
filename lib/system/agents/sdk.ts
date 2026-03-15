@@ -1,5 +1,6 @@
 import path from "path";
 import fs from "fs/promises";
+import { spawn } from "child_process";
 import LogManager from "@/lib/managers/log";
 import TableManager from "@/lib/managers/table";
 import FieldManager from "@/lib/managers/field";
@@ -65,6 +66,7 @@ export default async function executeMethod(
     "sysfiles.mkdir": sysfiles_mkdir,
     "sysfiles.delete": sysfiles_delete,
     "sysfiles.resize": sysfiles_resize,
+    "sysfiles.videoThumb": sysfiles_videoThumb,
   };
 
   if (!(method in sdk)) {
@@ -379,6 +381,49 @@ async function sysfiles_resize({ params }: SdkParams): Promise<any> {
     .resize(width, height, { fit: "inside", withoutEnlargement: true })
     .jpeg({ quality: 80 })
     .toFile(destAbs);
+
+  return { generated: true };
+}
+
+async function sysfiles_videoThumb({ params }: SdkParams): Promise<any> {
+  const root = await getSysFilesRoot();
+  const srcAbs = path.join(root, params.sourcePath);
+  const destAbs = path.join(root, params.destPath);
+
+  // Staleness check: skip if dest already exists and is at least as new as src
+  try {
+    const [srcStat, destStat] = await Promise.all([
+      fs.stat(srcAbs),
+      fs.stat(destAbs),
+    ]);
+    if (destStat.mtime >= srcStat.mtime) {
+      return { generated: false };
+    }
+  } catch {
+    // dest doesn't exist — proceed
+  }
+
+  try {
+    await fs.mkdir(path.dirname(destAbs), { recursive: true });
+    await new Promise<void>((resolve, reject) => {
+      const ff = spawn("ffmpeg", [
+        "-ss", "1",
+        "-i", srcAbs,
+        "-frames:v", "1",
+        "-vf", "scale=320:320:force_original_aspect_ratio=decrease",
+        "-c:v", "mjpeg",
+        "-q:v", "3",
+        "-y",
+        destAbs,
+      ]);
+      ff.on("close", (code) =>
+        code === 0 ? resolve() : reject(new Error(`ffmpeg exited with code ${code}`)),
+      );
+      ff.on("error", reject);
+    });
+  } catch {
+    return { generated: false };
+  }
 
   return { generated: true };
 }

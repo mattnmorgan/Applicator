@@ -120,6 +120,12 @@ Paths are relative to the system file storage root (`{storagePath}/files`). Requ
 
 `sysfiles.resize` resizes an image (max fit within `width`×`height`, default 320×320) and saves it as JPEG at `destPath`. Skips if `destPath` already exists and is at least as new as `sourcePath`.
 
+```typescript
+"sysfiles.videoThumb"  // params: { sourcePath: string, destPath: string } → Returns { generated: boolean }
+```
+
+`sysfiles.videoThumb` extracts a JPEG thumbnail from a video file at 1 second using ffmpeg, scaled to fit within 320×320, and saves it at `destPath`. Requires ffmpeg to be installed on the server. Skips if `destPath` already exists and is at least as new as `sourcePath`. Requires `system:fs-access`.
+
 ---
 
 ## Continuous Agent Example

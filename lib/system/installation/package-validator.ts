@@ -301,6 +301,9 @@ export async function validateAppPackage(
     const allTables = await tableManager.readRecords({});
     const existingTableNames = new Set<string>();
 
+    // Add built-in system entity types that are valid relationship targets
+    existingTableNames.add("system:user");
+
     // Add tables from this app that are being validated
     for (const table of appAttributes.tables) {
       existingTableNames.add(`${appAttributes.id}:${table.name}`);

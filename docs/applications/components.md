@@ -35,6 +35,7 @@ All components are exported from a single barrel file. Use named imports to pick
 | [ProfileIndicator](./components/profile-indicator.md) | User avatar with display name |
 | [Row](./components/row.md) | Styled row container with optional click handler |
 | [SearchableCombobox](./components/searchable-combobox.md) | Generic searchable single- or multi-select dropdown |
+| [Spinner](./components/spinner.md) | Animated loading indicator for async operations |
 | [StickyFooter](./components/sticky-footer.md) | Sticky action bar that anchors to the bottom of its scroll container |
 | [Tabset](./components/tabset.md) | Vertical tree or horizontal tab navigation |
 | [ToastStack](./components/toast-stack.md) | Multi-toast notification manager rendered via portal |
