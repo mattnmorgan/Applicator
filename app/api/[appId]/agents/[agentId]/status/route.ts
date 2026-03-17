@@ -44,13 +44,17 @@ export async function GET(
       return NextResponse.json({ error: "Agent not found" }, { status: 404 });
     }
 
-    // Get status from runner
+    // DB is the source of truth for status. For continuous agents only, cross-check
+    // the live process map to catch the brief window where a freshly-exited process
+    // hasn't flushed its DB update yet.
     const agentInstance = new Agent(appId, agentId);
     const status = await agentInstance.getStatus();
 
-    // Check if actually running in memory
-    const actuallyRunning = agentInstance.isRunning;
-    const effectiveStatus = actuallyRunning ? "running" : status.status;
+    const inMemoryRunning = agentInstance.isRunning;
+    const effectiveStatus =
+      agent.data.status === "running" && !agent.data.cron && !inMemoryRunning
+        ? "stopped"
+        : status?.status ?? agent.data.status;
 
     return NextResponse.json({
       id: `${appId}:${agentId}`,
@@ -58,12 +62,11 @@ export async function GET(
       description: agent.data.description,
       app: agent.data.app,
       cron: agent.data.cron,
-      status: effectiveStatus || agent.data.status,
-      isRunning: actuallyRunning,
-      lastRun: status.lastRun || agent.data.last_run,
-      lastError: status.lastError || agent.data.last_error,
-      nextRun: status.nextRun,
-      nextRunFormatted: status.nextRunFormatted,
+      status: effectiveStatus,
+      lastRun: status?.lastRun ?? agent.data.last_run,
+      lastError: status?.lastError ?? agent.data.last_error,
+      nextRun: status?.nextRun,
+      nextRunFormatted: status?.nextRunFormatted,
     });
   } catch (error) {
     console.error("Error getting agent status:", error);

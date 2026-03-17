@@ -218,6 +218,27 @@ class AgentSystem {
     const agentManager = new AgentManager();
     const allAgents = await agentManager.readRecords();
 
+    // Reset cron/manual agents that were executing when the server last stopped.
+    // Their child process is gone; put them back to the correct idle status.
+    const interruptedExecuting = allAgents.records.filter(
+      (agent) => agent.data.status === "running" && agent.data.cron,
+    );
+    for (const agentRecord of interruptedExecuting) {
+      const resetStatus = agentRecord.data.manual ? "stopped" : "scheduled";
+      await agentManager.updateRecord(
+        await agentManager.getTable(),
+        agentRecord.id,
+        {
+          status: resetStatus,
+          last_error: "Execution interrupted by server restart",
+        },
+      );
+      await new LogManager().warn(
+        agentRecord.data.app,
+        `Agent '${agentRecord.data.name}' was interrupted by server restart; status reset to '${resetStatus}'`,
+      );
+    }
+
     // Only restart continuous (non-cron) agents; CRON agents are driven by the scheduler.
     const agentsToRestart = allAgents.records.filter(
       (agent) => agent.data.status === "running" && !agent.data.cron,

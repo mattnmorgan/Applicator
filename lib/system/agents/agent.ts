@@ -474,6 +474,19 @@ export default class Agent {
     };
 
     Agent.executingAgents.add(this.id);
+
+    // Determine the post-execution status before we start (cron agents return to
+    // "scheduled" so the scheduler picks them up again; manual/run-once go to "stopped").
+    const agentManager = new AgentManager();
+    const agentRecord = await agentManager.readRecord(this.id);
+    const postExecutionStatus =
+      agentRecord?.data.cron && !agentRecord?.data.manual ? "scheduled" : "stopped";
+
+    // Mark running in the DB so the UI reflects the active execution.
+    await agentManager.updateRecord(await agentManager.getTable(), this.id, {
+      status: "running",
+    });
+
     await this.initialize();
 
     try {
@@ -499,6 +512,7 @@ export default class Agent {
         await manager.getTable(),
         `${this.appId}:${this.agentName}`,
         {
+          status: postExecutionStatus,
           last_run: Date.now(),
           last_error: executionContext?.error ?? null,
         },
