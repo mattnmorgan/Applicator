@@ -18,6 +18,7 @@ export default function NotificationBell() {
   const [unreadCount, setUnreadCount] = useState(0);
   const [paneStyle, setPaneStyle] = useState<React.CSSProperties | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
+  const paneRef = useRef<HTMLDivElement>(null);
   const router = useRouter();
   const notificationManager = new NotificationManager();
 
@@ -45,9 +46,10 @@ export default function NotificationBell() {
   useEffect(() => {
     if (!isOpen) return;
     const handleClickOutside = (event: MouseEvent) => {
+      const target = event.target as Node;
       if (
-        containerRef.current &&
-        !containerRef.current.contains(event.target as Node)
+        containerRef.current && !containerRef.current.contains(target) &&
+        paneRef.current && !paneRef.current.contains(target)
       ) {
         setIsOpen(false);
       }
@@ -183,6 +185,7 @@ export default function NotificationBell() {
         paneStyle &&
         ReactDOM.createPortal(
           <div
+            ref={paneRef}
             style={{
               ...paneStyle,
               background: "#0f172a",
