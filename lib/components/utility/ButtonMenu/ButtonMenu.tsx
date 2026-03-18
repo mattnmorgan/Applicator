@@ -52,8 +52,11 @@ export default function ButtonMenu({
   const [isHovered, setIsHovered] = useState(false);
   const [menuPosition, setMenuPosition] = useState({
     top: 0,
+    bottom: 0,
     left: 0,
     right: 0,
+    above: false,
+    maxHeight: 400,
   });
   const [mounted, setMounted] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
@@ -92,15 +95,25 @@ export default function ButtonMenu({
 
   useEffect(() => {
     if (isOpen && triggerRef.current) {
-      const rect = triggerRef.current.getBoundingClientRect();
       const updatePosition = () => {
+        const rect = triggerRef.current!.getBoundingClientRect();
+        const spaceBelow = window.innerHeight - rect.bottom - 8;
+        const spaceAbove = rect.top - 8;
+        const above = spaceAbove > spaceBelow && spaceBelow < 300;
+        const maxHeight = Math.min(
+          above ? spaceAbove : spaceBelow,
+          visibleOptions != null ? visibleOptions * ITEM_HEIGHT : Infinity,
+        );
         setMenuPosition({
-          top: rect.bottom + window.scrollY + 4,
+          top: rect.bottom + 4,
+          bottom: window.innerHeight - rect.top + 4,
           left: alignment === "left" ? rect.left + window.scrollX : 0,
           right:
             alignment === "right"
               ? window.innerWidth - rect.right - window.scrollX
               : 0,
+          above,
+          maxHeight,
         });
       };
       updatePosition();
@@ -190,21 +203,17 @@ export default function ButtonMenu({
       className={styles.dropdown}
       style={{
         position: "fixed",
-        top: `${menuPosition.top}px`,
+        ...(menuPosition.above
+          ? { bottom: `${menuPosition.bottom}px` }
+          : { top: `${menuPosition.top}px` }),
         ...(alignment === "left"
           ? { left: `${menuPosition.left}px` }
           : { right: `${menuPosition.right}px` }),
+        maxHeight: `${menuPosition.maxHeight}px`,
+        overflowY: "auto",
       }}
     >
-      <div
-        style={
-          visibleOptions != null
-            ? { maxHeight: `${visibleOptions * ITEM_HEIGHT}px`, overflowY: "auto" }
-            : undefined
-        }
-      >
-        {optionsList}
-      </div>
+      {optionsList}
     </div>
   );
 
