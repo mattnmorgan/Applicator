@@ -8,6 +8,7 @@ import AgentManager from "@/lib/client/managers/agent";
 import ButtonIcon from "../../utility/ButtonIcon";
 import Tooltip from "../../utility/Tooltip";
 import Icon from "../../utility/Icon";
+import AgentLogViewer from "./AgentLogViewer";
 
 interface Agent {
   id: string;
@@ -30,6 +31,7 @@ export default function AgentList() {
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
   const [actionInProgress, setActionInProgress] = useState<string | null>(null);
+  const [logsAgent, setLogsAgent] = useState<Agent | null>(null);
 
   const fetchAgents = useCallback(async () => {
     try {
@@ -132,6 +134,14 @@ export default function AgentList() {
     );
   }
 
+  if (logsAgent) {
+    return (
+      <div className={styles.container}>
+        <AgentLogViewer agent={logsAgent} onBack={() => setLogsAgent(null)} />
+      </div>
+    );
+  }
+
   return (
     <div className={styles.container}>
       <div className={styles.toolbar}>
@@ -229,6 +239,12 @@ export default function AgentList() {
                         )}
                       </>
                     )}
+                    <ButtonIcon
+                      name="list-view"
+                      label="Logs"
+                      onClick={() => setLogsAgent(agent)}
+                      placement="top"
+                    />
                   </div>
                 </div>
                 <div className={styles.agentDescription}>
