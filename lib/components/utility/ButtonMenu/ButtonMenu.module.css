@@ -67,3 +67,20 @@
   border-top: 1px solid #475569;
   margin: 4px 0;
 }
+
+.menuItemDanger {
+  color: #f87171;
+}
+
+.menuItemDanger:hover {
+  background: #3f1f1f;
+  color: #ef4444;
+}
+
+.menuItemInfo {
+  color: #94a3b8;
+}
+
+.menuItemInfo:hover {
+  background: #1e3a5f;
+}

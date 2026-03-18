@@ -22,6 +22,7 @@ type ButtonMenuOption =
       onClick: () => void;
       active?: boolean;
       disabled?: boolean;
+      variant?: "danger" | "info";
     };
 
 interface ButtonMenuProps {
@@ -166,7 +167,7 @@ export default function ButtonMenu({
             setIsOpen(false);
           }}
           disabled={option.disabled}
-          className={`${styles.menuItem} ${option.active ? styles.menuItemActive : ""} ${option.disabled ? styles.menuItemDisabled : ""}`}
+          className={`${styles.menuItem} ${option.active ? styles.menuItemActive : ""} ${option.disabled ? styles.menuItemDisabled : ""} ${option.variant === "danger" ? styles.menuItemDanger : option.variant === "info" ? styles.menuItemInfo : ""}`}
         >
           <div className={styles.menuItemIcon}>
             {typeof option.icon === "string" ? (

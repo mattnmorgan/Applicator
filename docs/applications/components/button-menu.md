@@ -25,12 +25,13 @@ Each entry is either a menu item or a separator:
 ```typescript
 // Menu item
 {
-  type?: "item";         // Optional, defaults to item
-  label: string;         // Menu item text
+  type?: "item";            // Optional, defaults to item
+  label: string;            // Menu item text
   icon: ReactNode | string; // Icon element or icon name string (e.g. "edit")
-  onClick: () => void;   // Click handler
-  active?: boolean;      // Highlight item as active/selected
-  disabled?: boolean;    // Disable the item
+  onClick: () => void;      // Click handler
+  active?: boolean;         // Highlight item as active/selected
+  disabled?: boolean;       // Disable the item
+  variant?: "danger" | "info"; // Color the item red (danger) or muted blue-grey (info)
 }
 
 // Separator
@@ -48,12 +49,20 @@ Each entry is either a menu item or a separator:
       icon: "edit",
       onClick: () => handleEdit(),
     },
+    {
+      label: "Watch",
+      icon: "eye",
+      onClick: () => handleWatch(),
+      active: isWatching,
+      variant: "info",
+    },
     { type: "separator" },
     {
       label: "Delete",
       icon: "trash",
       onClick: () => handleDelete(),
       disabled: !canDelete,
+      variant: "danger",
     },
   ]}
 />
