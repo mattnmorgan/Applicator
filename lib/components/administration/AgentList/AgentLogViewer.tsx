@@ -92,6 +92,53 @@ export default function AgentLogViewer({ agent, onBack }: Props) {
     return d.toLocaleTimeString(undefined, { hour: "2-digit", minute: "2-digit", second: "2-digit" });
   };
 
+  if (viewingLog) {
+    return (
+      <div style={{ display: "flex", flexDirection: "column", height: "100%" }}>
+        {/* Log panel header */}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            padding: "10px 14px",
+            borderBottom: "1px solid #1e293b",
+            gap: 8,
+            flexShrink: 0,
+          }}
+        >
+          <span style={{ color: "#94a3b8", fontSize: 13, fontWeight: 500, flex: 1 }}>
+            Execution on {formatTimestamp(viewingLog.timestamp)}
+          </span>
+          <ButtonIcon
+            name="close"
+            label="Close log"
+            onClick={() => setViewingLog(null)}
+            placement="top"
+            size="sm"
+          />
+        </div>
+
+        {/* Scrollable log content */}
+        <pre
+          style={{
+            margin: 0,
+            padding: "12px 14px",
+            overflowY: "auto",
+            flex: 1,
+            color: "#94a3b8",
+            fontSize: 12,
+            fontFamily: "monospace",
+            lineHeight: 1.6,
+            whiteSpace: "pre-wrap",
+            wordBreak: "break-all",
+          }}
+        >
+          {viewingLog.content || "(empty)"}
+        </pre>
+      </div>
+    );
+  }
+
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
       {/* Header */}
@@ -184,58 +231,6 @@ export default function AgentLogViewer({ agent, onBack }: Props) {
               />
             </div>
           ))}
-        </div>
-      )}
-
-      {/* Log content panel */}
-      {viewingLog && (
-        <div
-          style={{
-            marginTop: 8,
-            background: "#0a0f1e",
-            border: "1px solid #334155",
-            borderRadius: 8,
-          }}
-        >
-          {/* Panel subheader */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              padding: "10px 14px",
-              borderBottom: "1px solid #1e293b",
-              gap: 8,
-            }}
-          >
-            <span style={{ color: "#94a3b8", fontSize: 13, fontWeight: 500, flex: 1 }}>
-              Execution on {formatTimestamp(viewingLog.timestamp)}
-            </span>
-            <ButtonIcon
-              name="close"
-              label="Close log"
-              onClick={() => setViewingLog(null)}
-              placement="top"
-              size="sm"
-            />
-          </div>
-
-          {/* Scrollable log content */}
-          <pre
-            style={{
-              margin: 0,
-              padding: "12px 14px",
-              overflowY: "auto",
-              maxHeight: 380,
-              color: "#94a3b8",
-              fontSize: 12,
-              fontFamily: "monospace",
-              lineHeight: 1.6,
-              whiteSpace: "pre-wrap",
-              wordBreak: "break-all",
-            }}
-          >
-            {viewingLog.content || "(empty)"}
-          </pre>
         </div>
       )}
     </div>

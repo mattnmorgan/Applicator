@@ -43,7 +43,7 @@ export async function GET(
     const logs = result.records
       .map((r) => ({
         id: r.id,
-        timestamp: new Date(r.data.timestamp).toISOString(),
+        timestamp: new Date(Number(r.data.timestamp)).toISOString(),
         success: r.data.status === "success" ? true : r.data.status === "failed" ? false : null,
       }))
       .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
