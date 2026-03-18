@@ -63,7 +63,7 @@ export default function UserCreate({
   const [username, setUsername] = useState(editUser?.username || "");
   const [email, setEmail] = useState(editUser?.email || "");
   const [password, setPassword] = useState("");
-  const [authority, setAuthority] = useState(editUser?.authority || "user");
+  const [authority, setAuthority] = useState(editUser?.authority || "");
   const [authorities, setAuthorities] = useState<TableRecord<Authority>[]>([]);
   const [profilePicture, setProfilePicture] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string>(
@@ -99,13 +99,15 @@ export default function UserCreate({
 
   const fetchAuthorities = async () => {
     try {
-      setAuthorities(
-        (
-          await new AuthorityManager().readRecords({
-            fields: { contextual: false },
-          })
-        ).records.filter((r) => !r.data.user_id),
-      );
+      const records = (
+        await new AuthorityManager().readRecords({
+          fields: { contextual: false },
+        })
+      ).records.filter((r) => !r.data.user_id);
+      setAuthorities(records);
+      if (!editUser && records.length > 0) {
+        setAuthority((prev) => prev || records[0].id);
+      }
     } catch (error) {
       console.error("Failed to fetch authorities:", error);
     }
@@ -426,7 +428,7 @@ export default function UserCreate({
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label}>Custom Authorizations</label>
+          <label className={styles.label}>Authorizations</label>
           <input
             type="text"
             className={styles.input}
@@ -472,7 +474,7 @@ export default function UserCreate({
         </div>
 
         <div className={styles.formGroup}>
-          <label className={styles.label}>Custom App Access</label>
+          <label className={styles.label}>App Access</label>
           <input
             type="text"
             className={styles.input}
