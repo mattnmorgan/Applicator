@@ -3,6 +3,7 @@ import path from "path";
 import Logger from "@/lib/system/logger";
 import fs from "fs/promises";
 import AgentManager from "@/lib/managers/agent";
+import AgentExecutionManager from "@/lib/managers/agent-execution";
 import AppManager from "@/lib/managers/app";
 import LogManager from "@/lib/managers/log";
 import { versionDir } from "@/lib/system/version";
@@ -21,6 +22,7 @@ export default class Agent {
   private storagePath: string | undefined;
   private _logger: Logger | null;
   private maxLogs: number;
+  private _currentLogFile: string | null = null;
 
   /**
    * Static map of all running agents, keyed by agent ID (appId:agentName)
@@ -375,7 +377,8 @@ export default class Agent {
     }
 
     const timestamp = new Date().toISOString().replace(/[:.]/g, "-");
-    this._logger.file = `${await this.getLogDirectory()}/${timestamp}.log`;
+    this._currentLogFile = `${await this.getLogDirectory()}/${timestamp}.log`;
+    this._logger.file = this._currentLogFile;
     this._logger.debug("Agent has begun execution");
   }
 
@@ -520,6 +523,22 @@ export default class Agent {
     }
 
     await this.finalize({ ...executionContext });
+
+    if (this._currentLogFile) {
+      try {
+        await new AgentExecutionManager().createRecord(null, {
+          app: this.appId,
+          agent: `${this.appId}:${this.agentName}`,
+          timestamp: executionStart,
+          status: executionContext.success ? "success" : "failed",
+          error: executionContext.error ?? null,
+          log_file: path.basename(this._currentLogFile),
+        });
+      } catch {
+        // Non-fatal: don't fail the execution if DB write fails
+      }
+      this._currentLogFile = null;
+    }
   }
 
   /**

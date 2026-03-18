@@ -375,6 +375,34 @@ const schema = new Schema({
 
     new Table({
       createNonexisting: true,
+      name: "agent_executions",
+      fields: [
+        new Field({ name: "id", type: "text", primaryKey: true }),
+        new Field({
+          name: "app",
+          type: "text",
+          foreignKey: { table: "apps", field: "id", cascade: true },
+        }),
+        new Field({
+          name: "agent",
+          type: "text",
+          foreignKey: { table: "agents", field: "id", cascade: true },
+        }),
+        new Field({ name: "timestamp", type: "bigint" }),
+        new Field({
+          name: "status",
+          type: "text",
+          check: ["success", "failed", "unknown"],
+        }),
+        new Field({ name: "error", type: "text", nillable: true }),
+        new Field({ name: "log_file", type: "text", nillable: true }),
+        new Field({ name: "created_at", type: "bigint" }),
+        new Field({ name: "updated_at", type: "bigint" }),
+      ],
+    }),
+
+    new Table({
+      createNonexisting: true,
       name: "records",
       primaryKey: ["app_id", "table_name", "id"],
       fields: [

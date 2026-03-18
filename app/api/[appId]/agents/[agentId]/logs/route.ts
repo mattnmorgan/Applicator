@@ -3,33 +3,13 @@ import { getSession } from "@/lib/managers/session";
 import { userHasAuthorization } from "@/lib/managers/user";
 import Agent from "@/lib/system/agents/agent";
 import Logger from "@/lib/system/logger";
+import AgentExecutionManager from "@/lib/managers/agent-execution";
 import fs from "fs/promises";
 import path from "path";
 
 async function getLogDir(appId: string, agentId: string): Promise<string | null> {
   const agent = new Agent(appId, agentId, new Logger({ filename: "" }));
   return agent.getLogDirectory();
-}
-
-function parseTimestampFromFilename(id: string): Date {
-  // Filename: YYYY-MM-DDTHH-mm-ss-sssZ → restore colons and dot
-  const timestampStr = id.replace(/-/g, (m, i) =>
-    i === 4 || i === 7 ? "-" : i === 13 || i === 16 ? ":" : i === 19 ? "." : m,
-  );
-  const d = new Date(timestampStr);
-  return isNaN(d.getTime()) ? new Date(0) : d;
-}
-
-async function parseLogSuccess(logPath: string): Promise<boolean | null> {
-  try {
-    const content = await fs.readFile(logPath, "utf8");
-    const m = content.match(/Agent has finished execution :: (\{.*\})/);
-    if (m) {
-      const meta = JSON.parse(m[1]);
-      return !!meta.success;
-    }
-  } catch {}
-  return null;
 }
 
 async function requireAdmin(request: NextRequest): Promise<{ userId: string } | null> {
@@ -53,30 +33,22 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const logDir = await getLogDir(appId, agentId);
-    if (!logDir) return NextResponse.json({ logs: [] });
+    const agentKey = `${appId}:${agentId}`;
+    const manager = new AgentExecutionManager();
+    const result = await manager.readRecords({
+      filters: [{ field: "agent", operator: "=", value: agentKey }],
+      limit: 200,
+    });
 
-    let files: string[];
-    try {
-      files = await fs.readdir(logDir);
-    } catch {
-      return NextResponse.json({ logs: [] });
-    }
+    const logs = result.records
+      .map((r) => ({
+        id: r.id,
+        timestamp: new Date(r.data.timestamp).toISOString(),
+        success: r.data.status === "success" ? true : r.data.status === "failed" ? false : null,
+      }))
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
 
-    const entries = await Promise.all(
-      files
-        .filter((f) => f.endsWith(".log"))
-        .map(async (filename) => {
-          const id = filename.replace(".log", "");
-          const timestamp = parseTimestampFromFilename(id);
-          const success = await parseLogSuccess(path.join(logDir, filename));
-          return { id, timestamp: timestamp.toISOString(), success };
-        }),
-    );
-
-    entries.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
-
-    return NextResponse.json({ logs: entries });
+    return NextResponse.json({ logs });
   } catch (error: any) {
     return NextResponse.json({ error: error.message || "Internal server error" }, { status: 500 });
   }
@@ -93,22 +65,32 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
+    const agentKey = `${appId}:${agentId}`;
+    const manager = new AgentExecutionManager();
+
+    // Load records so we can delete the physical log files
+    const result = await manager.readRecords({
+      filters: [{ field: "agent", operator: "=", value: agentKey }],
+      limit: 1000,
+    });
+
     const logDir = await getLogDir(appId, agentId);
-    if (!logDir) return NextResponse.json({ deleted: 0 });
-
-    let files: string[];
-    try {
-      files = await fs.readdir(logDir);
-    } catch {
-      return NextResponse.json({ deleted: 0 });
-    }
-
     let deleted = 0;
-    for (const filename of files.filter((f) => f.endsWith(".log"))) {
+
+    for (const r of result.records) {
+      if (logDir && r.data.log_file) {
+        try {
+          await fs.unlink(path.join(logDir, r.data.log_file));
+        } catch {
+          // File may already be gone
+        }
+      }
       try {
-        await fs.unlink(path.join(logDir, filename));
+        await manager.deleteRecord(r.id);
         deleted++;
-      } catch {}
+      } catch {
+        // Non-fatal
+      }
     }
 
     return NextResponse.json({ deleted });

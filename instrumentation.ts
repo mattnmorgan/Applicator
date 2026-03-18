@@ -11,6 +11,9 @@ export async function register() {
     const { default: AgentSystem } = await import(
       "@/lib/system/agents/agent-system"
     );
+    const { backfillAgentExecutions } = await import(
+      "@/lib/system/agents/backfill"
+    );
 
     // Initialize after a short delay to ensure database is ready
     setTimeout(async () => {
@@ -18,6 +21,12 @@ export async function register() {
         await AgentSystem.getInstance().initialize();
       } catch (error) {
         console.error("Failed to initialize agent system:", error);
+      }
+
+      try {
+        await backfillAgentExecutions();
+      } catch (error) {
+        console.error("Failed to backfill agent executions:", error);
       }
     }, 5000);
   }
