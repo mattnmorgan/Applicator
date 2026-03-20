@@ -1,7 +1,7 @@
 .container {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 12px;
   width: 100%;
 }
 
@@ -23,19 +23,19 @@
   background: #0f172a;
   border: 1px solid #334155;
   border-radius: 8px;
-  padding: 20px;
+  padding: 12px;
 }
 
 .sectionHeader {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 .sectionTitle {
   font-size: 16px;
-  font-weight: 500;
+  font-weight: bold;
   color: #e2e8f0;
   margin: 0;
 }
@@ -68,7 +68,9 @@
   border-radius: 6px;
   margin-bottom: 8px;
   cursor: grab;
-  transition: border-color 0.2s, box-shadow 0.2s;
+  transition:
+    border-color 0.2s,
+    box-shadow 0.2s;
 }
 
 .appletRow:last-child {
@@ -137,7 +139,9 @@
   padding: 8px;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.2s, color 0.2s;
+  transition:
+    opacity 0.2s,
+    color 0.2s;
   margin-left: 12px;
   display: flex;
   align-items: center;
@@ -353,7 +357,9 @@
   padding: 8px;
   cursor: pointer;
   opacity: 0;
-  transition: opacity 0.2s, color 0.2s;
+  transition:
+    opacity 0.2s,
+    color 0.2s;
   margin-left: 8px;
   display: flex;
   align-items: center;
