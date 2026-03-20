@@ -15,6 +15,7 @@ async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
     {
       label: "Home",
       path: "/",
+      icon: "home",
     },
   ];
 
@@ -48,6 +49,7 @@ async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
     homeMenuItems.push({
       label: applet.data.label,
       path: `/app/${applet.id}`,
+      icon: `/api/${applet.data.app}/assets/icon`,
     });
   }
 
@@ -312,6 +314,15 @@ export default async function HomePage() {
     .flat()
     .includes("system:admin");
 
+  const settingManager = new SettingManager();
+  const densitySetting = await settingManager.readRecord(
+    `${user.id}:home:appDensity`,
+  );
+  const rawDensity = densitySetting?.data.value;
+  const appDensity = (
+    ["full", "name", "icon"].includes(rawDensity || "") ? rawDensity : "full"
+  ) as "full" | "name" | "icon";
+
   const homeMenuItems = await getHomeMenuItems(user.id);
   const pinnedApplets = await getUserPinnedApplets(user.id);
 
@@ -336,7 +347,7 @@ export default async function HomePage() {
           background: "#0f172a",
         }}
       >
-        <Tabset items={homeMenuItems} variant="horizontal" />
+        <Tabset items={homeMenuItems} variant="horizontal" density={appDensity} />
         <main
           style={{
             position: "absolute",

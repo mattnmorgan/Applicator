@@ -11,6 +11,7 @@ import AppManager from "@/lib/client/managers/app";
 interface TabsetItem {
   label: string;
   path?: string;
+  icon?: string;
 }
 
 export default function AppPage() {
@@ -35,6 +36,7 @@ export default function AppPage() {
   const [appVersion, setAppVersion] = useState<string | null>(null);
   const [appletComponent, setAppletComponent] = useState<string | null>(null);
   const [homeMenuItems, setHomeMenuItems] = useState<TabsetItem[]>([]);
+  const [appDensity, setAppDensity] = useState<"full" | "name" | "icon">("full");
   const [moduleUrl, setModuleUrl] = useState<string | null>(null);
 
   const appletManager = new AppletManager();
@@ -62,11 +64,19 @@ export default function AppPage() {
           setAuthorizations(data.authorizations || []);
           setIsAssumedIdentity(data.isAssumedIdentity || false);
 
+          // Read density preference
+          const validDensities = ["full", "name", "icon"];
+          const rawDensity = data.homeSettings?.appDensity;
+          if (rawDensity && validDensities.includes(rawDensity)) {
+            setAppDensity(rawDensity as "full" | "name" | "icon");
+          }
+
           // Build home menu items
           const menuItems: TabsetItem[] = [
             {
               label: "Home",
               path: "/",
+              icon: "home",
             },
           ];
 
@@ -77,6 +87,7 @@ export default function AppPage() {
                 menuItems.push({
                   label: applet.label,
                   path: `/app/${applet.id}`,
+                  icon: `/api/${applet.app}/assets/icon`,
                 });
               }
             }
@@ -201,7 +212,7 @@ export default function AppPage() {
           background: "#0f172a",
         }}
       >
-        <Tabset items={homeMenuItems} variant="horizontal" />
+        <Tabset items={homeMenuItems} variant="horizontal" density={appDensity} />
         <main
           style={{
             position: "absolute",

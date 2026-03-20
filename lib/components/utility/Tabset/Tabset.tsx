@@ -3,12 +3,14 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import styles from "./Tabset.module.css";
+import Icon from "@/lib/components/utility/Icon";
 
 export interface TabsetItem {
   label: string;
   path?: string;
   children?: TabsetItem[];
   clickable?: boolean;
+  icon?: string;
 }
 
 interface TabsetProps {
@@ -16,6 +18,11 @@ interface TabsetProps {
   variant?: "vertical" | "horizontal";
   searchable?: boolean;
   autoExpand?: boolean;
+  density?: "full" | "name" | "icon";
+}
+
+function isIconUrl(icon: string) {
+  return icon.startsWith("/") || icon.startsWith("http://") || icon.startsWith("https://");
 }
 
 interface TreeItemProps {
@@ -124,10 +131,13 @@ export default function Tabset({
   variant = "vertical",
   searchable = false,
   autoExpand = false,
+  density = "full",
 }: TabsetProps) {
   const router = useRouter();
   const pathname = usePathname();
   const [searchTerm, setSearchTerm] = useState("");
+  const [iconErrors, setIconErrors] = useState<Record<string, boolean>>({});
+  const [tooltip, setTooltip] = useState<{ label: string; x: number; y: number } | null>(null);
 
   const handleNavigate = (path: string) => {
     router.push(path);
@@ -148,28 +158,91 @@ export default function Tabset({
     return () => el.removeEventListener("wheel", onWheel);
   }, [variant]);
 
+  const renderHorizontalTabContent = (item: TabsetItem, itemKey: string) => {
+    const getIconNode = () => {
+      if (item.icon) {
+        if (isIconUrl(item.icon)) {
+          if (!iconErrors[itemKey]) {
+            return (
+              <img
+                src={item.icon}
+                className={styles.horizontalTabIcon}
+                onError={() =>
+                  setIconErrors((prev) => ({ ...prev, [itemKey]: true }))
+                }
+                alt=""
+              />
+            );
+          }
+          // URL failed to load — fall through to letter placeholder below
+        } else {
+          return <Icon name={item.icon} size={16} />;
+        }
+      }
+      if (density === "icon") {
+        return (
+          <span className={styles.horizontalTabLetter}>
+            {item.label[0]?.toUpperCase() || "?"}
+          </span>
+        );
+      }
+      return null;
+    };
+
+    if (density === "name") {
+      return <>{item.label}</>;
+    }
+
+    const iconNode = getIconNode();
+
+    if (density === "icon") {
+      return iconNode;
+    }
+
+    // "full": icon (if available) + label
+    return (
+      <span className={styles.horizontalTabContent}>
+        {iconNode}
+        {item.label}
+      </span>
+    );
+  };
+
   if (variant === "horizontal") {
     return (
+      <>
       <div ref={horizontalRef} className={styles.tabsetHorizontal}>
         {items.map((item, index) => {
           const isActive = item.path === pathname;
           const isClickable =
             item.clickable !== false && item.path !== undefined;
+          const itemKey = item.path || String(index);
 
           return (
             <div
               key={index}
-              className={`${styles.horizontalTab} ${isActive ? styles.horizontalTabActive : ""}`}
+              className={`${styles.horizontalTab} ${isActive ? styles.horizontalTabActive : ""} ${density === "icon" ? styles.horizontalTabIconOnly : ""}`}
               onClick={() =>
                 isClickable && item.path && handleNavigate(item.path)
               }
+              onMouseEnter={density === "icon" ? (e) => {
+                const rect = e.currentTarget.getBoundingClientRect();
+                setTooltip({ label: item.label, x: rect.left + rect.width / 2, y: rect.bottom + 6 });
+              } : undefined}
+              onMouseLeave={density === "icon" ? () => setTooltip(null) : undefined}
               style={{ cursor: isClickable ? "pointer" : "default" }}
             >
-              {item.label}
+              {renderHorizontalTabContent(item, itemKey)}
             </div>
           );
         })}
       </div>
+      {tooltip && (
+        <div className={styles.tooltip} style={{ top: tooltip.y, left: tooltip.x }}>
+          {tooltip.label}
+        </div>
+      )}
+      </>
     );
   }
 

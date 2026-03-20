@@ -9,6 +9,9 @@ import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
 
+const VALID_DENSITIES = ["full", "name", "icon"] as const;
+type AppDensity = (typeof VALID_DENSITIES)[number];
+
 export async function GET() {
   try {
     const currentUser = await getCurrentUser();
@@ -72,6 +75,17 @@ export async function GET() {
         settings: applet.data.settings || [],
       }));
 
+    // Read home display settings
+    const settingManager = new SettingManager();
+    const densitySetting = await settingManager.readRecord(
+      `${user.id}:home:appDensity`,
+    );
+    const rawDensity = densitySetting?.data.value;
+    const appDensity: AppDensity =
+      rawDensity && VALID_DENSITIES.includes(rawDensity as AppDensity)
+        ? (rawDensity as AppDensity)
+        : "full";
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -85,6 +99,7 @@ export async function GET() {
       authorizations: Array.from(authorizations),
       userApplets, // Array of applets with full details
       isAssumedIdentity: currentUser.isAssumedIdentity,
+      homeSettings: { appDensity },
     });
   } catch (error) {
     console.error("Failed to get current user:", error);

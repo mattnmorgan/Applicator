@@ -258,6 +258,12 @@ function SettingsModal({
   );
 }
 
+const DENSITY_OPTIONS: { value: "full" | "name" | "icon"; label: string; description: string }[] = [
+  { value: "full", label: "Full", description: "Show applet icon and name" },
+  { value: "name", label: "Name Only", description: "Show only the applet name" },
+  { value: "icon", label: "Icon Only", description: "Show only the applet icon" },
+];
+
 export default function HomeSettingsPage() {
   const [pinnedInstances, setPinnedInstances] = useState<PinnedInstance[]>([]);
   const [instanceSettings, setInstanceSettings] = useState<
@@ -265,6 +271,7 @@ export default function HomeSettingsPage() {
   >({});
   const [availableApplets, setAvailableApplets] = useState<AppletInfo[]>([]);
   const [userId, setUserId] = useState<string>("");
+  const [appDensity, setAppDensity] = useState<"full" | "name" | "icon">("full");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [editingInstance, setEditingInstance] = useState<PinnedInstance | null>(
     null,
@@ -304,8 +311,18 @@ export default function HomeSettingsPage() {
         appletMap.set(applet.id, applet);
       }
 
-      // Fetch user's current pinned applets setting
+      // Fetch home display settings
       const settingManager = new SettingManager();
+      const densityRecord = await settingManager.readRecord({
+        id: `${currentUserId}:home:appDensity`,
+      });
+      const validDensities = ["full", "name", "icon"];
+      const loadedDensity = densityRecord?.data.value;
+      if (loadedDensity && validDensities.includes(loadedDensity)) {
+        setAppDensity(loadedDensity as "full" | "name" | "icon");
+      }
+
+      // Fetch user's current pinned applets setting
       const setting = await settingManager.readRecord({
         id: `${currentUserId}:home:applets`,
       });
@@ -461,6 +478,12 @@ export default function HomeSettingsPage() {
       const settingManager = new SettingManager();
       const appletSettingManager = new AppletSettingManager();
 
+      await settingManager.upsertRecord(`${userId}:home:appDensity`, {
+        value: appDensity,
+        name: "home:appDensity",
+        user: userId,
+      });
+
       await settingManager.upsertRecord(`${userId}:home:applets`, {
         value: JSON.stringify(
           pinnedInstances.map((a) => ({
@@ -509,6 +532,47 @@ export default function HomeSettingsPage() {
 
       {error && <div className={styles.error}>{error}</div>}
       {success && <div className={styles.success}>{success}</div>}
+
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h3 className={styles.sectionTitle}>App Density</h3>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {DENSITY_OPTIONS.map((option) => (
+            <label
+              key={option.value}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "10px 12px",
+                borderRadius: "6px",
+                cursor: "pointer",
+                background: appDensity === option.value ? "#1e3a5f" : "transparent",
+                border: `1px solid ${appDensity === option.value ? "#3b82f6" : "#334155"}`,
+                transition: "all 0.15s ease",
+              }}
+            >
+              <input
+                type="radio"
+                name="appDensity"
+                value={option.value}
+                checked={appDensity === option.value}
+                onChange={() => setAppDensity(option.value)}
+                style={{ accentColor: "#3b82f6", flexShrink: 0 }}
+              />
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                <span style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
+                  {option.label}
+                </span>
+                <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+                  {option.description}
+                </span>
+              </div>
+            </label>
+          ))}
+        </div>
+      </section>
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>

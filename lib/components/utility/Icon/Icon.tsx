@@ -1,6 +1,7 @@
 import React from "react";
 
 export type IconName =
+  | "home"
   | "bell"
   | "calendar"
   | "check"
@@ -59,6 +60,14 @@ export default function Icon({ name, size = 16 }: IconProps) {
   };
 
   switch (name) {
+    case "home":
+      return (
+        <svg {...base}>
+          <path d="M3 9.5L12 3l9 6.5V21a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V9.5z" />
+          <polyline points="9 22 9 12 15 12 15 22" />
+        </svg>
+      );
+
     case "bell":
       return (
         <svg {...base}>
