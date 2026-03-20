@@ -3,7 +3,7 @@
 import { useState, useRef, useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import styles from "./Tabset.module.css";
-import Icon from "@/lib/components/utility/Icon";
+import Icon from "../Icon";
 
 export interface TabsetItem {
   label: string;

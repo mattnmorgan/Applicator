@@ -53,6 +53,9 @@ export async function cascadeCollect(
       [targetAppId, targetTableName] = field.related_to.split(":");
     }
 
+    // System tables don't have app-defined formula fields — skip cascade reprocessing
+    if (targetAppId === "system") continue;
+
     // Relationship value can be single ID or array
     const relatedIds: string[] = Array.isArray(value) ? value : [value];
 
