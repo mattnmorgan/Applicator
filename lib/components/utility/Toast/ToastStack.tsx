@@ -29,7 +29,7 @@ export default function ToastStack({ toasts, onClose }: ToastStackProps) {
               message={toast.message}
               title={toast.title}
               type={toast.type}
-              duration={toast.duration}
+              duration={toast.type === "error" ? (toast.duration ?? 0) : toast.duration}
               onClose={() => onClose(index)}
             />
           ))}
