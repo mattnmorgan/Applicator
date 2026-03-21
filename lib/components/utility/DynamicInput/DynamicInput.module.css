@@ -629,3 +629,30 @@
   opacity: 0.5;
   cursor: not-allowed;
 }
+
+/* Radio horizontal group input */
+.radioHorizontalGroup {
+  display: flex;
+  border: 1px solid #334155;
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.radioHorizontalGroupButton {
+  flex: 1;
+  padding: 8px 16px;
+  border: 1px solid #334155;
+  cursor: pointer;
+  font-weight: 500;
+  font-size: 14px;
+  font-family: inherit;
+  transition: background 0.15s, color 0.15s;
+}
+
+.radioHorizontalGroupButton:not(:disabled):hover {
+  filter: brightness(1.1);
+}
+
+.radioHorizontalGroupButton:disabled {
+  cursor: not-allowed;
+}

@@ -163,6 +163,16 @@ const SAMPLE_INPUTS: DynamicInputDefinition[] = [
     type: "password",
     tooltip: "Must be at least 8 characters and include a number.",
   },
+  {
+    id: "demo-radio-horizontal-group",
+    label: "Transaction Type",
+    type: "radio-horizontal-group",
+    tooltip: "Debit increases the balance; Credit decreases it.",
+    options: [
+      { value: "debit",  label: "Debit",  description: "Increases the balance", selectedColor: "#dc2626" },
+      { value: "credit", label: "Credit", description: "Decreases the balance", selectedColor: "#16a34a" },
+    ],
+  },
 ];
 
 interface ComboItem {

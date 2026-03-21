@@ -374,7 +374,7 @@ export default function SearchableCombobox<T>({
                       {isSelected ? "☑" : "☐"}
                     </span>
                   )}
-                  <div style={{ flex: 1, minWidth: 0 }}>{renderItem(item, "dropdown")}</div>
+                  <div style={{ flex: 1, minWidth: 0, color: "#f1f5f9" }}>{renderItem(item, "dropdown")}</div>
                   {!multiSelect && isSelected && (
                     <span style={{ color: "#3b82f6", fontSize: "14px", flexShrink: 0 }}>
                       ✓

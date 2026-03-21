@@ -13,8 +13,9 @@ import type { DynamicInputDefinition, DynamicInputOption } from "@applicator/sdk
 interface DynamicInputOption {
   value: string;
   label: string;
-  description?: string;
+  description?: string;  // for radio: shown below the option; for horizontalGroup: shown as a hover tooltip
   icon?: string;
+  selectedColor?: string; // horizontalGroup only — background color when this option is selected
 }
 ```
 
@@ -70,6 +71,7 @@ interface DynamicInputDefinition {
 | `icon`                | Icon picker                                            |
 | `file`                | File upload input                                      |
 | `toggle`              | On/off toggle switch                                   |
+| `radio-horizontal-group` | Horizontal segmented button group — each option fills equal width, shows a hover tooltip when `description` is set, and uses `selectedColor` for its active background |
 
 ## Props
 
@@ -114,6 +116,21 @@ const handleChange = (id: string, value: any) => {
 <DynamicInput
   input={{ id: "quantity", label: "Quantity", type: "number", min: "0", max: "100", step: "1" }}
   value={values.quantity ?? ""}
+  onChange={handleChange}
+/>
+
+// Radio horizontal group (segmented buttons with per-option color and tooltip)
+<DynamicInput
+  input={{
+    id: "type",
+    label: "Type",
+    type: "radio-horizontal-group",
+    options: [
+      { value: "debit",  label: "Debit",  description: "Increases the balance", selectedColor: "#dc2626" },
+      { value: "credit", label: "Credit", description: "Decreases the balance", selectedColor: "#16a34a" },
+    ],
+  }}
+  value={values.type ?? "debit"}
   onChange={handleChange}
 />
 ```

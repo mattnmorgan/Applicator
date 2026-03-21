@@ -10,9 +10,10 @@ interface TooltipProps {
   render?: () => React.ReactNode;
   placement?: TooltipPlacement;
   children: React.ReactNode;
+  style?: React.CSSProperties;
 }
 
-export default function Tooltip({ text, render, placement = 'bottom', children }: TooltipProps) {
+export default function Tooltip({ text, render, placement = 'bottom', children, style }: TooltipProps) {
   const [show, setShow] = useState(false);
   const [pos, setPos] = useState<{ top: number; left: number; visible: boolean }>({
     top: 0,
@@ -94,7 +95,7 @@ export default function Tooltip({ text, render, placement = 'bottom', children }
   return (
     <span
       ref={triggerRef}
-      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }}
+      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', ...style }}
       onMouseEnter={() => {
         cancelHide();
         setPos({ top: 0, left: 0, visible: false });
