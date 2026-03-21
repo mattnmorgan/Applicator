@@ -3,15 +3,21 @@
 import type { DynamicInputProps } from "../DynamicInput";
 import styles from "../DynamicInput.module.css";
 import InputLabel from "../InputLabel";
-import Tooltip from "@/lib/components/utility/Tooltip";
+import Tooltip from "../../Tooltip";
 
-export default function RadioHorizontalGroupInput({ input, value, onChange }: DynamicInputProps) {
+export default function RadioHorizontalGroupInput({
+  input,
+  value,
+  onChange,
+}: DynamicInputProps) {
   const options = input.options ?? [];
 
   return (
     <div className={styles.wrapper}>
       <InputLabel input={input} />
-      <div className={`${styles.radioHorizontalGroup} ${input.disabled ? styles.containerDisabled : ""}`}>
+      <div
+        className={`${styles.radioHorizontalGroup} ${input.disabled ? styles.containerDisabled : ""}`}
+      >
         {options.map((opt, i) => {
           const isSelected = value === opt.value;
           const isFirst = i === 0;
@@ -25,8 +31,14 @@ export default function RadioHorizontalGroupInput({ input, value, onChange }: Dy
               disabled={input.disabled}
               className={styles.radioHorizontalGroupButton}
               style={{
-                borderRadius: isFirst ? "6px 0 0 6px" : isLast ? "0 6px 6px 0" : "0",
-                background: isSelected ? (opt.selectedColor ?? "#3b82f6") : "transparent",
+                borderRadius: isFirst
+                  ? "6px 0 0 6px"
+                  : isLast
+                    ? "0 6px 6px 0"
+                    : "0",
+                background: isSelected
+                  ? (opt.selectedColor ?? "#3b82f6")
+                  : "transparent",
                 color: isSelected ? "#fff" : "#6b7280",
                 borderRight: isLast ? undefined : "none",
               }}
@@ -36,10 +48,17 @@ export default function RadioHorizontalGroupInput({ input, value, onChange }: Dy
           );
 
           return opt.description ? (
-            <Tooltip key={opt.value} text={opt.description} placement="top" style={{ flex: 1 }}>
+            <Tooltip
+              key={opt.value}
+              text={opt.description}
+              placement="top"
+              style={{ flex: 1 }}
+            >
               {button}
             </Tooltip>
-          ) : button;
+          ) : (
+            button
+          );
         })}
       </div>
     </div>

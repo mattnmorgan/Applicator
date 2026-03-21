@@ -25,7 +25,6 @@ import RadioHorizontalGroupInput from "./inputs/RadioHorizontalGroupInput";
 
 export type { DynamicInputOption } from "./types/dynamic-input-option";
 export type { DynamicInputDefinition } from "./types/dynamic-input-definition";
-
 import type { DynamicInputDefinition } from "./types/dynamic-input-definition";
 
 export interface DynamicInputProps {
@@ -60,7 +59,11 @@ const INPUT_COMPONENTS: Record<
   "radio-horizontal-group": RadioHorizontalGroupInput,
 };
 
-export default function DynamicInput({ input, value, onChange }: DynamicInputProps) {
+export default function DynamicInput({
+  input,
+  value,
+  onChange,
+}: DynamicInputProps) {
   const Component = INPUT_COMPONENTS[input.type];
 
   if (!Component) {
