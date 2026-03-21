@@ -197,12 +197,11 @@ export default async function HomePage() {
     return (
       <div
         style={{
-          height: "100dvh",
+          height: "100vh",
           display: "flex",
           alignItems: "center",
           justifyContent: "center",
           background: "#0f172a",
-          padding: "20px",
           overflow: "hidden",
         }}
       >
@@ -347,7 +346,11 @@ export default async function HomePage() {
           background: "#0f172a",
         }}
       >
-        <Tabset items={homeMenuItems} variant="horizontal" density={appDensity} />
+        <Tabset
+          items={homeMenuItems}
+          variant="horizontal"
+          density={appDensity}
+        />
         <main
           style={{
             position: "absolute",
