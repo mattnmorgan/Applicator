@@ -40,7 +40,8 @@ export type IconName =
   | "word-wrap"
   | "list-view"
   | "grid-view"
-  | "grid-view-small";
+  | "grid-view-small"
+  | "reply";
 
 interface IconProps {
   name: IconName | string;
@@ -400,6 +401,14 @@ export default function Icon({ name, size = 16 }: IconProps) {
           <rect x="2" y="16" width="6" height="6" rx="1" />
           <rect x="9" y="16" width="6" height="6" rx="1" />
           <rect x="16" y="16" width="6" height="6" rx="1" />
+        </svg>
+      );
+
+    case "reply":
+      return (
+        <svg {...base}>
+          <polyline points="9 17 4 12 9 7" />
+          <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
         </svg>
       );
 
