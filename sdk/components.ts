@@ -30,6 +30,8 @@ export type {
 } from "../lib/components/utility/DynamicInput";
 export { default as FolderBrowser } from "../lib/components/utility/FolderBrowser";
 export { default as ProfileIndicator } from "../lib/components/utility/ProfileIndicator";
+export { default as MultiProfileIndicator } from "../lib/components/utility/MultiProfileIndicator";
+export type { ProfileUser } from "../lib/components/utility/MultiProfileIndicator";
 export { default as Row } from "../lib/components/utility/Row";
 export { default as SearchableCombobox } from "../lib/components/utility/SearchableCombobox";
 export type { SearchableComboboxProps } from "../lib/components/utility/SearchableCombobox";
