@@ -26,7 +26,7 @@ import type { DrawerLayoutProps, DrawerPanelConfig } from "@applicator/sdk/compo
 | `open` | `boolean` | `false` | Whether the panel is currently visible |
 | `type` | `"inline" \| "overlay"` | `"overlay"` | `inline` shrinks center content; `overlay` floats above it |
 | `closeable` | `boolean` | `false` | Show a close (×) button in the panel header |
-| `title` | `string` | — | Title displayed in the panel header |
+| `title` | `string \| ReactNode` | — | Title displayed in the panel header. Accepts a plain string or any React node for custom content (icons, buttons, etc.) |
 | `openable` | `boolean` | `false` | Render a floating open button (via portal) when the panel is closed |
 | `iconName` | `IconName` | — | Icon used on the floating open button |
 | `variant` | `"bare" \| "bordered"` | `"bordered"` | Style variant for the floating open button |
@@ -71,6 +71,27 @@ export default function MyLayout({ children }) {
     </DrawerLayout>
   );
 }
+```
+
+### Custom ReactNode title
+
+Pass any React content as `title` to render rich panel headers with icons, buttons, or styled elements:
+
+```tsx
+leftPanel={{
+  open: navOpen,
+  type: "inline",
+  closeable: true,
+  title: (
+    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+      <ButtonIcon name="chevron-left" label="Back" onClick={goBack} size="sm" />
+      <img src={icon} style={{ width: 20, height: 20, borderRadius: 4 }} />
+      <span style={{ fontWeight: 600, fontSize: "14px", color: "#f1f5f9" }}>My Project</span>
+    </div>
+  ),
+  onClose: () => setNavOpen(false),
+  children: <nav>{…}</nav>,
+}}
 ```
 
 ## Notes

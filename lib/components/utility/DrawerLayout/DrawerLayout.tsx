@@ -19,8 +19,11 @@ export interface DrawerPanelConfig {
   type?: "inline" | "overlay";
   /** Show a close (×) button in the panel header. Defaults to false. */
   closeable?: boolean;
-  /** Title shown in the panel header next to the close button. */
-  title?: string;
+  /**
+   * Title shown in the panel header. Accepts a string or any React node,
+   * allowing custom content such as icons, buttons, or styled elements.
+   */
+  title?: React.ReactNode;
   /**
    * When true and the panel is closed, a floating open button is rendered
    * anchored to the top corner of the layout container. The button's icon and
@@ -106,30 +109,37 @@ function DrawerPanel({ side, config, isMobile, pixelWidth }: PanelProps) {
 
   return (
     <div style={panelStyle}>
-      {(config.title || config.closeable) && (
+      {(config.title != null || config.closeable) && (
         <div
           style={{
             display: "flex",
             alignItems: "center",
-            justifyContent: "space-between",
+            gap: "8px",
             padding: "12px 16px",
             borderBottom: "1px solid #334155",
             flexShrink: 0,
           }}
         >
-          {config.title && (
-            <span
-              style={{
-                color: "#f1f5f9",
-                fontWeight: 600,
-                fontSize: "14px",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
-                whiteSpace: "nowrap",
-              }}
-            >
-              {config.title}
-            </span>
+          {config.title != null && (
+            <div style={{ flex: 1, minWidth: 0, overflow: "hidden" }}>
+              {typeof config.title === "string" ? (
+                <span
+                  style={{
+                    display: "block",
+                    color: "#f1f5f9",
+                    fontWeight: 600,
+                    fontSize: "14px",
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                  }}
+                >
+                  {config.title}
+                </span>
+              ) : (
+                config.title
+              )}
+            </div>
           )}
           {config.closeable && (
             <ButtonIcon
