@@ -120,13 +120,13 @@ export default function Tooltip({ text, render, placement = 'bottom', children, 
               padding: isCustom ? '10px 12px' : '6px 12px',
               borderRadius: isCustom ? '6px' : '4px',
               fontSize: '12px',
-              whiteSpace: isCustom ? 'normal' : 'nowrap',
+              whiteSpace: isCustom ? 'normal' : 'normal',
               pointerEvents: isCustom ? 'auto' : 'none',
               zIndex: 99999,
               border: '1px solid #334155',
               boxShadow: isCustom ? '0 4px 12px rgba(0, 0, 0, 0.4)' : '0 2px 8px rgba(0, 0, 0, 0.3)',
               minWidth: isCustom ? '220px' : undefined,
-              maxWidth: isCustom ? '320px' : undefined,
+              maxWidth: isCustom ? '320px' : '160px',
             }}
           >
             {render ? render() : text}

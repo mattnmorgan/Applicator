@@ -32,7 +32,7 @@
   animation: slideIn 0.2s ease-out;
   display: flex;
   flex-direction: column;
-  max-height: 90vh;
+  max-height: 75vh;
 }
 
 @keyframes slideIn {
