@@ -40,6 +40,11 @@ export interface DrawerPanelConfig {
   onOpen?: () => void;
   /** Panel content. */
   children?: React.ReactNode;
+  /**
+   * Padding for the panel content area. Defaults to "16px".
+   * Pass 0 or "0" for no padding (useful when panel content manages its own spacing).
+   */
+  contentPadding?: number | string;
 }
 
 export interface DrawerLayoutProps {
@@ -71,12 +76,13 @@ function resolvePanel(panel: DrawerPanelConfig | undefined) {
     onClose: panel.onClose,
     onOpen: panel.onOpen,
     children: panel.children,
+    contentPadding: panel.contentPadding ?? "16px",
   };
 }
 
 interface PanelProps {
   side: "left" | "right";
-  config: NonNullable<ReturnType<typeof resolvePanel>>;
+  config: NonNullable<ReturnType<typeof resolvePanel>> & { contentPadding: number | string };
   isMobile: boolean;
   pixelWidth: number;
 }
@@ -157,7 +163,7 @@ function DrawerPanel({ side, config, isMobile, pixelWidth }: PanelProps) {
           )}
         </div>
       )}
-      <div style={{ flex: 1, overflowY: "auto", padding: "16px" }}>
+      <div style={{ flex: 1, overflowY: "auto", padding: config.contentPadding }}>
         {config.children}
       </div>
     </div>
