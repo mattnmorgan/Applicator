@@ -9,6 +9,7 @@ import User from "@/lib/database/types/user";
 import Authority from "@/lib/database/types/authority";
 import App from "@/lib/database/types/app";
 import { Filesystem } from "@/lib/system/filesystem";
+import { withTransaction as dbWithTransaction } from "@/lib/database/connections/postgresql";
 import path from "path";
 
 export default class Context {
@@ -157,6 +158,22 @@ export default class Context {
    */
   public recordManager<T>(appId: string, tableId: string): CRUD<T> {
     return new CRUD(appId, tableId);
+  }
+
+  /**
+   * Run multiple record operations within a single database transaction.
+   * If any operation throws, all changes are rolled back automatically.
+   *
+   * Pass the client through to CRUD operation options to enlist them in the transaction:
+   *   await items.createRecord(table, data, { client })
+   *   await items.updateRecord(table, id, data, { client })
+   *   await items.deleteRecord(id, { client })
+   *
+   * @param fn Async callback that receives a transaction client
+   * @returns The return value of fn
+   */
+  public withTransaction<T>(fn: (client: any) => Promise<T>): Promise<T> {
+    return dbWithTransaction(fn);
   }
 
   /**

@@ -388,6 +388,43 @@ const otherAppAccess = await context.isAppAuthorizedFor(
 );
 ```
 
+### Transactions (`context.withTransaction`)
+
+Run multiple record operations atomically. If any operation throws, all changes in the transaction are rolled back.
+
+Pass the `client` received by the callback through to CRUD operation options to enlist them in the same transaction.
+
+```typescript
+const result = await context.withTransaction(async (client) => {
+  const boards = context.recordManager("my-app", "board");
+  const items = context.recordManager("my-app", "item");
+
+  const table = await boards.getTable();
+  const board = await boards.createRecord(table, { name: "My Board" }, { client });
+
+  const itemTable = await items.getTable();
+  await items.createRecord(itemTable, { boardId: board.id, name: "Item 1" }, { client });
+  await items.createRecord(itemTable, { boardId: board.id, name: "Item 2" }, { client });
+
+  // If any of the above throw, all three creates are rolled back
+  return board;
+});
+```
+
+CRUD methods that accept a `client` option:
+- `createRecord(table, data, { client })`
+- `updateRecord(table, id, data, { client })`
+- `deleteRecord(id, { client })`
+- `bulkCreateRecords(table, dataArray, { client })`
+- `bulkUpdateRecords(table, updates, { client })`
+- `bulkDeleteRecords(ids, { client })`
+- `deleteFilteredRecords(filter, { client })`
+- `readRecords(filter, client)` — note: second positional argument, not an options object
+
+**Important:** Operations outside the record manager (e.g. `grantBoardAccess`, file writes) cannot participate in the database transaction and should be called after it completes.
+
+---
+
 ### Logger (`context.logger`)
 
 Log messages to the system log.
