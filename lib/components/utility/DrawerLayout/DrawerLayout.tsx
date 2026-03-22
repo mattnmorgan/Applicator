@@ -48,6 +48,11 @@ export interface DrawerLayoutProps {
   children: React.ReactNode;
   /** Additional styles applied to the root container. */
   style?: React.CSSProperties;
+  /**
+   * Whether to apply rounded corners to the layout container.
+   * Defaults to true. Pass false for full-bleed layouts.
+   */
+  rounded?: boolean;
 }
 
 const MOBILE_BREAKPOINT = 768;
@@ -164,6 +169,7 @@ export default function DrawerLayout({
   rightPanel: rightPanelProp,
   children,
   style,
+  rounded = true,
 }: DrawerLayoutProps) {
   const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -198,7 +204,7 @@ export default function DrawerLayout({
         overflow: "hidden",
         background: "#1e293b",
         border: "1px solid #334155",
-        borderRadius: "10px",
+        borderRadius: rounded ? "10px" : 0,
         ...style,
       }}
     >

@@ -28,7 +28,7 @@ function stringToColor(str: string): string {
 export default function MultiProfileIndicator({ users, maxVisible = 3, size = 28 }: MultiProfileIndicatorProps) {
   const [hovered, setHovered] = useState(false);
 
-  if (users.length === 0) return null;
+  if (!users || users.length === 0) return null;
 
   const visible = users.slice(0, maxVisible);
   const overflow = users.slice(maxVisible);
@@ -49,7 +49,7 @@ export default function MultiProfileIndicator({ users, maxVisible = 3, size = 28
             transition: 'margin-left 0.15s ease',
           }}
         >
-          <Tooltip text={user.displayName} placement="top">
+          <Tooltip text={user.displayName || '?'} placement="top">
             <div
               style={{
                 width: size,
@@ -63,7 +63,7 @@ export default function MultiProfileIndicator({ users, maxVisible = 3, size = 28
               {user.profilePicture ? (
                 <img
                   src={user.profilePicture}
-                  alt={user.displayName}
+                  alt={user.displayName || '?'}
                   style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                 />
               ) : (
@@ -71,7 +71,7 @@ export default function MultiProfileIndicator({ users, maxVisible = 3, size = 28
                   style={{
                     width: '100%',
                     height: '100%',
-                    backgroundColor: stringToColor(user.displayName),
+                    backgroundColor: stringToColor(user.displayName || user.id || '?'),
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
@@ -80,7 +80,7 @@ export default function MultiProfileIndicator({ users, maxVisible = 3, size = 28
                     color: '#fff',
                   }}
                 >
-                  {user.displayName.charAt(0).toUpperCase()}
+                  {(user.displayName || user.id || '?').charAt(0).toUpperCase()}
                 </div>
               )}
             </div>
@@ -89,7 +89,7 @@ export default function MultiProfileIndicator({ users, maxVisible = 3, size = 28
       ))}
 
       {overflow.length > 0 && (
-        <Tooltip text={overflow.map((u) => u.displayName).join(', ')} placement="top">
+        <Tooltip text={overflow.map((u) => u.displayName || '?').join(', ')} placement="top">
           <div
             style={{
               position: 'relative',
