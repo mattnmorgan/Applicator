@@ -45,6 +45,14 @@ export interface DrawerPanelConfig {
    * Pass 0 or "0" for no padding (useful when panel content manages its own spacing).
    */
   contentPadding?: number | string;
+  /**
+   * When true, overlay panels slide in/out with a CSS transition instead of
+   * appearing/disappearing instantly. The panel stays mounted during the exit
+   * animation (300 ms) before being removed from the DOM.
+   * Only applies to `overlay` panels (and `inline` panels on mobile).
+   * Defaults to false.
+   */
+  animated?: boolean;
 }
 
 export interface DrawerLayoutProps {
@@ -77,6 +85,7 @@ function resolvePanel(panel: DrawerPanelConfig | undefined) {
     onOpen: panel.onOpen,
     children: panel.children,
     contentPadding: panel.contentPadding ?? "16px",
+    animated: panel.animated ?? false,
   };
 }
 
@@ -90,6 +99,14 @@ interface PanelProps {
 function DrawerPanel({ side, config, isMobile, pixelWidth }: PanelProps) {
   const isOverlay = config.type === "overlay" || isMobile;
   const isFullWidth = isMobile;
+
+  const translateClosed = side === "right" ? "100%" : "-100%";
+  const animateTransform =
+    config.animated && isOverlay
+      ? config.open
+        ? "translateX(0)"
+        : `translateX(${translateClosed})`
+      : undefined;
 
   const panelStyle: React.CSSProperties = isOverlay
     ? {
@@ -107,6 +124,8 @@ function DrawerPanel({ side, config, isMobile, pixelWidth }: PanelProps) {
           side === "left"
             ? "4px 0 16px rgba(0,0,0,0.4)"
             : "-4px 0 16px rgba(0,0,0,0.4)",
+        transform: animateTransform,
+        transition: config.animated ? "transform 0.25s ease" : undefined,
       }
     : {
         width: `${pixelWidth}px`,
@@ -179,6 +198,9 @@ export default function DrawerLayout({
 }: DrawerLayoutProps) {
   const [isMobile, setIsMobile] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
+  // Track whether animated overlay panels should remain mounted (for exit animation)
+  const [leftMounted, setLeftMounted] = useState(leftPanelProp?.open ?? false);
+  const [rightMounted, setRightMounted] = useState(rightPanelProp?.open ?? false);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT);
@@ -186,6 +208,29 @@ export default function DrawerLayout({
     window.addEventListener("resize", check);
     return () => window.removeEventListener("resize", check);
   }, []);
+
+  // Keep animated overlay panels mounted during exit animation
+  useEffect(() => {
+    if (leftPanelProp?.open) {
+      setLeftMounted(true);
+    } else if (leftPanelProp?.animated) {
+      const t = setTimeout(() => setLeftMounted(false), 300);
+      return () => clearTimeout(t);
+    } else {
+      setLeftMounted(false);
+    }
+  }, [leftPanelProp?.open, leftPanelProp?.animated]);
+
+  useEffect(() => {
+    if (rightPanelProp?.open) {
+      setRightMounted(true);
+    } else if (rightPanelProp?.animated) {
+      const t = setTimeout(() => setRightMounted(false), 300);
+      return () => clearTimeout(t);
+    } else {
+      setRightMounted(false);
+    }
+  }, [rightPanelProp?.open, rightPanelProp?.animated]);
 
   const left = resolvePanel(leftPanelProp);
   const right = resolvePanel(rightPanelProp);
@@ -246,7 +291,7 @@ export default function DrawerLayout({
       )}
 
       {/* Overlay backdrop + panel for left */}
-      {left && left.open && leftIsOverlay && (
+      {left && leftIsOverlay && (left.animated ? leftMounted : left.open) && (
         <>
           <div
             onClick={() => left.onClose?.()}
@@ -256,6 +301,9 @@ export default function DrawerLayout({
               backdropFilter: "blur(2px)",
               background: "rgba(0,0,0,0.3)",
               zIndex: 190,
+              opacity: left.open ? 1 : 0,
+              pointerEvents: left.open ? "auto" : "none",
+              transition: left.animated ? "opacity 0.25s ease" : undefined,
             }}
           />
           <DrawerPanel
@@ -268,7 +316,7 @@ export default function DrawerLayout({
       )}
 
       {/* Overlay backdrop + panel for right */}
-      {right && right.open && rightIsOverlay && (
+      {right && rightIsOverlay && (right.animated ? rightMounted : right.open) && (
         <>
           <div
             onClick={() => right.onClose?.()}
@@ -278,6 +326,9 @@ export default function DrawerLayout({
               backdropFilter: "blur(2px)",
               background: "rgba(0,0,0,0.3)",
               zIndex: 190,
+              opacity: right.open ? 1 : 0,
+              pointerEvents: right.open ? "auto" : "none",
+              transition: right.animated ? "opacity 0.25s ease" : undefined,
             }}
           />
           <DrawerPanel

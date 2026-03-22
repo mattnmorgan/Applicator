@@ -33,6 +33,7 @@ import type { DrawerLayoutProps, DrawerPanelConfig } from "@applicator/sdk/compo
 | `onClose` | `() => void` | — | Called when the close button is clicked |
 | `onOpen` | `() => void` | — | Called when the floating open button is clicked |
 | `children` | `ReactNode` | — | Panel content |
+| `animated` | `boolean` | `false` | When `true`, overlay panels slide in/out with a 250 ms CSS transition instead of appearing instantly. The panel stays mounted during the 300 ms exit animation before being removed from the DOM. Only applies to `overlay` panels (and `inline` panels on mobile). |
 
 ## Behavior
 

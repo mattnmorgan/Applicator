@@ -8,16 +8,21 @@ export default function TestPanelsPage() {
   const [rightOpen, setRightOpen] = useState(false);
   const [leftType, setLeftType] = useState<"inline" | "overlay">("inline");
   const [rightType, setRightType] = useState<"inline" | "overlay">("overlay");
+  const [leftAnimated, setLeftAnimated] = useState(false);
+  const [rightAnimated, setRightAnimated] = useState(true);
+  const [leftWidth, setLeftWidth] = useState(25);
+  const [rightWidth, setRightWidth] = useState(30);
 
   const leftPanel: DrawerPanelConfig = {
     open: leftOpen,
     type: leftType,
-    width: 25,
+    width: leftWidth,
     closeable: true,
     title: "Left Panel",
     openable: true,
     iconName: "hamburger",
     variant: "bordered",
+    animated: leftAnimated,
     onClose: () => setLeftOpen(false),
     onOpen: () => setLeftOpen(true),
     children: (
@@ -32,12 +37,13 @@ export default function TestPanelsPage() {
   const rightPanel: DrawerPanelConfig = {
     open: rightOpen,
     type: rightType,
-    width: 30,
+    width: rightWidth,
     closeable: true,
     title: "Right Panel",
     openable: true,
     iconName: "settings",
     variant: "bordered",
+    animated: rightAnimated,
     onClose: () => setRightOpen(false),
     onOpen: () => setRightOpen(true),
     children: (
@@ -87,7 +93,9 @@ export default function TestPanelsPage() {
       </h1>
       <p style={{ color: "#94a3b8", marginBottom: "24px", fontSize: "14px" }}>
         Interactive demo of the <code style={{ color: "#60a5fa" }}>DrawerLayout</code> component. Configure
-        the panels below, then see them rendered in the preview.
+        panels below, then see them rendered in the preview. Use <strong style={{ color: "#f1f5f9" }}>animated</strong> to
+        enable slide-in/out transitions on overlay panels, and <strong style={{ color: "#f1f5f9" }}>width</strong> to
+        change the panel size.
       </p>
 
       {/* Controls */}
@@ -111,6 +119,15 @@ export default function TestPanelsPage() {
           </button>
           <button style={btnStyle(leftType === "inline")} onClick={() => setLeftType("inline")}>inline</button>
           <button style={btnStyle(leftType === "overlay")} onClick={() => setLeftType("overlay")}>overlay</button>
+          <button style={btnStyle(leftAnimated)} onClick={() => setLeftAnimated(!leftAnimated)}>animated</button>
+          <span style={{ color: "#64748b", fontSize: "12px", marginLeft: "8px" }}>width:</span>
+          <input
+            type="number"
+            value={leftWidth}
+            onChange={(e) => setLeftWidth(Math.max(10, Math.min(60, Number(e.target.value))))}
+            style={{ width: 48, padding: "2px 6px", borderRadius: "4px", border: "1px solid #334155", background: "#0f172a", color: "#f1f5f9", fontSize: "13px" }}
+          />
+          <span style={{ color: "#64748b", fontSize: "12px" }}>%</span>
         </div>
 
         <div style={controlStyle}>
@@ -120,6 +137,15 @@ export default function TestPanelsPage() {
           </button>
           <button style={btnStyle(rightType === "inline")} onClick={() => setRightType("inline")}>inline</button>
           <button style={btnStyle(rightType === "overlay")} onClick={() => setRightType("overlay")}>overlay</button>
+          <button style={btnStyle(rightAnimated)} onClick={() => setRightAnimated(!rightAnimated)}>animated</button>
+          <span style={{ color: "#64748b", fontSize: "12px", marginLeft: "8px" }}>width:</span>
+          <input
+            type="number"
+            value={rightWidth}
+            onChange={(e) => setRightWidth(Math.max(10, Math.min(60, Number(e.target.value))))}
+            style={{ width: 48, padding: "2px 6px", borderRadius: "4px", border: "1px solid #334155", background: "#0f172a", color: "#f1f5f9", fontSize: "13px" }}
+          />
+          <span style={{ color: "#64748b", fontSize: "12px" }}>%</span>
         </div>
       </div>
 
