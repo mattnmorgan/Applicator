@@ -30,6 +30,7 @@ All components are exported from a single barrel file. Use named imports to pick
 | [Modal](./components/modal.md) | Flexible modal with header/body/footer slots and optional close behavior |
 | [DynamicInput](./components/dynamic-input.md) | Form input rendered from a declarative definition; supports 19 input types |
 | [InfoTooltip](./components/info-tooltip.md) | Inline `(?)` indicator that shows a hover tooltip |
+| [FilePreview](./components/file-preview.md) | Full-screen preview overlay for images, PDFs, audio, video, and text files |
 | [FolderBrowser](./components/folder-browser.md) | Modal directory picker for the server filesystem |
 | [Icon](./components/icon.md) | Named SVG icon at a configurable size |
 | [ProfileIndicator](./components/profile-indicator.md) | User avatar with display name |

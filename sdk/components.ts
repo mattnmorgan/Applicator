@@ -43,3 +43,5 @@ export { default as Spinner } from "../lib/components/utility/Spinner";
 export type { SpinnerProps } from "../lib/components/utility/Spinner";
 export { default as RichTextEditor, RichTextViewer } from "../lib/components/utility/RichTextEditor";
 export type { RichTextEditorProps, RichTextViewerProps } from "../lib/components/utility/RichTextEditor";
+export { default as FilePreview, getPreviewType, isPreviewSupported } from "../lib/components/utility/FilePreview";
+export type { FilePreviewProps, PreviewAction } from "../lib/components/utility/FilePreview";
