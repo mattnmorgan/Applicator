@@ -42,7 +42,15 @@ export type IconName =
   | "grid-view"
   | "grid-view-small"
   | "reply"
-  | "clipboard";
+  | "clipboard"
+  | "code"
+  | "image"
+  | "spreadsheet"
+  | "archive"
+  | "audio"
+  | "video"
+  | "globe"
+  | "library";
 
 interface IconProps {
   name: IconName | string;
@@ -418,6 +426,76 @@ export default function Icon({ name, size = 16 }: IconProps) {
         <svg {...base}>
           <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
           <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
+        </svg>
+      );
+
+    case "code":
+      return (
+        <svg {...base}>
+          <polyline points="8 5 2 12 8 19" />
+          <polyline points="16 5 22 12 16 19" />
+        </svg>
+      );
+
+    case "image":
+      return (
+        <svg {...base}>
+          <rect x="3" y="3" width="18" height="18" rx="2" ry="2" />
+          <circle cx="8.5" cy="8.5" r="1.5" />
+          <polyline points="21 15 16 10 5 21" />
+        </svg>
+      );
+
+    case "spreadsheet":
+      return (
+        <svg {...base}>
+          <rect x="3" y="3" width="18" height="18" rx="1" />
+          <line x1="3" y1="9" x2="21" y2="9" />
+          <line x1="3" y1="15" x2="21" y2="15" />
+          <line x1="12" y1="3" x2="12" y2="21" />
+        </svg>
+      );
+
+    case "archive":
+      return (
+        <svg {...base}>
+          <polyline points="21 8 21 21 3 21 3 8" />
+          <rect x="1" y="3" width="22" height="5" />
+          <line x1="10" y1="12" x2="14" y2="12" />
+        </svg>
+      );
+
+    case "audio":
+      return (
+        <svg {...base}>
+          <path d="M9 18V5l12-2v13" />
+          <circle cx="6" cy="18" r="3" />
+          <circle cx="18" cy="16" r="3" />
+        </svg>
+      );
+
+    case "video":
+      return (
+        <svg {...base}>
+          <rect x="2" y="7" width="15" height="10" rx="1" />
+          <path d="M17 9.5l5-3v11l-5-3v-5z" />
+        </svg>
+      );
+
+    case "globe":
+      return (
+        <svg {...base}>
+          <circle cx="12" cy="12" r="10" />
+          <line x1="2" y1="12" x2="22" y2="12" />
+          <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" />
+        </svg>
+      );
+
+    case "library":
+      return (
+        <svg {...base}>
+          <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
+          <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 0 3-3h7z" />
         </svg>
       );
 
