@@ -41,7 +41,8 @@ export type IconName =
   | "list-view"
   | "grid-view"
   | "grid-view-small"
-  | "reply";
+  | "reply"
+  | "clipboard";
 
 interface IconProps {
   name: IconName | string;
@@ -409,6 +410,14 @@ export default function Icon({ name, size = 16 }: IconProps) {
         <svg {...base}>
           <polyline points="9 17 4 12 9 7" />
           <path d="M20 18v-2a4 4 0 0 0-4-4H4" />
+        </svg>
+      );
+
+    case "clipboard":
+      return (
+        <svg {...base}>
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+          <rect x="8" y="2" width="8" height="4" rx="1" ry="1" />
         </svg>
       );
 

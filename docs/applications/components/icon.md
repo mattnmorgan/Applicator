@@ -16,7 +16,7 @@ import type { IconName } from "@applicator/sdk/components";
 
 ## Available Icons
 
-`bell`, `calendar`, `check`, `chevron-down`, `chevron-up`, `chevron-left`, `chevron-right`, `close`, `copy`, `crown`, `download`, `drag`, `edit`, `external-link`, `eye`, `eye-off`, `file`, `folder`, `hamburger`, `sandwich`, `info`, `link`, `logout`, `move`, `play`, `plus`, `refresh`, `search`, `settings`, `square-stop`, `trash`, `upload`, `user`, `users`, `warning`, `word-wrap`, `list-view`, `grid-view`, `grid-view-small`
+`bell`, `calendar`, `check`, `chevron-down`, `chevron-up`, `chevron-left`, `chevron-right`, `clipboard`, `close`, `copy`, `crown`, `download`, `drag`, `edit`, `external-link`, `eye`, `eye-off`, `file`, `folder`, `hamburger`, `sandwich`, `info`, `link`, `logout`, `move`, `play`, `plus`, `refresh`, `reply`, `search`, `settings`, `square-stop`, `trash`, `upload`, `user`, `users`, `warning`, `word-wrap`, `list-view`, `grid-view`, `grid-view-small`
 
 ## Usage
 

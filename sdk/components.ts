@@ -41,3 +41,5 @@ export { default as ToastStack } from "../lib/components/utility/Toast";
 export type { ToastItem } from "../lib/components/utility/Toast";
 export { default as Spinner } from "../lib/components/utility/Spinner";
 export type { SpinnerProps } from "../lib/components/utility/Spinner";
+export { default as RichTextEditor, RichTextViewer } from "../lib/components/utility/RichTextEditor";
+export type { RichTextEditorProps, RichTextViewerProps } from "../lib/components/utility/RichTextEditor";
