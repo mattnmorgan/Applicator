@@ -7,6 +7,7 @@ import AppManager from "@/lib/managers/app";
 import { userHasAuthorization } from "@/lib/managers/user";
 import path from "path";
 import fs from "fs/promises";
+import sharp from "sharp";
 
 export async function GET() {
   try {
@@ -117,16 +118,13 @@ export async function POST(request: NextRequest) {
       if (clearBrandIcon === "true") {
         const storagePath = await getSetting("storage");
         if (storagePath) {
-          const logoPath = path.join(
-            storagePath,
-            "apps",
-            "system",
-            "brand.png",
-          );
-          try {
-            await fs.unlink(logoPath);
-          } catch (error) {
-            // File doesn't exist, that's ok
+          const logoDir = path.join(storagePath, "apps", "system");
+          for (const ext of ["jpg", "png"]) {
+            try {
+              await fs.unlink(path.join(logoDir, `brand.${ext}`));
+            } catch {
+              // File doesn't exist, that's ok
+            }
           }
         }
         await setSetting("brandIcon", "");
@@ -139,9 +137,12 @@ export async function POST(request: NextRequest) {
           const logoDir = path.join(storagePath, "apps", "system");
           await fs.mkdir(logoDir, { recursive: true });
 
-          const logoPath = path.join(logoDir, "brand.png");
-          const logoBuffer = Buffer.from(await brandIcon.arrayBuffer());
-          await fs.writeFile(logoPath, logoBuffer);
+          const raw = Buffer.from(await brandIcon.arrayBuffer());
+          const resized = await sharp(raw)
+            .resize(64, 64, { fit: "cover" })
+            .jpeg({ quality: 85 })
+            .toBuffer();
+          await fs.writeFile(path.join(logoDir, "brand.jpg"), resized);
 
           // Set brandIcon setting to indicate brand exists
           await setSetting("brandIcon", "true");

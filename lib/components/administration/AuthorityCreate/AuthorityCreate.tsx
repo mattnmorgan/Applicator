@@ -243,59 +243,22 @@ export default function AuthorityCreate({
 
         await authorityManager.updateRecord(editAuthority.id, updateData);
 
-        // Handle icon upload/removal separately if needed
+        // Handle icon upload/removal
         if (iconFile) {
-          // Get system storage path and construct the icon path
-          const storageResponse = await fetch("/api/system/settings");
-          const storageData = await storageResponse.json();
-          const systemStorage = storageData.settings.storage;
-
-          if (!systemStorage) {
-            setError("System storage not configured");
-            return;
-          }
-
-          const iconDirectory = `${systemStorage}/apps/system/icons/authorities`;
-          const fileName = `${editAuthority.id}.png`;
-
           const iconFormData = new FormData();
           iconFormData.append("file", iconFile);
-          iconFormData.append("path", iconDirectory);
-          iconFormData.append("name", fileName);
-
-          const iconResponse = await fetch("/api/system/apps/fs", {
-            method: "PUT",
+          const iconResponse = await fetch(`/api/system/icons/authorities/${editAuthority.id}`, {
+            method: "POST",
             body: iconFormData,
           });
-
           if (!iconResponse.ok) {
             setError("Failed to upload icon");
             return;
           }
-
-          // Update the authority record with icon flag
-          await authorityManager.updateRecord(editAuthority.id, {
-            icon: "true",
-          });
         } else if (clearIcon) {
-          // Get the current icon path and delete the file
-          const storageResponse = await fetch("/api/system/settings");
-          const storageData = await storageResponse.json();
-          const systemStorage = storageData.settings.storage;
-          const iconPath = `${systemStorage}/apps/system/icons/authorities/${editAuthority.id}.png`;
-
-          const deleteResponse = await fetch("/api/system/apps/fs", {
+          await fetch(`/api/system/icons/authorities/${editAuthority.id}`, {
             method: "DELETE",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ path: iconPath }),
           });
-
-          if (!deleteResponse.ok) {
-            console.warn("Failed to delete icon file");
-          }
-
-          // Clear the icon field in the database
-          await authorityManager.updateRecord(editAuthority.id, { icon: "" });
         }
 
         onAuthorityCreated();
@@ -310,42 +273,18 @@ export default function AuthorityCreate({
         const result = await authorityManager.createRecord(createData);
         const authorityId = result.id;
 
-        // Handle icon upload separately if provided
+        // Handle icon upload if provided
         if (iconFile) {
-          // Get system storage path and construct the icon path
-          const storageResponse = await fetch("/api/system/settings");
-          const storageData = await storageResponse.json();
-          const systemStorage = storageData.settings.storage;
-
-          if (!systemStorage) {
-            setError("System storage not configured");
-            return;
-          }
-
-          const fileExtension = iconFile.name.split(".").pop() || "jpg";
-          const fileName = `icon.${fileExtension}`;
-          const iconDirectory = `${systemStorage}\\system\\authorities\\icons\\${authorityId}`;
-
           const iconFormData = new FormData();
           iconFormData.append("file", iconFile);
-          iconFormData.append("path", iconDirectory);
-          iconFormData.append("name", fileName);
-
-          const iconResponse = await fetch("/api/system/apps/fs", {
-            method: "PUT",
+          const iconResponse = await fetch(`/api/system/icons/authorities/${authorityId}`, {
+            method: "POST",
             body: iconFormData,
           });
-
           if (!iconResponse.ok) {
             setError("Failed to upload icon");
             return;
           }
-
-          // Update the authority record with the icon path
-          const relativePath = `system\\authorities\\icons\\${authorityId}\\${fileName}`;
-          await authorityManager.updateRecord(authorityId, {
-            icon: relativePath,
-          });
         }
 
         onAuthorityCreated();

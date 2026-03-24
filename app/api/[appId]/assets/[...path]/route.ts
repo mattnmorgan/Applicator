@@ -4,6 +4,7 @@ import AppManager from "@/lib/managers/app";
 import { versionDir } from "@/lib/system/version";
 import path from "path";
 import fs from "fs/promises";
+import sharp from "sharp";
 
 const contentTypeMap: { [key: string]: string } = {
   ".jpg": "image/jpeg",
@@ -42,21 +43,54 @@ export async function GET(
         );
         skipValidation = true;
       } else if (pathSegments.length === 1 && pathSegments[0] === "brand") {
-        filePath = path.join(storagePath, "apps", "system", "brand.png");
+        const brandDir = path.join(storagePath, "apps", "system");
+        const jpgPath = path.join(brandDir, "brand.jpg");
+        const pngPath = path.join(brandDir, "brand.png");
+        try {
+          await fs.access(jpgPath);
+          filePath = jpgPath;
+        } catch {
+          // Lazy migrate brand.png → brand.jpg
+          await fs.access(pngPath); // throws 404 if neither exists
+          const resized = await sharp(await fs.readFile(pngPath))
+            .resize(64, 64, { fit: "cover" })
+            .jpeg({ quality: 85 })
+            .toBuffer();
+          await fs.mkdir(brandDir, { recursive: true });
+          await fs.writeFile(jpgPath, resized);
+          await fs.unlink(pngPath);
+          filePath = jpgPath;
+        }
       } else if (
         pathSegments.length === 3 &&
         pathSegments[0] === "icons" &&
         ["authorities", "users"].includes(pathSegments[1])
       ) {
         const id = pathSegments[2];
-        filePath = path.join(
-          storagePath,
-          "apps",
-          "system",
-          "icons",
-          pathSegments[1],
-          `${id}.png`,
-        );
+        const iconDir = path.join(storagePath, "apps", "system", "icons", pathSegments[1]);
+        const jpgPath = path.join(iconDir, `${id}.jpg`);
+        const pngPath = path.join(iconDir, `${id}.png`);
+
+        // Try .jpg first
+        try {
+          await fs.access(jpgPath);
+          filePath = jpgPath;
+        } catch {
+          // Lazy migrate .png → .jpg
+          try {
+            await fs.access(pngPath);
+            const resized = await sharp(await fs.readFile(pngPath))
+              .resize(64, 64, { fit: "cover" })
+              .jpeg({ quality: 85 })
+              .toBuffer();
+            await fs.mkdir(iconDir, { recursive: true });
+            await fs.writeFile(jpgPath, resized);
+            await fs.unlink(pngPath);
+            filePath = jpgPath;
+          } catch {
+            return NextResponse.json({ error: "Asset not found" }, { status: 404 });
+          }
+        }
       } else {
         return NextResponse.json({ error: "Invalid path" }, { status: 403 });
       }

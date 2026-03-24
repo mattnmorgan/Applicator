@@ -8,6 +8,7 @@ import AppManager from "@/lib/managers/app";
 import bcrypt from "bcryptjs";
 import fs from "fs";
 import path from "path";
+import sharp from "sharp";
 
 const VALID_DENSITIES = ["full", "name", "icon"] as const;
 type AppDensity = (typeof VALID_DENSITIES)[number];
@@ -198,12 +199,19 @@ export async function PATCH(request: Request) {
         fs.mkdirSync(userIconsDir, { recursive: true });
       }
 
-      // Save as {uid}.png
-      const fileName = `${currentUser.id}.png`;
+      const fileName = `${currentUser.id}.jpg`;
       const filePath = path.join(userIconsDir, fileName);
 
-      const buffer = Buffer.from(await profilePictureFile.arrayBuffer());
-      fs.writeFileSync(filePath, buffer);
+      // Delete legacy .png if it exists
+      const legacyPath = path.join(userIconsDir, `${currentUser.id}.png`);
+      if (fs.existsSync(legacyPath)) fs.unlinkSync(legacyPath);
+
+      const raw = Buffer.from(await profilePictureFile.arrayBuffer());
+      const resized = await sharp(raw)
+        .resize(64, 64, { fit: "cover" })
+        .jpeg({ quality: 85 })
+        .toBuffer();
+      fs.writeFileSync(filePath, resized);
 
       // Set icon flag
       updates.icon = "true";
