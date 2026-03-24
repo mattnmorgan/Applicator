@@ -161,13 +161,24 @@ export default function RichTextEditor({
     // Text before the offset in the current node must be only the trigger chars
     const prev = (textNode.textContent || "").slice(0, offsetInNode);
     if (prev.trim() !== prev) return false; // leading whitespace → not at start
-    // Check no prior siblings (in this node's parent chain up to editor root) have text
+
+    const BLOCK_TAGS = new Set(["P", "DIV", "BLOCKQUOTE", "LI", "H1", "H2", "H3", "H4", "H5", "H6"]);
+
+    // Walk up checking prior siblings, but stop at the nearest block ancestor.
+    // This prevents previous paragraphs from falsely disqualifying a new-line start.
     let ancestor: Node | null = textNode;
     while (ancestor && ancestor !== editorRef.current) {
       let sib = ancestor.previousSibling;
       while (sib) {
         if ((sib.textContent || "").trim()) return false;
         sib = sib.previousSibling;
+      }
+      // Stop once we've cleared siblings inside a block element
+      if (
+        ancestor.nodeType === Node.ELEMENT_NODE &&
+        BLOCK_TAGS.has((ancestor as Element).tagName)
+      ) {
+        break;
       }
       ancestor = ancestor.parentNode;
     }
@@ -176,6 +187,27 @@ export default function RichTextEditor({
 
   function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
     const ctrl = e.ctrlKey || e.metaKey;
+
+    // ---- Tab / Shift+Tab ----
+    if (e.key === "Tab") {
+      e.preventDefault();
+      const sel = window.getSelection();
+      if (sel && sel.rangeCount > 0) {
+        let node: Node | null = sel.getRangeAt(0).startContainer;
+        let inList = false;
+        while (node && node !== editorRef.current) {
+          if (node.nodeName === "LI") { inList = true; break; }
+          node = node.parentNode;
+        }
+        if (inList) {
+          document.execCommand(e.shiftKey ? "outdent" : "indent", false);
+        } else if (!e.shiftKey) {
+          document.execCommand("insertText", false, "\t");
+        }
+        emitChange();
+      }
+      return;
+    }
 
     // ---- Formatting shortcuts ----
     if (ctrl && !e.shiftKey) {
