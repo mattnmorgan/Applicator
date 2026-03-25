@@ -50,7 +50,9 @@ export type IconName =
   | "audio"
   | "video"
   | "globe"
-  | "library";
+  | "library"
+  | "sticky-note"
+  | "star";
 
 interface IconProps {
   name: IconName | string;
@@ -496,6 +498,21 @@ export default function Icon({ name, size = 16 }: IconProps) {
         <svg {...base}>
           <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z" />
           <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 0 3-3h7z" />
+        </svg>
+      );
+
+    case "sticky-note":
+      return (
+        <svg {...base}>
+          <path d="M5 3h10l4 4v14a1 1 0 0 1-1 1H5a1 1 0 0 1-1-1V4a1 1 0 0 1 1-1z" />
+          <polyline points="15 3 15 7 19 7" />
+        </svg>
+      );
+
+    case "star":
+      return (
+        <svg {...base}>
+          <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
         </svg>
       );
 
