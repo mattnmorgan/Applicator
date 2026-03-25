@@ -53,6 +53,18 @@ export interface DrawerPanelConfig {
    * Defaults to false.
    */
   animated?: boolean;
+  /**
+   * Fixed pixel width for the panel. When set, overrides the percentage-based `width` prop.
+   * Useful when a panel needs a precise pixel width rather than a percentage of the container.
+   */
+  pixelWidth?: number;
+  /** Background color of the panel. Defaults to `"#1e293b"`. */
+  background?: string;
+  /**
+   * When false, the content area uses `overflow: hidden` instead of `overflow-y: auto`,
+   * allowing panel children to manage their own scrolling. Defaults to true.
+   */
+  scrollable?: boolean;
 }
 
 export interface DrawerLayoutProps {
@@ -86,6 +98,9 @@ function resolvePanel(panel: DrawerPanelConfig | undefined) {
     children: panel.children,
     contentPadding: panel.contentPadding ?? "16px",
     animated: panel.animated ?? false,
+    pixelWidth: panel.pixelWidth,
+    background: panel.background ?? "#1e293b",
+    scrollable: panel.scrollable ?? true,
   };
 }
 
@@ -93,12 +108,13 @@ interface PanelProps {
   side: "left" | "right";
   config: NonNullable<ReturnType<typeof resolvePanel>> & { contentPadding: number | string };
   isMobile: boolean;
-  pixelWidth: number;
+  computedWidth: number;
 }
 
-function DrawerPanel({ side, config, isMobile, pixelWidth }: PanelProps) {
+function DrawerPanel({ side, config, isMobile, computedWidth }: PanelProps) {
   const isOverlay = config.type === "overlay" || isMobile;
   const isFullWidth = isMobile;
+  const panelWidth = isFullWidth ? "100%" : config.pixelWidth != null ? `${config.pixelWidth}px` : `${computedWidth}px`;
 
   const translateClosed = side === "right" ? "100%" : "-100%";
   const animateTransform =
@@ -114,9 +130,9 @@ function DrawerPanel({ side, config, isMobile, pixelWidth }: PanelProps) {
         top: 0,
         bottom: 0,
         [side]: 0,
-        width: isFullWidth ? "100%" : `${pixelWidth}px`,
+        width: panelWidth,
         zIndex: 200,
-        background: "#1e293b",
+        background: config.background,
         display: "flex",
         flexDirection: "column",
         overflow: "hidden",
@@ -128,7 +144,7 @@ function DrawerPanel({ side, config, isMobile, pixelWidth }: PanelProps) {
         transition: config.animated ? "transform 0.25s ease" : undefined,
       }
     : {
-        width: `${pixelWidth}px`,
+        width: panelWidth,
         flexShrink: 0,
         display: "flex",
         flexDirection: "column",
@@ -182,7 +198,7 @@ function DrawerPanel({ side, config, isMobile, pixelWidth }: PanelProps) {
           )}
         </div>
       )}
-      <div style={{ flex: 1, overflowY: "auto", padding: config.contentPadding }}>
+      <div style={{ flex: 1, overflowY: config.scrollable ? "auto" : undefined, overflow: config.scrollable ? undefined : "hidden", padding: config.contentPadding }}>
         {config.children}
       </div>
     </div>
@@ -265,7 +281,7 @@ export default function DrawerLayout({
           side="left"
           config={left}
           isMobile={isMobile}
-          pixelWidth={leftPixels}
+          computedWidth={leftPixels}
         />
       )}
 
@@ -286,7 +302,7 @@ export default function DrawerLayout({
           side="right"
           config={right}
           isMobile={isMobile}
-          pixelWidth={rightPixels}
+          computedWidth={rightPixels}
         />
       )}
 
@@ -310,7 +326,7 @@ export default function DrawerLayout({
             side="left"
             config={left}
             isMobile={isMobile}
-            pixelWidth={leftPixels}
+            computedWidth={leftPixels}
           />
         </>
       )}
@@ -335,7 +351,7 @@ export default function DrawerLayout({
             side="right"
             config={right}
             isMobile={isMobile}
-            pixelWidth={rightPixels}
+            computedWidth={rightPixels}
           />
         </>
       )}
