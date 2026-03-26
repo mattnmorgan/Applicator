@@ -18,7 +18,8 @@ export type CustomInputType =
   | "file"
   | "password"
   | "toggle"
-  | "radio-horizontal-group";
+  | "radio-horizontal-group"
+  | "richtext";
 
 export default interface CustomInput {
   app: string;

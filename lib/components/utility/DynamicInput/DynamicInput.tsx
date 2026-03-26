@@ -22,6 +22,7 @@ import FileInput from "./inputs/FileInput";
 import PasswordInput from "./inputs/PasswordInput";
 import ToggleInput from "./inputs/ToggleInput";
 import RadioHorizontalGroupInput from "./inputs/RadioHorizontalGroupInput";
+import RichTextInput from "./inputs/RichTextInput";
 
 export type { DynamicInputOption } from "./types/dynamic-input-option";
 export type { DynamicInputDefinition } from "./types/dynamic-input-definition";
@@ -57,6 +58,7 @@ const INPUT_COMPONENTS: Record<
   password: PasswordInput,
   toggle: ToggleInput,
   "radio-horizontal-group": RadioHorizontalGroupInput,
+  richtext: RichTextInput,
 };
 
 export default function DynamicInput({

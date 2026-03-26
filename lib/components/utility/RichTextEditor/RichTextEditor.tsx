@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
+import Icon from "../Icon";
 
 // ---- Style injection ----
 const RTE_STYLE_ID = "applicator-rte-styles";
@@ -57,6 +58,12 @@ export interface RichTextEditorProps {
   placeholder?: string;
   /** Minimum height of the editable area in pixels or a CSS string. Default: 80 */
   minHeight?: number | string;
+  /**
+   * Maximum number of visible lines before the editor scrolls.
+   * Computed as `maxLines * 1.6em + 16px` (lineHeight 1.6, 8px top+bottom padding).
+   * Default: 5.
+   */
+  maxLines?: number;
   disabled?: boolean;
 }
 
@@ -67,6 +74,7 @@ export default function RichTextEditor({
   onChange,
   placeholder,
   minHeight = 80,
+  maxLines = 5,
   disabled = false,
 }: RichTextEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
@@ -426,6 +434,22 @@ export default function RichTextEditor({
     emitChange();
   }
 
+  function toggleHeaderCol() {
+    const ctx = getTableContext();
+    if (!ctx?.td || !ctx.table) return;
+    const colIdx = getCellColIndex(ctx.td);
+    const cells = Array.from(ctx.table.rows).map(row => row.cells[colIdx]).filter(Boolean) as HTMLTableCellElement[];
+    const isHeader = cells.every(c => c.tagName === "TH");
+    const newTag = isHeader ? "td" : "th";
+    cells.forEach(cell => {
+      const newCell = document.createElement(newTag);
+      newCell.setAttribute("style", CELL_STYLE);
+      newCell.innerHTML = cell.innerHTML;
+      cell.parentNode?.replaceChild(newCell, cell);
+    });
+    emitChange();
+  }
+
   // ---- Link popup ----
 
   function openLinkPopupInternal() {
@@ -655,25 +679,25 @@ export default function RichTextEditor({
         <Sep />
 
         <button title="Bullet list" onMouseDown={(e) => tbMouseDown(e, () => exec("insertUnorderedList"))} style={tb(formats.insertUnorderedList)}>
-          <BulletIcon />
+          <Icon name="list-unordered" size={14} />
         </button>
         <button title="Numbered list" onMouseDown={(e) => tbMouseDown(e, () => exec("insertOrderedList"))} style={tb(formats.insertOrderedList)}>
-          <NumberIcon />
+          <Icon name="list-ordered" size={14} />
         </button>
 
         <Sep />
 
         <button title="Align left" onMouseDown={(e) => tbMouseDown(e, () => exec("justifyLeft"))} style={tb(formats.justifyLeft)}>
-          <AlignLeftIcon />
+          <Icon name="align-left" size={14} />
         </button>
         <button title="Align center" onMouseDown={(e) => tbMouseDown(e, () => exec("justifyCenter"))} style={tb(formats.justifyCenter)}>
-          <AlignCenterIcon />
+          <Icon name="align-center" size={14} />
         </button>
         <button title="Align right" onMouseDown={(e) => tbMouseDown(e, () => exec("justifyRight"))} style={tb(formats.justifyRight)}>
-          <AlignRightIcon />
+          <Icon name="align-right" size={14} />
         </button>
         <button title="Justify" onMouseDown={(e) => tbMouseDown(e, () => exec("justifyFull"))} style={tb(formats.justifyFull)}>
-          <AlignJustifyIcon />
+          <Icon name="align-justify" size={14} />
         </button>
 
         <Sep />
@@ -689,7 +713,7 @@ export default function RichTextEditor({
           }}
           style={tb(false)}
         >
-          <ColorIcon />
+          <Icon name="font-color" size={15} />
         </button>
         <input
           ref={colorInputRef}
@@ -711,7 +735,7 @@ export default function RichTextEditor({
 
         {/* Link */}
         <button title="Insert link (Ctrl+K)" onMouseDown={openLinkPopup} style={tb(showLink)}>
-          <LinkIcon />
+          <Icon name="link" size={14} />
         </button>
 
         <Sep />
@@ -722,7 +746,7 @@ export default function RichTextEditor({
           onMouseDown={(e) => { e.preventDefault(); imgInputRef.current?.click(); }}
           style={tb(false)}
         >
-          <ImageIcon />
+          <Icon name="image" size={14} />
         </button>
         <input
           ref={imgInputRef}
@@ -746,7 +770,7 @@ export default function RichTextEditor({
           onMouseDown={(e) => { e.preventDefault(); setShowTablePopup(p => !p); setShowLink(false); }}
           style={tb(showTablePopup)}
         >
-          <TableIcon />
+          <Icon name="table" size={14} />
         </button>
       </div>
 
@@ -766,16 +790,17 @@ export default function RichTextEditor({
           <span style={{ fontSize: "10px", color: "#475569", marginRight: "4px", letterSpacing: "0.06em", textTransform: "uppercase", userSelect: "none" }}>
             Table
           </span>
-          <button title="Insert row above" onMouseDown={(e) => tbMouseDown(e, insertRowAbove)} style={tb(false)}><RowAboveIcon /></button>
-          <button title="Insert row below" onMouseDown={(e) => tbMouseDown(e, insertRowBelow)} style={tb(false)}><RowBelowIcon /></button>
-          <button title="Delete row" onMouseDown={(e) => tbMouseDown(e, deleteRow)} style={tb(false)}><DeleteRowIcon /></button>
+          <button title="Insert row above" onMouseDown={(e) => tbMouseDown(e, insertRowAbove)} style={tb(false)}><Icon name="table-row-above" size={14} /></button>
+          <button title="Insert row below" onMouseDown={(e) => tbMouseDown(e, insertRowBelow)} style={tb(false)}><Icon name="table-row-below" size={14} /></button>
+          <button title="Delete row" onMouseDown={(e) => tbMouseDown(e, deleteRow)} style={{ ...tb(false), color: "#f87171" }}><Icon name="table-row-delete" size={14} /></button>
           <Sep />
-          <button title="Insert column left" onMouseDown={(e) => tbMouseDown(e, insertColLeft)} style={tb(false)}><ColLeftIcon /></button>
-          <button title="Insert column right" onMouseDown={(e) => tbMouseDown(e, insertColRight)} style={tb(false)}><ColRightIcon /></button>
-          <button title="Delete column" onMouseDown={(e) => tbMouseDown(e, deleteCol)} style={tb(false)}><DeleteColIcon /></button>
+          <button title="Insert column left" onMouseDown={(e) => tbMouseDown(e, insertColLeft)} style={tb(false)}><Icon name="table-col-left" size={14} /></button>
+          <button title="Insert column right" onMouseDown={(e) => tbMouseDown(e, insertColRight)} style={tb(false)}><Icon name="table-col-right" size={14} /></button>
+          <button title="Delete column" onMouseDown={(e) => tbMouseDown(e, deleteCol)} style={{ ...tb(false), color: "#f87171" }}><Icon name="table-col-delete" size={14} /></button>
           <Sep />
-          <button title="Toggle header row" onMouseDown={(e) => tbMouseDown(e, toggleHeaderRow)} style={tb(false)}><HeaderRowIcon /></button>
-          <button title="Delete table" onMouseDown={(e) => tbMouseDown(e, deleteTable)} style={{ ...tb(false), color: "#f87171" }}><DeleteTableIcon /></button>
+          <button title="Toggle header row" onMouseDown={(e) => tbMouseDown(e, toggleHeaderRow)} style={tb(false)}><Icon name="table-header-row" size={14} /></button>
+          <button title="Toggle header column" onMouseDown={(e) => tbMouseDown(e, toggleHeaderCol)} style={tb(false)}><Icon name="table-header-col" size={14} /></button>
+          <button title="Delete table" onMouseDown={(e) => tbMouseDown(e, deleteTable)} style={{ ...tb(false), color: "#f87171" }}><Icon name="table-delete" size={14} /></button>
         </div>
       )}
 
@@ -811,6 +836,8 @@ export default function RichTextEditor({
           onDrop={handleDrop}
           style={{
             minHeight: mh,
+            maxHeight: `calc(${maxLines} * 1.6em + 14px)`,
+            overflowY: "auto",
             padding: "8px 10px",
             outline: "none",
             fontSize: "13px",
@@ -928,222 +955,6 @@ export default function RichTextEditor({
 
 function Sep() {
   return <div style={{ width: 1, height: 14, backgroundColor: "#334155", margin: "0 4px", flexShrink: 0 }} />;
-}
-
-// ---- Icons ----
-
-function BulletIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-      <circle cx="2" cy="3.5" r="1.3" />
-      <rect x="5" y="2.9" width="8" height="1.2" rx="0.6" />
-      <circle cx="2" cy="7" r="1.3" />
-      <rect x="5" y="6.4" width="8" height="1.2" rx="0.6" />
-      <circle cx="2" cy="10.5" r="1.3" />
-      <rect x="5" y="9.9" width="8" height="1.2" rx="0.6" />
-    </svg>
-  );
-}
-
-function NumberIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-      <text x="0.5" y="5" fontSize="4.5" fontFamily="monospace">1.</text>
-      <rect x="5.5" y="2.9" width="7.5" height="1.2" rx="0.6" />
-      <text x="0.5" y="8.5" fontSize="4.5" fontFamily="monospace">2.</text>
-      <rect x="5.5" y="6.4" width="7.5" height="1.2" rx="0.6" />
-      <text x="0.5" y="12" fontSize="4.5" fontFamily="monospace">3.</text>
-      <rect x="5.5" y="9.9" width="7.5" height="1.2" rx="0.6" />
-    </svg>
-  );
-}
-
-function AlignLeftIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-      <rect x="1" y="2" width="12" height="1.3" rx="0.6" />
-      <rect x="1" y="4.8" width="8" height="1.3" rx="0.6" />
-      <rect x="1" y="7.6" width="12" height="1.3" rx="0.6" />
-      <rect x="1" y="10.4" width="7" height="1.3" rx="0.6" />
-    </svg>
-  );
-}
-
-function AlignCenterIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-      <rect x="1" y="2" width="12" height="1.3" rx="0.6" />
-      <rect x="3" y="4.8" width="8" height="1.3" rx="0.6" />
-      <rect x="1" y="7.6" width="12" height="1.3" rx="0.6" />
-      <rect x="3.5" y="10.4" width="7" height="1.3" rx="0.6" />
-    </svg>
-  );
-}
-
-function AlignRightIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-      <rect x="1" y="2" width="12" height="1.3" rx="0.6" />
-      <rect x="5" y="4.8" width="8" height="1.3" rx="0.6" />
-      <rect x="1" y="7.6" width="12" height="1.3" rx="0.6" />
-      <rect x="6" y="10.4" width="7" height="1.3" rx="0.6" />
-    </svg>
-  );
-}
-
-function AlignJustifyIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor">
-      <rect x="1" y="2" width="12" height="1.3" rx="0.6" />
-      <rect x="1" y="4.8" width="12" height="1.3" rx="0.6" />
-      <rect x="1" y="7.6" width="12" height="1.3" rx="0.6" />
-      <rect x="1" y="10.4" width="12" height="1.3" rx="0.6" />
-    </svg>
-  );
-}
-
-function ColorIcon() {
-  return (
-    <svg width="15" height="15" viewBox="0 0 15 15" fill="none">
-      <text x="1.5" y="12" fontSize="12" fontFamily="Georgia, serif" fontWeight="bold" fill="currentColor">A</text>
-      <rect x="1.5" y="13" width="12" height="1.5" rx="0.5" fill="#ef4444" />
-    </svg>
-  );
-}
-
-function LinkIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
-      <path d="M5.3 8.7C6 9.4 7.2 9.5 8 8.8l2.2-2.2c.8-.8.8-2.1 0-2.9-.8-.8-2.1-.8-2.9 0L6.5 4.5" />
-      <path d="M8.7 5.3C8 4.6 6.8 4.5 6 5.2L3.8 7.4c-.8.8-.8 2.1 0 2.9.8.8 2.1.8 2.9 0L7.5 9.5" />
-    </svg>
-  );
-}
-
-function ImageIcon() {
-  return (
-    <svg width="15" height="14" viewBox="0 0 15 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="1" y="1.5" width="13" height="11" rx="1.5" />
-      <circle cx="4.5" cy="4.5" r="1.2" fill="currentColor" stroke="none" />
-      <path d="M1 10l3.5-3.5 2.5 2.5 2-2L14 11" />
-    </svg>
-  );
-}
-
-function TableIcon() {
-  return (
-    <svg width="15" height="14" viewBox="0 0 15 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
-      <rect x="1" y="1.5" width="13" height="11" rx="1.5" />
-      <line x1="1" y1="5.5" x2="14" y2="5.5" />
-      <line x1="1" y1="9" x2="14" y2="9" />
-      <line x1="5.5" y1="5.5" x2="5.5" y2="12.5" />
-      <line x1="9.5" y1="5.5" x2="9.5" y2="12.5" />
-    </svg>
-  );
-}
-
-function RowAboveIcon() {
-  return (
-    <svg width="15" height="14" viewBox="0 0 15 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
-      <rect x="1" y="6" width="13" height="7" rx="1" />
-      <line x1="1" y1="9.5" x2="14" y2="9.5" />
-      <line x1="5.5" y1="6" x2="5.5" y2="13" />
-      <line x1="9.5" y1="6" x2="9.5" y2="13" />
-      <line x1="7.5" y1="1" x2="7.5" y2="4.5" />
-      <polyline points="5.5,2.5 7.5,1 9.5,2.5" />
-    </svg>
-  );
-}
-
-function RowBelowIcon() {
-  return (
-    <svg width="15" height="14" viewBox="0 0 15 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
-      <rect x="1" y="1" width="13" height="7" rx="1" />
-      <line x1="1" y1="4.5" x2="14" y2="4.5" />
-      <line x1="5.5" y1="1" x2="5.5" y2="8" />
-      <line x1="9.5" y1="1" x2="9.5" y2="8" />
-      <line x1="7.5" y1="9.5" x2="7.5" y2="13" />
-      <polyline points="5.5,11.5 7.5,13 9.5,11.5" />
-    </svg>
-  );
-}
-
-function DeleteRowIcon() {
-  return (
-    <svg width="15" height="14" viewBox="0 0 15 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
-      <rect x="1" y="3" width="13" height="8" rx="1" />
-      <line x1="1" y1="7" x2="14" y2="7" />
-      <line x1="5.5" y1="3" x2="5.5" y2="11" />
-      <line x1="9.5" y1="3" x2="9.5" y2="11" />
-      <line x1="5" y1="5" x2="8.5" y2="5" stroke="#f87171" />
-      <line x1="5" y1="9" x2="8.5" y2="9" stroke="#f87171" />
-    </svg>
-  );
-}
-
-function ColLeftIcon() {
-  return (
-    <svg width="15" height="14" viewBox="0 0 15 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
-      <rect x="4" y="1" width="10" height="12" rx="1" />
-      <line x1="4" y1="5" x2="14" y2="5" />
-      <line x1="4" y1="9" x2="14" y2="9" />
-      <line x1="9" y1="1" x2="9" y2="13" />
-      <line x1="3" y1="7" x2="0.5" y2="7" />
-      <polyline points="2,5.5 0.5,7 2,8.5" />
-    </svg>
-  );
-}
-
-function ColRightIcon() {
-  return (
-    <svg width="15" height="14" viewBox="0 0 15 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
-      <rect x="1" y="1" width="10" height="12" rx="1" />
-      <line x1="1" y1="5" x2="11" y2="5" />
-      <line x1="1" y1="9" x2="11" y2="9" />
-      <line x1="6" y1="1" x2="6" y2="13" />
-      <line x1="12" y1="7" x2="14.5" y2="7" />
-      <polyline points="13,5.5 14.5,7 13,8.5" />
-    </svg>
-  );
-}
-
-function DeleteColIcon() {
-  return (
-    <svg width="15" height="14" viewBox="0 0 15 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
-      <rect x="1" y="1" width="13" height="12" rx="1" />
-      <line x1="1" y1="5" x2="14" y2="5" />
-      <line x1="1" y1="9" x2="14" y2="9" />
-      <line x1="7.5" y1="1" x2="7.5" y2="13" />
-      <line x1="3.5" y1="3" x2="6" y2="3" stroke="#f87171" />
-      <line x1="9" y1="3" x2="11.5" y2="3" stroke="#f87171" />
-    </svg>
-  );
-}
-
-function HeaderRowIcon() {
-  return (
-    <svg width="15" height="14" viewBox="0 0 15 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
-      <rect x="1" y="1" width="13" height="12" rx="1" />
-      <rect x="1" y="1" width="13" height="4.5" rx="1" fill="currentColor" fillOpacity="0.25" />
-      <line x1="1" y1="5.5" x2="14" y2="5.5" />
-      <line x1="1" y1="9" x2="14" y2="9" />
-      <line x1="5.5" y1="5.5" x2="5.5" y2="13" />
-      <line x1="9.5" y1="5.5" x2="9.5" y2="13" />
-    </svg>
-  );
-}
-
-function DeleteTableIcon() {
-  return (
-    <svg width="15" height="14" viewBox="0 0 15 14" fill="none" stroke="currentColor" strokeWidth="1.2" strokeLinecap="round">
-      <rect x="1" y="1" width="13" height="12" rx="1" />
-      <line x1="1" y1="5" x2="14" y2="5" />
-      <line x1="1" y1="9" x2="14" y2="9" />
-      <line x1="5.5" y1="1" x2="5.5" y2="13" />
-      <line x1="9.5" y1="1" x2="9.5" y2="13" />
-      <line x1="4" y1="3" x2="7" y2="3" stroke="currentColor" strokeWidth="1.5" />
-    </svg>
-  );
 }
 
 // ---- Styles ----

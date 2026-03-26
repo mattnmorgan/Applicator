@@ -26,16 +26,46 @@ import type { RichTextEditorProps, RichTextViewerProps } from "@applicator/sdk/c
 
 ## Toolbar
 
-| Button        | Keyboard shortcut   | Function                                             |
-| ------------- | ------------------- | ---------------------------------------------------- |
-| **B**         | Ctrl+B              | Bold                                                 |
-| *I*           | Ctrl+I              | Italic                                               |
-| U̲             | Ctrl+U              | Underline                                            |
-| ~~S~~         | Ctrl+Shift+X        | Strikethrough                                        |
-| Bullet list   | —                   | Unordered list                                       |
-| Numbered list | —                   | Ordered list                                         |
-| A             | —                   | Font color (opens native OS color picker)            |
-| Link          | Ctrl+K              | Insert link — shows inline URL + display text inputs |
+| Button           | Keyboard shortcut | Function                                              |
+| ---------------- | ----------------- | ----------------------------------------------------- |
+| **B**            | Ctrl+B            | Bold                                                  |
+| *I*              | Ctrl+I            | Italic                                                |
+| U̲                | Ctrl+U            | Underline                                             |
+| ~~S~~            | Ctrl+Shift+X      | Strikethrough                                         |
+| Bullet list      | —                 | Unordered list                                        |
+| Numbered list    | —                 | Ordered list                                          |
+| Align left       | —                 | Left-align the current block                          |
+| Align center     | —                 | Center-align the current block                        |
+| Align right      | —                 | Right-align the current block                         |
+| Justify          | —                 | Full-justify the current block                        |
+| A                | —                 | Font color (opens native OS color picker)             |
+| Link             | Ctrl+K            | Insert link — shows inline URL + display text inputs  |
+| Image            | —                 | Opens a file picker; inserts a compressed JPEG image  |
+| Table            | —                 | Opens row/col picker and inserts an HTML table        |
+
+## Table context toolbar
+
+When the caret is inside a table, a second toolbar row appears with table-specific operations:
+
+| Button              | Function                                                        |
+| ------------------- | --------------------------------------------------------------- |
+| Insert row above    | Inserts a blank row above the row containing the caret          |
+| Insert row below    | Inserts a blank row below the row containing the caret          |
+| Delete row          | Removes the row containing the caret; deletes the table if last |
+| Insert col left     | Inserts a blank column to the left of the caret column          |
+| Insert col right    | Inserts a blank column to the right of the caret column         |
+| Delete col          | Removes the caret column; deletes the table if last             |
+| Toggle header row   | Converts the caret row between `<th>` and `<td>` cells          |
+| Toggle header col   | Converts the caret column between `<th>` and `<td>` cells       |
+| Delete table        | Removes the entire table                                        |
+
+## Image handling
+
+**Insertion** — clicking the image button opens a file picker. Pasting or dropping an image file also works.
+
+**Compression** — all inserted images are resized to a maximum of 800 px wide and re-encoded as JPEG at quality 0.82 using an offscreen `<canvas>` before being embedded as a base64 data URL. This keeps the HTML payload reasonable even for large screenshots.
+
+**Resizing** — clicking an image inside the editor selects it (blue outline). Four corner drag handles appear; dragging any corner adjusts the image width (height tracks automatically via `height: auto`). Press Escape or click elsewhere to deselect.
 
 ## Auto-list detection
 
@@ -47,6 +77,19 @@ Typing a list marker at the start of a line followed by Space automatically conv
 | `* `   | Unordered list  |
 | `1. `  | Ordered list    |
 | `1) `  | Ordered list    |
+
+## DynamicInput integration
+
+`RichTextEditor` is also available as a `DynamicInput` field type (`"richtext"`):
+
+```typescript
+{
+  id: "notes",
+  label: "Notes",
+  type: "richtext",
+  placeholder: "Add notes...",
+}
+```
 
 ## Usage
 
@@ -84,6 +127,8 @@ export default function Example() {
 ## Notes
 
 - The `value` prop is used to set the initial content and to sync external changes. The editor only re-renders its content when `value` differs from the last value it emitted, so internal cursor position is preserved during controlled updates.
-- When the editor is empty (no visible text), `onChange` emits `""` rather than raw browser placeholder markup like `<br>`.
-- Importing `RichTextEditor` or `RichTextViewer` automatically injects a small `<style>` block into `document.head` that styles lists, links, and paragraphs inside `.rte-content` and `.rte-editor` elements. This happens once per page load.
-- `RichTextEditor` uses `document.execCommand` internally, which is deprecated but remains fully supported in all major browsers.
+- When the editor is empty (no visible text, images, or tables), `onChange` emits `""` rather than raw browser placeholder markup like `<br>`.
+- Importing `RichTextEditor` or `RichTextViewer` automatically injects a small `<style>` block into `document.head` that styles lists, links, paragraphs, tables, and images inside `.rte-content` and `.rte-editor` elements. This happens once per page load.
+- Table operations mutate the DOM directly rather than using `execCommand`.
+- Image data is stored inline as base64 JPEG data URLs in the emitted HTML string.
+- `RichTextEditor` uses `document.execCommand` for text formatting, which is deprecated but remains fully supported in all major browsers.

@@ -164,6 +164,12 @@ const SAMPLE_INPUTS: DynamicInputDefinition[] = [
     tooltip: "Must be at least 8 characters and include a number.",
   },
   {
+    id: "demo-richtext",
+    label: "Rich Notes",
+    type: "richtext",
+    tooltip: "Format text with bold, italic, alignment, tables, images, and more.",
+  },
+  {
     id: "demo-radio-horizontal-group",
     label: "Transaction Type",
     type: "radio-horizontal-group",

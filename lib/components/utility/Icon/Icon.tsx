@@ -52,7 +52,26 @@ export type IconName =
   | "globe"
   | "library"
   | "sticky-note"
-  | "star";
+  | "star"
+  // Text formatting
+  | "list-unordered"
+  | "list-ordered"
+  | "align-left"
+  | "align-center"
+  | "align-right"
+  | "align-justify"
+  | "font-color"
+  // Table
+  | "table"
+  | "table-row-above"
+  | "table-row-below"
+  | "table-row-delete"
+  | "table-col-left"
+  | "table-col-right"
+  | "table-col-delete"
+  | "table-header-row"
+  | "table-header-col"
+  | "table-delete";
 
 interface IconProps {
   name: IconName | string;
@@ -513,6 +532,202 @@ export default function Icon({ name, size = 16 }: IconProps) {
       return (
         <svg {...base}>
           <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2" />
+        </svg>
+      );
+
+    // ---- Text formatting ----
+
+    case "list-unordered":
+      return (
+        <svg {...base} viewBox="0 0 14 14" fill="currentColor" stroke="none">
+          <circle cx="2" cy="3.5" r="1.3" />
+          <rect x="5" y="2.9" width="8" height="1.2" rx="0.6" />
+          <circle cx="2" cy="7" r="1.3" />
+          <rect x="5" y="6.4" width="8" height="1.2" rx="0.6" />
+          <circle cx="2" cy="10.5" r="1.3" />
+          <rect x="5" y="9.9" width="8" height="1.2" rx="0.6" />
+        </svg>
+      );
+
+    case "list-ordered":
+      return (
+        <svg {...base} viewBox="0 0 14 14" fill="currentColor" stroke="none">
+          <text x="0.5" y="5" fontSize="4.5" fontFamily="monospace">1.</text>
+          <rect x="5.5" y="2.9" width="7.5" height="1.2" rx="0.6" />
+          <text x="0.5" y="8.5" fontSize="4.5" fontFamily="monospace">2.</text>
+          <rect x="5.5" y="6.4" width="7.5" height="1.2" rx="0.6" />
+          <text x="0.5" y="12" fontSize="4.5" fontFamily="monospace">3.</text>
+          <rect x="5.5" y="9.9" width="7.5" height="1.2" rx="0.6" />
+        </svg>
+      );
+
+    case "align-left":
+      return (
+        <svg {...base} viewBox="0 0 14 14" fill="currentColor" stroke="none">
+          <rect x="1" y="2" width="12" height="1.3" rx="0.6" />
+          <rect x="1" y="4.8" width="8" height="1.3" rx="0.6" />
+          <rect x="1" y="7.6" width="12" height="1.3" rx="0.6" />
+          <rect x="1" y="10.4" width="7" height="1.3" rx="0.6" />
+        </svg>
+      );
+
+    case "align-center":
+      return (
+        <svg {...base} viewBox="0 0 14 14" fill="currentColor" stroke="none">
+          <rect x="1" y="2" width="12" height="1.3" rx="0.6" />
+          <rect x="3" y="4.8" width="8" height="1.3" rx="0.6" />
+          <rect x="1" y="7.6" width="12" height="1.3" rx="0.6" />
+          <rect x="3.5" y="10.4" width="7" height="1.3" rx="0.6" />
+        </svg>
+      );
+
+    case "align-right":
+      return (
+        <svg {...base} viewBox="0 0 14 14" fill="currentColor" stroke="none">
+          <rect x="1" y="2" width="12" height="1.3" rx="0.6" />
+          <rect x="5" y="4.8" width="8" height="1.3" rx="0.6" />
+          <rect x="1" y="7.6" width="12" height="1.3" rx="0.6" />
+          <rect x="6" y="10.4" width="7" height="1.3" rx="0.6" />
+        </svg>
+      );
+
+    case "align-justify":
+      return (
+        <svg {...base} viewBox="0 0 14 14" fill="currentColor" stroke="none">
+          <rect x="1" y="2" width="12" height="1.3" rx="0.6" />
+          <rect x="1" y="4.8" width="12" height="1.3" rx="0.6" />
+          <rect x="1" y="7.6" width="12" height="1.3" rx="0.6" />
+          <rect x="1" y="10.4" width="12" height="1.3" rx="0.6" />
+        </svg>
+      );
+
+    case "font-color":
+      return (
+        <svg {...base} viewBox="0 0 15 15" fill="currentColor" stroke="none">
+          <text x="1.5" y="12" fontSize="12" fontFamily="Georgia, serif" fontWeight="bold">A</text>
+          <rect x="1.5" y="13" width="12" height="1.5" rx="0.5" />
+        </svg>
+      );
+
+    // ---- Table ----
+
+    case "table":
+      return (
+        <svg {...base} viewBox="0 0 15 14" strokeWidth={1.2}>
+          <rect x="1" y="1.5" width="13" height="11" rx="1.5" />
+          <line x1="1" y1="5.5" x2="14" y2="5.5" />
+          <line x1="1" y1="9" x2="14" y2="9" />
+          <line x1="5.5" y1="5.5" x2="5.5" y2="12.5" />
+          <line x1="9.5" y1="5.5" x2="9.5" y2="12.5" />
+        </svg>
+      );
+
+    case "table-row-above":
+      return (
+        <svg {...base} viewBox="0 0 15 14" strokeWidth={1.2}>
+          <rect x="1" y="6" width="13" height="7" rx="1" />
+          <line x1="1" y1="9.5" x2="14" y2="9.5" />
+          <line x1="5.5" y1="6" x2="5.5" y2="13" />
+          <line x1="9.5" y1="6" x2="9.5" y2="13" />
+          <line x1="7.5" y1="1" x2="7.5" y2="4.5" />
+          <polyline points="5.5,2.5 7.5,1 9.5,2.5" />
+        </svg>
+      );
+
+    case "table-row-below":
+      return (
+        <svg {...base} viewBox="0 0 15 14" strokeWidth={1.2}>
+          <rect x="1" y="1" width="13" height="7" rx="1" />
+          <line x1="1" y1="4.5" x2="14" y2="4.5" />
+          <line x1="5.5" y1="1" x2="5.5" y2="8" />
+          <line x1="9.5" y1="1" x2="9.5" y2="8" />
+          <line x1="7.5" y1="9.5" x2="7.5" y2="13" />
+          <polyline points="5.5,11.5 7.5,13 9.5,11.5" />
+        </svg>
+      );
+
+    case "table-row-delete":
+      return (
+        <svg {...base} viewBox="0 0 15 14" strokeWidth={1.2}>
+          <rect x="1" y="1" width="13" height="12" rx="1" />
+          <line x1="1" y1="5" x2="14" y2="5" />
+          <line x1="1" y1="9" x2="14" y2="9" />
+          <line x1="7.5" y1="1" x2="7.5" y2="13" />
+          <rect x="1.5" y="5.2" width="12" height="3.6" fill="currentColor" fillOpacity={0.25} stroke="none" />
+          <line x1="5" y1="7" x2="10" y2="7" strokeWidth={1.5} />
+        </svg>
+      );
+
+    case "table-col-left":
+      return (
+        <svg {...base} viewBox="0 0 15 14" strokeWidth={1.2}>
+          <rect x="4" y="1" width="10" height="12" rx="1" />
+          <line x1="4" y1="5" x2="14" y2="5" />
+          <line x1="4" y1="9" x2="14" y2="9" />
+          <line x1="9" y1="1" x2="9" y2="13" />
+          <line x1="3" y1="7" x2="0.5" y2="7" />
+          <polyline points="2,5.5 0.5,7 2,8.5" />
+        </svg>
+      );
+
+    case "table-col-right":
+      return (
+        <svg {...base} viewBox="0 0 15 14" strokeWidth={1.2}>
+          <rect x="1" y="1" width="10" height="12" rx="1" />
+          <line x1="1" y1="5" x2="11" y2="5" />
+          <line x1="1" y1="9" x2="11" y2="9" />
+          <line x1="6" y1="1" x2="6" y2="13" />
+          <line x1="12" y1="7" x2="14.5" y2="7" />
+          <polyline points="13,5.5 14.5,7 13,8.5" />
+        </svg>
+      );
+
+    case "table-col-delete":
+      return (
+        <svg {...base} viewBox="0 0 15 14" strokeWidth={1.2}>
+          <rect x="1" y="1" width="13" height="12" rx="1" />
+          <line x1="1" y1="7" x2="14" y2="7" />
+          <line x1="5.5" y1="1" x2="5.5" y2="13" />
+          <line x1="9.5" y1="1" x2="9.5" y2="13" />
+          <rect x="5.7" y="1.5" width="3.6" height="11" fill="currentColor" fillOpacity={0.25} stroke="none" />
+          <line x1="7.5" y1="4.5" x2="7.5" y2="9.5" strokeWidth={1.5} />
+        </svg>
+      );
+
+    case "table-header-row":
+      return (
+        <svg {...base} viewBox="0 0 15 14" strokeWidth={1.2}>
+          <rect x="1" y="1" width="13" height="12" rx="1" />
+          <rect x="1" y="1" width="13" height="4.5" rx="1" fill="currentColor" fillOpacity={0.25} stroke="none" />
+          <line x1="1" y1="5.5" x2="14" y2="5.5" />
+          <line x1="1" y1="9" x2="14" y2="9" />
+          <line x1="5.5" y1="5.5" x2="5.5" y2="13" />
+          <line x1="9.5" y1="5.5" x2="9.5" y2="13" />
+        </svg>
+      );
+
+    case "table-header-col":
+      return (
+        <svg {...base} viewBox="0 0 15 14" strokeWidth={1.2}>
+          <rect x="1" y="1" width="13" height="12" rx="1" />
+          <rect x="1" y="1" width="4.5" height="12" rx="1" fill="currentColor" fillOpacity={0.25} stroke="none" />
+          <line x1="5.5" y1="1" x2="5.5" y2="13" />
+          <line x1="9" y1="1" x2="9" y2="13" />
+          <line x1="5.5" y1="4.5" x2="14" y2="4.5" />
+          <line x1="5.5" y1="9" x2="14" y2="9" />
+        </svg>
+      );
+
+    case "table-delete":
+      return (
+        <svg {...base} viewBox="0 0 15 14" strokeWidth={1.2}>
+          <rect x="1" y="1" width="13" height="12" rx="1" />
+          <line x1="1" y1="5" x2="14" y2="5" />
+          <line x1="1" y1="9" x2="14" y2="9" />
+          <line x1="5.5" y1="1" x2="5.5" y2="13" />
+          <line x1="9.5" y1="1" x2="9.5" y2="13" />
+          <line x1="4" y1="3" x2="11" y2="11" strokeWidth={1.5} />
+          <line x1="11" y1="3" x2="4" y2="11" strokeWidth={1.5} />
         </svg>
       );
 
