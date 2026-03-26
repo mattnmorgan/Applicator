@@ -67,7 +67,8 @@ export interface RichTextEditorProps {
   disabled?: boolean;
 }
 
-const CELL_STYLE = "border: 1px solid #475569; padding: 5px 10px; min-width: 60px;";
+const CELL_STYLE =
+  "border: 1px solid #475569; padding: 5px 10px; min-width: 60px;";
 
 export default function RichTextEditor({
   value,
@@ -86,7 +87,11 @@ export default function RichTextEditor({
   const linkSavedRange = useRef<Range | null>(null);
   const lastEmitted = useRef(value || "");
   const selectedImgRef = useRef<HTMLImageElement | null>(null);
-  const dragRef = useRef<{ startX: number; startW: number; handle: "nw" | "ne" | "se" | "sw" } | null>(null);
+  const dragRef = useRef<{
+    startX: number;
+    startW: number;
+    handle: "nw" | "ne" | "se" | "sw";
+  } | null>(null);
 
   const [formats, setFormats] = useState({
     bold: false,
@@ -100,7 +105,9 @@ export default function RichTextEditor({
     justifyRight: false,
     justifyFull: false,
   });
-  const [isEmpty, setIsEmpty] = useState(!(value || "").replace(/<[^>]*>/g, "").trim());
+  const [isEmpty, setIsEmpty] = useState(
+    !(value || "").replace(/<[^>]*>/g, "").trim(),
+  );
   const [showLink, setShowLink] = useState(false);
   const [linkUrl, setLinkUrl] = useState("");
   const [linkText, setLinkText] = useState("");
@@ -109,7 +116,12 @@ export default function RichTextEditor({
   const [tableCols, setTableCols] = useState("3");
   const [inTable, setInTable] = useState(false);
   const [selectedImg, setSelectedImg] = useState<HTMLImageElement | null>(null);
-  const [imgOverlay, setImgOverlay] = useState<{ top: number; left: number; width: number; height: number } | null>(null);
+  const [imgOverlay, setImgOverlay] = useState<{
+    top: number;
+    left: number;
+    width: number;
+    height: number;
+  } | null>(null);
 
   // Mount: set initial content
   useEffect(() => {
@@ -136,7 +148,10 @@ export default function RichTextEditor({
   // Deselect image when clicking outside the editor
   useEffect(() => {
     function onDocMouseDown(e: MouseEvent) {
-      if (editorWrapRef.current && !editorWrapRef.current.contains(e.target as Node)) {
+      if (
+        editorWrapRef.current &&
+        !editorWrapRef.current.contains(e.target as Node)
+      ) {
         deselectImage();
       }
     }
@@ -146,7 +161,11 @@ export default function RichTextEditor({
 
   // ---- Table context ----
 
-  function getTableContext(): { td: HTMLTableCellElement | null; tr: HTMLTableRowElement | null; table: HTMLTableElement | null } | null {
+  function getTableContext(): {
+    td: HTMLTableCellElement | null;
+    tr: HTMLTableRowElement | null;
+    table: HTMLTableElement | null;
+  } | null {
     const sel = window.getSelection();
     if (!sel || sel.rangeCount === 0) return null;
     let node: Node | null = sel.getRangeAt(0).startContainer;
@@ -156,9 +175,13 @@ export default function RichTextEditor({
     while (node && node !== editorRef.current) {
       if (node.nodeType === Node.ELEMENT_NODE) {
         const el = node as Element;
-        if (el.tagName === "TD" || el.tagName === "TH") td = el as HTMLTableCellElement;
+        if (el.tagName === "TD" || el.tagName === "TH")
+          td = el as HTMLTableCellElement;
         if (el.tagName === "TR") tr = el as HTMLTableRowElement;
-        if (el.tagName === "TABLE") { table = el as HTMLTableElement; break; }
+        if (el.tagName === "TABLE") {
+          table = el as HTMLTableElement;
+          break;
+        }
       }
       node = node.parentNode;
     }
@@ -222,7 +245,9 @@ export default function RichTextEditor({
   }
 
   function selectImage(img: HTMLImageElement) {
-    editorRef.current?.querySelectorAll(".rte-img-selected").forEach(el => el.classList.remove("rte-img-selected"));
+    editorRef.current
+      ?.querySelectorAll(".rte-img-selected")
+      .forEach((el) => el.classList.remove("rte-img-selected"));
     img.classList.add("rte-img-selected");
     selectedImgRef.current = img;
     setSelectedImg(img);
@@ -230,7 +255,9 @@ export default function RichTextEditor({
   }
 
   function deselectImage() {
-    editorRef.current?.querySelectorAll(".rte-img-selected").forEach(el => el.classList.remove("rte-img-selected"));
+    editorRef.current
+      ?.querySelectorAll(".rte-img-selected")
+      .forEach((el) => el.classList.remove("rte-img-selected"));
     selectedImgRef.current = null;
     setSelectedImg(null);
     setImgOverlay(null);
@@ -244,7 +271,10 @@ export default function RichTextEditor({
       const MAX_W = 800;
       let w = img.naturalWidth;
       let h = img.naturalHeight;
-      if (w > MAX_W) { h = Math.round(h * MAX_W / w); w = MAX_W; }
+      if (w > MAX_W) {
+        h = Math.round((h * MAX_W) / w);
+        w = MAX_W;
+      }
       const canvas = document.createElement("canvas");
       canvas.width = w;
       canvas.height = h;
@@ -253,7 +283,11 @@ export default function RichTextEditor({
       ctx.drawImage(img, 0, 0, w, h);
       const dataUrl = canvas.toDataURL("image/jpeg", 0.82);
       editorRef.current?.focus();
-      document.execCommand("insertHTML", false, `<img src="${dataUrl}" style="max-width:100%;height:auto;" />`);
+      document.execCommand(
+        "insertHTML",
+        false,
+        `<img src="${dataUrl}" style="max-width:100%;height:auto;" />`,
+      );
       emitChange();
     };
     img.src = url;
@@ -261,7 +295,10 @@ export default function RichTextEditor({
 
   // ---- Image drag resize ----
 
-  function startImgDrag(e: React.MouseEvent, handle: "nw" | "ne" | "se" | "sw") {
+  function startImgDrag(
+    e: React.MouseEvent,
+    handle: "nw" | "ne" | "se" | "sw",
+  ) {
     const img = selectedImgRef.current;
     if (!img) return;
     e.preventDefault();
@@ -307,7 +344,9 @@ export default function RichTextEditor({
     document.addEventListener("mouseup", onUp);
   }
 
-  const handleCorner = (handle: "nw" | "ne" | "se" | "sw") => (e: React.MouseEvent) => startImgDrag(e, handle);
+  const handleCorner =
+    (handle: "nw" | "ne" | "se" | "sw") => (e: React.MouseEvent) =>
+      startImgDrag(e, handle);
 
   // ---- Table operations ----
 
@@ -376,7 +415,9 @@ export default function RichTextEditor({
   }
 
   function getCellColIndex(td: HTMLTableCellElement): number {
-    return Array.from(td.parentElement?.cells ?? []).indexOf(td);
+    return Array.from(
+      (td.parentElement as HTMLTableRowElement)?.cells ?? [],
+    ).indexOf(td);
   }
 
   function insertColLeft() {
@@ -388,7 +429,8 @@ export default function RichTextEditor({
       cell.setAttribute("style", CELL_STYLE);
       cell.innerHTML = "&nbsp;";
       const ref = row.cells[colIdx];
-      if (ref) row.insertBefore(cell, ref); else row.appendChild(cell);
+      if (ref) row.insertBefore(cell, ref);
+      else row.appendChild(cell);
     }
     emitChange();
   }
@@ -402,7 +444,8 @@ export default function RichTextEditor({
       cell.setAttribute("style", CELL_STYLE);
       cell.innerHTML = "&nbsp;";
       const ref = row.cells[colIdx + 1];
-      if (ref) row.insertBefore(cell, ref); else row.appendChild(cell);
+      if (ref) row.insertBefore(cell, ref);
+      else row.appendChild(cell);
     }
     emitChange();
   }
@@ -423,9 +466,9 @@ export default function RichTextEditor({
   function toggleHeaderRow() {
     const ctx = getTableContext();
     if (!ctx?.tr) return;
-    const isHeader = Array.from(ctx.tr.cells).every(c => c.tagName === "TH");
+    const isHeader = Array.from(ctx.tr.cells).every((c) => c.tagName === "TH");
     const newTag = isHeader ? "td" : "th";
-    Array.from(ctx.tr.cells).forEach(cell => {
+    Array.from(ctx.tr.cells).forEach((cell) => {
       const newCell = document.createElement(newTag);
       newCell.setAttribute("style", CELL_STYLE);
       newCell.innerHTML = cell.innerHTML;
@@ -438,10 +481,12 @@ export default function RichTextEditor({
     const ctx = getTableContext();
     if (!ctx?.td || !ctx.table) return;
     const colIdx = getCellColIndex(ctx.td);
-    const cells = Array.from(ctx.table.rows).map(row => row.cells[colIdx]).filter(Boolean) as HTMLTableCellElement[];
-    const isHeader = cells.every(c => c.tagName === "TH");
+    const cells = Array.from(ctx.table.rows)
+      .map((row) => row.cells[colIdx])
+      .filter(Boolean) as HTMLTableCellElement[];
+    const isHeader = cells.every((c) => c.tagName === "TH");
     const newTag = isHeader ? "td" : "th";
-    cells.forEach(cell => {
+    cells.forEach((cell) => {
       const newCell = document.createElement(newTag);
       newCell.setAttribute("style", CELL_STYLE);
       newCell.innerHTML = cell.innerHTML;
@@ -475,7 +520,18 @@ export default function RichTextEditor({
   function isAtBlockStart(textNode: Node, offsetInNode: number): boolean {
     const prev = (textNode.textContent || "").slice(0, offsetInNode);
     if (prev.trim() !== prev) return false;
-    const BLOCK_TAGS = new Set(["P", "DIV", "BLOCKQUOTE", "LI", "H1", "H2", "H3", "H4", "H5", "H6"]);
+    const BLOCK_TAGS = new Set([
+      "P",
+      "DIV",
+      "BLOCKQUOTE",
+      "LI",
+      "H1",
+      "H2",
+      "H3",
+      "H4",
+      "H5",
+      "H6",
+    ]);
     let ancestor: Node | null = textNode;
     while (ancestor && ancestor !== editorRef.current) {
       let sib = ancestor.previousSibling;
@@ -483,7 +539,11 @@ export default function RichTextEditor({
         if ((sib.textContent || "").trim()) return false;
         sib = sib.previousSibling;
       }
-      if (ancestor.nodeType === Node.ELEMENT_NODE && BLOCK_TAGS.has((ancestor as Element).tagName)) break;
+      if (
+        ancestor.nodeType === Node.ELEMENT_NODE &&
+        BLOCK_TAGS.has((ancestor as Element).tagName)
+      )
+        break;
       ancestor = ancestor.parentNode;
     }
     return true;
@@ -492,7 +552,10 @@ export default function RichTextEditor({
   function handleKeyDown(e: React.KeyboardEvent<HTMLDivElement>) {
     const ctrl = e.ctrlKey || e.metaKey;
 
-    if (e.key === "Escape") { deselectImage(); return; }
+    if (e.key === "Escape") {
+      deselectImage();
+      return;
+    }
 
     if (e.key === "Tab") {
       e.preventDefault();
@@ -501,7 +564,10 @@ export default function RichTextEditor({
         let node: Node | null = sel.getRangeAt(0).startContainer;
         let inList = false;
         while (node && node !== editorRef.current) {
-          if (node.nodeName === "LI") { inList = true; break; }
+          if (node.nodeName === "LI") {
+            inList = true;
+            break;
+          }
           node = node.parentNode;
         }
         if (inList) {
@@ -516,14 +582,28 @@ export default function RichTextEditor({
 
     if (ctrl && !e.shiftKey) {
       switch (e.key.toLowerCase()) {
-        case "b": e.preventDefault(); exec("bold"); return;
-        case "i": e.preventDefault(); exec("italic"); return;
-        case "u": e.preventDefault(); exec("underline"); return;
-        case "k": e.preventDefault(); openLinkPopupInternal(); return;
+        case "b":
+          e.preventDefault();
+          exec("bold");
+          return;
+        case "i":
+          e.preventDefault();
+          exec("italic");
+          return;
+        case "u":
+          e.preventDefault();
+          exec("underline");
+          return;
+        case "k":
+          e.preventDefault();
+          openLinkPopupInternal();
+          return;
       }
     }
     if (ctrl && e.shiftKey && e.key.toLowerCase() === "x") {
-      e.preventDefault(); exec("strikeThrough"); return;
+      e.preventDefault();
+      exec("strikeThrough");
+      return;
     }
 
     if (e.key === " ") {
@@ -533,10 +613,17 @@ export default function RichTextEditor({
       if (!range.collapsed) return;
       const container = range.startContainer;
       if (container.nodeType !== Node.TEXT_NODE) return;
-      const textBefore = (container.textContent || "").slice(0, range.startOffset);
+      const textBefore = (container.textContent || "").slice(
+        0,
+        range.startOffset,
+      );
       const trimmed = textBefore.trimStart();
-      const isBullet = (trimmed === "-" || trimmed === "*") && isAtBlockStart(container, range.startOffset);
-      const isOrdered = (trimmed === "1." || trimmed === "1)") && isAtBlockStart(container, range.startOffset);
+      const isBullet =
+        (trimmed === "-" || trimmed === "*") &&
+        isAtBlockStart(container, range.startOffset);
+      const isOrdered =
+        (trimmed === "1." || trimmed === "1)") &&
+        isAtBlockStart(container, range.startOffset);
       if (isBullet || isOrdered) {
         e.preventDefault();
         const delRange = document.createRange();
@@ -545,7 +632,10 @@ export default function RichTextEditor({
         sel.removeAllRanges();
         sel.addRange(delRange);
         document.execCommand("delete", false);
-        document.execCommand(isBullet ? "insertUnorderedList" : "insertOrderedList", false);
+        document.execCommand(
+          isBullet ? "insertUnorderedList" : "insertOrderedList",
+          false,
+        );
         emitChange();
       }
     }
@@ -589,14 +679,22 @@ export default function RichTextEditor({
 
   function commitLink() {
     const url = linkUrl.trim();
-    if (!url) { setShowLink(false); return; }
+    if (!url) {
+      setShowLink(false);
+      return;
+    }
     const href = /^https?:\/\//i.test(url) ? url : `https://${url}`;
-    const display = (linkText.trim() || href).replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    const display = (linkText.trim() || href)
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
     const html = `<a href="${href}" target="_blank" rel="noopener noreferrer">${display}</a>`;
     editorRef.current?.focus();
     if (linkSavedRange.current) {
       const sel = window.getSelection();
-      if (sel) { sel.removeAllRanges(); sel.addRange(linkSavedRange.current); }
+      if (sel) {
+        sel.removeAllRanges();
+        sel.addRange(linkSavedRange.current);
+      }
     }
     document.execCommand("insertHTML", false, html);
     emitChange();
@@ -624,7 +722,13 @@ export default function RichTextEditor({
     };
   }
 
-  const cornerStyle = (cursor: string, top?: number | string, right?: number | string, bottom?: number | string, left?: number | string): React.CSSProperties => ({
+  const cornerStyle = (
+    cursor: string,
+    top?: number | string,
+    right?: number | string,
+    bottom?: number | string,
+    left?: number | string,
+  ): React.CSSProperties => ({
     position: "absolute",
     width: 8,
     height: 8,
@@ -663,40 +767,80 @@ export default function RichTextEditor({
           flexWrap: "wrap",
         }}
       >
-        <button title="Bold (Ctrl+B)" onMouseDown={(e) => tbMouseDown(e, () => exec("bold"))} style={tb(formats.bold)}>
+        <button
+          title="Bold (Ctrl+B)"
+          onMouseDown={(e) => tbMouseDown(e, () => exec("bold"))}
+          style={tb(formats.bold)}
+        >
           <strong>B</strong>
         </button>
-        <button title="Italic (Ctrl+I)" onMouseDown={(e) => tbMouseDown(e, () => exec("italic"))} style={tb(formats.italic)}>
+        <button
+          title="Italic (Ctrl+I)"
+          onMouseDown={(e) => tbMouseDown(e, () => exec("italic"))}
+          style={tb(formats.italic)}
+        >
           <em>I</em>
         </button>
-        <button title="Underline (Ctrl+U)" onMouseDown={(e) => tbMouseDown(e, () => exec("underline"))} style={tb(formats.underline)}>
+        <button
+          title="Underline (Ctrl+U)"
+          onMouseDown={(e) => tbMouseDown(e, () => exec("underline"))}
+          style={tb(formats.underline)}
+        >
           <span style={{ textDecoration: "underline" }}>U</span>
         </button>
-        <button title="Strikethrough (Ctrl+Shift+X)" onMouseDown={(e) => tbMouseDown(e, () => exec("strikeThrough"))} style={tb(formats.strikeThrough)}>
+        <button
+          title="Strikethrough (Ctrl+Shift+X)"
+          onMouseDown={(e) => tbMouseDown(e, () => exec("strikeThrough"))}
+          style={tb(formats.strikeThrough)}
+        >
           <span style={{ textDecoration: "line-through" }}>S</span>
         </button>
 
         <Sep />
 
-        <button title="Bullet list" onMouseDown={(e) => tbMouseDown(e, () => exec("insertUnorderedList"))} style={tb(formats.insertUnorderedList)}>
+        <button
+          title="Bullet list"
+          onMouseDown={(e) => tbMouseDown(e, () => exec("insertUnorderedList"))}
+          style={tb(formats.insertUnorderedList)}
+        >
           <Icon name="list-unordered" size={14} />
         </button>
-        <button title="Numbered list" onMouseDown={(e) => tbMouseDown(e, () => exec("insertOrderedList"))} style={tb(formats.insertOrderedList)}>
+        <button
+          title="Numbered list"
+          onMouseDown={(e) => tbMouseDown(e, () => exec("insertOrderedList"))}
+          style={tb(formats.insertOrderedList)}
+        >
           <Icon name="list-ordered" size={14} />
         </button>
 
         <Sep />
 
-        <button title="Align left" onMouseDown={(e) => tbMouseDown(e, () => exec("justifyLeft"))} style={tb(formats.justifyLeft)}>
+        <button
+          title="Align left"
+          onMouseDown={(e) => tbMouseDown(e, () => exec("justifyLeft"))}
+          style={tb(formats.justifyLeft)}
+        >
           <Icon name="align-left" size={14} />
         </button>
-        <button title="Align center" onMouseDown={(e) => tbMouseDown(e, () => exec("justifyCenter"))} style={tb(formats.justifyCenter)}>
+        <button
+          title="Align center"
+          onMouseDown={(e) => tbMouseDown(e, () => exec("justifyCenter"))}
+          style={tb(formats.justifyCenter)}
+        >
           <Icon name="align-center" size={14} />
         </button>
-        <button title="Align right" onMouseDown={(e) => tbMouseDown(e, () => exec("justifyRight"))} style={tb(formats.justifyRight)}>
+        <button
+          title="Align right"
+          onMouseDown={(e) => tbMouseDown(e, () => exec("justifyRight"))}
+          style={tb(formats.justifyRight)}
+        >
           <Icon name="align-right" size={14} />
         </button>
-        <button title="Justify" onMouseDown={(e) => tbMouseDown(e, () => exec("justifyFull"))} style={tb(formats.justifyFull)}>
+        <button
+          title="Justify"
+          onMouseDown={(e) => tbMouseDown(e, () => exec("justifyFull"))}
+          style={tb(formats.justifyFull)}
+        >
           <Icon name="align-justify" size={14} />
         </button>
 
@@ -708,7 +852,8 @@ export default function RichTextEditor({
           onMouseDown={(e) => {
             e.preventDefault();
             const sel = window.getSelection();
-            colorSavedRange.current = (sel && sel.rangeCount > 0) ? sel.getRangeAt(0).cloneRange() : null;
+            colorSavedRange.current =
+              sel && sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
             colorInputRef.current?.click();
           }}
           style={tb(false)}
@@ -724,17 +869,30 @@ export default function RichTextEditor({
             editorRef.current?.focus();
             if (colorSavedRange.current) {
               const sel = window.getSelection();
-              if (sel) { sel.removeAllRanges(); sel.addRange(colorSavedRange.current); }
+              if (sel) {
+                sel.removeAllRanges();
+                sel.addRange(colorSavedRange.current);
+              }
               colorSavedRange.current = null;
             }
             document.execCommand("foreColor", false, e.target.value);
             emitChange();
           }}
-          style={{ position: "absolute", width: 0, height: 0, opacity: 0, pointerEvents: "none" }}
+          style={{
+            position: "absolute",
+            width: 0,
+            height: 0,
+            opacity: 0,
+            pointerEvents: "none",
+          }}
         />
 
         {/* Link */}
-        <button title="Insert link (Ctrl+K)" onMouseDown={openLinkPopup} style={tb(showLink)}>
+        <button
+          title="Insert link (Ctrl+K)"
+          onMouseDown={openLinkPopup}
+          style={tb(showLink)}
+        >
           <Icon name="link" size={14} />
         </button>
 
@@ -743,7 +901,10 @@ export default function RichTextEditor({
         {/* Image */}
         <button
           title="Insert image"
-          onMouseDown={(e) => { e.preventDefault(); imgInputRef.current?.click(); }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            imgInputRef.current?.click();
+          }}
           style={tb(false)}
         >
           <Icon name="image" size={14} />
@@ -761,13 +922,23 @@ export default function RichTextEditor({
             }
             e.target.value = "";
           }}
-          style={{ position: "absolute", width: 0, height: 0, opacity: 0, pointerEvents: "none" }}
+          style={{
+            position: "absolute",
+            width: 0,
+            height: 0,
+            opacity: 0,
+            pointerEvents: "none",
+          }}
         />
 
         {/* Table */}
         <button
           title="Insert table"
-          onMouseDown={(e) => { e.preventDefault(); setShowTablePopup(p => !p); setShowLink(false); }}
+          onMouseDown={(e) => {
+            e.preventDefault();
+            setShowTablePopup((p) => !p);
+            setShowLink(false);
+          }}
           style={tb(showTablePopup)}
         >
           <Icon name="table" size={14} />
@@ -787,20 +958,83 @@ export default function RichTextEditor({
             flexWrap: "wrap",
           }}
         >
-          <span style={{ fontSize: "10px", color: "#475569", marginRight: "4px", letterSpacing: "0.06em", textTransform: "uppercase", userSelect: "none" }}>
+          <span
+            style={{
+              fontSize: "10px",
+              color: "#475569",
+              marginRight: "4px",
+              letterSpacing: "0.06em",
+              textTransform: "uppercase",
+              userSelect: "none",
+            }}
+          >
             Table
           </span>
-          <button title="Insert row above" onMouseDown={(e) => tbMouseDown(e, insertRowAbove)} style={tb(false)}><Icon name="table-row-above" size={14} /></button>
-          <button title="Insert row below" onMouseDown={(e) => tbMouseDown(e, insertRowBelow)} style={tb(false)}><Icon name="table-row-below" size={14} /></button>
-          <button title="Delete row" onMouseDown={(e) => tbMouseDown(e, deleteRow)} style={{ ...tb(false), color: "#f87171" }}><Icon name="table-row-delete" size={14} /></button>
+          <button
+            title="Insert row above"
+            onMouseDown={(e) => tbMouseDown(e, insertRowAbove)}
+            style={tb(false)}
+          >
+            <Icon name="table-row-above" size={14} />
+          </button>
+          <button
+            title="Insert row below"
+            onMouseDown={(e) => tbMouseDown(e, insertRowBelow)}
+            style={tb(false)}
+          >
+            <Icon name="table-row-below" size={14} />
+          </button>
+          <button
+            title="Delete row"
+            onMouseDown={(e) => tbMouseDown(e, deleteRow)}
+            style={{ ...tb(false), color: "#f87171" }}
+          >
+            <Icon name="table-row-delete" size={14} />
+          </button>
           <Sep />
-          <button title="Insert column left" onMouseDown={(e) => tbMouseDown(e, insertColLeft)} style={tb(false)}><Icon name="table-col-left" size={14} /></button>
-          <button title="Insert column right" onMouseDown={(e) => tbMouseDown(e, insertColRight)} style={tb(false)}><Icon name="table-col-right" size={14} /></button>
-          <button title="Delete column" onMouseDown={(e) => tbMouseDown(e, deleteCol)} style={{ ...tb(false), color: "#f87171" }}><Icon name="table-col-delete" size={14} /></button>
+          <button
+            title="Insert column left"
+            onMouseDown={(e) => tbMouseDown(e, insertColLeft)}
+            style={tb(false)}
+          >
+            <Icon name="table-col-left" size={14} />
+          </button>
+          <button
+            title="Insert column right"
+            onMouseDown={(e) => tbMouseDown(e, insertColRight)}
+            style={tb(false)}
+          >
+            <Icon name="table-col-right" size={14} />
+          </button>
+          <button
+            title="Delete column"
+            onMouseDown={(e) => tbMouseDown(e, deleteCol)}
+            style={{ ...tb(false), color: "#f87171" }}
+          >
+            <Icon name="table-col-delete" size={14} />
+          </button>
           <Sep />
-          <button title="Toggle header row" onMouseDown={(e) => tbMouseDown(e, toggleHeaderRow)} style={tb(false)}><Icon name="table-header-row" size={14} /></button>
-          <button title="Toggle header column" onMouseDown={(e) => tbMouseDown(e, toggleHeaderCol)} style={tb(false)}><Icon name="table-header-col" size={14} /></button>
-          <button title="Delete table" onMouseDown={(e) => tbMouseDown(e, deleteTable)} style={{ ...tb(false), color: "#f87171" }}><Icon name="table-delete" size={14} /></button>
+          <button
+            title="Toggle header row"
+            onMouseDown={(e) => tbMouseDown(e, toggleHeaderRow)}
+            style={tb(false)}
+          >
+            <Icon name="table-header-row" size={14} />
+          </button>
+          <button
+            title="Toggle header column"
+            onMouseDown={(e) => tbMouseDown(e, toggleHeaderCol)}
+            style={tb(false)}
+          >
+            <Icon name="table-header-col" size={14} />
+          </button>
+          <button
+            title="Delete table"
+            onMouseDown={(e) => tbMouseDown(e, deleteTable)}
+            style={{ ...tb(false), color: "#f87171" }}
+          >
+            <Icon name="table-delete" size={14} />
+          </button>
         </div>
       )}
 
@@ -862,10 +1096,22 @@ export default function RichTextEditor({
               zIndex: 5,
             }}
           >
-            <div style={cornerStyle("nw-resize", -4, undefined, undefined, -4)} onMouseDown={handleCorner("nw")} />
-            <div style={cornerStyle("ne-resize", -4, -4, undefined, undefined)} onMouseDown={handleCorner("ne")} />
-            <div style={cornerStyle("sw-resize", undefined, undefined, -4, -4)} onMouseDown={handleCorner("sw")} />
-            <div style={cornerStyle("se-resize", undefined, -4, -4, undefined)} onMouseDown={handleCorner("se")} />
+            <div
+              style={cornerStyle("nw-resize", -4, undefined, undefined, -4)}
+              onMouseDown={handleCorner("nw")}
+            />
+            <div
+              style={cornerStyle("ne-resize", -4, -4, undefined, undefined)}
+              onMouseDown={handleCorner("ne")}
+            />
+            <div
+              style={cornerStyle("sw-resize", undefined, undefined, -4, -4)}
+              onMouseDown={handleCorner("sw")}
+            />
+            <div
+              style={cornerStyle("se-resize", undefined, -4, -4, undefined)}
+              onMouseDown={handleCorner("se")}
+            />
           </div>
         )}
       </div>
@@ -906,8 +1152,12 @@ export default function RichTextEditor({
             }}
             style={{ ...linkInputStyle, minWidth: 140 }}
           />
-          <button onClick={commitLink} style={linkInsertBtnStyle}>Insert</button>
-          <button onClick={() => setShowLink(false)} style={linkCancelBtnStyle}>Cancel</button>
+          <button onClick={commitLink} style={linkInsertBtnStyle}>
+            Insert
+          </button>
+          <button onClick={() => setShowLink(false)} style={linkCancelBtnStyle}>
+            Cancel
+          </button>
         </div>
       )}
 
@@ -931,7 +1181,12 @@ export default function RichTextEditor({
             max="20"
             value={tableRows}
             onChange={(e) => setTableRows(e.target.value)}
-            style={{ ...linkInputStyle, width: 52, flex: "none", textAlign: "center" }}
+            style={{
+              ...linkInputStyle,
+              width: 52,
+              flex: "none",
+              textAlign: "center",
+            }}
           />
           <span style={{ fontSize: "12px", color: "#94a3b8" }}>Cols:</span>
           <input
@@ -940,11 +1195,26 @@ export default function RichTextEditor({
             max="20"
             value={tableCols}
             onChange={(e) => setTableCols(e.target.value)}
-            onKeyDown={(e) => { if (e.key === "Enter") insertTable(); if (e.key === "Escape") setShowTablePopup(false); }}
-            style={{ ...linkInputStyle, width: 52, flex: "none", textAlign: "center" }}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") insertTable();
+              if (e.key === "Escape") setShowTablePopup(false);
+            }}
+            style={{
+              ...linkInputStyle,
+              width: 52,
+              flex: "none",
+              textAlign: "center",
+            }}
           />
-          <button onClick={insertTable} style={linkInsertBtnStyle}>Insert</button>
-          <button onClick={() => setShowTablePopup(false)} style={linkCancelBtnStyle}>Cancel</button>
+          <button onClick={insertTable} style={linkInsertBtnStyle}>
+            Insert
+          </button>
+          <button
+            onClick={() => setShowTablePopup(false)}
+            style={linkCancelBtnStyle}
+          >
+            Cancel
+          </button>
         </div>
       )}
     </div>
@@ -954,7 +1224,17 @@ export default function RichTextEditor({
 // ---- Separator ----
 
 function Sep() {
-  return <div style={{ width: 1, height: 14, backgroundColor: "#334155", margin: "0 4px", flexShrink: 0 }} />;
+  return (
+    <div
+      style={{
+        width: 1,
+        height: 14,
+        backgroundColor: "#334155",
+        margin: "0 4px",
+        flexShrink: 0,
+      }}
+    />
+  );
 }
 
 // ---- Styles ----
