@@ -288,24 +288,29 @@ export default function DatabaseViewer() {
 
   const hasChanges = value !== editedValue;
 
-  const treePanel = (
-    <>
-      <div className={styles.header}>
-        <span className={styles.title}>Keys</span>
-        <div className={styles.headerButtons}>
-          <ButtonIcon
-            name="trash"
-            label="Flush Database"
-            onClick={() => setShowFlushModal(true)}
-            subvariant="danger"
-          />
-          <ButtonIcon
-            name="refresh"
-            label="Refresh"
-            onClick={fetchKeys}
-          />
-        </div>
+  const treePanelTitle = (
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", width: "100%" }}>
+      <span className={styles.title}>Keys</span>
+      <div className={styles.headerButtons}>
+        <ButtonIcon
+          name="trash"
+          label="Flush Database"
+          onClick={() => setShowFlushModal(true)}
+          subvariant="danger"
+          placement="bottom"
+        />
+        <ButtonIcon
+          name="refresh"
+          label="Refresh"
+          onClick={fetchKeys}
+          placement="bottom"
+        />
       </div>
+    </div>
+  );
+
+  const treeContent = (
+    <div style={{ height: "100%", overflowY: "auto" }}>
       <div className={styles.treeContainer}>
         {treeData.map((node, index) => (
           <TreeItem
@@ -316,7 +321,7 @@ export default function DatabaseViewer() {
           />
         ))}
       </div>
-    </>
+    </div>
   );
 
   return (
@@ -352,11 +357,14 @@ export default function DatabaseViewer() {
           width: 30,
           open: treeOpen,
           closeable: true,
+          title: treePanelTitle,
           openable: true,
           iconName: "list-view",
+          scrollable: false,
+          contentPadding: 0,
           onClose: () => setTreeOpen(false),
           onOpen: () => setTreeOpen(true),
-          children: treePanel,
+          children: treeContent,
         }}
         style={{ height: "100%" }}
       >

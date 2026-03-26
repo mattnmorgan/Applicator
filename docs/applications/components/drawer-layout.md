@@ -36,7 +36,8 @@ import type { DrawerLayoutProps, DrawerPanelConfig } from "@applicator/sdk/compo
 | `animated` | `boolean` | `false` | When `true`, overlay panels slide in/out with a 250 ms CSS transition instead of appearing instantly. The panel stays mounted during the 300 ms exit animation before being removed from the DOM. Only applies to `overlay` panels (and `inline` panels on mobile). |
 | `pixelWidth` | `number` | — | Fixed pixel width for the panel. When set, overrides the percentage-based `width` prop. |
 | `background` | `string` | `"#1e293b"` | Background color of the panel. |
-| `scrollable` | `boolean` | `true` | When `false`, the content area uses `overflow: hidden` instead of `overflow-y: auto`, allowing panel children to manage their own scrolling. |
+| `scrollable` | `boolean` | `false` | When `true`, the panel content area gets `overflow-y: auto` so content taller than the panel scrolls automatically. When `false` (the default), the panel uses `overflow: hidden` and the child component is responsible for any internal scrolling. |
+| `contentPadding` | `number \| string` | `0` | Padding applied to the panel content area. Set to `"16px"` for built-in padding, or leave at `0` when the child component manages its own spacing. |
 
 ## Behavior
 
@@ -66,6 +67,8 @@ export default function MyLayout({ children }) {
         title: "Navigation",
         openable: true,
         iconName: "hamburger",
+        scrollable: true,
+        contentPadding: "16px",
         onClose: () => setNavOpen(false),
         onOpen: () => setNavOpen(true),
         children: <Tabset items={navItems} variant="vertical" />,

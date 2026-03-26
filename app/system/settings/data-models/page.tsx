@@ -216,9 +216,19 @@ export default function DataModelsPage() {
             openable: true,
             iconName: "list-view",
             title: "Tables",
+            scrollable: false,
+            contentPadding: 0,
             onClose: () => setDrawerOpen(false),
             onOpen: () => setDrawerOpen(true),
             children: (
+              <div
+                style={{
+                  height: "100%",
+                  overflowY: "auto",
+                  padding: "16px",
+                  boxSizing: "border-box",
+                }}
+              >
               <div
                 style={{
                   display: "flex",
@@ -325,6 +335,7 @@ export default function DataModelsPage() {
                 ))
               )}
             </div>
+              </div>
             ),
           }}
         >

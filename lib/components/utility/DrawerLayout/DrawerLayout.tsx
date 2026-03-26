@@ -61,8 +61,9 @@ export interface DrawerPanelConfig {
   /** Background color of the panel. Defaults to `"#1e293b"`. */
   background?: string;
   /**
-   * When false, the content area uses `overflow: hidden` instead of `overflow-y: auto`,
-   * allowing panel children to manage their own scrolling. Defaults to true.
+   * When true, the content area uses `overflow-y: auto` so content longer than the panel
+   * scrolls automatically. When false (the default), the panel uses `overflow: hidden`
+   * and the child component is responsible for any internal scrolling it needs.
    */
   scrollable?: boolean;
 }
@@ -96,11 +97,11 @@ function resolvePanel(panel: DrawerPanelConfig | undefined) {
     onClose: panel.onClose,
     onOpen: panel.onOpen,
     children: panel.children,
-    contentPadding: panel.contentPadding ?? "16px",
+    contentPadding: panel.contentPadding ?? 0,
     animated: panel.animated ?? false,
     pixelWidth: panel.pixelWidth,
     background: panel.background ?? "#1e293b",
-    scrollable: panel.scrollable ?? true,
+    scrollable: panel.scrollable ?? false,
   };
 }
 
@@ -109,17 +110,20 @@ interface PanelProps {
   config: NonNullable<ReturnType<typeof resolvePanel>> & { contentPadding: number | string };
   isMobile: boolean;
   computedWidth: number;
+  /** Overrides config.open for animation transforms (allows entry animation). */
+  animOpen?: boolean;
 }
 
-function DrawerPanel({ side, config, isMobile, computedWidth }: PanelProps) {
+function DrawerPanel({ side, config, isMobile, computedWidth, animOpen }: PanelProps) {
   const isOverlay = config.type === "overlay" || isMobile;
   const isFullWidth = isMobile;
   const panelWidth = isFullWidth ? "100%" : config.pixelWidth != null ? `${config.pixelWidth}px` : `${computedWidth}px`;
 
   const translateClosed = side === "right" ? "100%" : "-100%";
+  const openForAnim = animOpen !== undefined ? animOpen : config.open;
   const animateTransform =
     config.animated && isOverlay
-      ? config.open
+      ? openForAnim
         ? "translateX(0)"
         : `translateX(${translateClosed})`
       : undefined;
@@ -198,7 +202,7 @@ function DrawerPanel({ side, config, isMobile, computedWidth }: PanelProps) {
           )}
         </div>
       )}
-      <div style={{ flex: 1, overflowY: config.scrollable ? "auto" : undefined, overflow: config.scrollable ? undefined : "hidden", padding: config.contentPadding }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: config.scrollable ? "auto" : undefined, overflow: config.scrollable ? undefined : "hidden", padding: config.contentPadding }}>
         {config.children}
       </div>
     </div>
@@ -217,6 +221,9 @@ export default function DrawerLayout({
   // Track whether animated overlay panels should remain mounted (for exit animation)
   const [leftMounted, setLeftMounted] = useState(leftPanelProp?.open ?? false);
   const [rightMounted, setRightMounted] = useState(rightPanelProp?.open ?? false);
+  // Track the visual open state for animated panels (lags one rAF behind mount to enable entry animation)
+  const [leftAnimOpen, setLeftAnimOpen] = useState(leftPanelProp?.open ?? false);
+  const [rightAnimOpen, setRightAnimOpen] = useState(rightPanelProp?.open ?? false);
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT);
@@ -225,14 +232,18 @@ export default function DrawerLayout({
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Keep animated overlay panels mounted during exit animation
+  // Keep animated overlay panels mounted during exit animation; defer visual open by one frame for entry animation
   useEffect(() => {
     if (leftPanelProp?.open) {
       setLeftMounted(true);
+      const t = setTimeout(() => setLeftAnimOpen(true), 16);
+      return () => clearTimeout(t);
     } else if (leftPanelProp?.animated) {
+      setLeftAnimOpen(false);
       const t = setTimeout(() => setLeftMounted(false), 300);
       return () => clearTimeout(t);
     } else {
+      setLeftAnimOpen(false);
       setLeftMounted(false);
     }
   }, [leftPanelProp?.open, leftPanelProp?.animated]);
@@ -240,10 +251,14 @@ export default function DrawerLayout({
   useEffect(() => {
     if (rightPanelProp?.open) {
       setRightMounted(true);
+      const t = setTimeout(() => setRightAnimOpen(true), 16);
+      return () => clearTimeout(t);
     } else if (rightPanelProp?.animated) {
+      setRightAnimOpen(false);
       const t = setTimeout(() => setRightMounted(false), 300);
       return () => clearTimeout(t);
     } else {
+      setRightAnimOpen(false);
       setRightMounted(false);
     }
   }, [rightPanelProp?.open, rightPanelProp?.animated]);
@@ -317,8 +332,8 @@ export default function DrawerLayout({
               backdropFilter: "blur(2px)",
               background: "rgba(0,0,0,0.3)",
               zIndex: 190,
-              opacity: left.open ? 1 : 0,
-              pointerEvents: left.open ? "auto" : "none",
+              opacity: leftAnimOpen ? 1 : 0,
+              pointerEvents: leftAnimOpen ? "auto" : "none",
               transition: left.animated ? "opacity 0.25s ease" : undefined,
             }}
           />
@@ -327,6 +342,7 @@ export default function DrawerLayout({
             config={left}
             isMobile={isMobile}
             computedWidth={leftPixels}
+            animOpen={leftAnimOpen}
           />
         </>
       )}
@@ -342,8 +358,8 @@ export default function DrawerLayout({
               backdropFilter: "blur(2px)",
               background: "rgba(0,0,0,0.3)",
               zIndex: 190,
-              opacity: right.open ? 1 : 0,
-              pointerEvents: right.open ? "auto" : "none",
+              opacity: rightAnimOpen ? 1 : 0,
+              pointerEvents: rightAnimOpen ? "auto" : "none",
               transition: right.animated ? "opacity 0.25s ease" : undefined,
             }}
           />
@@ -352,6 +368,7 @@ export default function DrawerLayout({
             config={right}
             isMobile={isMobile}
             computedWidth={rightPixels}
+            animOpen={rightAnimOpen}
           />
         </>
       )}

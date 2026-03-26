@@ -23,6 +23,8 @@ export default function TestPanelsPage() {
     iconName: "hamburger",
     variant: "bordered",
     animated: leftAnimated,
+    scrollable: true,
+    contentPadding: "16px",
     onClose: () => setLeftOpen(false),
     onOpen: () => setLeftOpen(true),
     children: (
@@ -44,6 +46,8 @@ export default function TestPanelsPage() {
     iconName: "settings",
     variant: "bordered",
     animated: rightAnimated,
+    scrollable: true,
+    contentPadding: "16px",
     onClose: () => setRightOpen(false),
     onOpen: () => setRightOpen(true),
     children: (

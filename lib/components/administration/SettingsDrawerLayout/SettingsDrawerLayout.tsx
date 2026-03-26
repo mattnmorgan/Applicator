@@ -37,9 +37,15 @@ export default function SettingsDrawerLayout({
         openable: true,
         iconName: navIconName,
         variant: "bordered",
+        scrollable: false,
+        contentPadding: 0,
         onClose: () => setNavOpen(false),
         onOpen: () => setNavOpen(true),
-        children: nav,
+        children: (
+          <div style={{ height: "100%", overflowY: "auto", padding: "16px", boxSizing: "border-box" }}>
+            {nav}
+          </div>
+        ),
       }}
     >
       <div
