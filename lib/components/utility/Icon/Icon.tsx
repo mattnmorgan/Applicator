@@ -79,6 +79,7 @@ export type IconName =
   | "table-header-row"
   | "table-header-col"
   | "table-header-cell"
+  | "table-col-distribute"
   | "table-delete";
 
 interface IconProps {
@@ -794,6 +795,22 @@ export default function Icon({ name, size = 16 }: IconProps) {
           <line x1="9" y1="1" x2="9" y2="13" />
           <line x1="5.5" y1="4.5" x2="14" y2="4.5" />
           <line x1="5.5" y1="9" x2="14" y2="9" />
+        </svg>
+      );
+
+    case "table-col-distribute":
+      return (
+        <svg {...base} viewBox="0 0 15 14" strokeWidth={1.2}>
+          <rect x="1" y="1" width="13" height="12" rx="1" />
+          <line x1="1" y1="7" x2="14" y2="7" />
+          <line x1="5.33" y1="1" x2="5.33" y2="13" />
+          <line x1="9.67" y1="1" x2="9.67" y2="13" />
+          {/* ←→ arrow in bottom row indicating equal distribution */}
+          <line x1="2.5" y1="10" x2="12.5" y2="10" />
+          <line x1="3.3" y1="9.3" x2="2.5" y2="10" />
+          <line x1="3.3" y1="10.7" x2="2.5" y2="10" />
+          <line x1="11.7" y1="9.3" x2="12.5" y2="10" />
+          <line x1="11.7" y1="10.7" x2="12.5" y2="10" />
         </svg>
       );
 

@@ -5,6 +5,7 @@ import DynamicInput from "@/lib/components/utility/DynamicInput";
 import type { DynamicInputDefinition } from "@/lib/components/utility/DynamicInput";
 import SearchableCombobox from "@/lib/components/utility/SearchableCombobox";
 import ButtonIcon from "@/lib/components/utility/ButtonIcon";
+import RichTextEditor, { RichTextViewer } from "@/lib/components/utility/RichTextEditor";
 
 const SAMPLE_INPUTS: DynamicInputDefinition[] = [
   {
@@ -572,6 +573,9 @@ export default function DynamicInputsTestPage() {
   const logRef = useRef<HTMLDivElement>(null);
 
   // SearchableCombobox demo state
+  const [rteHtml, setRteHtml] = useState("");
+
+  // SearchableCombobox demo state
   const [comboSingle, setComboSingle] = useState<ComboItem[]>([]);
   const [comboMulti, setComboMulti] = useState<ComboItem[]>([]);
   const [comboDebounced, setComboDebounced] = useState<ComboItem[]>([]);
@@ -943,6 +947,42 @@ export default function DynamicInputsTestPage() {
               onClick={() => {}}
             />
           </div>
+        </div>
+      </div>
+
+      <div>
+        <h2
+          style={{
+            fontSize: "16px",
+            fontWeight: 600,
+            color: "#f1f5f9",
+            marginBottom: "16px",
+          }}
+        >
+          Rich Text Editor
+        </h2>
+        <div style={{ display: "flex", gap: "24px", flexDirection: "column" }}>
+          <RichTextEditor
+            value={rteHtml}
+            onChange={setRteHtml}
+            placeholder="Type something rich..."
+            minHeight={160}
+            maxLines={20}
+          />
+          {rteHtml && (
+            <div>
+              <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>Preview</div>
+              <div style={{ border: "1px solid #1e293b", borderRadius: "6px", padding: "12px 14px", backgroundColor: "#0f172a" }}>
+                <RichTextViewer html={rteHtml} />
+              </div>
+            </div>
+          )}
+          {rteHtml && (
+            <div>
+              <div style={{ fontSize: "12px", color: "#64748b", marginBottom: "8px", textTransform: "uppercase", letterSpacing: "0.05em", fontWeight: 600 }}>Raw HTML</div>
+              <pre style={{ margin: 0, padding: "12px 14px", backgroundColor: "#0f172a", border: "1px solid #1e293b", borderRadius: "6px", fontSize: "12px", color: "#94a3b8", overflowX: "auto", whiteSpace: "pre-wrap", wordBreak: "break-all" }}>{rteHtml}</pre>
+            </div>
+          )}
         </div>
       </div>
 

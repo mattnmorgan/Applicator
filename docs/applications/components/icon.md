@@ -26,7 +26,7 @@ import type { IconName } from "@applicator/sdk/components";
 
 ### Table
 
-`table`, `table-row-above`, `table-row-below`, `table-row-delete`, `table-col-left`, `table-col-right`, `table-col-delete`, `table-header-row`, `table-header-col`, `table-header-cell`, `table-delete`
+`table`, `table-row-above`, `table-row-below`, `table-row-delete`, `table-col-left`, `table-col-right`, `table-col-delete`, `table-col-distribute`, `table-header-row`, `table-header-col`, `table-header-cell`, `table-delete`
 
 ## Usage
 

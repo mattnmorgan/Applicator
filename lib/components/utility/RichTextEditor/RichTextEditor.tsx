@@ -643,11 +643,12 @@ export default function RichTextEditor({
   function insertTable() {
     const rows = Math.max(1, parseInt(tableRows) || 3);
     const cols = Math.max(1, parseInt(tableCols) || 3);
-    let html = `<table style="border-collapse:collapse;margin:6px 0;"><tbody>`;
+    const colPct = (100 / cols).toFixed(2);
+    let html = `<table style="border-collapse:collapse;margin:6px 0;width:100%;table-layout:fixed;"><tbody>`;
     for (let r = 0; r < rows; r++) {
       html += "<tr>";
       for (let c = 0; c < cols; c++) {
-        html += `<td style="${CELL_STYLE}">&nbsp;</td>`;
+        html += `<td style="${CELL_STYLE}width:${colPct}%;">&nbsp;</td>`;
       }
       html += "</tr>";
     }
@@ -710,6 +711,19 @@ export default function RichTextEditor({
     ).indexOf(td);
   }
 
+  function rebalanceColumns(table: HTMLTableElement) {
+    const numCols = table.rows[0]?.cells.length;
+    if (!numCols) return;
+    const pct = (100 / numCols).toFixed(2);
+    table.style.tableLayout = "fixed";
+    table.style.width = "100%";
+    for (const row of Array.from(table.rows)) {
+      for (let i = 0; i < row.cells.length; i++) {
+        (row.cells[i] as HTMLTableCellElement).style.width = `${pct}%`;
+      }
+    }
+  }
+
   function insertColLeft() {
     const ctx = getTableContext();
     if (!ctx?.td || !ctx.table) return;
@@ -722,6 +736,7 @@ export default function RichTextEditor({
       if (ref) row.insertBefore(cell, ref);
       else row.appendChild(cell);
     }
+    rebalanceColumns(ctx.table);
     emitChange();
   }
 
@@ -737,6 +752,7 @@ export default function RichTextEditor({
       if (ref) row.insertBefore(cell, ref);
       else row.appendChild(cell);
     }
+    rebalanceColumns(ctx.table);
     emitChange();
   }
 
@@ -750,6 +766,7 @@ export default function RichTextEditor({
       if (row.cells.length === 0) empty = true;
     }
     if (empty) ctx.table.remove();
+    else rebalanceColumns(ctx.table);
     emitChange();
   }
 
@@ -794,6 +811,13 @@ export default function RichTextEditor({
     newCell.setAttribute("style", cell.getAttribute("style") || CELL_STYLE);
     newCell.innerHTML = cell.innerHTML;
     cell.parentNode?.replaceChild(newCell, cell);
+    emitChange();
+  }
+
+  function distributeColumns() {
+    const ctx = getTableContext();
+    if (!ctx?.table) return;
+    rebalanceColumns(ctx.table);
     emitChange();
   }
 
@@ -1472,6 +1496,9 @@ export default function RichTextEditor({
           </TbBtn>
           <TbBtn tip="Delete column" style={tbDanger} setTooltip={setTooltip} onAction={deleteCol}>
             <Icon name="table-col-delete" size={14} />
+          </TbBtn>
+          <TbBtn tip="Distribute column widths" style={tb(false)} setTooltip={setTooltip} onAction={distributeColumns}>
+            <Icon name="table-col-distribute" size={14} />
           </TbBtn>
           <Sep />
           <TbBtn tip="Toggle header row" style={tb(false)} setTooltip={setTooltip} onAction={toggleHeaderRow}>
