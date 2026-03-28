@@ -49,6 +49,41 @@ export function RichTextViewer({ html, style }: RichTextViewerProps) {
   );
 }
 
+// ---- TbBtn ----
+
+function TbBtn({
+  tip,
+  style,
+  onAction,
+  children,
+  setTooltip,
+}: {
+  tip: string;
+  style: React.CSSProperties;
+  onAction: (e: React.MouseEvent) => void;
+  children: React.ReactNode;
+  setTooltip: (v: { text: string; x: number; y: number } | null) => void;
+}) {
+  return (
+    <button
+      title={tip}
+      style={style}
+      onMouseDown={(e) => {
+        e.preventDefault();
+        setTooltip(null);
+        onAction(e);
+      }}
+      onMouseEnter={(e) => {
+        const r = e.currentTarget.getBoundingClientRect();
+        setTooltip({ text: tip, x: r.left + r.width / 2, y: r.top });
+      }}
+      onMouseLeave={() => setTooltip(null)}
+    >
+      {children}
+    </button>
+  );
+}
+
 // ---- RichTextEditor ----
 
 export interface RichTextEditorProps {
@@ -70,6 +105,22 @@ export interface RichTextEditorProps {
 const CELL_STYLE =
   "border: 1px solid #475569; padding: 5px 10px; min-width: 60px;";
 
+type ImgHandle = "n" | "s" | "e" | "w" | "nw" | "ne" | "se" | "sw";
+
+// ---- Color palette ----
+
+const PALETTE: string[] = [
+  // Neutrals
+  "#000000", "#1e293b", "#475569", "#64748b",
+  "#94a3b8", "#cbd5e1", "#f1f5f9", "#ffffff",
+  // Colors
+  "#ef4444", "#f97316", "#eab308", "#22c55e",
+  "#06b6d4", "#3b82f6", "#8b5cf6", "#ec4899",
+  // Extra
+  "#7f1d1d", "#92400e", "#365314", "#0c4a6e",
+  "#581c87", "#831843", "#78350f", "#134e4a",
+];
+
 export default function RichTextEditor({
   value,
   onChange,
@@ -81,16 +132,33 @@ export default function RichTextEditor({
   const editorRef = useRef<HTMLDivElement>(null);
   const editorWrapRef = useRef<HTMLDivElement>(null);
   const colorInputRef = useRef<HTMLInputElement>(null);
+  const hlInputRef = useRef<HTMLInputElement>(null);
+  const bgInputRef = useRef<HTMLInputElement>(null);
   const imgInputRef = useRef<HTMLInputElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
+  const colorPopupRef = useRef<HTMLDivElement>(null);
   const colorSavedRange = useRef<Range | null>(null);
+  const hlSavedRange = useRef<Range | null>(null);
+  const bgSavedRange = useRef<Range | null>(null);
+  const bgSavedCell = useRef<HTMLTableCellElement | null>(null);
   const linkSavedRange = useRef<Range | null>(null);
   const lastEmitted = useRef(value || "");
   const selectedImgRef = useRef<HTMLImageElement | null>(null);
   const dragRef = useRef<{
     startX: number;
+    startY: number;
     startW: number;
-    handle: "nw" | "ne" | "se" | "sw";
+    startH: number;
+    heightWasAuto: boolean;
+    handle: ImgHandle;
+  } | null>(null);
+  const colDragRef = useRef<{
+    table: HTMLTableElement;
+    colIdx: number;
+    startX: number;
+    tableW: number;
+    leftPct: number;
+    rightPct: number;
   } | null>(null);
 
   const [formats, setFormats] = useState({
@@ -98,6 +166,8 @@ export default function RichTextEditor({
     italic: false,
     underline: false,
     strikeThrough: false,
+    superscript: false,
+    subscript: false,
     insertOrderedList: false,
     insertUnorderedList: false,
     justifyLeft: false,
@@ -105,6 +175,11 @@ export default function RichTextEditor({
     justifyRight: false,
     justifyFull: false,
   });
+  const [colorPopup, setColorPopup] = useState<{
+    type: "font" | "highlight" | "bg";
+    x: number;
+    y: number;
+  } | null>(null);
   const [isEmpty, setIsEmpty] = useState(
     !(value || "").replace(/<[^>]*>/g, "").trim(),
   );
@@ -122,6 +197,13 @@ export default function RichTextEditor({
     width: number;
     height: number;
   } | null>(null);
+  const [tooltip, setTooltip] = useState<{
+    text: string;
+    x: number;
+    y: number;
+  } | null>(null);
+  const [colResizeCursor, setColResizeCursor] = useState(false);
+  const [editorBg, setEditorBg] = useState("");
 
   // Mount: set initial content
   useEffect(() => {
@@ -158,6 +240,32 @@ export default function RichTextEditor({
     document.addEventListener("mousedown", onDocMouseDown);
     return () => document.removeEventListener("mousedown", onDocMouseDown);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Re-measure image overlay on editor scroll
+  useEffect(() => {
+    const el = editorRef.current;
+    if (!el) return;
+    function onScroll() {
+      if (selectedImgRef.current) measureImg(selectedImgRef.current);
+    }
+    el.addEventListener("scroll", onScroll);
+    return () => el.removeEventListener("scroll", onScroll);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Close color popup on outside click
+  useEffect(() => {
+    if (!colorPopup) return;
+    function onDown(e: MouseEvent) {
+      if (
+        colorPopupRef.current &&
+        !colorPopupRef.current.contains(e.target as Node)
+      ) {
+        setColorPopup(null);
+      }
+    }
+    document.addEventListener("mousedown", onDown);
+    return () => document.removeEventListener("mousedown", onDown);
+  }, [colorPopup]);
 
   // ---- Table context ----
 
@@ -196,6 +304,8 @@ export default function RichTextEditor({
       italic: document.queryCommandState("italic"),
       underline: document.queryCommandState("underline"),
       strikeThrough: document.queryCommandState("strikeThrough"),
+      superscript: document.queryCommandState("superscript"),
+      subscript: document.queryCommandState("subscript"),
       insertOrderedList: document.queryCommandState("insertOrderedList"),
       insertUnorderedList: document.queryCommandState("insertUnorderedList"),
       justifyLeft: document.queryCommandState("justifyLeft"),
@@ -222,11 +332,6 @@ export default function RichTextEditor({
     editorRef.current?.focus();
     document.execCommand(cmd, false, val ?? undefined);
     emitChange();
-  }
-
-  function tbMouseDown(e: React.MouseEvent, action: () => void) {
-    e.preventDefault();
-    action();
   }
 
   // ---- Image helpers ----
@@ -293,19 +398,21 @@ export default function RichTextEditor({
     img.src = url;
   }
 
-  // ---- Image drag resize ----
+  // ---- Image drag resize (8-direction) ----
 
-  function startImgDrag(
-    e: React.MouseEvent,
-    handle: "nw" | "ne" | "se" | "sw",
-  ) {
+  function startImgDrag(e: React.MouseEvent, handle: ImgHandle) {
     const img = selectedImgRef.current;
     if (!img) return;
     e.preventDefault();
     e.stopPropagation();
+    const rect = img.getBoundingClientRect();
+    const heightWasAuto = !img.style.height || img.style.height === "auto";
     dragRef.current = {
       startX: e.clientX,
-      startW: img.getBoundingClientRect().width,
+      startY: e.clientY,
+      startW: rect.width,
+      startH: rect.height,
+      heightWasAuto,
       handle,
     };
 
@@ -314,10 +421,29 @@ export default function RichTextEditor({
       const target = selectedImgRef.current;
       if (!drag || !target) return;
       const dx = ev.clientX - drag.startX;
-      const isRight = drag.handle === "se" || drag.handle === "ne";
-      const newW = Math.max(40, drag.startW + (isRight ? dx : -dx));
+      const dy = ev.clientY - drag.startY;
+      const h = drag.handle;
+
+      let newW = drag.startW;
+      let newH = drag.startH;
+
+      if (h === "e" || h === "ne" || h === "se")
+        newW = Math.max(20, drag.startW + dx);
+      if (h === "w" || h === "nw" || h === "sw")
+        newW = Math.max(20, drag.startW - dx);
+      if (h === "s" || h === "se" || h === "sw")
+        newH = Math.max(20, drag.startH + dy);
+      if (h === "n" || h === "ne" || h === "nw")
+        newH = Math.max(20, drag.startH - dy);
+
       target.style.width = `${newW}px`;
-      target.style.height = "auto";
+      if (h === "e" || h === "w") {
+        // Width-only: restore original height behavior
+        target.style.height = drag.heightWasAuto ? "auto" : `${drag.startH}px`;
+      } else {
+        target.style.height = `${newH}px`;
+      }
+
       // Update overlay directly for smooth drag
       const wrap = editorWrapRef.current;
       const ov = overlayRef.current;
@@ -344,9 +470,173 @@ export default function RichTextEditor({
     document.addEventListener("mouseup", onUp);
   }
 
-  const handleCorner =
-    (handle: "nw" | "ne" | "se" | "sw") => (e: React.MouseEvent) =>
-      startImgDrag(e, handle);
+  const makeHandle = (h: ImgHandle) => (e: React.MouseEvent) =>
+    startImgDrag(e, h);
+
+  function handleStyle(handle: ImgHandle): React.CSSProperties {
+    const base: React.CSSProperties = {
+      position: "absolute",
+      width: 8,
+      height: 8,
+      background: "#3b82f6",
+      border: "1px solid #fff",
+      borderRadius: "2px",
+      zIndex: 10,
+      pointerEvents: "all",
+    };
+    switch (handle) {
+      case "nw":
+        return { ...base, cursor: "nw-resize", top: -4, left: -4 };
+      case "n":
+        return { ...base, cursor: "n-resize", top: -4, left: "calc(50% - 4px)" };
+      case "ne":
+        return { ...base, cursor: "ne-resize", top: -4, right: -4 };
+      case "e":
+        return { ...base, cursor: "e-resize", right: -4, top: "calc(50% - 4px)" };
+      case "se":
+        return { ...base, cursor: "se-resize", bottom: -4, right: -4 };
+      case "s":
+        return { ...base, cursor: "s-resize", bottom: -4, left: "calc(50% - 4px)" };
+      case "sw":
+        return { ...base, cursor: "sw-resize", bottom: -4, left: -4 };
+      case "w":
+        return { ...base, cursor: "w-resize", left: -4, top: "calc(50% - 4px)" };
+    }
+  }
+
+  // ---- Column resize ----
+
+  function findColResizeTarget(
+    e: React.MouseEvent,
+  ): { table: HTMLTableElement; colIdx: number } | null {
+    const target = e.target as HTMLElement;
+    const cell = target.closest
+      ? (target.closest("td, th") as HTMLTableCellElement | null)
+      : null;
+    if (!cell || !editorRef.current?.contains(cell)) return null;
+    const row = cell.parentElement as HTMLTableRowElement | null;
+    if (!row) return null;
+    const table = row.closest("table") as HTMLTableElement | null;
+    if (!table) return null;
+    const rect = cell.getBoundingClientRect();
+    const x = e.clientX;
+    const colIdx = Array.from(row.cells).indexOf(cell);
+
+    if (Math.abs(x - rect.right) <= 5 && colIdx < row.cells.length - 1) {
+      return { table, colIdx };
+    }
+    if (Math.abs(x - rect.left) <= 5 && colIdx > 0) {
+      return { table, colIdx: colIdx - 1 };
+    }
+    return null;
+  }
+
+  function startColResize(
+    table: HTMLTableElement,
+    colIdx: number,
+    startX: number,
+  ) {
+    const tableW = table.getBoundingClientRect().width;
+    const firstRow = table.rows[0];
+    if (!firstRow || colIdx + 1 >= firstRow.cells.length) return;
+
+    // Measure rendered column widths
+    const colWidths: number[] = [];
+    for (let i = 0; i < firstRow.cells.length; i++) {
+      colWidths.push(firstRow.cells[i].getBoundingClientRect().width);
+    }
+
+    // Set table to fixed layout with 100% width so % columns are respected
+    table.style.tableLayout = "fixed";
+    if (!table.style.width) table.style.width = "100%";
+
+    // Set all cells to percentage widths
+    for (const row of Array.from(table.rows)) {
+      for (let i = 0; i < row.cells.length; i++) {
+        const cell = row.cells[i] as HTMLTableCellElement;
+        const pct =
+          colWidths[i] !== undefined
+            ? (colWidths[i] / tableW) * 100
+            : 100 / firstRow.cells.length;
+        cell.style.width = `${pct.toFixed(2)}%`;
+      }
+    }
+
+    const leftPct = (colWidths[colIdx] / tableW) * 100;
+    const rightPct = (colWidths[colIdx + 1] / tableW) * 100;
+    colDragRef.current = { table, colIdx, startX, tableW, leftPct, rightPct };
+
+    function onMove(ev: MouseEvent) {
+      const drag = colDragRef.current;
+      if (!drag) return;
+      const dx = ev.clientX - drag.startX;
+      const dPct = (dx / drag.tableW) * 100;
+      const minPct = 3;
+      const newLeft = Math.max(
+        minPct,
+        Math.min(drag.leftPct + drag.rightPct - minPct, drag.leftPct + dPct),
+      );
+      const newRight = drag.leftPct + drag.rightPct - newLeft;
+      for (const row of Array.from(drag.table.rows)) {
+        const lc = row.cells[drag.colIdx] as HTMLTableCellElement | undefined;
+        const rc = row.cells[drag.colIdx + 1] as
+          | HTMLTableCellElement
+          | undefined;
+        if (lc) lc.style.width = `${newLeft.toFixed(2)}%`;
+        if (rc) rc.style.width = `${newRight.toFixed(2)}%`;
+      }
+    }
+
+    function onUp() {
+      colDragRef.current = null;
+      setColResizeCursor(false);
+      emitChange();
+      document.removeEventListener("mousemove", onMove);
+      document.removeEventListener("mouseup", onUp);
+    }
+
+    document.addEventListener("mousemove", onMove);
+    document.addEventListener("mouseup", onUp);
+  }
+
+  function handleEditorMouseMove(e: React.MouseEvent) {
+    if (colDragRef.current) return;
+    setColResizeCursor(!!findColResizeTarget(e));
+  }
+
+  function handleEditorMouseDown(e: React.MouseEvent) {
+    const hit = findColResizeTarget(e);
+    if (hit) {
+      e.preventDefault();
+      startColResize(hit.table, hit.colIdx, e.clientX);
+    }
+  }
+
+  // ---- Font size ----
+
+  function changeFontSize(delta: 1 | -1) {
+    editorRef.current?.focus();
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const container = sel.getRangeAt(0).commonAncestorContainer;
+    const elem = (
+      container.nodeType === Node.ELEMENT_NODE
+        ? container
+        : container.parentElement
+    ) as HTMLElement | null;
+    const curPx =
+      parseFloat(
+        window.getComputedStyle(elem || editorRef.current!).fontSize,
+      ) || 13;
+    const newPx = Math.max(8, Math.min(72, curPx + delta * 2));
+    document.execCommand("fontSize", false, "7");
+    editorRef.current?.querySelectorAll('font[size="7"]').forEach((fe) => {
+      const el = fe as HTMLElement;
+      el.removeAttribute("size");
+      el.style.fontSize = `${newPx}px`;
+    });
+    emitChange();
+  }
 
   // ---- Table operations ----
 
@@ -495,6 +785,18 @@ export default function RichTextEditor({
     emitChange();
   }
 
+  function toggleHeaderCell() {
+    const ctx = getTableContext();
+    if (!ctx?.td) return;
+    const cell = ctx.td;
+    const newTag = cell.tagName === "TH" ? "td" : "th";
+    const newCell = document.createElement(newTag);
+    newCell.setAttribute("style", cell.getAttribute("style") || CELL_STYLE);
+    newCell.innerHTML = cell.innerHTML;
+    cell.parentNode?.replaceChild(newCell, cell);
+    emitChange();
+  }
+
   // ---- Link popup ----
 
   function openLinkPopupInternal() {
@@ -507,12 +809,9 @@ export default function RichTextEditor({
       setLinkText("");
     }
     setLinkUrl("");
+    setColorPopup(null);
+    setShowTablePopup(false);
     setShowLink(true);
-  }
-
-  function openLinkPopup(e: React.MouseEvent) {
-    e.preventDefault();
-    openLinkPopupInternal();
   }
 
   // ---- Keyboard shortcuts + auto-list detection ----
@@ -704,6 +1003,50 @@ export default function RichTextEditor({
     linkSavedRange.current = null;
   }
 
+  // ---- Color helpers ----
+
+  function restoreRange(savedRange: React.MutableRefObject<Range | null>) {
+    const r = savedRange.current;
+    if (!r) return;
+    editorRef.current?.focus();
+    const sel = window.getSelection();
+    if (sel) {
+      sel.removeAllRanges();
+      sel.addRange(r);
+    }
+    savedRange.current = null;
+  }
+
+  // ---- Color palette apply ----
+
+  function applyColor(color: string, type: "font" | "highlight" | "bg") {
+    setColorPopup(null);
+    if (type === "font") {
+      restoreRange(colorSavedRange);
+      if (color !== "remove") {
+        document.execCommand("foreColor", false, color);
+        emitChange();
+      }
+    } else if (type === "highlight") {
+      restoreRange(hlSavedRange);
+      document.execCommand(
+        "hiliteColor",
+        false,
+        color === "remove" ? "transparent" : color,
+      );
+      emitChange();
+    } else {
+      const cell = bgSavedCell.current;
+      bgSavedCell.current = null;
+      if (cell) {
+        cell.style.backgroundColor = color === "remove" ? "" : color;
+        emitChange();
+      } else {
+        setEditorBg(color === "remove" ? "" : color);
+      }
+    }
+  }
+
   const mh = typeof minHeight === "number" ? `${minHeight}px` : minHeight;
 
   function tb(active: boolean): React.CSSProperties {
@@ -722,27 +1065,9 @@ export default function RichTextEditor({
     };
   }
 
-  const cornerStyle = (
-    cursor: string,
-    top?: number | string,
-    right?: number | string,
-    bottom?: number | string,
-    left?: number | string,
-  ): React.CSSProperties => ({
-    position: "absolute",
-    width: 8,
-    height: 8,
-    background: "#3b82f6",
-    border: "1px solid #fff",
-    borderRadius: "2px",
-    cursor,
-    zIndex: 10,
-    pointerEvents: "all",
-    ...(top !== undefined ? { top } : {}),
-    ...(right !== undefined ? { right } : {}),
-    ...(bottom !== undefined ? { bottom } : {}),
-    ...(left !== undefined ? { left } : {}),
-  });
+  const tbDanger: React.CSSProperties = { ...tb(false), color: "#f87171" };
+
+  const IMG_HANDLES: ImgHandle[] = ["nw", "n", "ne", "e", "se", "s", "sw", "w"];
 
   return (
     <div
@@ -755,6 +1080,137 @@ export default function RichTextEditor({
         pointerEvents: disabled ? "none" : "auto",
       }}
     >
+      {/* Color palette popup */}
+      {colorPopup && (
+        <div
+          ref={colorPopupRef}
+          onMouseDown={(e) => e.stopPropagation()}
+          style={{
+            position: "fixed",
+            left: colorPopup.x,
+            top: colorPopup.y,
+            transform: colorPopup.y < window.innerHeight / 2 ? "none" : "translateY(-100%)",
+            background: "#0f172a",
+            border: "1px solid #334155",
+            borderRadius: "6px",
+            padding: "8px",
+            zIndex: 99999,
+            boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+          }}
+        >
+          <div
+            style={{
+              display: "grid",
+              gridTemplateColumns: "repeat(8, 18px)",
+              gap: "3px",
+              marginBottom: "4px",
+            }}
+          >
+            {PALETTE.map((color) => (
+              <button
+                key={color}
+                title={color}
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  applyColor(color, colorPopup.type);
+                }}
+                style={{
+                  width: 18,
+                  height: 18,
+                  borderRadius: "3px",
+                  background: color,
+                  border:
+                    color === "#ffffff" || color === "#f1f5f9"
+                      ? "1px solid #475569"
+                      : "1px solid rgba(0,0,0,0.25)",
+                  cursor: "pointer",
+                  padding: 0,
+                  flexShrink: 0,
+                }}
+              />
+            ))}
+          </div>
+          <div style={{ display: "flex", gap: "3px" }}>
+            {colorPopup.type !== "font" && (
+              <button
+                title="Remove color"
+                onMouseDown={(e) => {
+                  e.preventDefault();
+                  applyColor("remove", colorPopup.type);
+                }}
+                style={{
+                  flex: 1,
+                  height: 20,
+                  borderRadius: "3px",
+                  background: "none",
+                  border: "1px solid #334155",
+                  cursor: "pointer",
+                  color: "#94a3b8",
+                  fontSize: "10px",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  gap: "3px",
+                  whiteSpace: "nowrap",
+                }}
+              >
+                <span style={{ color: "#f87171", fontSize: "11px" }}>✕</span> none
+              </button>
+            )}
+            <button
+              title="Custom color"
+              onMouseDown={(e) => {
+                e.preventDefault();
+                setColorPopup(null);
+                if (colorPopup.type === "font") colorInputRef.current?.click();
+                else if (colorPopup.type === "highlight") hlInputRef.current?.click();
+                else bgInputRef.current?.click();
+              }}
+              style={{
+                flex: 1,
+                height: 20,
+                borderRadius: "3px",
+                background: "none",
+                border: "1px solid #334155",
+                cursor: "pointer",
+                color: "#94a3b8",
+                fontSize: "10px",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                whiteSpace: "nowrap",
+              }}
+            >
+              + custom
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Tooltip */}
+      {tooltip && (
+        <div
+          style={{
+            position: "fixed",
+            left: tooltip.x,
+            top: tooltip.y - 4,
+            transform: "translate(-50%, -100%)",
+            background: "#0f172a",
+            color: "#e2e8f0",
+            fontSize: "11px",
+            lineHeight: 1.4,
+            padding: "3px 8px",
+            borderRadius: "4px",
+            border: "1px solid #334155",
+            pointerEvents: "none",
+            zIndex: 99999,
+            whiteSpace: "nowrap",
+          }}
+        >
+          {tooltip.text}
+        </div>
+      )}
+
       {/* Main toolbar */}
       <div
         style={{
@@ -767,148 +1223,181 @@ export default function RichTextEditor({
           flexWrap: "wrap",
         }}
       >
-        <button
-          title="Bold (Ctrl+B)"
-          onMouseDown={(e) => tbMouseDown(e, () => exec("bold"))}
-          style={tb(formats.bold)}
-        >
+        <TbBtn tip="Bold (Ctrl+B)" style={tb(formats.bold)} setTooltip={setTooltip} onAction={() => exec("bold")}>
           <strong>B</strong>
-        </button>
-        <button
-          title="Italic (Ctrl+I)"
-          onMouseDown={(e) => tbMouseDown(e, () => exec("italic"))}
-          style={tb(formats.italic)}
-        >
+        </TbBtn>
+        <TbBtn tip="Italic (Ctrl+I)" style={tb(formats.italic)} setTooltip={setTooltip} onAction={() => exec("italic")}>
           <em>I</em>
-        </button>
-        <button
-          title="Underline (Ctrl+U)"
-          onMouseDown={(e) => tbMouseDown(e, () => exec("underline"))}
-          style={tb(formats.underline)}
-        >
+        </TbBtn>
+        <TbBtn tip="Underline (Ctrl+U)" style={tb(formats.underline)} setTooltip={setTooltip} onAction={() => exec("underline")}>
           <span style={{ textDecoration: "underline" }}>U</span>
-        </button>
-        <button
-          title="Strikethrough (Ctrl+Shift+X)"
-          onMouseDown={(e) => tbMouseDown(e, () => exec("strikeThrough"))}
-          style={tb(formats.strikeThrough)}
-        >
+        </TbBtn>
+        <TbBtn tip="Strikethrough (Ctrl+Shift+X)" style={tb(formats.strikeThrough)} setTooltip={setTooltip} onAction={() => exec("strikeThrough")}>
           <span style={{ textDecoration: "line-through" }}>S</span>
-        </button>
+        </TbBtn>
+        <TbBtn tip="Superscript" style={tb(formats.superscript)} setTooltip={setTooltip} onAction={() => exec("superscript")}>
+          <span style={{ fontSize: "13px", lineHeight: 1 }}>x<sup style={{ fontSize: "8px" }}>2</sup></span>
+        </TbBtn>
+        <TbBtn tip="Subscript" style={tb(formats.subscript)} setTooltip={setTooltip} onAction={() => exec("subscript")}>
+          <span style={{ fontSize: "13px", lineHeight: 1 }}>x<sub style={{ fontSize: "8px" }}>2</sub></span>
+        </TbBtn>
 
         <Sep />
 
-        <button
-          title="Bullet list"
-          onMouseDown={(e) => tbMouseDown(e, () => exec("insertUnorderedList"))}
-          style={tb(formats.insertUnorderedList)}
-        >
+        <TbBtn tip="Increase font size" style={tb(false)} setTooltip={setTooltip} onAction={() => changeFontSize(1)}>
+          <Icon name="font-increase" size={14} />
+        </TbBtn>
+        <TbBtn tip="Decrease font size" style={tb(false)} setTooltip={setTooltip} onAction={() => changeFontSize(-1)}>
+          <Icon name="font-decrease" size={14} />
+        </TbBtn>
+
+        <Sep />
+
+        <TbBtn tip="Bullet list" style={tb(formats.insertUnorderedList)} setTooltip={setTooltip} onAction={() => exec("insertUnorderedList")}>
           <Icon name="list-unordered" size={14} />
-        </button>
-        <button
-          title="Numbered list"
-          onMouseDown={(e) => tbMouseDown(e, () => exec("insertOrderedList"))}
-          style={tb(formats.insertOrderedList)}
-        >
+        </TbBtn>
+        <TbBtn tip="Numbered list" style={tb(formats.insertOrderedList)} setTooltip={setTooltip} onAction={() => exec("insertOrderedList")}>
           <Icon name="list-ordered" size={14} />
-        </button>
+        </TbBtn>
 
         <Sep />
 
-        <button
-          title="Align left"
-          onMouseDown={(e) => tbMouseDown(e, () => exec("justifyLeft"))}
-          style={tb(formats.justifyLeft)}
-        >
+        <TbBtn tip="Align left" style={tb(formats.justifyLeft)} setTooltip={setTooltip} onAction={() => exec("justifyLeft")}>
           <Icon name="align-left" size={14} />
-        </button>
-        <button
-          title="Align center"
-          onMouseDown={(e) => tbMouseDown(e, () => exec("justifyCenter"))}
-          style={tb(formats.justifyCenter)}
-        >
+        </TbBtn>
+        <TbBtn tip="Align center" style={tb(formats.justifyCenter)} setTooltip={setTooltip} onAction={() => exec("justifyCenter")}>
           <Icon name="align-center" size={14} />
-        </button>
-        <button
-          title="Align right"
-          onMouseDown={(e) => tbMouseDown(e, () => exec("justifyRight"))}
-          style={tb(formats.justifyRight)}
-        >
+        </TbBtn>
+        <TbBtn tip="Align right" style={tb(formats.justifyRight)} setTooltip={setTooltip} onAction={() => exec("justifyRight")}>
           <Icon name="align-right" size={14} />
-        </button>
-        <button
-          title="Justify"
-          onMouseDown={(e) => tbMouseDown(e, () => exec("justifyFull"))}
-          style={tb(formats.justifyFull)}
-        >
+        </TbBtn>
+        <TbBtn tip="Justify" style={tb(formats.justifyFull)} setTooltip={setTooltip} onAction={() => exec("justifyFull")}>
           <Icon name="align-justify" size={14} />
-        </button>
+        </TbBtn>
 
         <Sep />
 
         {/* Font color */}
-        <button
-          title="Font color"
-          onMouseDown={(e) => {
-            e.preventDefault();
+        <TbBtn
+          tip="Font color"
+          style={tb(colorPopup?.type === "font")}
+          setTooltip={setTooltip}
+          onAction={(e) => {
             const sel = window.getSelection();
             colorSavedRange.current =
               sel && sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
-            colorInputRef.current?.click();
+            const r = e.currentTarget.getBoundingClientRect();
+            const y = window.innerHeight - r.bottom > 120 ? r.bottom + 4 : r.top - 4;
+            setColorPopup({ type: "font", x: r.left, y });
+            setShowLink(false);
+            setShowTablePopup(false);
           }}
-          style={tb(false)}
         >
           <Icon name="font-color" size={15} />
-        </button>
+        </TbBtn>
         <input
           ref={colorInputRef}
           type="color"
           defaultValue="#f1f5f9"
           tabIndex={-1}
           onChange={(e) => {
-            editorRef.current?.focus();
-            if (colorSavedRange.current) {
-              const sel = window.getSelection();
-              if (sel) {
-                sel.removeAllRanges();
-                sel.addRange(colorSavedRange.current);
-              }
-              colorSavedRange.current = null;
-            }
+            restoreRange(colorSavedRange);
             document.execCommand("foreColor", false, e.target.value);
             emitChange();
           }}
-          style={{
-            position: "absolute",
-            width: 0,
-            height: 0,
-            opacity: 0,
-            pointerEvents: "none",
+          style={{ position: "absolute", width: 0, height: 0, opacity: 0, pointerEvents: "none" }}
+        />
+
+        {/* Highlight color */}
+        <TbBtn
+          tip="Highlight color"
+          style={tb(colorPopup?.type === "highlight")}
+          setTooltip={setTooltip}
+          onAction={(e) => {
+            const sel = window.getSelection();
+            hlSavedRange.current =
+              sel && sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+            const r = e.currentTarget.getBoundingClientRect();
+            const y = window.innerHeight - r.bottom > 120 ? r.bottom + 4 : r.top - 4;
+            setColorPopup({ type: "highlight", x: r.left, y });
+            setShowLink(false);
+            setShowTablePopup(false);
           }}
+        >
+          <Icon name="highlight-color" size={15} />
+        </TbBtn>
+        <input
+          ref={hlInputRef}
+          type="color"
+          defaultValue="#fef08a"
+          tabIndex={-1}
+          onChange={(e) => {
+            restoreRange(hlSavedRange);
+            document.execCommand("hiliteColor", false, e.target.value);
+            emitChange();
+          }}
+          style={{ position: "absolute", width: 0, height: 0, opacity: 0, pointerEvents: "none" }}
+        />
+
+        {/* Background color */}
+        <TbBtn
+          tip="Background color"
+          style={tb(colorPopup?.type === "bg")}
+          setTooltip={setTooltip}
+          onAction={(e) => {
+            const ctx = getTableContext();
+            bgSavedCell.current = ctx?.td ?? null;
+            const sel = window.getSelection();
+            bgSavedRange.current =
+              sel && sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+            const r = e.currentTarget.getBoundingClientRect();
+            const y = window.innerHeight - r.bottom > 120 ? r.bottom + 4 : r.top - 4;
+            setColorPopup({ type: "bg", x: r.left, y });
+            setShowLink(false);
+            setShowTablePopup(false);
+          }}
+        >
+          <Icon name="bg-color" size={15} />
+        </TbBtn>
+        <input
+          ref={bgInputRef}
+          type="color"
+          defaultValue="#1e293b"
+          tabIndex={-1}
+          onChange={(e) => {
+            const cell = bgSavedCell.current;
+            bgSavedCell.current = null;
+            if (cell) {
+              cell.style.backgroundColor = e.target.value;
+              emitChange();
+            } else {
+              setEditorBg(e.target.value);
+            }
+          }}
+          style={{ position: "absolute", width: 0, height: 0, opacity: 0, pointerEvents: "none" }}
         />
 
         {/* Link */}
-        <button
-          title="Insert link (Ctrl+K)"
-          onMouseDown={openLinkPopup}
+        <TbBtn
+          tip="Insert link (Ctrl+K)"
           style={tb(showLink)}
+          setTooltip={setTooltip}
+          onAction={openLinkPopupInternal}
         >
           <Icon name="link" size={14} />
-        </button>
+        </TbBtn>
 
         <Sep />
 
         {/* Image */}
-        <button
-          title="Insert image"
-          onMouseDown={(e) => {
-            e.preventDefault();
-            imgInputRef.current?.click();
-          }}
+        <TbBtn
+          tip="Insert image"
           style={tb(false)}
+          setTooltip={setTooltip}
+          onAction={() => imgInputRef.current?.click()}
         >
           <Icon name="image" size={14} />
-        </button>
+        </TbBtn>
         <input
           ref={imgInputRef}
           type="file"
@@ -922,27 +1411,22 @@ export default function RichTextEditor({
             }
             e.target.value = "";
           }}
-          style={{
-            position: "absolute",
-            width: 0,
-            height: 0,
-            opacity: 0,
-            pointerEvents: "none",
-          }}
+          style={{ position: "absolute", width: 0, height: 0, opacity: 0, pointerEvents: "none" }}
         />
 
         {/* Table */}
-        <button
-          title="Insert table"
-          onMouseDown={(e) => {
-            e.preventDefault();
+        <TbBtn
+          tip="Insert table"
+          style={tb(showTablePopup)}
+          setTooltip={setTooltip}
+          onAction={() => {
             setShowTablePopup((p) => !p);
             setShowLink(false);
+            setColorPopup(null);
           }}
-          style={tb(showTablePopup)}
         >
           <Icon name="table" size={14} />
-        </button>
+        </TbBtn>
       </div>
 
       {/* Table context toolbar */}
@@ -970,71 +1454,38 @@ export default function RichTextEditor({
           >
             Table
           </span>
-          <button
-            title="Insert row above"
-            onMouseDown={(e) => tbMouseDown(e, insertRowAbove)}
-            style={tb(false)}
-          >
+          <TbBtn tip="Insert row above" style={tb(false)} setTooltip={setTooltip} onAction={insertRowAbove}>
             <Icon name="table-row-above" size={14} />
-          </button>
-          <button
-            title="Insert row below"
-            onMouseDown={(e) => tbMouseDown(e, insertRowBelow)}
-            style={tb(false)}
-          >
+          </TbBtn>
+          <TbBtn tip="Insert row below" style={tb(false)} setTooltip={setTooltip} onAction={insertRowBelow}>
             <Icon name="table-row-below" size={14} />
-          </button>
-          <button
-            title="Delete row"
-            onMouseDown={(e) => tbMouseDown(e, deleteRow)}
-            style={{ ...tb(false), color: "#f87171" }}
-          >
+          </TbBtn>
+          <TbBtn tip="Delete row" style={tbDanger} setTooltip={setTooltip} onAction={deleteRow}>
             <Icon name="table-row-delete" size={14} />
-          </button>
+          </TbBtn>
           <Sep />
-          <button
-            title="Insert column left"
-            onMouseDown={(e) => tbMouseDown(e, insertColLeft)}
-            style={tb(false)}
-          >
+          <TbBtn tip="Insert column left" style={tb(false)} setTooltip={setTooltip} onAction={insertColLeft}>
             <Icon name="table-col-left" size={14} />
-          </button>
-          <button
-            title="Insert column right"
-            onMouseDown={(e) => tbMouseDown(e, insertColRight)}
-            style={tb(false)}
-          >
+          </TbBtn>
+          <TbBtn tip="Insert column right" style={tb(false)} setTooltip={setTooltip} onAction={insertColRight}>
             <Icon name="table-col-right" size={14} />
-          </button>
-          <button
-            title="Delete column"
-            onMouseDown={(e) => tbMouseDown(e, deleteCol)}
-            style={{ ...tb(false), color: "#f87171" }}
-          >
+          </TbBtn>
+          <TbBtn tip="Delete column" style={tbDanger} setTooltip={setTooltip} onAction={deleteCol}>
             <Icon name="table-col-delete" size={14} />
-          </button>
+          </TbBtn>
           <Sep />
-          <button
-            title="Toggle header row"
-            onMouseDown={(e) => tbMouseDown(e, toggleHeaderRow)}
-            style={tb(false)}
-          >
+          <TbBtn tip="Toggle header row" style={tb(false)} setTooltip={setTooltip} onAction={toggleHeaderRow}>
             <Icon name="table-header-row" size={14} />
-          </button>
-          <button
-            title="Toggle header column"
-            onMouseDown={(e) => tbMouseDown(e, toggleHeaderCol)}
-            style={tb(false)}
-          >
+          </TbBtn>
+          <TbBtn tip="Toggle header column" style={tb(false)} setTooltip={setTooltip} onAction={toggleHeaderCol}>
             <Icon name="table-header-col" size={14} />
-          </button>
-          <button
-            title="Delete table"
-            onMouseDown={(e) => tbMouseDown(e, deleteTable)}
-            style={{ ...tb(false), color: "#f87171" }}
-          >
+          </TbBtn>
+          <TbBtn tip="Toggle header cell" style={tb(false)} setTooltip={setTooltip} onAction={toggleHeaderCell}>
+            <Icon name="table-header-cell" size={14} />
+          </TbBtn>
+          <TbBtn tip="Delete table" style={tbDanger} setTooltip={setTooltip} onAction={deleteTable}>
             <Icon name="table-delete" size={14} />
-          </button>
+          </TbBtn>
         </div>
       )}
 
@@ -1066,6 +1517,8 @@ export default function RichTextEditor({
           onKeyDown={handleKeyDown}
           onKeyUp={refreshFormats}
           onMouseUp={handleMouseUp}
+          onMouseMove={handleEditorMouseMove}
+          onMouseDown={handleEditorMouseDown}
           onPaste={handlePaste}
           onDrop={handleDrop}
           style={{
@@ -1079,10 +1532,12 @@ export default function RichTextEditor({
             lineHeight: "1.6",
             overflowWrap: "break-word",
             wordBreak: "break-word",
+            cursor: colResizeCursor ? "col-resize" : undefined,
+            backgroundColor: editorBg || undefined,
           }}
         />
 
-        {/* Image resize overlay */}
+        {/* Image resize overlay — 8 handles */}
         {selectedImg && imgOverlay && (
           <div
             ref={overlayRef}
@@ -1096,22 +1551,9 @@ export default function RichTextEditor({
               zIndex: 5,
             }}
           >
-            <div
-              style={cornerStyle("nw-resize", -4, undefined, undefined, -4)}
-              onMouseDown={handleCorner("nw")}
-            />
-            <div
-              style={cornerStyle("ne-resize", -4, -4, undefined, undefined)}
-              onMouseDown={handleCorner("ne")}
-            />
-            <div
-              style={cornerStyle("sw-resize", undefined, undefined, -4, -4)}
-              onMouseDown={handleCorner("sw")}
-            />
-            <div
-              style={cornerStyle("se-resize", undefined, -4, -4, undefined)}
-              onMouseDown={handleCorner("se")}
-            />
+            {IMG_HANDLES.map((h) => (
+              <div key={h} style={handleStyle(h)} onMouseDown={makeHandle(h)} />
+            ))}
           </div>
         )}
       </div>

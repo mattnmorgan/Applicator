@@ -42,6 +42,10 @@ import type { RichTextEditorProps, RichTextViewerProps } from "@applicator/sdk/c
 | Link             | Ctrl+K            | Insert link — shows inline URL + display text inputs  |
 | Image            | —                 | Opens a file picker; inserts a compressed JPEG image  |
 | Table            | —                 | Opens row/col picker and inserts an HTML table        |
+| Font size +     | —                 | Increases font size of the selection by 2 px  |
+| Font size −     | —                 | Decreases font size of the selection by 2 px  |
+| Highlight color | —                 | Applies background highlight to selected text  |
+| Background color| —                 | Sets background color of the editor area or the current table cell when in a table |
 
 ## Table context toolbar
 
@@ -57,6 +61,7 @@ When the caret is inside a table, a second toolbar row appears with table-specif
 | Delete col          | Removes the caret column; deletes the table if last             |
 | Toggle header row   | Converts the caret row between `<th>` and `<td>` cells          |
 | Toggle header col   | Converts the caret column between `<th>` and `<td>` cells       |
+| Toggle header cell  | Converts the current cell between `<th>` and `<td>`             |
 | Delete table        | Removes the entire table                                        |
 
 ## Image handling
@@ -66,6 +71,18 @@ When the caret is inside a table, a second toolbar row appears with table-specif
 **Compression** — all inserted images are resized to a maximum of 800 px wide and re-encoded as JPEG at quality 0.82 using an offscreen `<canvas>` before being embedded as a base64 data URL. This keeps the HTML payload reasonable even for large screenshots.
 
 **Resizing** — clicking an image inside the editor selects it (blue outline). Four corner drag handles appear; dragging any corner adjusts the image width (height tracks automatically via `height: auto`). Press Escape or click elsewhere to deselect.
+
+## Column resize
+
+Hovering near a column border in a table changes the cursor to `col-resize`. Dragging resizes the two adjacent columns as percentage widths. Dragging the right edge of a cell adjusts that cell's column and the column to its right; dragging the left edge adjusts it and the column to its left. Column widths are stored as percentages with `table-layout: fixed` applied to the table element.
+
+## Image resize
+
+Clicking a selected image displays **eight** drag handles: four corner handles (NW, NE, SE, SW) and four edge handles (N, S, E, W).
+
+- **Corner handles** — resize both width and height simultaneously.
+- **Left / right edge handles** — resize width only; height follows `height: auto` (or the previously locked height).
+- **Top / bottom edge handles** — resize height only; width is unchanged.
 
 ## Auto-list detection
 

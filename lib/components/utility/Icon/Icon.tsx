@@ -53,6 +53,7 @@ export type IconName =
   | "library"
   | "sticky-note"
   | "star"
+  | "pin"
   // Text formatting
   | "list-unordered"
   | "list-ordered"
@@ -61,6 +62,12 @@ export type IconName =
   | "align-right"
   | "align-justify"
   | "font-color"
+  | "superscript"
+  | "subscript"
+  | "font-increase"
+  | "font-decrease"
+  | "highlight-color"
+  | "bg-color"
   // Table
   | "table"
   | "table-row-above"
@@ -71,6 +78,7 @@ export type IconName =
   | "table-col-delete"
   | "table-header-row"
   | "table-header-col"
+  | "table-header-cell"
   | "table-delete";
 
 interface IconProps {
@@ -535,6 +543,14 @@ export default function Icon({ name, size = 16 }: IconProps) {
         </svg>
       );
 
+    case "pin":
+      return (
+        <svg {...base}>
+          <path d="M12 22v-7" />
+          <path d="M9 8V3h6v5l2.5 4H6.5L9 8z" />
+        </svg>
+      );
+
     // ---- Text formatting ----
 
     case "list-unordered":
@@ -606,6 +622,69 @@ export default function Icon({ name, size = 16 }: IconProps) {
         <svg {...base} viewBox="0 0 15 15" fill="currentColor" stroke="none">
           <text x="1.5" y="12" fontSize="12" fontFamily="Georgia, serif" fontWeight="bold">A</text>
           <rect x="1.5" y="13" width="12" height="1.5" rx="0.5" />
+        </svg>
+      );
+
+    case "superscript":
+      return (
+        <svg {...base} viewBox="0 0 14 14" fill="currentColor" stroke="none">
+          <text x="0.5" y="13" fontSize="9" fontFamily="Georgia, serif" fontWeight="bold">A</text>
+          <text x="8" y="7" fontSize="6" fontFamily="Georgia, serif" fontWeight="bold">2</text>
+        </svg>
+      );
+
+    case "subscript":
+      return (
+        <svg {...base} viewBox="0 0 14 14" fill="currentColor" stroke="none">
+          <text x="0.5" y="11" fontSize="9" fontFamily="Georgia, serif" fontWeight="bold">A</text>
+          <text x="8" y="14" fontSize="6" fontFamily="Georgia, serif" fontWeight="bold">2</text>
+        </svg>
+      );
+
+    case "font-increase":
+      return (
+        <svg {...base} viewBox="0 0 15 14" fill="currentColor" stroke="none">
+          <text x="1" y="13" fontSize="10" fontFamily="Georgia, serif" fontWeight="bold">A</text>
+          <rect x="9.5" y="4.5" width="4.5" height="1.2" rx="0.6" />
+          <rect x="11.1" y="2.25" width="1.2" height="4.5" rx="0.6" />
+        </svg>
+      );
+
+    case "font-decrease":
+      return (
+        <svg {...base} viewBox="0 0 15 14" fill="currentColor" stroke="none">
+          <text x="1" y="13" fontSize="10" fontFamily="Georgia, serif" fontWeight="bold">A</text>
+          <rect x="9.5" y="4.5" width="4.5" height="1.2" rx="0.6" />
+        </svg>
+      );
+
+    case "highlight-color":
+      return (
+        <svg {...base} viewBox="0 0 15 15" fill="currentColor" stroke="none">
+          <rect x="0.5" y="3" width="14" height="8" rx="1.5" fillOpacity={0.3} />
+          <text x="2" y="12" fontSize="10" fontFamily="Georgia, serif" fontWeight="bold">A</text>
+          <rect x="0.5" y="13.2" width="14" height="1.3" rx="0.5" />
+        </svg>
+      );
+
+    case "bg-color":
+      return (
+        <svg {...base} viewBox="0 0 15 15" fill="none" stroke="currentColor" strokeWidth={1.3}>
+          <rect x="1" y="1.5" width="13" height="9.5" rx="1.5" fill="currentColor" fillOpacity={0.25} />
+          <rect x="1" y="1.5" width="13" height="9.5" rx="1.5" />
+          <rect x="0.5" y="13.2" width="14" height="1.3" rx="0.5" fill="currentColor" stroke="none" />
+        </svg>
+      );
+
+    case "table-header-cell":
+      return (
+        <svg {...base} viewBox="0 0 15 14" strokeWidth={1.2}>
+          <rect x="1" y="1" width="13" height="12" rx="1" />
+          <line x1="1" y1="5.5" x2="14" y2="5.5" />
+          <line x1="1" y1="9" x2="14" y2="9" />
+          <line x1="5.5" y1="1" x2="5.5" y2="13" />
+          <line x1="9.5" y1="1" x2="9.5" y2="13" />
+          <rect x="5.5" y="1" width="4" height="4.5" fill="currentColor" fillOpacity={0.4} stroke="none" />
         </svg>
       );
 
