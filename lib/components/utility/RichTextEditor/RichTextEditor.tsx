@@ -1625,7 +1625,8 @@ export default function RichTextEditor({
             onChange={(e) => setTableRows(e.target.value)}
             style={{
               ...linkInputStyle,
-              width: 52,
+              width: 38,
+              minWidth: 0,
               flex: "none",
               textAlign: "center",
             }}
@@ -1643,7 +1644,8 @@ export default function RichTextEditor({
             }}
             style={{
               ...linkInputStyle,
-              width: 52,
+              width: 38,
+              minWidth: 0,
               flex: "none",
               textAlign: "center",
             }}
