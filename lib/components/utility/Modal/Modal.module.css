@@ -101,6 +101,6 @@
   .modal {
     width: 100%;
     max-width: 100% !important;
-    max-height: 95vh;
+    max-height: 75vh;
   }
 }
