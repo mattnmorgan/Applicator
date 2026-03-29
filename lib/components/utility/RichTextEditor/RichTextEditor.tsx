@@ -139,8 +139,7 @@ export default function RichTextEditor({
   const overlayRef = useRef<HTMLDivElement>(null);
   const colorSavedRange = useRef<Range | null>(null);
   const hlSavedRange = useRef<Range | null>(null);
-  const bgSavedRange = useRef<Range | null>(null);
-  const bgSavedCell = useRef<HTMLTableCellElement | null>(null);
+  const bgSavedCells = useRef<HTMLTableCellElement[]>([]);
   const linkSavedRange = useRef<Range | null>(null);
   const lastEmitted = useRef(value || "");
   const selectedImgRef = useRef<HTMLImageElement | null>(null);
@@ -203,7 +202,6 @@ export default function RichTextEditor({
     y: number;
   } | null>(null);
   const [colResizeCursor, setColResizeCursor] = useState(false);
-  const [editorBg, setEditorBg] = useState("");
 
   // Mount: set initial content
   useEffect(() => {
@@ -282,6 +280,47 @@ export default function RichTextEditor({
     return table ? { td, tr, table } : null;
   }
 
+  function getSelectedCells(): HTMLTableCellElement[] {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return [];
+    const range = sel.getRangeAt(0);
+
+    function nearestCell(node: Node | null): HTMLTableCellElement | null {
+      while (node && node !== editorRef.current) {
+        if (node.nodeType === Node.ELEMENT_NODE) {
+          const tag = (node as Element).tagName;
+          if (tag === "TD" || tag === "TH") return node as HTMLTableCellElement;
+        }
+        node = node.parentNode;
+      }
+      return null;
+    }
+
+    const startCell = nearestCell(range.startContainer);
+    if (!startCell) return [];
+    const endCell = nearestCell(range.endContainer) ?? startCell;
+
+    // Walk up from startCell to find the table
+    let table: HTMLTableElement | null = null;
+    let n: Node | null = startCell.parentNode;
+    while (n && n !== editorRef.current) {
+      if (n.nodeType === Node.ELEMENT_NODE && (n as Element).tagName === "TABLE") {
+        table = n as HTMLTableElement;
+        break;
+      }
+      n = n.parentNode;
+    }
+    if (!table) return [startCell];
+
+    const allCells = Array.from(table.querySelectorAll("td, th")) as HTMLTableCellElement[];
+    const startIdx = allCells.indexOf(startCell);
+    const endIdx = allCells.indexOf(endCell);
+    if (startIdx === -1) return [startCell];
+    const lo = Math.min(startIdx, endIdx === -1 ? startIdx : endIdx);
+    const hi = Math.max(startIdx, endIdx === -1 ? startIdx : endIdx);
+    return allCells.slice(lo, hi + 1);
+  }
+
   // ---- Format state ----
 
   function refreshFormats() {
@@ -300,6 +339,7 @@ export default function RichTextEditor({
       justifyFull: document.queryCommandState("justifyFull"),
     });
     setInTable(!!getTableContext());
+    bgSavedCells.current = getSelectedCells();
   }
 
   function emitChange() {
@@ -957,6 +997,7 @@ export default function RichTextEditor({
     } else {
       deselectImage();
     }
+    bgSavedCells.current = getSelectedCells();
     refreshFormats();
   }
 
@@ -1046,13 +1087,13 @@ export default function RichTextEditor({
       );
       emitChange();
     } else {
-      const cell = bgSavedCell.current;
-      bgSavedCell.current = null;
-      if (cell) {
-        cell.style.backgroundColor = color === "remove" ? "" : color;
+      const cells = bgSavedCells.current;
+      bgSavedCells.current = [];
+      if (cells.length > 0) {
+        cells.forEach((cell) => {
+          cell.style.backgroundColor = color === "remove" ? "" : color;
+        });
         emitChange();
-      } else {
-        setEditorBg(color === "remove" ? "" : color);
       }
     }
   }
@@ -1098,19 +1139,19 @@ export default function RichTextEditor({
             onMouseDown={() => setColorPopup(null)}
           />
           <div
-          style={{
-            position: "fixed",
-            left: colorPopup.x,
-            top: colorPopup.y,
-            transform: colorPopup.y < window.innerHeight / 2 ? "none" : "translateY(-100%)",
-            background: "#0f172a",
-            border: "1px solid #334155",
-            borderRadius: "6px",
-            padding: "8px",
-            zIndex: 99999,
-            boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
-          }}
-        >
+            style={{
+              position: "fixed",
+              left: colorPopup.x,
+              top: colorPopup.y,
+              transform: colorPopup.y < window.innerHeight / 2 ? "none" : "translateY(-100%)",
+              background: "#0f172a",
+              border: "1px solid #334155",
+              borderRadius: "6px",
+              padding: "8px",
+              zIndex: 99999,
+              boxShadow: "0 4px 16px rgba(0,0,0,0.5)",
+            }}
+          >
           <div
             style={{
               display: "grid",
@@ -1359,11 +1400,6 @@ export default function RichTextEditor({
           style={tb(colorPopup?.type === "bg")}
           setTooltip={setTooltip}
           onAction={(e) => {
-            const ctx = getTableContext();
-            bgSavedCell.current = ctx?.td ?? null;
-            const sel = window.getSelection();
-            bgSavedRange.current =
-              sel && sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
             const r = e.currentTarget.getBoundingClientRect();
             const y = window.innerHeight - r.bottom > 120 ? r.bottom + 4 : r.top - 4;
             setColorPopup({ type: "bg", x: r.left, y });
@@ -1379,13 +1415,11 @@ export default function RichTextEditor({
           defaultValue="#1e293b"
           tabIndex={-1}
           onChange={(e) => {
-            const cell = bgSavedCell.current;
-            bgSavedCell.current = null;
-            if (cell) {
-              cell.style.backgroundColor = e.target.value;
+            const cells = bgSavedCells.current;
+            bgSavedCells.current = [];
+            if (cells.length > 0) {
+              cells.forEach((cell) => { cell.style.backgroundColor = e.target.value; });
               emitChange();
-            } else {
-              setEditorBg(e.target.value);
             }
           }}
           style={{ position: "absolute", width: 0, height: 0, opacity: 0, pointerEvents: "none" }}
@@ -1550,7 +1584,6 @@ export default function RichTextEditor({
             overflowWrap: "break-word",
             wordBreak: "break-word",
             cursor: colResizeCursor ? "col-resize" : undefined,
-            backgroundColor: editorBg || undefined,
           }}
         />
 
