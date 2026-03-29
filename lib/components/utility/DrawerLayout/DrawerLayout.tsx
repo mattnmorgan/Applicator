@@ -137,7 +137,6 @@ function DrawerPanel({ side, config, isMobile, computedWidth, animOpen }: PanelP
         background: config.background,
         display: "flex",
         flexDirection: "column",
-        overflow: "hidden",
         boxShadow:
           side === "left"
             ? "4px 0 16px rgba(0,0,0,0.4)"

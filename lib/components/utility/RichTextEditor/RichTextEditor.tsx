@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useRef, useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import Icon from "../Icon";
 
 // ---- Style injection ----
@@ -136,7 +137,6 @@ export default function RichTextEditor({
   const bgInputRef = useRef<HTMLInputElement>(null);
   const imgInputRef = useRef<HTMLInputElement>(null);
   const overlayRef = useRef<HTMLDivElement>(null);
-  const colorPopupRef = useRef<HTMLDivElement>(null);
   const colorSavedRange = useRef<Range | null>(null);
   const hlSavedRange = useRef<Range | null>(null);
   const bgSavedRange = useRef<Range | null>(null);
@@ -252,20 +252,6 @@ export default function RichTextEditor({
     return () => el.removeEventListener("scroll", onScroll);
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Close color popup on outside click
-  useEffect(() => {
-    if (!colorPopup) return;
-    function onDown(e: MouseEvent) {
-      if (
-        colorPopupRef.current &&
-        !colorPopupRef.current.contains(e.target as Node)
-      ) {
-        setColorPopup(null);
-      }
-    }
-    document.addEventListener("mousedown", onDown);
-    return () => document.removeEventListener("mousedown", onDown);
-  }, [colorPopup]);
 
   // ---- Table context ----
 
@@ -1105,10 +1091,13 @@ export default function RichTextEditor({
       }}
     >
       {/* Color palette popup */}
-      {colorPopup && (
-        <div
-          ref={colorPopupRef}
-          onMouseDown={(e) => e.stopPropagation()}
+      {colorPopup && createPortal(
+        <>
+          <div
+            style={{ position: "fixed", inset: 0, zIndex: 99998 }}
+            onMouseDown={() => setColorPopup(null)}
+          />
+          <div
           style={{
             position: "fixed",
             left: colorPopup.x,
@@ -1209,10 +1198,11 @@ export default function RichTextEditor({
             </button>
           </div>
         </div>
-      )}
+        </>
+      , document.body)}
 
       {/* Tooltip */}
-      {tooltip && (
+      {tooltip && createPortal(
         <div
           style={{
             position: "fixed",
@@ -1233,7 +1223,7 @@ export default function RichTextEditor({
         >
           {tooltip.text}
         </div>
-      )}
+      , document.body)}
 
       {/* Main toolbar */}
       <div
