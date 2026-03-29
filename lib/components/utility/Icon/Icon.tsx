@@ -80,7 +80,10 @@ export type IconName =
   | "table-header-col"
   | "table-header-cell"
   | "table-col-distribute"
-  | "table-delete";
+  | "table-delete"
+  | "print"
+  | "lock"
+  | "unlock";
 
 interface IconProps {
   name: IconName | string;
@@ -824,6 +827,31 @@ export default function Icon({ name, size = 16 }: IconProps) {
           <line x1="9.5" y1="1" x2="9.5" y2="13" />
           <line x1="4" y1="3" x2="11" y2="11" strokeWidth={1.5} />
           <line x1="11" y1="3" x2="4" y2="11" strokeWidth={1.5} />
+        </svg>
+      );
+
+    case "print":
+      return (
+        <svg {...base}>
+          <polyline points="6 9 6 2 18 2 18 9" />
+          <path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
+          <rect x="6" y="14" width="12" height="8" />
+        </svg>
+      );
+
+    case "lock":
+      return (
+        <svg {...base}>
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+        </svg>
+      );
+
+    case "unlock":
+      return (
+        <svg {...base}>
+          <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+          <path d="M7 11V7a5 5 0 0 1 9.9-1" />
         </svg>
       );
 

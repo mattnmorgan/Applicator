@@ -201,7 +201,7 @@ const items = context.recordManager("my-app", "items");
 
 // Read a single record by ID
 const record = await items.readRecord("record-id");
-// { id, data: T, createdAt, updatedAt }
+// { id, data: T, created_at, updated_at }
 
 // Read records with filtering and pagination
 const result = await items.readRecords({

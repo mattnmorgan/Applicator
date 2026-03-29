@@ -23,7 +23,7 @@ There are three types, each scoped differently:
 
 ```typescript
 interface ContextualAuthority {
-  permission: string;     // Permission string for this authority
+  permission: string;     // Authority ID (from authorities table, e.g. "my-app:member") — NOT an authorization ID
   user?: string;          // User ID (user-scoped only)
   authority?: string;     // Authority ID (authority-scoped only)
   password?: string;      // Hashed password (password-protected only)
@@ -33,6 +33,8 @@ interface ContextualAuthority {
   context?: string;       // Optional JSON string of app-specific context data
 }
 ```
+
+> **Important:** The `permission` field is a foreign key to the `authorities` table, not the `authorizations` table. You must declare the authority in your `app.json` `authorities` array and pass `"{appId}:{authorityId}"` as the permission value. Passing an authorization ID will cause a foreign key constraint error.
 
 The `context` field is particularly useful for storing metadata about what the authority grants access to (e.g., a document ID, view mode, or other app-specific data).
 
@@ -63,7 +65,7 @@ Creates an authority that anyone can use if they provide the correct password. T
 const ca = await caManager.createPasswordContextualAuthority({
   app: 'my-app',
   recordId: 'share',            // Domain-specific grouping key
-  permission: 'my-app:view',    // Permission this authority grants
+  permission: 'my-app:viewer',  // Authority ID from your app.json authorities array
   password: 'secret123',        // Plaintext password (hashed automatically)
   createdBy: user.id,           // Creator's user ID
   context: JSON.stringify({     // Optional app-specific data

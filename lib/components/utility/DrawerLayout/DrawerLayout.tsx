@@ -110,7 +110,7 @@ interface PanelProps {
   config: NonNullable<ReturnType<typeof resolvePanel>> & { contentPadding: number | string };
   isMobile: boolean;
   computedWidth: number;
-  /** Overrides config.open for animation transforms (allows entry animation). */
+  /** Overrides config.open for animation (allows entry animation). */
   animOpen?: boolean;
 }
 
@@ -119,21 +119,19 @@ function DrawerPanel({ side, config, isMobile, computedWidth, animOpen }: PanelP
   const isFullWidth = isMobile;
   const panelWidth = isFullWidth ? "100%" : config.pixelWidth != null ? `${config.pixelWidth}px` : `${computedWidth}px`;
 
-  const translateClosed = side === "right" ? "100%" : "-100%";
   const openForAnim = animOpen !== undefined ? animOpen : config.open;
-  const animateTransform =
-    config.animated && isOverlay
-      ? openForAnim
-        ? "translateX(0)"
-        : `translateX(${translateClosed})`
-      : undefined;
+
+  // Animate using positional offset (right/left) instead of CSS transform.
+  // transform would create a CSS containing block, trapping position:fixed descendants
+  // (e.g. RichTextEditor floating pickers) and making them viewport-unaware.
+  const sideOffset = config.animated && isOverlay && !openForAnim ? "-100%" : 0;
 
   const panelStyle: React.CSSProperties = isOverlay
     ? {
         position: "absolute",
         top: 0,
         bottom: 0,
-        [side]: 0,
+        [side]: sideOffset,
         width: panelWidth,
         zIndex: 200,
         background: config.background,
@@ -144,8 +142,7 @@ function DrawerPanel({ side, config, isMobile, computedWidth, animOpen }: PanelP
           side === "left"
             ? "4px 0 16px rgba(0,0,0,0.4)"
             : "-4px 0 16px rgba(0,0,0,0.4)",
-        transform: animateTransform,
-        transition: config.animated ? "transform 0.25s ease" : undefined,
+        transition: config.animated ? `${side} 0.25s ease` : undefined,
       }
     : {
         width: panelWidth,

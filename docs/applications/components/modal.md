@@ -64,6 +64,7 @@ const [show, setShow] = useState(false);
 
 ## Notes
 
+- **The modal body has no default padding.** Always wrap `children` in a `<div style={{ padding: "16px" }}>` (or similar) to avoid content flush against the modal edges.
 - Header and footer are only rendered when their prop is provided — passing `undefined` omits the slot and its border entirely
 - The footer aligns its content to the right by default — wrap buttons in a `<>` fragment to place multiple side by side
 - Body scrolls independently when content exceeds 90vh; header and footer remain fixed

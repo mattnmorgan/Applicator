@@ -27,7 +27,12 @@ export default function NotificationBell() {
       const result = await notificationManager.readRecords({
         fields: { archived: false },
       });
-      setNotifications(result.records);
+      setNotifications(
+        [...result.records].sort(
+          (a: TableRecord<Notification>, b: TableRecord<Notification>) =>
+            b.created_at - a.created_at,
+        ),
+      );
       setUnreadCount(
         result.records.filter((r: TableRecord<Notification>) => !r.data.read)
           .length,
