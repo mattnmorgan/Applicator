@@ -28,6 +28,7 @@ export default function SettingsDrawerLayout({
   return (
     <DrawerLayout
       style={{ flex: 1 }}
+      rounded={false}
       leftPanel={{
         open: navOpen,
         type: "inline",
