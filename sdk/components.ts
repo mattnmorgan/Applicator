@@ -45,3 +45,5 @@ export { default as RichTextEditor, RichTextViewer } from "../lib/components/uti
 export type { RichTextEditorProps, RichTextViewerProps } from "../lib/components/utility/RichTextEditor";
 export { default as FilePreview, getPreviewType, isPreviewSupported } from "../lib/components/utility/FilePreview";
 export type { FilePreviewProps, PreviewAction } from "../lib/components/utility/FilePreview";
+export { default as ImageUpload } from "../lib/components/utility/ImageUpload";
+export type { ImageUploadProps } from "../lib/components/utility/ImageUpload";
