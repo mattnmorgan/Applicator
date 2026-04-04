@@ -10,7 +10,8 @@
     "build": "next build",
     "start": "next start",
     "test": "echo \"Error: no test specified\" && exit 1",
-    "build:apps": "node scripts/build-apps.js"
+    "build:apps": "node scripts/build-apps.js",
+    "build:applets": "node scripts/build-applets.js"
   },
   "license": "ISC",
   "dependencies": {
