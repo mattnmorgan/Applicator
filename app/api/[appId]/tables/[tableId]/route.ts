@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import TableManager from "@/lib/managers/table";
 import { getSessionFromRequest } from "@/lib/managers/session";
 import { createRecord } from "@/lib/database/crud/create";
-import { readRecords } from "@/lib/database/crud/read";
+import { readRecords, readRecord } from "@/lib/database/crud/read";
 import {
   bulkUpdateRecords as updateRecords,
   updateRecord,
@@ -170,6 +170,13 @@ export async function GET(
       }
     }
 
+    if (appId === "system" && tableId === "notifications") {
+      if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      options.fields = { ...options.fields, user_id: userId };
+    }
+
     const result = await readRecords(appId, tableId, fieldRecords, options);
 
     return NextResponse.json(result);
@@ -198,6 +205,8 @@ export async function PATCH(
 ) {
   try {
     const { appId, tableId } = await params;
+    const session = await getSessionFromRequest(request);
+    const userId = session?.user_id;
 
     // Load table definition
     const tableManager = new TableManager();
@@ -225,6 +234,22 @@ export async function PATCH(
         },
         { status: 400 },
       );
+    }
+
+    // Verify notification ownership
+    if (appId === "system" && tableId === "notifications") {
+      if (!userId) {
+        return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+      }
+      const updates = body.updates
+        ? body.updates
+        : [{ id: body.id, data: body.data }];
+      for (const update of updates) {
+        const record = await readRecord(appId, tableId, update.id);
+        if (!record || (record.data as any).user_id !== userId) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      }
     }
 
     // Validate required permissions for app-specific authority updates
@@ -349,6 +374,8 @@ export async function DELETE(
 ) {
   try {
     const { appId, tableId } = await params;
+    const session = await getSessionFromRequest(request);
+    const userId = session?.user_id;
 
     // Load table definition
     const tableManager = new TableManager();
@@ -371,8 +398,33 @@ export async function DELETE(
       });
     } else if (idsParam) {
       const ids = idsParam.split(",");
+
+      // Verify notification ownership
+      if (appId === "system" && tableId === "notifications") {
+        if (!userId) {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        for (const id of ids) {
+          const record = await readRecord(appId, tableId, id);
+          if (!record || (record.data as any).user_id !== userId) {
+            return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+          }
+        }
+      }
+
       return NextResponse.json(await deleteRecords(appId, tableId, ids));
     } else if (idParam) {
+      // Verify notification ownership
+      if (appId === "system" && tableId === "notifications") {
+        if (!userId) {
+          return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+        }
+        const record = await readRecord(appId, tableId, idParam);
+        if (!record || (record.data as any).user_id !== userId) {
+          return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+        }
+      }
+
       return NextResponse.json(await deleteRecord(appId, tableId, idParam));
     }
 
