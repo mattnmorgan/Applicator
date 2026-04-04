@@ -43,14 +43,28 @@ function versionFromZipName(zipName) {
 }
 
 async function main() {
-  const applets = getAppletDirs();
+  const requested = process.argv.slice(2);
+  const allApplets = getAppletDirs();
+
+  let applets;
+  if (requested.length > 0) {
+    const unknown = requested.filter((name) => !allApplets.includes(name));
+    if (unknown.length > 0) {
+      console.error(`Unknown applet(s): ${unknown.join(", ")}`);
+      console.error(`Available: ${allApplets.join(", ")}`);
+      process.exit(1);
+    }
+    applets = requested;
+  } else {
+    applets = allApplets;
+  }
 
   if (applets.length === 0) {
     log("No applets found.");
     process.exit(0);
   }
 
-  log(`Found applets: ${applets.join(", ")}\n`);
+  log(`Building: ${applets.join(", ")}\n`);
 
   const results = [];
 
