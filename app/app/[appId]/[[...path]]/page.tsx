@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import Navigation from "@/lib/components/Navigation/Navigation";
 import Tabset from "@/lib/components/utility/Tabset/Tabset";
@@ -16,6 +16,7 @@ interface TabsetItem {
 
 export default function AppPage() {
   const params = useParams();
+  const router = useRouter();
   // Decode the URL parameter to convert %3A back to :
   const fullAppId = decodeURIComponent(params.appId as string);
   const path = (params.path as string[]) || [];
@@ -269,6 +270,7 @@ export default function AppPage() {
               componentProps={{
                 path: remainingPath,
                 appId: fullAppId,
+                navigate: (url: string) => router.push(url),
               }}
               onError={(errorMessage) => setError(errorMessage)}
             />

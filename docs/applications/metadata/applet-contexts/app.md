@@ -22,21 +22,35 @@ Only one `app`-target applet per app is typically needed. The component is rende
 
 ## Component Interface
 
-```typescript
-import { UiContext } from "@applicator/sdk/context";
+The platform passes props **flat** (not nested under a `context` key):
 
+```typescript
 interface Props {
-  context?: UiContext;
+  appId?: string;
+  path?: string[];
+  navigate?: (url: string) => void;
 }
 
-export default function Dashboard({ context }: Props) {
-  const appId = context?.appId;   // "my-app"
-  const path = context?.path;     // URL segments after the appId, e.g. ["settings", "profile"]
-  // ...
+export default function Dashboard({ appId, path = [], navigate }: Props) {
+  // path — URL segments after the appId, e.g. ["settings", "profile"]
+  // navigate — platform router's push function; use this to update the URL
 }
 ```
 
-The `context.path` array reflects sub-navigation within the app (segments after the app base URL). Use it for client-side routing within the applet.
+### `path`
+
+Reflects sub-navigation within the app (segments after the app base URL). Use it to restore the correct view on initial load when the user arrives via a deep link.
+
+### `navigate`
+
+Calls the platform router's `push` method. Always prefer this over `window.history.pushState` or Next.js's `useRouter` — the applet runs in an isolated React tree and has no access to the router context directly.
+
+```typescript
+// Navigating to a deep-link URL
+navigate(`/app/my-app/section/${id}`);
+```
+
+The `path` prop will reflect the new segments on next mount (e.g. when the user follows a notification link to the same URL).
 
 ---
 
