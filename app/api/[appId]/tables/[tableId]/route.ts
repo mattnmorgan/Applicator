@@ -16,6 +16,7 @@ import { upsertRecord } from "@/lib/database/crud/upsert";
 import FieldManager from "@/lib/managers/field";
 import { createRecords } from "@/lib/client/database/crud/create";
 import AppManager from "@/lib/managers/app";
+import { sendNtfyNotification } from "@/lib/system/ntfy";
 
 /**
  * POST /api/[appId]/tables/[tableId]
@@ -63,6 +64,16 @@ export async function POST(
         id: body.id,
       },
     );
+
+    if (appId === "system" && tableId === "notifications" && body.data.user_id) {
+      sendNtfyNotification(
+        body.data.user_id,
+        body.data.title,
+        body.data.message,
+        body.data.type || "info",
+      ).catch(() => {});
+    }
+
     return NextResponse.json({ record });
   } catch (error) {
     console.error("Error creating record:", error);
