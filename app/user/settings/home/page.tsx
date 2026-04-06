@@ -8,6 +8,7 @@ import {
   DropResult,
 } from "@hello-pangea/dnd";
 import SettingManager from "@/lib/client/managers/setting";
+import Banner from "@/lib/components/utility/Banner";
 import AppletSettingManager from "@/lib/client/managers/appletSetting";
 import DynamicInput from "@/lib/components/utility/DynamicInput/DynamicInput";
 import Button from "@/lib/components/utility/Button/Button";
@@ -530,8 +531,8 @@ export default function HomeSettingsPage() {
         <h2 className={styles.title}>Homescreen Settings</h2>
       </div>
 
-      {error && <div className={styles.error}>{error}</div>}
-      {success && <div className={styles.success}>{success}</div>}
+      {error && <Banner variant="error">{error}</Banner>}
+      {success && <Banner variant="success">{success}</Banner>}
 
       <section className={styles.section}>
         <div className={styles.sectionHeader}>

@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Button from "@/lib/components/utility/Button";
+import Banner from "@/lib/components/utility/Banner";
 
 export default function NotificationsPage() {
   const [hasUuid, setHasUuid] = useState(false);
@@ -64,7 +65,7 @@ export default function NotificationsPage() {
   }
 
   return (
-    <div style={{ display: "flex", flexDirection: "column", gap: "24px", width: "100%", maxWidth: "600px" }}>
+    <div style={{ display: "flex", flexDirection: "column", gap: "24px", width: "100%", paddingBottom: "24px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px" }}>
         <h2 style={{ fontSize: "24px", fontWeight: 600, color: "#f1f5f9", margin: 0 }}>
           Notifications
@@ -72,56 +73,14 @@ export default function NotificationsPage() {
       </div>
 
       {!ntfyConfigured && (
-        <div
-          style={{
-            background: "#1e293b",
-            border: "1px solid #475569",
-            borderRadius: "8px",
-            padding: "14px 16px",
-            display: "flex",
-            alignItems: "flex-start",
-            gap: "12px",
-          }}
-        >
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" style={{ flexShrink: 0, marginTop: "1px" }}>
-            <circle cx="12" cy="12" r="10" stroke="#94a3b8" strokeWidth="1.5" />
-            <path d="M12 8v4M12 16h.01" stroke="#94a3b8" strokeWidth="1.5" strokeLinecap="round" />
-          </svg>
-          <p style={{ color: "#94a3b8", fontSize: "14px", margin: 0, lineHeight: "1.5" }}>
-            NTFY is not configured. Ask your administrator to set up a NTFY server in System Settings before you can receive push notifications.
-          </p>
-        </div>
+        <Banner variant="info">
+          NTFY is not configured. Ask your administrator to set up a NTFY server in System Settings before you can receive push notifications.
+        </Banner>
       )}
 
-      {error && (
-        <div
-          style={{
-            background: "#7f1d1d",
-            border: "1px solid #991b1b",
-            borderRadius: "6px",
-            padding: "12px",
-            color: "#fecaca",
-            fontSize: "14px",
-          }}
-        >
-          {error}
-        </div>
-      )}
+      {error && <Banner variant="error">{error}</Banner>}
 
-      {success && (
-        <div
-          style={{
-            background: "#14532d",
-            border: "1px solid #166534",
-            borderRadius: "6px",
-            padding: "12px",
-            color: "#bbf7d0",
-            fontSize: "14px",
-          }}
-        >
-          {success}
-        </div>
-      )}
+      {success && <Banner variant="success">{success}</Banner>}
 
       <section style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
         <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#f1f5f9", margin: 0 }}>
@@ -230,7 +189,7 @@ export default function NotificationsPage() {
           <Button
             variant={hasUuid ? "secondary" : "primary"}
             onClick={handleRegenerate}
-            disabled={regenerating}
+            disabled={regenerating || !ntfyConfigured}
           >
             {regenerating
               ? "Regenerating..."

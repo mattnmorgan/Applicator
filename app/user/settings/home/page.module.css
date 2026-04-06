@@ -331,23 +331,6 @@
   cursor: not-allowed;
 }
 
-.error {
-  background: #7f1d1d;
-  border: 1px solid #991b1b;
-  border-radius: 6px;
-  padding: 12px;
-  color: #fecaca;
-  font-size: 14px;
-}
-
-.success {
-  background: #14532d;
-  border: 1px solid #166534;
-  border-radius: 6px;
-  padding: 12px;
-  color: #bbf7d0;
-  font-size: 14px;
-}
 
 /* Edit button */
 .editButton {

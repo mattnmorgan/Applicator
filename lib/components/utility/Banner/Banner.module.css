@@ -1,0 +1,61 @@
+.banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  border-radius: 6px;
+  padding: 12px 14px;
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.icon {
+  flex-shrink: 0;
+  margin-top: 1px;
+  display: flex;
+}
+
+.content {
+  flex: 1;
+  min-width: 0;
+}
+
+/* Variants */
+.info {
+  background: #1e293b;
+  border: 1px solid #475569;
+  color: #94a3b8;
+}
+
+.info .icon {
+  color: #94a3b8;
+}
+
+.success {
+  background: #14532d;
+  border: 1px solid #166534;
+  color: #bbf7d0;
+}
+
+.success .icon {
+  color: #86efac;
+}
+
+.warning {
+  background: #451a03;
+  border: 1px solid #92400e;
+  color: #fde68a;
+}
+
+.warning .icon {
+  color: #fbbf24;
+}
+
+.error {
+  background: #7f1d1d;
+  border: 1px solid #991b1b;
+  color: #fecaca;
+}
+
+.error .icon {
+  color: #f87171;
+}

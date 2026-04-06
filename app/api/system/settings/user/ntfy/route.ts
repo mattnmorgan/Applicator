@@ -47,19 +47,31 @@ export async function POST() {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
+    // Block generation if NTFY is not configured
+    const settingManager = new SettingManager();
+    const serverUrlRecord = await settingManager.readRecord("ntfyServerUrl");
+    const usernameRecord = await settingManager.readRecord("ntfyUsername");
+    const passwordRecord = await settingManager.readRecord("ntfyPassword");
+
+    if (
+      !serverUrlRecord?.data.value ||
+      !usernameRecord?.data.value ||
+      !passwordRecord?.data.value
+    ) {
+      return NextResponse.json(
+        { error: "NTFY is not configured. An administrator must set up the NTFY server before UUIDs can be generated." },
+        { status: 403 },
+      );
+    }
+
     const user = currentUserResult.user;
     const oldUuid = user.data.ntfy_uuid;
 
     // If there's an existing UUID, notify it that it was revoked
     if (oldUuid) {
-      const settingManager = new SettingManager();
-      const serverUrlRecord = await settingManager.readRecord("ntfyServerUrl");
-      const usernameRecord = await settingManager.readRecord("ntfyUsername");
-      const passwordRecord = await settingManager.readRecord("ntfyPassword");
-
-      const serverUrl = serverUrlRecord?.data.value;
-      const username = usernameRecord?.data.value;
-      const password = passwordRecord?.data.value;
+      const serverUrl = serverUrlRecord.data.value;
+      const username = usernameRecord.data.value;
+      const password = passwordRecord.data.value;
 
       if (serverUrl && username && password) {
         try {

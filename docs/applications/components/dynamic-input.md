@@ -15,7 +15,8 @@ interface DynamicInputOption {
   label: string;
   description?: string;  // for radio: shown below the option; for horizontalGroup: shown as a hover tooltip
   icon?: string;
-  selectedColor?: string; // horizontalGroup only — background color when this option is selected
+  selectedColor?: string; // horizontalGroup / badge-multiselect — background color when this option is selected
+  fgColor?: string;       // badge-multiselect only — text color when this option is selected
 }
 ```
 
@@ -72,6 +73,7 @@ interface DynamicInputDefinition {
 | `file`                | File upload input                                      |
 | `toggle`              | On/off toggle switch                                   |
 | `radio-horizontal-group` | Horizontal segmented button group — each option fills equal width, shows a hover tooltip when `description` is set, and uses `selectedColor` for its active background |
+| `badge-multiselect`      | Multi-select rendered as clickable pill badges — options sorted alphabetically, `selectedColor` sets badge background when selected, `fgColor` sets text color when selected |
 
 ## Props
 

@@ -258,7 +258,7 @@ export default function FormEditor({ layout, fields, aliases, onChange }: FormEd
             >
               <span style={{ color: "#64748b", flexShrink: 0 }}><Icon name="drag" size={12} /></span>
               <span style={{ flex: 1, fontSize: 12, color: "#e2e8f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{f.name}</span>
-              <span style={{ fontSize: 10, color: "#475569", flexShrink: 0 }}>{FIELD_TYPE_LABELS[f.fieldType]?.[0] ?? "?"}</span>
+              <span style={{ fontSize: 10, color: "#475569", background: "#1e293b", padding: "1px 5px", borderRadius: 3, flexShrink: 0, border: "1px solid #334155" }}>{FIELD_TYPE_LABELS[f.fieldType] ?? f.fieldType}</span>
             </div>
           ))}
         </div>
@@ -522,7 +522,7 @@ function RowCanvas({
                 onDragLeave={() => onSetDragOverCell(null)}
                 onDrop={(e) => { e.preventDefault(); onCellDrop(col.id, col.fieldId); onSetDragOverCell(null); }}
                 style={{
-                  flex: 1, minWidth: 0, minHeight: 44, padding: "6px 8px",
+                  flex: 1, minWidth: 0, minHeight: 34, padding: "4px 8px",
                   background: isDragOver ? "#1e3a5f" : "transparent",
                   border: isDragOver ? "1px dashed #3b82f6" : "1px dashed transparent",
                   borderRadius: 4, transition: "background 0.1s, border-color 0.1s",
@@ -536,16 +536,8 @@ function RowCanvas({
                   <>
                     <span style={{ color: "#64748b", flexShrink: 0 }}><Icon name="drag" size={11} /></span>
                     <span style={{ flex: 1, fontSize: 12, color: "#e2e8f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{field.name}</span>
-                    <span style={{ fontSize: 10, color: "#475569", flexShrink: 0 }}>{FIELD_TYPE_LABELS[field.fieldType]?.[0] ?? "?"}</span>
-                    <button
-                      onClick={() => onClearCell(col.id)}
-                      style={{ background: "none", border: "none", cursor: "pointer", padding: 2, color: "#475569", display: "flex", alignItems: "center", flexShrink: 0 }}
-                      title="Clear cell"
-                      onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
-                      onMouseLeave={(e) => (e.currentTarget.style.color = "#475569")}
-                    >
-                      <Icon name="close" size={10} />
-                    </button>
+                    <span style={{ fontSize: 10, color: "#475569", background: "#162032", padding: "1px 5px", borderRadius: 3, flexShrink: 0, border: "1px solid #1e293b" }}>{FIELD_TYPE_LABELS[field.fieldType] ?? field.fieldType}</span>
+                    <ButtonIcon name="close" label="Clear cell" size="sm" onClick={() => onClearCell(col.id)} />
                   </>
                 ) : (
                   <span style={{ fontSize: 11, color: "#334155" }}>empty</span>
@@ -572,19 +564,9 @@ function RowCanvas({
       </div>
 
       {/* Remove row */}
-      <button
-        onClick={onRemoveRow}
-        style={{
-          background: "none", border: "none", cursor: "pointer", padding: "0 6px",
-          color: "#334155", display: "flex", alignItems: "center", flexShrink: 0,
-          transition: "color 0.12s",
-        }}
-        title="Remove row"
-        onMouseEnter={(e) => (e.currentTarget.style.color = "#ef4444")}
-        onMouseLeave={(e) => (e.currentTarget.style.color = "#334155")}
-      >
-        <Icon name="close" size={11} />
-      </button>
+      <div style={{ display: "flex", alignItems: "center", padding: "0 2px", flexShrink: 0 }}>
+        <ButtonIcon name="close" label="Remove row" size="sm" subvariant="danger" onClick={onRemoveRow} />
+      </div>
     </div>
   );
 }

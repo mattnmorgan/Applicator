@@ -174,7 +174,7 @@ export default function SettingsPage() {
     ntfyPassword !== "";
 
   return (
-    <div>
+    <div style={{ paddingBottom: "24px" }}>
       <div
         style={{
           display: "flex",
@@ -225,409 +225,351 @@ export default function SettingsPage() {
         </Button>
       </div>
 
-      <div
-        style={{
-          display: "flex",
-          flexDirection: "column",
-          gap: "24px",
-          maxWidth: "600px",
-        }}
-      >
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
-          }}
-        >
-          <label
-            style={{
-              fontSize: "14px",
-              fontWeight: 500,
-              color: "#f1f5f9",
-            }}
-          >
-            Brand Name
-          </label>
-          <input
-            type="text"
-            value={brandName}
-            onChange={(e) => setBrandName(e.target.value)}
-            placeholder="Applicator"
-            style={{
-              padding: "10px 12px",
-              background: "#0f172a",
-              border: "1px solid #475569",
-              borderRadius: "6px",
-              color: "#f1f5f9",
-              fontSize: "14px",
-              outline: "none",
-              transition: "border-color 0.2s",
-            }}
-            onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
-            onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
-          />
-          <p
-            style={{
-              fontSize: "12px",
-              color: "#64748b",
-              margin: 0,
-            }}
-          >
-            The brand name shown in the navigation bar
-          </p>
-        </div>
+      <div style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
 
-        <div
+        {/* Brand section */}
+        <section
           style={{
+            border: "1px solid #334155",
+            borderRadius: "8px",
+            padding: "24px",
             display: "flex",
             flexDirection: "column",
-            gap: "8px",
+            gap: "20px",
           }}
         >
-          <label
-            style={{
-              fontSize: "14px",
-              fontWeight: 500,
-              color: "#f1f5f9",
-            }}
-          >
-            Brand Icon
-          </label>
-          <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
-            {brandIconPreview && (
-              <div
-                onClick={handleClearBrandIcon}
+          <h2 style={{ fontSize: "16px", fontWeight: 600, color: "#f1f5f9", margin: 0 }}>
+            Brand
+          </h2>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "24px", alignItems: "flex-start" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: "1 1 200px" }}>
+              <label style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
+                Brand Name
+              </label>
+              <input
+                type="text"
+                value={brandName}
+                onChange={(e) => setBrandName(e.target.value)}
+                placeholder="Applicator"
                 style={{
-                  position: "relative",
-                  width: "64px",
-                  height: "64px",
-                  borderRadius: "6px",
-                  overflow: "hidden",
-                  cursor: "pointer",
+                  padding: "10px 12px",
+                  background: "#0f172a",
                   border: "1px solid #475569",
+                  borderRadius: "6px",
+                  color: "#f1f5f9",
+                  fontSize: "14px",
+                  outline: "none",
+                  transition: "border-color 0.2s",
+                  boxSizing: "border-box",
+                  width: "100%",
                 }}
-              >
-                <img
-                  src={brandIconPreview}
-                  alt="Brand icon preview"
-                  style={{
-                    width: "100%",
-                    height: "100%",
-                    objectFit: "contain",
-                    background: "#1e293b",
-                  }}
-                />
-                <div
-                  style={{
-                    position: "absolute",
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    bottom: 0,
-                    background: "rgba(0, 0, 0, 0.5)",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                    opacity: 0,
-                    transition: "opacity 0.2s",
-                  }}
-                  onMouseOver={(e) => (e.currentTarget.style.opacity = "1")}
-                  onMouseOut={(e) => (e.currentTarget.style.opacity = "0")}
-                >
-                  <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
-                    <path
-                      d="M6 6L18 18M6 18L18 6"
-                      stroke="white"
-                      strokeWidth="2"
-                      strokeLinecap="round"
+                onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
+              />
+              <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>
+                The brand name shown in the navigation bar
+              </p>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+              <label style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
+                Brand Icon
+              </label>
+              <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
+                {brandIconPreview && (
+                  <div
+                    onClick={handleClearBrandIcon}
+                    style={{
+                      position: "relative",
+                      width: "64px",
+                      height: "64px",
+                      borderRadius: "6px",
+                      overflow: "hidden",
+                      cursor: "pointer",
+                      border: "1px solid #475569",
+                      flexShrink: 0,
+                    }}
+                  >
+                    <img
+                      src={brandIconPreview}
+                      alt="Brand icon preview"
+                      style={{
+                        width: "100%",
+                        height: "100%",
+                        objectFit: "contain",
+                        background: "#1e293b",
+                      }}
                     />
-                  </svg>
+                    <div
+                      style={{
+                        position: "absolute",
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        bottom: 0,
+                        background: "rgba(0, 0, 0, 0.5)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        opacity: 0,
+                        transition: "opacity 0.2s",
+                      }}
+                      onMouseOver={(e) => (e.currentTarget.style.opacity = "1")}
+                      onMouseOut={(e) => (e.currentTarget.style.opacity = "0")}
+                    >
+                      <svg width="24" height="24" viewBox="0 0 24 24" fill="none">
+                        <path
+                          d="M6 6L18 18M6 18L18 6"
+                          stroke="white"
+                          strokeWidth="2"
+                          strokeLinecap="round"
+                        />
+                      </svg>
+                    </div>
+                  </div>
+                )}
+                <div>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    onChange={handleBrandIconChange}
+                    style={{ display: "none" }}
+                    id="brandIcon"
+                  />
+                  <label
+                    htmlFor="brandIcon"
+                    style={{
+                      display: "inline-block",
+                      padding: "10px 20px",
+                      background: "#3b82f6",
+                      color: "white",
+                      border: "none",
+                      borderRadius: "6px",
+                      fontSize: "14px",
+                      fontWeight: 500,
+                      cursor: "pointer",
+                      transition: "background 0.2s",
+                    }}
+                    onMouseOver={(e) => (e.currentTarget.style.background = "#2563eb")}
+                    onMouseOut={(e) => (e.currentTarget.style.background = "#3b82f6")}
+                  >
+                    {brandIcon ? brandIcon.name : "Choose file"}
+                  </label>
                 </div>
               </div>
-            )}
-            <div style={{ flex: 1 }}>
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleBrandIconChange}
-                style={{ display: "none" }}
-                id="brandIcon"
-              />
-              <label
-                htmlFor="brandIcon"
-                style={{
-                  display: "inline-block",
-                  padding: "10px 20px",
-                  background: "#3b82f6",
-                  color: "white",
-                  border: "none",
-                  borderRadius: "6px",
-                  fontSize: "14px",
-                  fontWeight: 500,
-                  cursor: "pointer",
-                  transition: "background 0.2s",
-                }}
-                onMouseOver={(e) =>
-                  (e.currentTarget.style.background = "#2563eb")
-                }
-                onMouseOut={(e) =>
-                  (e.currentTarget.style.background = "#3b82f6")
-                }
-              >
-                {brandIcon ? brandIcon.name : "Choose file"}
-              </label>
+              <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>
+                The brand icon shown in the navigation bar (optional)
+              </p>
             </div>
           </div>
-          <p
-            style={{
-              fontSize: "12px",
-              color: "#64748b",
-              margin: 0,
-            }}
-          >
-            The brand icon shown in the navigation bar (optional)
-          </p>
-        </div>
+        </section>
 
-        <div
+        {/* System section */}
+        <section
           style={{
+            border: "1px solid #334155",
+            borderRadius: "8px",
+            padding: "24px",
             display: "flex",
             flexDirection: "column",
-            gap: "8px",
+            gap: "20px",
           }}
         >
-          <label
-            style={{
-              fontSize: "14px",
-              fontWeight: 500,
-              color: "#f1f5f9",
-            }}
-          >
-            System Storage
-          </label>
-          <div style={{ display: "flex", gap: "12px" }}>
-            <input
-              type="text"
-              value={storage}
-              disabled
-              placeholder="No storage path selected"
-              style={{
-                flex: 1,
-                padding: "10px 12px",
-                background: "#0f172a",
-                border: "1px solid #475569",
-                borderRadius: "6px",
-                color: "#94a3b8",
-                fontSize: "14px",
-                outline: "none",
-                cursor: "not-allowed",
-              }}
-            />
-            <Button
-              variant="primary"
-              onClick={() => setIsBrowserOpen(true)}
-            >
-              Browse
-            </Button>
-          </div>
-          <p
-            style={{
-              fontSize: "12px",
-              color: "#64748b",
-              margin: 0,
-            }}
-          >
-            Select a folder where system files will be stored
-          </p>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
-          }}
-        >
-          <label
-            style={{
-              fontSize: "14px",
-              fontWeight: 500,
-              color: "#f1f5f9",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              cursor: "pointer",
-              userSelect: "none",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={loggingEnabled}
-              onChange={(e) => setLoggingEnabled(e.target.checked)}
-              style={{
-                width: "18px",
-                height: "18px",
-                cursor: "pointer",
-                accentColor: "#3b82f6",
-              }}
-            />
-            Enable Logging
-          </label>
-          <p
-            style={{
-              fontSize: "12px",
-              color: "#64748b",
-              margin: 0,
-            }}
-          >
-            When enabled, system and application logs will be captured for
-            debugging. Disabling will clear all existing logs.
-          </p>
-        </div>
-
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "column",
-            gap: "8px",
-          }}
-        >
-          <label
-            style={{
-              fontSize: "14px",
-              fontWeight: 500,
-              color: "#f1f5f9",
-              display: "flex",
-              alignItems: "center",
-              gap: "10px",
-              cursor: "pointer",
-              userSelect: "none",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={selfregistrationEnabled}
-              onChange={(e) => setSelfregistrationEnabled(e.target.checked)}
-              style={{
-                width: "18px",
-                height: "18px",
-                cursor: "pointer",
-                accentColor: "#3b82f6",
-              }}
-            />
-            Enable Self-registration
-          </label>
-          <p
-            style={{
-              fontSize: "12px",
-              color: "#64748b",
-              margin: 0,
-            }}
-          >
-            When enabled, users can create their own account from the login
-            page.
-          </p>
-        </div>
-
-        <div
-          style={{
-            borderTop: "1px solid #334155",
-            paddingTop: "24px",
-            display: "flex",
-            flexDirection: "column",
-            gap: "16px",
-          }}
-        >
-          <h2
-            style={{
-              fontSize: "18px",
-              fontWeight: 600,
-              color: "#f1f5f9",
-              margin: 0,
-            }}
-          >
-            NTFY
+          <h2 style={{ fontSize: "16px", fontWeight: 600, color: "#f1f5f9", margin: 0 }}>
+            System
           </h2>
-          <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>
-            Configure a self-hosted NTFY server to send push notifications to users.
-          </p>
 
           <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
             <label style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
-              Server URL
+              System Storage
             </label>
-            <input
-              type="text"
-              value={ntfyServerUrl}
-              onChange={(e) => setNtfyServerUrl(e.target.value)}
-              placeholder="https://ntfy.example.com"
-              style={{
-                padding: "10px 12px",
-                background: "#0f172a",
-                border: "1px solid #475569",
-                borderRadius: "6px",
-                color: "#f1f5f9",
-                fontSize: "14px",
-                outline: "none",
-                transition: "border-color 0.2s",
-              }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
-            />
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <label style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
-              Username
-            </label>
-            <input
-              type="text"
-              value={ntfyUsername}
-              onChange={(e) => setNtfyUsername(e.target.value)}
-              placeholder="ntfy-username"
-              style={{
-                padding: "10px 12px",
-                background: "#0f172a",
-                border: "1px solid #475569",
-                borderRadius: "6px",
-                color: "#f1f5f9",
-                fontSize: "14px",
-                outline: "none",
-                transition: "border-color 0.2s",
-              }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
-            />
-          </div>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-            <label style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
-              Password
-            </label>
-            <input
-              type="password"
-              value={ntfyPassword}
-              onChange={(e) => setNtfyPassword(e.target.value)}
-              placeholder={ntfyPasswordSet ? "(configured — enter to change)" : "Enter password"}
-              style={{
-                padding: "10px 12px",
-                background: "#0f172a",
-                border: "1px solid #475569",
-                borderRadius: "6px",
-                color: "#f1f5f9",
-                fontSize: "14px",
-                outline: "none",
-                transition: "border-color 0.2s",
-              }}
-              onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
-              onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
-            />
+            <div style={{ display: "flex", gap: "12px" }}>
+              <input
+                type="text"
+                value={storage}
+                disabled
+                placeholder="No storage path selected"
+                style={{
+                  flex: 1,
+                  padding: "10px 12px",
+                  background: "#0f172a",
+                  border: "1px solid #475569",
+                  borderRadius: "6px",
+                  color: "#94a3b8",
+                  fontSize: "14px",
+                  outline: "none",
+                  cursor: "not-allowed",
+                }}
+              />
+              <Button variant="primary" onClick={() => setIsBrowserOpen(true)}>
+                Browse
+              </Button>
+            </div>
             <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>
-              Leave blank to keep the existing password.
+              Select a folder where system files will be stored
             </p>
           </div>
-        </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "24px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: "1 1 200px" }}>
+              <label
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  color: "#f1f5f9",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  cursor: "pointer",
+                  userSelect: "none",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={loggingEnabled}
+                  onChange={(e) => setLoggingEnabled(e.target.checked)}
+                  style={{ width: "18px", height: "18px", cursor: "pointer", accentColor: "#3b82f6" }}
+                />
+                Enable Logging
+              </label>
+              <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>
+                When enabled, system and application logs will be captured for debugging. Disabling will clear all existing logs.
+              </p>
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: "1 1 200px" }}>
+              <label
+                style={{
+                  fontSize: "14px",
+                  fontWeight: 500,
+                  color: "#f1f5f9",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "10px",
+                  cursor: "pointer",
+                  userSelect: "none",
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={selfregistrationEnabled}
+                  onChange={(e) => setSelfregistrationEnabled(e.target.checked)}
+                  style={{ width: "18px", height: "18px", cursor: "pointer", accentColor: "#3b82f6" }}
+                />
+                Enable Self-registration
+              </label>
+              <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>
+                When enabled, users can create their own account from the login page.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* NTFY section */}
+        <section
+          style={{
+            border: "1px solid #334155",
+            borderRadius: "8px",
+            padding: "24px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "20px",
+          }}
+        >
+          <div>
+            <h2 style={{ fontSize: "16px", fontWeight: 600, color: "#f1f5f9", margin: "0 0 4px" }}>
+              NTFY
+            </h2>
+            <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>
+              Configure a self-hosted NTFY server to send push notifications to users.
+            </p>
+          </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: "2 1 240px" }}>
+              <label style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
+                Server URL
+              </label>
+              <input
+                type="text"
+                value={ntfyServerUrl}
+                onChange={(e) => setNtfyServerUrl(e.target.value)}
+                placeholder="https://ntfy.example.com"
+                style={{
+                  padding: "10px 12px",
+                  background: "#0f172a",
+                  border: "1px solid #475569",
+                  borderRadius: "6px",
+                  color: "#f1f5f9",
+                  fontSize: "14px",
+                  outline: "none",
+                  transition: "border-color 0.2s",
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
+              />
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: "1 1 160px" }}>
+              <label style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
+                Username
+              </label>
+              <input
+                type="text"
+                value={ntfyUsername}
+                onChange={(e) => setNtfyUsername(e.target.value)}
+                placeholder="ntfy-username"
+                style={{
+                  padding: "10px 12px",
+                  background: "#0f172a",
+                  border: "1px solid #475569",
+                  borderRadius: "6px",
+                  color: "#f1f5f9",
+                  fontSize: "14px",
+                  outline: "none",
+                  transition: "border-color 0.2s",
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
+              />
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: "1 1 160px" }}>
+              <label style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
+                Password
+              </label>
+              <input
+                type="password"
+                value={ntfyPassword}
+                onChange={(e) => setNtfyPassword(e.target.value)}
+                placeholder={ntfyPasswordSet ? "(configured — enter to change)" : "Enter password"}
+                style={{
+                  padding: "10px 12px",
+                  background: "#0f172a",
+                  border: "1px solid #475569",
+                  borderRadius: "6px",
+                  color: "#f1f5f9",
+                  fontSize: "14px",
+                  outline: "none",
+                  transition: "border-color 0.2s",
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
+              />
+              <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>
+                Leave blank to keep the existing password.
+              </p>
+            </div>
+          </div>
+        </section>
+
       </div>
 
       <FolderBrowser

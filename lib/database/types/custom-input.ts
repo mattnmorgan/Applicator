@@ -19,7 +19,8 @@ export type CustomInputType =
   | "password"
   | "toggle"
   | "radio-horizontal-group"
-  | "richtext";
+  | "richtext"
+  | "badge-multiselect";
 
 export default interface CustomInput {
   app: string;

@@ -23,6 +23,7 @@ import PasswordInput from "./inputs/PasswordInput";
 import ToggleInput from "./inputs/ToggleInput";
 import RadioHorizontalGroupInput from "./inputs/RadioHorizontalGroupInput";
 import RichTextInput from "./inputs/RichTextInput";
+import BadgeMultiselectInput from "./inputs/BadgeMultiselectInput";
 
 export type { DynamicInputOption } from "./types/dynamic-input-option";
 export type { DynamicInputDefinition } from "./types/dynamic-input-definition";
@@ -59,6 +60,7 @@ const INPUT_COMPONENTS: Record<
   toggle: ToggleInput,
   "radio-horizontal-group": RadioHorizontalGroupInput,
   richtext: RichTextInput,
+  "badge-multiselect": BadgeMultiselectInput,
 };
 
 export default function DynamicInput({

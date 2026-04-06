@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
 import Button from "@/lib/components/utility/Button";
+import Banner from "@/lib/components/utility/Banner";
 import StickyFooter from "@/lib/components/utility/StickyFooter";
 export default function ProfilePage() {
   const router = useRouter();
@@ -147,9 +148,9 @@ export default function ProfilePage() {
       </div>
 
       <form onSubmit={handleSubmit} className={styles.form}>
-        {error && <div className={styles.error}>{error}</div>}
+        {error && <Banner variant="error">{error}</Banner>}
 
-        {success && <div className={styles.success}>{success}</div>}
+        {success && <Banner variant="success">{success}</Banner>}
 
         <div className={styles.formGroup}>
           <label className={styles.label}>Display Name *</label>
