@@ -428,10 +428,58 @@ async function sysfiles_videoThumb({ params }: SdkParams): Promise<any> {
   return { generated: true };
 }
 
+const NTFY_TAGS: Record<string, string> = {
+  info: "information_source",
+  success: "white_check_mark",
+  warning: "warning",
+  error: "rotating_light",
+};
+
+async function sendNtfyNotification(
+  userId: string,
+  title: string,
+  message: string,
+  type: string,
+): Promise<void> {
+  try {
+    const userManager = new UserManager();
+    const userRecord = await userManager.readRecord(userId);
+    if (!userRecord?.data.ntfy_uuid) return;
+
+    const settingManager = new (await import("@/lib/managers/setting")).default();
+    const serverUrlRecord = await settingManager.readRecord("ntfyServerUrl");
+    const usernameRecord = await settingManager.readRecord("ntfyUsername");
+    const passwordRecord = await settingManager.readRecord("ntfyPassword");
+
+    const serverUrl = serverUrlRecord?.data.value;
+    const username = usernameRecord?.data.value;
+    const password = passwordRecord?.data.value;
+
+    if (!serverUrl || !username || !password) return;
+
+    const credentials = Buffer.from(`${username}:${password}`).toString("base64");
+    const tag = NTFY_TAGS[type] || NTFY_TAGS.info;
+
+    await fetch(`${serverUrl.replace(/\/$/, "")}/${userRecord.data.ntfy_uuid}`, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        Title: title,
+        Tags: tag,
+        "Content-Type": "text/plain",
+      },
+      body: message,
+    });
+  } catch {
+    // Non-fatal: in-app notification already created
+  }
+}
+
 async function system_sendNotification({ appId, params }: SdkParams): Promise<any> {
+  const notificationType = params.type || "info";
   const manager = new NotificationManager();
   await manager.createRecord(null, {
-    type: params.type || "info",
+    type: notificationType,
     app: appId,
     title: params.title,
     message: params.message,
@@ -441,6 +489,11 @@ async function system_sendNotification({ appId, params }: SdkParams): Promise<an
     archived: false,
     user_id: params.userId,
   });
+
+  if (params.userId) {
+    await sendNtfyNotification(params.userId, params.title, params.message, notificationType);
+  }
+
   return true;
 }
 

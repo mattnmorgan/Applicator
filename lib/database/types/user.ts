@@ -6,4 +6,5 @@ export default interface User {
   authority_id: string;
   is_active: boolean;
   icon?: string; // Path to user's profile picture
+  ntfy_uuid?: string; // NTFY topic UUID for push notifications
 }

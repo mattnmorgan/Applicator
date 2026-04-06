@@ -92,6 +92,15 @@ async function main() {
       const srcPath = path.join(distDir, zipName);
       const destPath = path.join(ROOT, destName);
 
+      // Remove older zips for this applet from the root directory
+      const oldZips = fs
+        .readdirSync(ROOT)
+        .filter((f) => f !== destName && f.startsWith(`${applet}-`) && f.endsWith(".zip"));
+      for (const old of oldZips) {
+        fs.unlinkSync(path.join(ROOT, old));
+        log(`  - Deleted old zip: ${old}`);
+      }
+
       fs.copyFileSync(srcPath, destPath);
       log(`  ✓ Copied to ${destName}\n`);
       results.push({ applet, success: true, dest: destName });

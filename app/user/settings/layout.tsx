@@ -63,12 +63,16 @@ function sortMenuItems(items: TabsetItem[]): TabsetItem[] {
 async function getUserSettingsMenuItems(): Promise<TabsetItem[]> {
   const items: TabsetItem[] = [
     {
-      label: "Profile",
-      path: "/user/settings/profile",
-    },
-    {
       label: "Homescreen",
       path: "/user/settings/home",
+    },
+    {
+      label: "Notifications",
+      path: "/user/settings/notifications",
+    },
+    {
+      label: "Profile",
+      path: "/user/settings/profile",
     },
   ];
 

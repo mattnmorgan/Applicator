@@ -18,6 +18,12 @@ export default function SettingsPage() {
   const [originalLoggingEnabled, setOriginalLoggingEnabled] = useState(false);
   const [selfregistrationEnabled, setSelfregistrationEnabled] = useState(false);
   const [originalSelfregistrationEnabled, setOriginalSelfregistrationEnabled] = useState(false);
+  const [ntfyServerUrl, setNtfyServerUrl] = useState("");
+  const [originalNtfyServerUrl, setOriginalNtfyServerUrl] = useState("");
+  const [ntfyUsername, setNtfyUsername] = useState("");
+  const [originalNtfyUsername, setOriginalNtfyUsername] = useState("");
+  const [ntfyPassword, setNtfyPassword] = useState("");
+  const [ntfyPasswordSet, setNtfyPasswordSet] = useState(false);
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -47,6 +53,13 @@ export default function SettingsPage() {
 
       setSelfregistrationEnabled(settings.selfregistrationEnabled === "true");
       setOriginalSelfregistrationEnabled(settings.selfregistrationEnabled === "true");
+
+      setNtfyServerUrl(settings.ntfyServerUrl || "");
+      setOriginalNtfyServerUrl(settings.ntfyServerUrl || "");
+      setNtfyUsername(settings.ntfyUsername || "");
+      setOriginalNtfyUsername(settings.ntfyUsername || "");
+      setNtfyPasswordSet(settings.ntfyPasswordSet === "true");
+      setNtfyPassword(""); // Never pre-fill password
     } catch (error) {
       console.error("Failed to fetch settings:", error);
     }
@@ -99,15 +112,24 @@ export default function SettingsPage() {
       }
 
       // Save other settings via JSON
+      const settingsBody: Record<string, unknown> = {
+        storage,
+        loggingEnabled,
+        selfregistrationEnabled,
+        ntfyServerUrl,
+        ntfyUsername,
+        ...(!brandIcon && !clearBrandIcon && { brandName }),
+      };
+
+      // Only send password if the user entered a new one
+      if (ntfyPassword) {
+        settingsBody.ntfyPassword = ntfyPassword;
+      }
+
       const settingsResponse = await fetch("/api/system/settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          storage,
-          loggingEnabled,
-          selfregistrationEnabled,
-          ...(!brandIcon && !clearBrandIcon && { brandName }),
-        }),
+        body: JSON.stringify(settingsBody),
       });
 
       if (settingsResponse.ok) {
@@ -115,6 +137,9 @@ export default function SettingsPage() {
         setOriginalBrandName(brandName);
         setOriginalLoggingEnabled(loggingEnabled);
         setOriginalSelfregistrationEnabled(selfregistrationEnabled);
+        setOriginalNtfyServerUrl(ntfyServerUrl);
+        setOriginalNtfyUsername(ntfyUsername);
+        setNtfyPassword("");
         setBrandIcon(null);
         setClearBrandIcon(false);
         addToast({ message: "Settings saved successfully", type: "success" });
@@ -143,7 +168,10 @@ export default function SettingsPage() {
     brandIcon !== null ||
     clearBrandIcon ||
     loggingEnabled !== originalLoggingEnabled ||
-    selfregistrationEnabled !== originalSelfregistrationEnabled;
+    selfregistrationEnabled !== originalSelfregistrationEnabled ||
+    ntfyServerUrl !== originalNtfyServerUrl ||
+    ntfyUsername !== originalNtfyUsername ||
+    ntfyPassword !== "";
 
   return (
     <div>
@@ -500,6 +528,105 @@ export default function SettingsPage() {
             When enabled, users can create their own account from the login
             page.
           </p>
+        </div>
+
+        <div
+          style={{
+            borderTop: "1px solid #334155",
+            paddingTop: "24px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "16px",
+          }}
+        >
+          <h2
+            style={{
+              fontSize: "18px",
+              fontWeight: 600,
+              color: "#f1f5f9",
+              margin: 0,
+            }}
+          >
+            NTFY
+          </h2>
+          <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>
+            Configure a self-hosted NTFY server to send push notifications to users.
+          </p>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <label style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
+              Server URL
+            </label>
+            <input
+              type="text"
+              value={ntfyServerUrl}
+              onChange={(e) => setNtfyServerUrl(e.target.value)}
+              placeholder="https://ntfy.example.com"
+              style={{
+                padding: "10px 12px",
+                background: "#0f172a",
+                border: "1px solid #475569",
+                borderRadius: "6px",
+                color: "#f1f5f9",
+                fontSize: "14px",
+                outline: "none",
+                transition: "border-color 0.2s",
+              }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
+            />
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <label style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
+              Username
+            </label>
+            <input
+              type="text"
+              value={ntfyUsername}
+              onChange={(e) => setNtfyUsername(e.target.value)}
+              placeholder="ntfy-username"
+              style={{
+                padding: "10px 12px",
+                background: "#0f172a",
+                border: "1px solid #475569",
+                borderRadius: "6px",
+                color: "#f1f5f9",
+                fontSize: "14px",
+                outline: "none",
+                transition: "border-color 0.2s",
+              }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
+            />
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <label style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
+              Password
+            </label>
+            <input
+              type="password"
+              value={ntfyPassword}
+              onChange={(e) => setNtfyPassword(e.target.value)}
+              placeholder={ntfyPasswordSet ? "(configured — enter to change)" : "Enter password"}
+              style={{
+                padding: "10px 12px",
+                background: "#0f172a",
+                border: "1px solid #475569",
+                borderRadius: "6px",
+                color: "#f1f5f9",
+                fontSize: "14px",
+                outline: "none",
+                transition: "border-color 0.2s",
+              }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
+            />
+            <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>
+              Leave blank to keep the existing password.
+            </p>
+          </div>
         </div>
       </div>
 

@@ -83,6 +83,7 @@ const schema = new Schema({
         }),
         new Field({ name: "is_active", type: "boolean", defaultValue: true }),
         new Field({ name: "icon", type: "text", nillable: true }),
+        new Field({ name: "ntfy_uuid", type: "text", nillable: true }),
         new Field({ name: "created_at", type: "bigint" }),
         new Field({ name: "updated_at", type: "bigint" }),
       ],
@@ -454,6 +455,9 @@ export async function initializeSchema(): Promise<void> {
   );
   await pool.query(
     `UPDATE fields SET related_to = 'system:users' WHERE related_to = 'system:user'`,
+  );
+  await pool.query(
+    `ALTER TABLE users ADD COLUMN IF NOT EXISTS ntfy_uuid text`,
   );
 }
 
