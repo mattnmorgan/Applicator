@@ -47,3 +47,15 @@ export { default as FilePreview, getPreviewType, isPreviewSupported } from "../l
 export type { FilePreviewProps, PreviewAction } from "../lib/components/utility/FilePreview";
 export { default as ImageUpload } from "../lib/components/utility/ImageUpload";
 export type { ImageUploadProps } from "../lib/components/utility/ImageUpload";
+export { default as FormEditor } from "../lib/components/utility/FormEditor";
+export type {
+  FormEditorProps,
+  FormLayout,
+  FormLayoutSection,
+  FormRow,
+  FormColumn,
+  FieldBadge as FormFieldBadge,
+  AliasBadge as FormAliasBadge,
+} from "../lib/components/utility/FormEditor";
+export { default as FormViewer } from "../lib/components/utility/FormViewer";
+export type { FormViewerProps, FormViewerField } from "../lib/components/utility/FormViewer";

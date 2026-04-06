@@ -107,17 +107,29 @@ function resolvePanel(panel: DrawerPanelConfig | undefined) {
 
 interface PanelProps {
   side: "left" | "right";
-  config: NonNullable<ReturnType<typeof resolvePanel>> & { contentPadding: number | string };
+  config: NonNullable<ReturnType<typeof resolvePanel>> & {
+    contentPadding: number | string;
+  };
   isMobile: boolean;
   computedWidth: number;
   /** Overrides config.open for animation (allows entry animation). */
   animOpen?: boolean;
 }
 
-function DrawerPanel({ side, config, isMobile, computedWidth, animOpen }: PanelProps) {
+function DrawerPanel({
+  side,
+  config,
+  isMobile,
+  computedWidth,
+  animOpen,
+}: PanelProps) {
   const isOverlay = config.type === "overlay" || isMobile;
   const isFullWidth = isMobile;
-  const panelWidth = isFullWidth ? "100%" : config.pixelWidth != null ? `${config.pixelWidth}px` : `${computedWidth}px`;
+  const panelWidth = isFullWidth
+    ? "100%"
+    : config.pixelWidth != null
+      ? `${config.pixelWidth}px`
+      : `${computedWidth}px`;
 
   const openForAnim = animOpen !== undefined ? animOpen : config.open;
 
@@ -198,7 +210,15 @@ function DrawerPanel({ side, config, isMobile, computedWidth, animOpen }: PanelP
           )}
         </div>
       )}
-      <div style={{ flex: 1, minHeight: 0, overflowY: config.scrollable ? "auto" : undefined, overflow: config.scrollable ? undefined : "hidden", padding: config.contentPadding }}>
+      <div
+        style={{
+          flex: 1,
+          minHeight: 0,
+          overflowY: config.scrollable ? "auto" : undefined,
+          overflow: config.scrollable ? undefined : "hidden",
+          padding: config.contentPadding,
+        }}
+      >
         {config.children}
       </div>
     </div>
@@ -216,10 +236,16 @@ export default function DrawerLayout({
   const containerRef = useRef<HTMLDivElement>(null);
   // Track whether animated overlay panels should remain mounted (for exit animation)
   const [leftMounted, setLeftMounted] = useState(leftPanelProp?.open ?? false);
-  const [rightMounted, setRightMounted] = useState(rightPanelProp?.open ?? false);
+  const [rightMounted, setRightMounted] = useState(
+    rightPanelProp?.open ?? false,
+  );
   // Track the visual open state for animated panels (lags one rAF behind mount to enable entry animation)
-  const [leftAnimOpen, setLeftAnimOpen] = useState(leftPanelProp?.open ?? false);
-  const [rightAnimOpen, setRightAnimOpen] = useState(rightPanelProp?.open ?? false);
+  const [leftAnimOpen, setLeftAnimOpen] = useState(
+    leftPanelProp?.open ?? false,
+  );
+  const [rightAnimOpen, setRightAnimOpen] = useState(
+    rightPanelProp?.open ?? false,
+  );
 
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth <= MOBILE_BREAKPOINT);
@@ -281,7 +307,7 @@ export default function DrawerLayout({
         flex: 1,
         overflow: "hidden",
         background: "#1e293b",
-        border: "1px solid #334155",
+        outline: "1px solid #334155",
         borderRadius: rounded ? "10px" : 0,
         ...style,
       }}
@@ -344,30 +370,32 @@ export default function DrawerLayout({
       )}
 
       {/* Overlay backdrop + panel for right */}
-      {right && rightIsOverlay && (right.animated ? rightMounted : right.open) && (
-        <>
-          <div
-            onClick={() => right.onClose?.()}
-            style={{
-              position: "absolute",
-              inset: 0,
-              backdropFilter: "blur(2px)",
-              background: "rgba(0,0,0,0.3)",
-              zIndex: 190,
-              opacity: rightAnimOpen ? 1 : 0,
-              pointerEvents: rightAnimOpen ? "auto" : "none",
-              transition: right.animated ? "opacity 0.25s ease" : undefined,
-            }}
-          />
-          <DrawerPanel
-            side="right"
-            config={right}
-            isMobile={isMobile}
-            computedWidth={rightPixels}
-            animOpen={rightAnimOpen}
-          />
-        </>
-      )}
+      {right &&
+        rightIsOverlay &&
+        (right.animated ? rightMounted : right.open) && (
+          <>
+            <div
+              onClick={() => right.onClose?.()}
+              style={{
+                position: "absolute",
+                inset: 0,
+                backdropFilter: "blur(2px)",
+                background: "rgba(0,0,0,0.3)",
+                zIndex: 190,
+                opacity: rightAnimOpen ? 1 : 0,
+                pointerEvents: rightAnimOpen ? "auto" : "none",
+                transition: right.animated ? "opacity 0.25s ease" : undefined,
+              }}
+            />
+            <DrawerPanel
+              side="right"
+              config={right}
+              isMobile={isMobile}
+              computedWidth={rightPixels}
+              animOpen={rightAnimOpen}
+            />
+          </>
+        )}
 
       {/* Open button for left panel — anchored top-left inside the container */}
       {left && !left.open && left.openable && left.iconName && (
