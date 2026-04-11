@@ -11,6 +11,7 @@ export interface FormViewerField {
   name: string;
   fieldType: string;
   aliasIds?: string[];
+  required?: boolean;
 }
 
 export interface FormViewerProps {
@@ -138,7 +139,7 @@ function FormViewerRow({
           : false;
 
         return (
-          <div key={col.id} style={{ width: `${col.width}%`, minWidth: 0, flexShrink: 0 }}>
+          <div key={col.id} style={{ flex: `${col.width}`, minWidth: 0 }}>
             {visible && field ? (
               <FieldCell
                 col={col}
@@ -174,13 +175,20 @@ function FieldCell({
   // Build the full DynamicInputDefinition for this cell if inputDef is stored
   const inputDef = buildInputDef(col.inputDef, field, resolveInputDef);
 
+  const fieldLabel = (
+    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>
+      {field.name}
+      {field.required && editing && <span style={{ color: "#f87171", marginLeft: 3 }}>*</span>}
+    </div>
+  );
+
   if (editing) {
     // 1. Try render-prop override first (for custom types like lookup)
     const customEditor = renderEditor?.(field);
     if (customEditor !== null && customEditor !== undefined) {
       return (
         <div>
-          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>{field.name}</div>
+          {fieldLabel}
           <div style={{ fontSize: 13, color: "#e2e8f0" }}>{customEditor}</div>
         </div>
       );
@@ -206,7 +214,7 @@ function FieldCell({
   if (customView !== null && customView !== undefined) {
     return (
       <div>
-        <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>{field.name}</div>
+        {fieldLabel}
         <div style={{ fontSize: 13, color: "#e2e8f0" }}>{customView}</div>
       </div>
     );
@@ -218,7 +226,7 @@ function FieldCell({
     if (defaultView !== null) {
       return (
         <div>
-          <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>{field.name}</div>
+          {fieldLabel}
           <div style={{ fontSize: 13, color: "#e2e8f0" }}>{defaultView}</div>
         </div>
       );
@@ -258,7 +266,23 @@ function renderDefaultView(value: any, inputDef: DynamicInputDefinition): React.
   const empty = <span style={{ color: "#64748b" }}>—</span>;
 
   if (type === "toggle" || type === "checkbox") {
-    return <span style={{ color: value ? "#4ade80" : "#ef4444" }}>{value ? "Yes" : "No"}</span>;
+    return (
+      <div style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
+        <div style={{
+          width: 32, height: 18, borderRadius: 9,
+          background: value ? "#3b82f6" : "#334155",
+          position: "relative", flexShrink: 0,
+        }}>
+          <div style={{
+            position: "absolute",
+            top: 2, left: value ? 14 : 2,
+            width: 14, height: 14, borderRadius: "50%",
+            background: "#fff",
+            transition: "left 0.15s",
+          }} />
+        </div>
+      </div>
+    );
   }
 
   if (value === undefined || value === null || value === "") return empty;

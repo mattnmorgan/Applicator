@@ -352,7 +352,7 @@ export default function FormEditor({ layout, fields, aliases, onChange, getDefau
       </div>
 
       {/* Layout canvas */}
-      <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
         {layout.sections.length === 0 && (
           <div style={{ color: "#475569", fontSize: 13, textAlign: "center", padding: 24 }}>
             No sections yet. Add a section to start building the form layout.
@@ -777,6 +777,7 @@ function RowCanvas({
   onOpenConfig: (colId: string, fieldName: string, def: SerializedInputDef | undefined) => void;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
+  const [resizePopover, setResizePopover] = useState<{ x: number; y: number; left: number; right: number } | null>(null);
 
   const startResize = (e: React.MouseEvent, lCol: FormColumn, rCol: FormColumn) => {
     e.preventDefault();
@@ -785,22 +786,45 @@ function RowCanvas({
     const rowEl = rowRef.current;
     if (!rowEl) return;
     const rowPx = rowEl.getBoundingClientRect().width;
+    const rowTop = rowEl.getBoundingClientRect().top;
     const onMove = (me: MouseEvent) => {
       const dx = me.clientX - startX;
       const dpct = (dx / rowPx) * 100;
       const newLeft = Math.round(Math.max(10, Math.min(totalWidth - 10, lCol.width + dpct)));
       const newRight = totalWidth - newLeft;
       onResizeColumns(lCol.id, rCol.id, newLeft, newRight);
+      setResizePopover({ x: me.clientX, y: rowTop - 8, left: newLeft, right: newRight });
     };
     const onUp = () => {
       document.removeEventListener("mousemove", onMove);
       document.removeEventListener("mouseup", onUp);
+      setResizePopover(null);
     };
     document.addEventListener("mousemove", onMove);
     document.addEventListener("mouseup", onUp);
   };
 
   return (
+    <>
+    {resizePopover && (
+      <div style={{
+        position: "fixed",
+        left: resizePopover.x,
+        top: resizePopover.y,
+        transform: "translate(-50%, -100%)",
+        background: "#0f172a",
+        border: "1px solid #334155",
+        borderRadius: 4,
+        padding: "3px 8px",
+        fontSize: 11,
+        color: "#93c5fd",
+        pointerEvents: "none",
+        zIndex: 9999,
+        whiteSpace: "nowrap",
+      }}>
+        {resizePopover.left} | {resizePopover.right}
+      </div>
+    )}
     <div style={{ display: "flex", alignItems: "stretch", gap: 0, background: "#0f172a", borderRadius: 6, overflow: "hidden", border: "1px solid #1e293b", position: "relative" }}>
       <div ref={rowRef} style={{ display: "flex", flex: 1, minWidth: 0 }}>
         {row.columns.map((col, ci) => {
@@ -876,6 +900,7 @@ function RowCanvas({
         <ButtonIcon name="close" label="Remove row" size="sm" subvariant="danger" onClick={onRemoveRow} />
       </div>
     </div>
+    </>
   );
 }
 
