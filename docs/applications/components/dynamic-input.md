@@ -1,6 +1,6 @@
 # DynamicInput
 
-Renders a fully-featured form input from a declarative definition object. Supports 19 input types — from plain text to date pickers, color selectors, file pickers, and searchable dropdowns. Useful for building data-entry forms driven by configuration rather than hardcoded JSX.
+Renders a fully-featured form input from a declarative definition object. Supports 20 input types — from plain text to date pickers, color selectors, file pickers, and searchable dropdowns. Useful for building data-entry forms driven by configuration rather than hardcoded JSX.
 
 ```typescript
 import { DynamicInput } from "@applicator/sdk/components";
@@ -31,8 +31,9 @@ interface DynamicInputDefinition {
   required?: boolean;
   disabled?: boolean;
   placeholder?: string;
-  options?: DynamicInputOption[];  // for select, multiselect, radio, checklist, pseudoassignee, multipseudoassignee
+  options?: DynamicInputOption[];  // for select, multiselect, radio, checklist, pseudoassignee, multipseudoassignee, searchable-combobox
   searchable?: boolean;            // enables live search in dropdown (select/multiselect/pseudoassignee)
+  multiSelect?: boolean;           // enable multi-select mode (searchable-combobox type only)
   renderSearchItem?: (opt: DynamicInputOption) => ReactNode; // custom dropdown row (pseudoassignee types)
   renderPill?: (opt: DynamicInputOption) => ReactNode;       // custom selected-chip render (pseudoassignee types)
   tooltip?: string;                // hover tooltip shown as (?) indicator next to the label
@@ -72,8 +73,9 @@ interface DynamicInputDefinition {
 | `icon`                | Icon picker                                            |
 | `file`                | File upload input                                      |
 | `toggle`              | On/off toggle switch                                   |
-| `radio-horizontal-group` | Horizontal segmented button group — each option fills equal width, shows a hover tooltip when `description` is set, and uses `selectedColor` for its active background |
-| `badge-multiselect`      | Multi-select rendered as clickable pill badges — options sorted alphabetically, `selectedColor` sets badge background when selected, `fgColor` sets text color when selected |
+| `radio-horizontal-group`  | Horizontal segmented button group — each option fills equal width, shows a hover tooltip when `description` is set, and uses `selectedColor` for its active background |
+| `badge-multiselect`       | Multi-select rendered as clickable pill badges — options sorted alphabetically, `selectedColor` sets badge background when selected, `fgColor` sets text color when selected |
+| `searchable-combobox`     | Filterable combobox backed by `options`. Single-select by default; set `multiSelect: true` for multi. Selected items appear as pills. Value is a string (single) or string[] (multi) |
 
 ## Props
 

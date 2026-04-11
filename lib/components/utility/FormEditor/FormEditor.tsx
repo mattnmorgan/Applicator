@@ -3,13 +3,44 @@
 import { useState, useRef, useCallback } from "react";
 import ButtonIcon from "../ButtonIcon";
 import Icon from "../Icon";
+import Modal from "../Modal";
+import Button from "../Button";
+import type { CustomInputType } from "@/lib/database/types/custom-input";
+import type { DynamicInputOption } from "../DynamicInput/types/dynamic-input-option";
 
 // ─── Shared types ────────────────────────────────────────────────────────────
+
+/**
+ * Serialisable subset of DynamicInputDefinition — no render functions.
+ * Stored in each FormColumn so FormViewer can auto-render without callers
+ * providing a renderEditor render-prop.
+ */
+export interface SerializedInputDef {
+  type: CustomInputType;
+  defaultValue?: string;
+  required?: boolean;
+  disabled?: boolean;
+  min?: string;
+  max?: string;
+  step?: string;
+  decimalPlaces?: number;
+  format?: string;
+  placeholder?: string;
+  lines?: number;
+  resizable?: boolean;
+  options?: DynamicInputOption[];
+  searchable?: boolean;
+  tooltip?: string;
+  /** Multi-select mode for searchable-combobox */
+  multiSelect?: boolean;
+}
 
 export interface FormColumn {
   id: string;
   width: number; // percentage, all cols in row sum to 100
   fieldId: string | null;
+  /** Stored DynamicInput configuration for this cell */
+  inputDef?: SerializedInputDef;
 }
 
 export interface FormRow {
@@ -47,6 +78,12 @@ export interface FormEditorProps {
   fields: FieldBadge[];
   aliases: AliasBadge[];
   onChange: (layout: FormLayout) => void;
+  /**
+   * Called when a field is first dropped into a cell to produce a default
+   * SerializedInputDef. If omitted or returns undefined, the cell starts
+   * with no inputDef (FormViewer will fall back to renderEditor).
+   */
+  getDefaultInputDef?: (field: FieldBadge) => SerializedInputDef | undefined;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -60,16 +97,38 @@ const FIELD_TYPE_LABELS: Record<string, string> = {
   toggle: "Toggle", number: "Number", lookup: "Lookup",
 };
 
+const INPUT_TYPE_LABELS: Record<string, string> = {
+  text: "Text", number: "Number", password: "Password",
+  date: "Date", datetime: "Date & Time", time: "Time",
+  checkbox: "Checkbox", toggle: "Toggle", color: "Color",
+  range: "Range", rangeslider: "Range Slider",
+  select: "Select", multiselect: "Multi-select",
+  radio: "Radio", "radio-horizontal-group": "Horizontal Radio",
+  checklist: "Checklist", "badge-multiselect": "Badge Multi-select",
+  "searchable-combobox": "Searchable Combobox",
+  icon: "Icon", file: "File", richtext: "Rich Text",
+  pseudoassignee: "Pseudoassignee", multipseudoassignee: "Multi Pseudoassignee",
+};
+
+const OPTION_TYPES = new Set([
+  "select", "multiselect", "radio", "radio-horizontal-group",
+  "checklist", "badge-multiselect", "searchable-combobox",
+]);
+
+const COLOR_OPTION_TYPES = new Set(["badge-multiselect", "radio-horizontal-group"]);
+
 // ─── FormEditor ───────────────────────────────────────────────────────────────
 
-export default function FormEditor({ layout, fields, aliases, onChange }: FormEditorProps) {
-  // Track which field is being dragged from the palette
+export default function FormEditor({ layout, fields, aliases, onChange, getDefaultInputDef }: FormEditorProps) {
   const draggingFieldId = useRef<string | null>(null);
-  // Track which cell's fieldId is being dragged (for reordering within form)
   const draggingCellRef = useRef<{ sectionId: string; rowId: string; colId: string } | null>(null);
 
   const [fieldSearch, setFieldSearch] = useState("");
-  const [dragOverCell, setDragOverCell] = useState<string | null>(null); // colId
+  const [dragOverCell, setDragOverCell] = useState<string | null>(null);
+
+  // Cell config modal
+  const [configCell, setConfigCell] = useState<{ sectionId: string; rowId: string; colId: string; fieldName: string } | null>(null);
+  const [configDraft, setConfigDraft] = useState<SerializedInputDef>({ type: "text" });
 
   const filteredFields = fields.filter((f) =>
     f.name.toLowerCase().includes(fieldSearch.toLowerCase())
@@ -131,7 +190,7 @@ export default function FormEditor({ layout, fields, aliases, onChange }: FormEd
     }));
   };
 
-  const setColumnField = (sId: string, rowId: string, colId: string, fieldId: string | null) => {
+  const clearColumnField = (sId: string, rowId: string, colId: string) => {
     updateLayout((l) => ({
       ...l,
       sections: l.sections.map((s) =>
@@ -140,12 +199,25 @@ export default function FormEditor({ layout, fields, aliases, onChange }: FormEd
               ...s,
               rows: s.rows.map((r) =>
                 r.id === rowId
-                  ? {
-                      ...r,
-                      columns: r.columns.map((c) =>
-                        c.id === colId ? { ...c, fieldId } : c
-                      ),
-                    }
+                  ? { ...r, columns: r.columns.map((c) => c.id === colId ? { ...c, fieldId: null, inputDef: undefined } : c) }
+                  : r
+              ),
+            }
+          : s
+      ),
+    }));
+  };
+
+  const setColumnInputDef = (sId: string, rowId: string, colId: string, inputDef: SerializedInputDef) => {
+    updateLayout((l) => ({
+      ...l,
+      sections: l.sections.map((s) =>
+        s.id === sId
+          ? {
+              ...s,
+              rows: s.rows.map((r) =>
+                r.id === rowId
+                  ? { ...r, columns: r.columns.map((c) => c.id === colId ? { ...c, inputDef } : c) }
                   : r
               ),
             }
@@ -166,11 +238,9 @@ export default function FormEditor({ layout, fields, aliases, onChange }: FormEd
                   ? {
                       ...r,
                       columns: r.columns.map((c) =>
-                        c.id === leftColId
-                          ? { ...c, width: leftWidth }
-                          : c.id === rightColId
-                          ? { ...c, width: rightWidth }
-                          : c
+                        c.id === leftColId ? { ...c, width: leftWidth }
+                        : c.id === rightColId ? { ...c, width: rightWidth }
+                        : c
                       ),
                     }
                   : r
@@ -195,17 +265,18 @@ export default function FormEditor({ layout, fields, aliases, onChange }: FormEd
 
   const handleCellDrop = (sId: string, rowId: string, colId: string, currentFieldId: string | null) => {
     if (draggingFieldId.current !== null) {
-      // From palette — set target, clear source if this field already existed elsewhere
       const fid = draggingFieldId.current;
+      const field = fields.find((f) => f.id === fid);
+      const defaultDef = field && getDefaultInputDef ? getDefaultInputDef(field) : undefined;
       updateLayout((l) => {
-        // First clear any existing assignment of this field
         const cleared = clearFieldFromLayout(l, fid);
-        return applyFieldToCell(cleared, sId, rowId, colId, fid);
+        let next = applyFieldToCell(cleared, sId, rowId, colId, fid);
+        if (defaultDef) next = applyInputDefToCell(next, sId, rowId, colId, defaultDef);
+        return next;
       });
     } else if (draggingCellRef.current) {
-      // From another cell — swap
       const src = draggingCellRef.current;
-      if (src.colId === colId) return; // same cell
+      if (src.colId === colId) return;
       const srcFieldId = getFieldInCell(layout, src.sectionId, src.rowId, src.colId);
       updateLayout((l) => {
         let next = applyFieldToCell(l, sId, rowId, colId, srcFieldId);
@@ -216,6 +287,19 @@ export default function FormEditor({ layout, fields, aliases, onChange }: FormEd
     draggingFieldId.current = null;
     draggingCellRef.current = null;
     setDragOverCell(null);
+  };
+
+  // ── config modal ───────────────────────────────────────────────────────────
+
+  const openConfig = (sId: string, rowId: string, colId: string, fieldName: string, currentDef: SerializedInputDef | undefined) => {
+    setConfigCell({ sectionId: sId, rowId, colId, fieldName });
+    setConfigDraft(currentDef ? { ...currentDef } : { type: "text" });
+  };
+
+  const saveConfig = () => {
+    if (!configCell) return;
+    setColumnInputDef(configCell.sectionId, configCell.rowId, configCell.colId, configDraft);
+    setConfigCell(null);
   };
 
   // ── render ─────────────────────────────────────────────────────────────────
@@ -308,8 +392,9 @@ export default function FormEditor({ layout, fields, aliases, onChange }: FormEd
             onRemoveRow={(rowId) => removeRow(sec.id, rowId)}
             onCellDragStart={(rowId, colId) => handleCellDragStart(sec.id, rowId, colId)}
             onCellDrop={(rowId, colId, curFieldId) => handleCellDrop(sec.id, rowId, colId, curFieldId)}
-            onClearCell={(rowId, colId) => setColumnField(sec.id, rowId, colId, null)}
+            onClearCell={(rowId, colId) => clearColumnField(sec.id, rowId, colId)}
             onResizeColumns={(rowId, lId, rId, lW, rW) => resizeColumns(sec.id, rowId, lId, rId, lW, rW)}
+            onOpenConfig={(rowId, colId, fieldName, def) => openConfig(sec.id, rowId, colId, fieldName, def)}
           />
         ))}
 
@@ -326,9 +411,215 @@ export default function FormEditor({ layout, fields, aliases, onChange }: FormEd
           <Icon name="plus" size={14} /> Add Section
         </button>
       </div>
+
+      {/* Cell config modal */}
+      {configCell && (
+        <Modal
+          header={<span style={{ fontSize: 14, fontWeight: 600, color: "#f1f5f9" }}>Configure Input — {configCell.fieldName}</span>}
+          footer={
+            <>
+              <Button variant="secondary" onClick={() => setConfigCell(null)}>Cancel</Button>
+              <Button variant="primary" onClick={saveConfig}>Save</Button>
+            </>
+          }
+          closeable
+          onClose={() => setConfigCell(null)}
+          maxWidth={520}
+        >
+          <div style={{ padding: 16 }}>
+            <CellConfigPanel draft={configDraft} onChange={setConfigDraft} />
+          </div>
+        </Modal>
+      )}
     </div>
   );
 }
+
+// ─── CellConfigPanel ──────────────────────────────────────────────────────────
+
+function CellConfigPanel({ draft, onChange }: { draft: SerializedInputDef; onChange: (d: SerializedInputDef) => void }) {
+  const set = (partial: Partial<SerializedInputDef>) => onChange({ ...draft, ...partial });
+
+  const hasOptions = OPTION_TYPES.has(draft.type);
+  const hasColorOptions = COLOR_OPTION_TYPES.has(draft.type);
+
+  const addOption = () => {
+    const opts = draft.options || [];
+    set({ options: [...opts, { value: `option_${opts.length + 1}`, label: `Option ${opts.length + 1}` }] });
+  };
+
+  const updateOption = (i: number, partial: Partial<DynamicInputOption>) => {
+    const opts = [...(draft.options || [])];
+    opts[i] = { ...opts[i], ...partial };
+    set({ options: opts });
+  };
+
+  const removeOption = (i: number) => {
+    set({ options: (draft.options || []).filter((_, idx) => idx !== i) });
+  };
+
+  const moveOption = (i: number, dir: -1 | 1) => {
+    const opts = [...(draft.options || [])];
+    const j = i + dir;
+    if (j < 0 || j >= opts.length) return;
+    [opts[i], opts[j]] = [opts[j], opts[i]];
+    set({ options: opts });
+  };
+
+  return (
+    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+      {/* Input type */}
+      <div>
+        <Label>Input Type</Label>
+        <select
+          value={draft.type}
+          onChange={(e) => set({ type: e.target.value as CustomInputType, options: undefined })}
+          style={selectStyle}
+        >
+          {Object.entries(INPUT_TYPE_LABELS).map(([k, v]) => (
+            <option key={k} value={k}>{v}</option>
+          ))}
+        </select>
+      </div>
+
+      {/* Common: placeholder */}
+      {["text", "password", "number", "select", "multiselect", "searchable-combobox"].includes(draft.type) && (
+        <div>
+          <Label>Placeholder</Label>
+          <input value={draft.placeholder || ""} onChange={(e) => set({ placeholder: e.target.value || undefined })} style={inputStyle} />
+        </div>
+      )}
+
+      {/* Common: tooltip */}
+      <div>
+        <Label>Tooltip (optional)</Label>
+        <input value={draft.tooltip || ""} onChange={(e) => set({ tooltip: e.target.value || undefined })} style={inputStyle} placeholder="Shown as a (?) indicator" />
+      </div>
+
+      {/* Text-specific */}
+      {draft.type === "text" && (
+        <>
+          <Row2>
+            <div>
+              <Label>Lines</Label>
+              <input type="number" min={1} value={draft.lines ?? 1} onChange={(e) => set({ lines: Number(e.target.value) || 1 })} style={inputStyle} />
+            </div>
+            <div style={{ display: "flex", alignItems: "flex-end", gap: 6, paddingBottom: 2 }}>
+              <CheckField label="Resizable" checked={!!draft.resizable} onChange={(v) => set({ resizable: v })} disabled={!draft.lines || draft.lines <= 1} />
+            </div>
+          </Row2>
+        </>
+      )}
+
+      {/* Number / range / rangeslider */}
+      {["number", "range", "rangeslider"].includes(draft.type) && (
+        <Row2>
+          <div>
+            <Label>Min</Label>
+            <input value={draft.min || ""} onChange={(e) => set({ min: e.target.value || undefined })} style={inputStyle} />
+          </div>
+          <div>
+            <Label>Max</Label>
+            <input value={draft.max || ""} onChange={(e) => set({ max: e.target.value || undefined })} style={inputStyle} />
+          </div>
+          <div>
+            <Label>Step</Label>
+            <input value={draft.step || ""} onChange={(e) => set({ step: e.target.value || undefined })} style={inputStyle} />
+          </div>
+          {draft.type === "number" && (
+            <div>
+              <Label>Decimal Places</Label>
+              <input type="number" min={0} value={draft.decimalPlaces ?? ""} onChange={(e) => set({ decimalPlaces: e.target.value === "" ? undefined : Number(e.target.value) })} style={inputStyle} />
+            </div>
+          )}
+        </Row2>
+      )}
+
+      {/* searchable-combobox: multiSelect toggle */}
+      {draft.type === "searchable-combobox" && (
+        <CheckField label="Multi-select" checked={!!draft.multiSelect} onChange={(v) => set({ multiSelect: v })} />
+      )}
+
+      {/* select/multiselect: searchable toggle */}
+      {["select", "multiselect"].includes(draft.type) && (
+        <CheckField label="Searchable dropdown" checked={!!draft.searchable} onChange={(v) => set({ searchable: v })} />
+      )}
+
+      {/* Options editor */}
+      {hasOptions && (
+        <div>
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
+            <Label>Options</Label>
+            <button onClick={addOption} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 12, cursor: "pointer", padding: 0 }}>+ Add</button>
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
+            {(draft.options || []).map((opt, i) => (
+              <div key={i} style={{ display: "flex", alignItems: "center", gap: 4, background: "#0f172a", borderRadius: 4, padding: "4px 6px" }}>
+                <ButtonIcon name="chevron-up" label="Move up" size="sm" onClick={() => moveOption(i, -1)} disabled={i === 0} />
+                <ButtonIcon name="chevron-down" label="Move down" size="sm" onClick={() => moveOption(i, 1)} disabled={i === (draft.options?.length ?? 0) - 1} />
+                <input
+                  value={opt.value}
+                  onChange={(e) => updateOption(i, { value: e.target.value })}
+                  placeholder="value"
+                  title="Option value (stored)"
+                  style={{ ...inputStyle, flex: "0 0 90px", fontSize: 11 }}
+                />
+                <input
+                  value={opt.label}
+                  onChange={(e) => updateOption(i, { label: e.target.value })}
+                  placeholder="label"
+                  title="Option label (displayed)"
+                  style={{ ...inputStyle, flex: 1, minWidth: 0, fontSize: 11 }}
+                />
+                {hasColorOptions && (
+                  <>
+                    <input type="color" value={opt.selectedColor || "#3b82f6"} onChange={(e) => updateOption(i, { selectedColor: e.target.value })} title="Selected background color" style={{ width: 26, height: 26, border: "1px solid #334155", borderRadius: 3, background: "transparent", cursor: "pointer", flexShrink: 0 }} />
+                    {draft.type === "badge-multiselect" && (
+                      <input type="color" value={opt.fgColor || "#ffffff"} onChange={(e) => updateOption(i, { fgColor: e.target.value })} title="Selected text color" style={{ width: 26, height: 26, border: "1px solid #334155", borderRadius: 3, background: "transparent", cursor: "pointer", flexShrink: 0 }} />
+                    )}
+                  </>
+                )}
+                <ButtonIcon name="trash" label="Remove option" subvariant="danger" size="sm" onClick={() => removeOption(i)} />
+              </div>
+            ))}
+            {(draft.options || []).length === 0 && (
+              <div style={{ fontSize: 11, color: "#475569", padding: "4px 6px" }}>No options yet. Click + Add to create one.</div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ─── Small helpers ────────────────────────────────────────────────────────────
+
+function Label({ children }: { children: React.ReactNode }) {
+  return <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4, fontWeight: 500 }}>{children}</div>;
+}
+
+function Row2({ children }: { children: React.ReactNode }) {
+  return <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{children}</div>;
+}
+
+function CheckField({ label, checked, onChange, disabled }: { label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
+  return (
+    <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.4 : 1 }}>
+      <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} style={{ cursor: "inherit" }} />
+      <span style={{ fontSize: 12, color: "#e2e8f0" }}>{label}</span>
+    </label>
+  );
+}
+
+const inputStyle: React.CSSProperties = {
+  width: "100%", boxSizing: "border-box",
+  background: "#0f172a", border: "1px solid #334155", borderRadius: 4,
+  padding: "5px 8px", color: "#f1f5f9", fontSize: 12, outline: "none",
+};
+
+const selectStyle: React.CSSProperties = {
+  ...inputStyle, appearance: "auto",
+};
 
 // ─── SectionCanvas ─────────────────────────────────────────────────────────
 
@@ -336,7 +627,7 @@ function SectionCanvas({
   section, sectionIndex, totalSections, fields, aliases,
   dragOverCell, onSetDragOverCell,
   onRename, onRemove, onMoveUp, onMoveDown, onSetAliases,
-  onAddRow, onRemoveRow, onCellDragStart, onCellDrop, onClearCell, onResizeColumns,
+  onAddRow, onRemoveRow, onCellDragStart, onCellDrop, onClearCell, onResizeColumns, onOpenConfig,
 }: {
   section: FormLayoutSection;
   sectionIndex: number;
@@ -356,6 +647,7 @@ function SectionCanvas({
   onCellDrop: (rowId: string, colId: string, curFieldId: string | null) => void;
   onClearCell: (rowId: string, colId: string) => void;
   onResizeColumns: (rowId: string, lId: string, rId: string, lW: number, rW: number) => void;
+  onOpenConfig: (rowId: string, colId: string, fieldName: string, def: SerializedInputDef | undefined) => void;
 }) {
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(section.name);
@@ -440,10 +732,10 @@ function SectionCanvas({
             onCellDrop={(colId, curFieldId) => onCellDrop(row.id, colId, curFieldId)}
             onClearCell={(colId) => onClearCell(row.id, colId)}
             onResizeColumns={(lId, rId, lW, rW) => onResizeColumns(row.id, lId, rId, lW, rW)}
+            onOpenConfig={(colId, fieldName, def) => onOpenConfig(row.id, colId, fieldName, def)}
           />
         ))}
 
-        {/* Add row controls */}
         <div style={{ display: "flex", gap: 4, alignItems: "center", paddingTop: section.rows.length > 0 ? 4 : 0 }}>
           <span style={{ fontSize: 11, color: "#475569", marginRight: 2 }}>Add row:</span>
           {[1, 2, 3, 4].map((n) => (
@@ -471,7 +763,7 @@ function SectionCanvas({
 
 function RowCanvas({
   row, fields, dragOverCell, onSetDragOverCell,
-  onRemoveRow, onCellDragStart, onCellDrop, onClearCell, onResizeColumns,
+  onRemoveRow, onCellDragStart, onCellDrop, onClearCell, onResizeColumns, onOpenConfig,
 }: {
   row: FormRow;
   fields: FieldBadge[];
@@ -482,6 +774,7 @@ function RowCanvas({
   onCellDrop: (colId: string, curFieldId: string | null) => void;
   onClearCell: (colId: string) => void;
   onResizeColumns: (lId: string, rId: string, lW: number, rW: number) => void;
+  onOpenConfig: (colId: string, fieldName: string, def: SerializedInputDef | undefined) => void;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
 
@@ -536,7 +829,22 @@ function RowCanvas({
                   <>
                     <span style={{ color: "#64748b", flexShrink: 0 }}><Icon name="drag" size={11} /></span>
                     <span style={{ flex: 1, fontSize: 12, color: "#e2e8f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{field.name}</span>
-                    <span style={{ fontSize: 10, color: "#475569", background: "#162032", padding: "1px 5px", borderRadius: 3, flexShrink: 0, border: "1px solid #1e293b" }}>{FIELD_TYPE_LABELS[field.fieldType] ?? field.fieldType}</span>
+                    {col.inputDef && (
+                      <span style={{ fontSize: 10, color: "#3b82f6", background: "#0f172a", padding: "1px 5px", borderRadius: 3, flexShrink: 0, border: "1px solid #1e3a5f" }}>
+                        {INPUT_TYPE_LABELS[col.inputDef.type] ?? col.inputDef.type}
+                      </span>
+                    )}
+                    {!col.inputDef && (
+                      <span style={{ fontSize: 10, color: "#475569", background: "#162032", padding: "1px 5px", borderRadius: 3, flexShrink: 0, border: "1px solid #1e293b" }}>
+                        {FIELD_TYPE_LABELS[field.fieldType] ?? field.fieldType}
+                      </span>
+                    )}
+                    <ButtonIcon
+                      name="settings"
+                      label="Configure input"
+                      size="sm"
+                      onClick={(e) => { (e as any).stopPropagation?.(); onOpenConfig(col.id, field.name, col.inputDef); }}
+                    />
                     <ButtonIcon name="close" label="Clear cell" size="sm" onClick={() => onClearCell(col.id)} />
                   </>
                 ) : (
@@ -544,7 +852,7 @@ function RowCanvas({
                 )}
               </div>
 
-              {/* Resize handle (between columns) */}
+              {/* Resize handle */}
               {nextCol && (
                 <div
                   onMouseDown={(e) => startResize(e, col, nextCol)}
@@ -598,6 +906,26 @@ function applyFieldToCell(
             rows: s.rows.map((r) =>
               r.id === rowId
                 ? { ...r, columns: r.columns.map((c) => (c.id === colId ? { ...c, fieldId } : c)) }
+                : r
+            ),
+          }
+        : s
+    ),
+  };
+}
+
+function applyInputDefToCell(
+  layout: FormLayout, sId: string, rowId: string, colId: string, inputDef: SerializedInputDef
+): FormLayout {
+  return {
+    ...layout,
+    sections: layout.sections.map((s) =>
+      s.id === sId
+        ? {
+            ...s,
+            rows: s.rows.map((r) =>
+              r.id === rowId
+                ? { ...r, columns: r.columns.map((c) => (c.id === colId ? { ...c, inputDef } : c)) }
                 : r
             ),
           }

@@ -7,13 +7,12 @@ import FieldManager from "@/lib/managers/field";
 import UserManager from "@/lib/managers/user";
 import Logger from "@/lib/system/logger";
 import AuthorityManager from "@/lib/managers/authority";
-import NotificationManager from "@/lib/managers/notification";
 import { createRecord } from "@/lib/database/crud/create";
 import { readRecord, readRecords } from "@/lib/database/crud/read";
 import { updateRecord } from "@/lib/database/crud/update";
 import { deleteRecord } from "@/lib/database/crud/delete";
 import { getSystemSettings } from "@/lib/managers/setting";
-import { sendNtfyNotification } from "@/lib/system/ntfy";
+import { sendNotification } from "@/lib/system/notifications";
 
 interface SdkParams {
   appId: string;
@@ -431,23 +430,17 @@ async function sysfiles_videoThumb({ params }: SdkParams): Promise<any> {
 
 
 async function system_sendNotification({ appId, params }: SdkParams): Promise<any> {
-  const notificationType = params.type || "info";
-  const manager = new NotificationManager();
-  await manager.createRecord(null, {
-    type: notificationType,
+  if (!params.userId) return true;
+
+  await sendNotification({
+    userId: params.userId,
     app: appId,
     title: params.title,
     message: params.message,
+    type: params.type || "info",
     url: params.url,
-    timestamp: Date.now(),
-    read: false,
-    archived: false,
-    user_id: params.userId,
+    topicId: params.topicId || undefined,
   });
-
-  if (params.userId) {
-    await sendNtfyNotification(params.userId, params.title, params.message, notificationType);
-  }
 
   return true;
 }

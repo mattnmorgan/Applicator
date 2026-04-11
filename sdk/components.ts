@@ -56,6 +56,7 @@ export type {
   FormColumn,
   FieldBadge as FormFieldBadge,
   AliasBadge as FormAliasBadge,
+  SerializedInputDef,
 } from "../lib/components/utility/FormEditor";
 export { default as FormViewer } from "../lib/components/utility/FormViewer";
 export type { FormViewerProps, FormViewerField } from "../lib/components/utility/FormViewer";

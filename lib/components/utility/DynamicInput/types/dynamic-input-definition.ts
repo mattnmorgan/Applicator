@@ -20,6 +20,8 @@ export interface DynamicInputDefinition {
   /** Whether the textarea is resizable (text type only, requires lines > 1) */
   resizable?: boolean;
   options?: DynamicInputOption[];
+  /** Allow selecting multiple items (searchable-combobox type only) */
+  multiSelect?: boolean;
   /** Enables live search/filter in the dropdown (select, multiselect, pseudoassignee, multipseudoassignee) */
   searchable?: boolean;
   /** Custom renderer for items in the search/dropdown list (pseudoassignee, multipseudoassignee) */

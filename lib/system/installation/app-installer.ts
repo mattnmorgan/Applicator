@@ -18,6 +18,7 @@ import LogManager from "@/lib/managers/log";
 import SettingManager from "@/lib/managers/setting";
 import UserManager from "@/lib/managers/user";
 import AgentManager from "@/lib/managers/agent";
+import NotificationTopicManager from "@/lib/managers/notificationTopic";
 import Agent from "@/lib/system/agents/agent";
 import AppPackage from "@/lib/system/installation/types/package";
 import { extractAppPackage } from "@/lib/system/installation/package-extractor";
@@ -269,6 +270,29 @@ export async function installAppComponents(
       );
     }
   }
+
+  // Install notification topics
+  if (
+    appAttributes.notificationTopics &&
+    Array.isArray(appAttributes.notificationTopics)
+  ) {
+    const topicManager = new NotificationTopicManager();
+    const topicTable = await topicManager.getTable();
+
+    for (const topic of appAttributes.notificationTopics) {
+      await topicManager.createRecord(
+        topicTable,
+        {
+          app: appId,
+          topic_id: topic.id,
+          name: topic.name,
+          summary: topic.summary,
+          ntfy_tag: topic.ntfyTag || null,
+        },
+        { id: `${appId}:${topic.id}`, client },
+      );
+    }
+  }
 }
 
 /**
@@ -486,6 +510,47 @@ export async function updateAppComponents(
   for (const agent of existingAgents) {
     if (existingAgentNames.has(agent.data.name)) {
       await agentManager.deleteRecord(agent.id, { client });
+    }
+  }
+
+  // Update notification topics (upsert all, delete removed)
+  const topicManager = new NotificationTopicManager();
+  const allTopics = await topicManager.readRecords({ fields: { app: appId } }, client);
+  const existingTopicIds = new Set(allTopics.records.map((t) => t.id));
+
+  if (
+    appAttributes.notificationTopics &&
+    Array.isArray(appAttributes.notificationTopics)
+  ) {
+    const topicTable = await topicManager.getTable();
+
+    for (const topic of appAttributes.notificationTopics) {
+      const topicId = `${appId}:${topic.id}`;
+      const topicData = {
+        app: appId,
+        topic_id: topic.id,
+        name: topic.name,
+        summary: topic.summary,
+        ntfy_tag: topic.ntfyTag || null,
+      };
+
+      if (existingTopicIds.has(topicId)) {
+        await topicManager.updateRecord(topicTable, topicId, topicData, { client });
+      } else {
+        await topicManager.createRecord(topicTable, topicData, {
+          id: topicId,
+          client,
+        });
+      }
+
+      existingTopicIds.delete(topicId);
+    }
+  }
+
+  // Delete topics that no longer exist in the app
+  for (const topic of allTopics.records) {
+    if (existingTopicIds.has(topic.id)) {
+      await topicManager.deleteRecord(topic.id, { client });
     }
   }
 

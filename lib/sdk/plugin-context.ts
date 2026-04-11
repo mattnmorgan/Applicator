@@ -10,6 +10,10 @@ import Authority from "@/lib/database/types/authority";
 import App from "@/lib/database/types/app";
 import { Filesystem } from "@/lib/system/filesystem";
 import { withTransaction as dbWithTransaction } from "@/lib/database/connections/postgresql";
+import {
+  sendNotification as _sendNotification,
+  SendNotificationOptions,
+} from "@/lib/system/notifications";
 import path from "path";
 
 export default class Context {
@@ -186,6 +190,19 @@ export default class Context {
       debug: async (msg: string) => this.logManager.debug(this.appId, msg),
       error: async (msg: string) => this.logManager.error(this.appId, msg),
     };
+  }
+
+  /**
+   * Send a notification to a user, respecting their per-topic preferences.
+   *
+   * @param options Notification options. `topicId` should be in the form
+   *   `{appId}:{topicId}` (e.g. `"forums:thread-reply"`). When omitted the
+   *   notification is always delivered on both channels.
+   */
+  public async sendNotification(
+    options: Omit<SendNotificationOptions, "app"> & { app?: string },
+  ): Promise<void> {
+    await _sendNotification({ app: this.appId, ...options });
   }
 
   /**

@@ -19,6 +19,7 @@ The `app.json` file is the manifest for every Applicator app. It lives at `src/m
   "authorities": [],
   "apiRoutes": [],
   "agents": [],
+  "notificationTopics": [],
   "applets": []
 }
 ```
@@ -46,6 +47,7 @@ The `app.json` file is the manifest for every Applicator app. It lives at `src/m
 | `authorities`        | `array`    | Role declarations                                    |
 | `apiRoutes`          | `array`    | HTTP endpoint declarations                           |
 | `agents`             | `array`    | Background task declarations                         |
+| `notificationTopics` | `array`    | Notification channel declarations (user-togglable)   |
 
 ---
 
@@ -87,4 +89,5 @@ Declare other apps that must be installed before this app can be installed:
 | `requiredPermissions` | [Permissions → Required Permissions](./permissions/required.md)       |
 | `apiRoutes`          | [API Route Metadata](./api-routes.md)                                  |
 | `agents`             | [Agent Metadata](./agents.md)                                          |
+| `notificationTopics` | [Notification Topics](./notification-topics.md)                        |
 | `applets`            | [Applet Contexts](./applet-contexts/overview.md)                       |

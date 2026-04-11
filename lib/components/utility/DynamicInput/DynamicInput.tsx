@@ -24,6 +24,7 @@ import ToggleInput from "./inputs/ToggleInput";
 import RadioHorizontalGroupInput from "./inputs/RadioHorizontalGroupInput";
 import RichTextInput from "./inputs/RichTextInput";
 import BadgeMultiselectInput from "./inputs/BadgeMultiselectInput";
+import SearchableComboboxInput from "./inputs/SearchableComboboxInput";
 
 export type { DynamicInputOption } from "./types/dynamic-input-option";
 export type { DynamicInputDefinition } from "./types/dynamic-input-definition";
@@ -61,6 +62,7 @@ const INPUT_COMPONENTS: Record<
   "radio-horizontal-group": RadioHorizontalGroupInput,
   richtext: RichTextInput,
   "badge-multiselect": BadgeMultiselectInput,
+  "searchable-combobox": SearchableComboboxInput,
 };
 
 export default function DynamicInput({

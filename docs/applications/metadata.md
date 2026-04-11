@@ -12,4 +12,5 @@ App metadata documentation has been reorganized into `docs/applications/metadata
 | Required permissions | [metadata/permissions/required.md](./metadata/permissions/required.md) |
 | API route metadata | [metadata/api-routes.md](./metadata/api-routes.md) |
 | Agent metadata | [metadata/agents.md](./metadata/agents.md) |
+| Notification topics | [metadata/notification-topics.md](./metadata/notification-topics.md) |
 | Applet contexts | [metadata/applet-contexts/overview.md](./metadata/applet-contexts/overview.md) |

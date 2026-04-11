@@ -17,6 +17,8 @@ import FieldManager from "@/lib/managers/field";
 import { createRecords } from "@/lib/client/database/crud/create";
 import AppManager from "@/lib/managers/app";
 import { sendNtfyNotification } from "@/lib/system/ntfy";
+import NotificationTopicManager from "@/lib/managers/notificationTopic";
+import SettingManager from "@/lib/managers/setting";
 
 /**
  * POST /api/[appId]/tables/[tableId]
@@ -66,12 +68,44 @@ export async function POST(
     );
 
     if (appId === "system" && tableId === "notifications" && body.data.user_id) {
-      sendNtfyNotification(
-        body.data.user_id,
-        body.data.title,
-        body.data.message,
-        body.data.type || "info",
-      ).catch(() => {});
+      // The internal bell record is already stored above. Now push externally
+      // via ntfy, respecting the user's external preference for the topic.
+      // topicId is a transient field in the request body — not stored in the DB.
+      (async () => {
+        const topicId: string | undefined = body.topicId || undefined;
+        let sendExternal = true;
+
+        if (topicId) {
+          const settingManager = new SettingManager();
+          const prefRecord = await settingManager.readRecord(
+            `${body.data.user_id}:notification-preferences`,
+          );
+          if (prefRecord?.data.value) {
+            try {
+              const prefs = JSON.parse(prefRecord.data.value);
+              sendExternal = prefs[topicId]?.external !== false;
+            } catch {
+              // default to enabled
+            }
+          }
+        }
+
+        if (!sendExternal) return;
+
+        let ntfyTag: string | undefined;
+        if (topicId) {
+          const topic = await new NotificationTopicManager().readRecord(topicId);
+          ntfyTag = topic?.data.ntfy_tag || undefined;
+        }
+
+        await sendNtfyNotification(
+          body.data.user_id,
+          body.data.title,
+          body.data.message,
+          body.data.type || "info",
+          ntfyTag,
+        );
+      })().catch(() => {});
     }
 
     return NextResponse.json({ record });

@@ -13,6 +13,7 @@ export async function sendNtfyNotification(
   title: string,
   message: string,
   type: string,
+  ntfyTag?: string,
 ): Promise<void> {
   try {
     const userManager = new UserManager();
@@ -31,7 +32,7 @@ export async function sendNtfyNotification(
     if (!serverUrl || !username || !password) return;
 
     const credentials = Buffer.from(`${username}:${password}`).toString("base64");
-    const tag = NTFY_TAGS[type] || NTFY_TAGS.info;
+    const tag = ntfyTag || NTFY_TAGS[type] || NTFY_TAGS.info;
 
     await fetch(`${serverUrl.replace(/\/$/, "")}/${userRecord.data.ntfy_uuid}`, {
       method: "POST",

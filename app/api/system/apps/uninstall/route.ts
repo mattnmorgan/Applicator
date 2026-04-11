@@ -13,6 +13,7 @@ import ApiRouteManager from "@/lib/managers/apiRoute";
 import AppletManager from "@/lib/managers/applet";
 import AppletSettingManager from "@/lib/managers/appletSetting";
 import AgentManager from "@/lib/managers/agent";
+import NotificationTopicManager from "@/lib/managers/notificationTopic";
 import UserManager from "@/lib/managers/user";
 import Agent from "@/lib/system/agents/agent";
 import { deleteAll } from "@/lib/database/crud/delete";
@@ -330,6 +331,16 @@ export async function POST(request: NextRequest) {
             { client },
           );
         }
+      }
+
+      // Delete all notification topics for this app
+      const notificationTopicManager = new NotificationTopicManager();
+      const allTopicsResult = await notificationTopicManager.readRecords(
+        { fields: { app: appId } },
+        client,
+      );
+      for (const topic of allTopicsResult.records) {
+        await notificationTopicManager.deleteRecord(topic.id, { client });
       }
 
       // Delete app from database

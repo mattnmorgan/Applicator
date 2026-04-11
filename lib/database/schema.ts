@@ -376,6 +376,25 @@ const schema = new Schema({
 
     new Table({
       createNonexisting: true,
+      name: "notification_topics",
+      fields: [
+        new Field({ name: "id", type: "text", primaryKey: true }), // {appId}:{topicId}
+        new Field({
+          name: "app",
+          type: "text",
+          foreignKey: { table: "apps", field: "id", cascade: true },
+        }),
+        new Field({ name: "topic_id", type: "text" }),
+        new Field({ name: "name", type: "text" }),
+        new Field({ name: "summary", type: "text" }),
+        new Field({ name: "ntfy_tag", type: "text", nillable: true }),
+        new Field({ name: "created_at", type: "bigint" }),
+        new Field({ name: "updated_at", type: "bigint" }),
+      ],
+    }),
+
+    new Table({
+      createNonexisting: true,
       name: "agent_executions",
       fields: [
         new Field({ name: "id", type: "text", primaryKey: true }),
@@ -459,6 +478,18 @@ export async function initializeSchema(): Promise<void> {
   await pool.query(
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS ntfy_uuid text`,
   );
+  await pool.query(`
+    CREATE TABLE IF NOT EXISTS notification_topics (
+      id text PRIMARY KEY,
+      app text NOT NULL REFERENCES apps(id) ON DELETE CASCADE,
+      topic_id text NOT NULL,
+      name text NOT NULL,
+      summary text NOT NULL,
+      ntfy_tag text,
+      created_at bigint,
+      updated_at bigint
+    )
+  `);
 }
 
 export default schema;

@@ -7,6 +7,7 @@ import Badge from "@/lib/components/utility/Badge/Badge";
 import AppManager from "@/lib/client/managers/app";
 import ApiRouteManager from "@/lib/client/managers/apiRoute";
 import AppletManager from "@/lib/client/managers/applet";
+import NotificationTopicManager from "@/lib/client/managers/notificationTopic";
 
 interface ApiRoute {
   path: string;
@@ -37,6 +38,12 @@ interface AppVersion {
   dev: number;
 }
 
+interface NotificationTopic {
+  id: string;
+  name: string;
+  summary: string;
+}
+
 interface App {
   id: string;
   label: string;
@@ -49,6 +56,7 @@ interface App {
   subApps?: SubApp[];
   dependencies?: Record<string, AppVersion>;
   requiredPermissions: string[];
+  notificationTopics: NotificationTopic[];
 }
 
 function formatVersion(version: AppVersion): string {
@@ -113,12 +121,14 @@ export default function AppView({ appId, onBack }: AppViewProps) {
       const appManager = new AppManager();
       const apiRouteManager = new ApiRouteManager();
       const appletManager = new AppletManager();
+      const topicManager = new NotificationTopicManager();
 
-      // Fetch apps, apiRoutes, and applets in parallel
-      const [appsData, apiRoutesData, appletsData] = await Promise.all([
+      // Fetch apps, apiRoutes, applets, and notification topics in parallel
+      const [appsData, apiRoutesData, appletsData, topicsData] = await Promise.all([
         appManager.readRecords({}),
         apiRouteManager.readRecords({}),
         appletManager.readRecords({}),
+        topicManager.readRecords({}),
       ]);
 
       if (appsData.records) {
@@ -157,7 +167,23 @@ export default function AppView({ appId, onBack }: AppViewProps) {
           }
         }
 
-        // Transform apps with their API routes and applets
+        // Group notification topics by app
+        const topicsByApp: Record<string, NotificationTopic[]> = {};
+        if (topicsData.records) {
+          for (const topic of topicsData.records) {
+            const appIdKey = topic.data.app;
+            if (!topicsByApp[appIdKey]) {
+              topicsByApp[appIdKey] = [];
+            }
+            topicsByApp[appIdKey].push({
+              id: topic.id,
+              name: topic.data.name,
+              summary: topic.data.summary,
+            });
+          }
+        }
+
+        // Transform apps with their API routes, applets, and notification topics
         const transformedApps = appsData.records.map((record) => ({
           id: record.id,
           label: record.data.label,
@@ -169,6 +195,7 @@ export default function AppView({ appId, onBack }: AppViewProps) {
           apiRoutes: apiRoutesByApp[record.id] || [],
           widgets: appletsByApp[record.id] || [],
           requiredPermissions: record.data.required_permissions,
+          notificationTopics: topicsByApp[record.id] || [],
         }));
 
         setAllApps(transformedApps);
@@ -467,6 +494,40 @@ export default function AppView({ appId, onBack }: AppViewProps) {
                 </div>
                 <div className={styles.routeDescription}>
                   {route.description}
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {app.notificationTopics && app.notificationTopics.length > 0 && (
+        <div className={styles.section}>
+          <h2 className={styles.sectionTitle}>Notification Topics</h2>
+          <div
+            style={{
+              background: "#0f172a",
+              border: "1px solid #1e293b",
+              borderRadius: "8px",
+              overflow: "hidden",
+            }}
+          >
+            {app.notificationTopics.map((topic, index) => (
+              <div
+                key={topic.id}
+                style={{
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "2px",
+                  padding: "12px 16px",
+                  borderTop: index > 0 ? "1px solid #1e293b" : undefined,
+                }}
+              >
+                <div style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
+                  {topic.name}
+                </div>
+                <div style={{ fontSize: "13px", color: "#64748b" }}>
+                  {topic.summary}
                 </div>
               </div>
             ))}

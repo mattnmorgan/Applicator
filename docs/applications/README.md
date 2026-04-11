@@ -15,6 +15,7 @@ This documentation covers how to build applications for the Applicator framework
 9. [Guest Access](./guest-access.md) - Unauthenticated access and guest applet context
 10. [Required Permissions](./required-permissions.md) - Declaring mandatory app permissions
 11. [Reusable Components](./components.md) - Platform UI components for app frontends
+12. [Utilities](./utilities.md) - Debouncer and other utility classes from `@applicator/sdk/utilities`
 
 ## Quick Start
 

@@ -7,4 +7,5 @@ export type {
   FormColumn,
   FieldBadge,
   AliasBadge,
+  SerializedInputDef,
 } from "./FormEditor";

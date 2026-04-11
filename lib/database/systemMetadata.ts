@@ -620,6 +620,42 @@ export const SYSTEM_APP_METADATA = {
       ],
     },
     {
+      name: "notification_topics",
+      description: "Notification topics registered by installed applications",
+      fields: [
+        {
+          name: "app",
+          description: "App that registered this topic",
+          type: "relationship",
+          relatedTo: "system:apps",
+          required: true,
+        },
+        {
+          name: "topic_id",
+          description: "Short identifier for the topic within the app (e.g. thread-reply)",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "name",
+          description: "Human-readable topic name",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "summary",
+          description: "Brief description of when this notification is sent",
+          type: "string",
+          required: true,
+        },
+        {
+          name: "ntfy_tag",
+          description: "Emoji tag name for ntfy push notifications (overrides type default)",
+          type: "string",
+        },
+      ],
+    },
+    {
       name: "agents",
       description: "Asynchronous job that runs for an installed application",
       fields: [
