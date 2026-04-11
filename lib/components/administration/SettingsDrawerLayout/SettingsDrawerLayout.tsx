@@ -18,11 +18,18 @@ export default function SettingsDrawerLayout({
   navTitle = "Navigation",
   navIconName = "hamburger",
 }: SettingsDrawerLayoutProps) {
+  const isMobile = () => typeof window !== "undefined" && window.innerWidth <= 768;
   const [navOpen, setNavOpen] = useState(false);
   const pathname = usePathname();
 
   useEffect(() => {
-    setNavOpen(false);
+    setNavOpen(!isMobile());
+  }, []);
+
+  useEffect(() => {
+    if (isMobile()) {
+      setNavOpen(false);
+    }
   }, [pathname]);
 
   return (
