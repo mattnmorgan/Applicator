@@ -21,9 +21,14 @@ export async function sendNtfyNotification(
     if (!userRecord?.data.ntfy_uuid) return;
 
     const settingManager = new SettingManager();
-    const serverUrlRecord = await settingManager.readRecord("ntfyServerUrl");
-    const usernameRecord = await settingManager.readRecord("ntfyUsername");
-    const passwordRecord = await settingManager.readRecord("ntfyPassword");
+    const [serverUrlRecord, usernameRecord, passwordRecord, brandIconRecord, siteUrlRecord] =
+      await Promise.all([
+        settingManager.readRecord("ntfyServerUrl"),
+        settingManager.readRecord("ntfyUsername"),
+        settingManager.readRecord("ntfyPassword"),
+        settingManager.readRecord("brandIcon"),
+        settingManager.readRecord("siteUrl"),
+      ]);
 
     const serverUrl = serverUrlRecord?.data.value;
     const username = usernameRecord?.data.value;
@@ -34,14 +39,22 @@ export async function sendNtfyNotification(
     const credentials = Buffer.from(`${username}:${password}`).toString("base64");
     const tag = ntfyTag || NTFY_TAGS[type] || NTFY_TAGS.info;
 
+    const headers: Record<string, string> = {
+      Authorization: `Basic ${credentials}`,
+      Title: title,
+      Tags: tag,
+      "Content-Type": "text/plain",
+    };
+
+    const hasBrandIcon = brandIconRecord?.data.value === "true";
+    const siteUrl = siteUrlRecord?.data.value?.replace(/\/$/, "");
+    if (hasBrandIcon && siteUrl) {
+      headers["Icon"] = `${siteUrl}/api/system/assets/brand`;
+    }
+
     await fetch(`${serverUrl.replace(/\/$/, "")}/${userRecord.data.ntfy_uuid}`, {
       method: "POST",
-      headers: {
-        Authorization: `Basic ${credentials}`,
-        Title: title,
-        Tags: tag,
-        "Content-Type": "text/plain",
-      },
+      headers,
       body: message,
     });
   } catch {

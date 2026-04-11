@@ -10,6 +10,7 @@ export default class SettingManager extends CRUD<Setting> {
 export type SystemSettings = {
   brandName?: string;
   brandIcon?: string;
+  siteUrl?: string;
   loggingEnabled?: string;
   selfregistrationEnabled?: string;
   appInplaceEnabled?: string;
@@ -29,6 +30,7 @@ export async function getSystemSettings(): Promise<SystemSettings> {
   for (const setting of [
     "brandName",
     "brandIcon",
+    "siteUrl",
     "loggingEnabled",
     "selfregistrationEnabled",
     "appInplaceEnabled",

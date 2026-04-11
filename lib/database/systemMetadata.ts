@@ -4,7 +4,7 @@ export const SYSTEM_APP_METADATA = {
   version: {
     major: 0,
     minor: 1,
-    dev: 7,
+    dev: 8,
   },
   author: "Matthew Morgan",
   contact_email: "matthew@morgantech.info",
@@ -595,7 +595,8 @@ export const SYSTEM_APP_METADATA = {
     },
     {
       name: "records",
-      description: "App-defined data records stored as JSONB, keyed by app, table, and record ID",
+      description:
+        "App-defined data records stored as JSONB, keyed by app, table, and record ID",
       fields: [
         {
           name: "app_id",
@@ -632,7 +633,8 @@ export const SYSTEM_APP_METADATA = {
         },
         {
           name: "topic_id",
-          description: "Short identifier for the topic within the app (e.g. thread-reply)",
+          description:
+            "Short identifier for the topic within the app (e.g. thread-reply)",
           type: "string",
           required: true,
         },
@@ -650,7 +652,8 @@ export const SYSTEM_APP_METADATA = {
         },
         {
           name: "ntfy_tag",
-          description: "Emoji tag name for ntfy push notifications (overrides type default)",
+          description:
+            "Emoji tag name for ntfy push notifications (overrides type default)",
           type: "string",
         },
       ],

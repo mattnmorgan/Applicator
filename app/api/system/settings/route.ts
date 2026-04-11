@@ -172,6 +172,8 @@ export async function POST(request: NextRequest) {
           await setSetting("appInplaceEnabled", String(value));
         } else if (key === "brandName" && typeof value === "string") {
           await setSetting("brandName", value);
+        } else if (key === "siteUrl" && typeof value === "string") {
+          await setSetting("siteUrl", value);
         } else if (key === "ntfyServerUrl" && typeof value === "string") {
           await setSetting("ntfyServerUrl", value);
         } else if (key === "ntfyUsername" && typeof value === "string") {

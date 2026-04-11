@@ -1,3 +1,4 @@
+import fs from "fs";
 import fsPromises from "fs/promises";
 import nodePath from "path";
 import { getSession } from "@/lib/managers/session";
@@ -425,10 +426,34 @@ export class Filesystem {
     if (isDirectory) {
       await this.copyDirectoryRecursive(fullSource, fullDestPath);
     } else {
-      await fsPromises.copyFile(fullSource, fullDestPath);
+      await this.copyFileSafe(fullSource, fullDestPath);
     }
 
     return this.toRelative(fullDestPath);
+  }
+
+  /**
+   * Copy a single file, falling back to a stream-based copy if the OS-level
+   * copy_file_range / sendfile syscall is rejected (EPERM/EXDEV) by the
+   * filesystem (common on NFS, BTRFS, overlayfs, and external drives).
+   */
+  private async copyFileSafe(src: string, dest: string): Promise<void> {
+    try {
+      await fsPromises.copyFile(src, dest);
+    } catch (err: any) {
+      if (err.code === "EPERM" || err.code === "EXDEV") {
+        await new Promise<void>((resolve, reject) => {
+          const reader = fs.createReadStream(src);
+          const writer = fs.createWriteStream(dest);
+          reader.on("error", reject);
+          writer.on("error", reject);
+          writer.on("close", resolve);
+          reader.pipe(writer);
+        });
+      } else {
+        throw err;
+      }
+    }
   }
 
   /**
@@ -450,7 +475,7 @@ export class Filesystem {
       if (entry.isDirectory()) {
         await this.copyDirectoryRecursive(sourceItemPath, destItemPath);
       } else {
-        await fsPromises.copyFile(sourceItemPath, destItemPath);
+        await this.copyFileSafe(sourceItemPath, destItemPath);
       }
     }
   }

@@ -18,6 +18,8 @@ export default function SettingsPage() {
   const [originalLoggingEnabled, setOriginalLoggingEnabled] = useState(false);
   const [selfregistrationEnabled, setSelfregistrationEnabled] = useState(false);
   const [originalSelfregistrationEnabled, setOriginalSelfregistrationEnabled] = useState(false);
+  const [siteUrl, setSiteUrl] = useState("");
+  const [originalSiteUrl, setOriginalSiteUrl] = useState("");
   const [ntfyServerUrl, setNtfyServerUrl] = useState("");
   const [originalNtfyServerUrl, setOriginalNtfyServerUrl] = useState("");
   const [ntfyUsername, setNtfyUsername] = useState("");
@@ -54,6 +56,8 @@ export default function SettingsPage() {
       setSelfregistrationEnabled(settings.selfregistrationEnabled === "true");
       setOriginalSelfregistrationEnabled(settings.selfregistrationEnabled === "true");
 
+      setSiteUrl(settings.siteUrl || "");
+      setOriginalSiteUrl(settings.siteUrl || "");
       setNtfyServerUrl(settings.ntfyServerUrl || "");
       setOriginalNtfyServerUrl(settings.ntfyServerUrl || "");
       setNtfyUsername(settings.ntfyUsername || "");
@@ -114,6 +118,7 @@ export default function SettingsPage() {
       // Save other settings via JSON
       const settingsBody: Record<string, unknown> = {
         storage,
+        siteUrl,
         loggingEnabled,
         selfregistrationEnabled,
         ntfyServerUrl,
@@ -137,6 +142,7 @@ export default function SettingsPage() {
         setOriginalBrandName(brandName);
         setOriginalLoggingEnabled(loggingEnabled);
         setOriginalSelfregistrationEnabled(selfregistrationEnabled);
+        setOriginalSiteUrl(siteUrl);
         setOriginalNtfyServerUrl(ntfyServerUrl);
         setOriginalNtfyUsername(ntfyUsername);
         setNtfyPassword("");
@@ -169,6 +175,7 @@ export default function SettingsPage() {
     clearBrandIcon ||
     loggingEnabled !== originalLoggingEnabled ||
     selfregistrationEnabled !== originalSelfregistrationEnabled ||
+    siteUrl !== originalSiteUrl ||
     ntfyServerUrl !== originalNtfyServerUrl ||
     ntfyUsername !== originalNtfyUsername ||
     ntfyPassword !== "";
@@ -483,6 +490,35 @@ export default function SettingsPage() {
             </h2>
             <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>
               Configure a self-hosted NTFY server to send push notifications to users.
+            </p>
+          </div>
+
+          <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <label style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
+              Site URL
+            </label>
+            <input
+              type="text"
+              value={siteUrl}
+              onChange={(e) => setSiteUrl(e.target.value)}
+              placeholder="https://your-site.example.com"
+              style={{
+                padding: "10px 12px",
+                background: "#0f172a",
+                border: "1px solid #475569",
+                borderRadius: "6px",
+                color: "#f1f5f9",
+                fontSize: "14px",
+                outline: "none",
+                transition: "border-color 0.2s",
+                width: "100%",
+                boxSizing: "border-box",
+              }}
+              onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
+              onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
+            />
+            <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>
+              The public base URL of this site (e.g. <code style={{ color: "#94a3b8" }}>https://your-site.example.com</code>). Used to include the brand icon in push notifications.
             </p>
           </div>
 
