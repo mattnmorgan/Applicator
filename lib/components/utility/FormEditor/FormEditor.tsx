@@ -131,9 +131,12 @@ const COLOR_OPTION_TYPES = new Set(["badge-multiselect", "radio-horizontal-group
 export default function FormEditor({ layout, fields, aliases, onChange, getDefaultInputDef }: FormEditorProps) {
   const draggingFieldId = useRef<string | null>(null);
   const draggingCellRef = useRef<{ sectionId: string; rowId: string; colId: string } | null>(null);
+  const draggingRowRef = useRef<{ sectionId: string; rowId: string } | null>(null);
 
   const [fieldSearch, setFieldSearch] = useState("");
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
+  const [isDraggingRow, setIsDraggingRow] = useState(false);
+  const [dragOverRow, setDragOverRow] = useState<{ sectionId: string; insertBeforeRowId: string | null } | null>(null);
 
   // Cell config modal
   const [configCell, setConfigCell] = useState<{ sectionId: string; rowId: string; colId: string; fieldName: string; fieldType: string } | null>(null);
@@ -260,6 +263,26 @@ export default function FormEditor({ layout, fields, aliases, onChange, getDefau
     }));
   };
 
+  const moveRow = (sId: string, fromRowId: string, insertBeforeRowId: string | null) => {
+    updateLayout((l) => ({
+      ...l,
+      sections: l.sections.map((s) => {
+        if (s.id !== sId) return s;
+        const rows = [...s.rows];
+        const fromIndex = rows.findIndex((r) => r.id === fromRowId);
+        if (fromIndex === -1) return s;
+        const [moved] = rows.splice(fromIndex, 1);
+        if (insertBeforeRowId === null) {
+          rows.push(moved);
+        } else {
+          const toIndex = rows.findIndex((r) => r.id === insertBeforeRowId);
+          rows.splice(toIndex === -1 ? rows.length : toIndex, 0, moved);
+        }
+        return { ...s, rows };
+      }),
+    }));
+  };
+
   // ── drag handlers ──────────────────────────────────────────────────────────
 
   const handlePaletteDragStart = (fieldId: string) => {
@@ -296,6 +319,34 @@ export default function FormEditor({ layout, fields, aliases, onChange, getDefau
     draggingFieldId.current = null;
     draggingCellRef.current = null;
     setDragOverCell(null);
+  };
+
+  const handleRowDragStart = (sId: string, rowId: string) => {
+    draggingRowRef.current = { sectionId: sId, rowId };
+    draggingFieldId.current = null;
+    draggingCellRef.current = null;
+    setIsDraggingRow(true);
+  };
+
+  const handleRowDragEnd = () => {
+    draggingRowRef.current = null;
+    setIsDraggingRow(false);
+    setDragOverRow(null);
+  };
+
+  const handleRowDragOver = (sId: string, insertBeforeRowId: string | null) => {
+    if (!draggingRowRef.current) return;
+    // Skip no-op: dropping immediately before itself
+    if (insertBeforeRowId === draggingRowRef.current.rowId) return;
+    setDragOverRow({ sectionId: sId, insertBeforeRowId });
+  };
+
+  const handleRowDrop = (sId: string, insertBeforeRowId: string | null) => {
+    if (!draggingRowRef.current || draggingRowRef.current.sectionId !== sId) return;
+    moveRow(sId, draggingRowRef.current.rowId, insertBeforeRowId);
+    draggingRowRef.current = null;
+    setIsDraggingRow(false);
+    setDragOverRow(null);
   };
 
   // ── config modal ───────────────────────────────────────────────────────────
@@ -405,6 +456,12 @@ export default function FormEditor({ layout, fields, aliases, onChange, getDefau
               onCellDrop={(rowId, colId, curFieldId) => handleCellDrop(sec.id, rowId, colId, curFieldId)}
               onResizeColumns={(rowId, lId, rId, lW, rW) => resizeColumns(sec.id, rowId, lId, rId, lW, rW)}
               onOpenConfig={(rowId, colId, fieldName, fieldType, def) => openConfig(sec.id, rowId, colId, fieldName, fieldType, def)}
+              isAnyRowDragging={isDraggingRow}
+              dragOverRow={dragOverRow?.sectionId === sec.id ? dragOverRow : null}
+              onRowDragStart={(rowId) => handleRowDragStart(sec.id, rowId)}
+              onRowDragEnd={handleRowDragEnd}
+              onRowDragOver={(insertBeforeRowId) => handleRowDragOver(sec.id, insertBeforeRowId)}
+              onRowDrop={(insertBeforeRowId) => handleRowDrop(sec.id, insertBeforeRowId)}
             />
           ))}
 
@@ -632,6 +689,7 @@ function SectionCanvas({
   dragOverCell, onSetDragOverCell,
   onRename, onRemove, onMoveUp, onMoveDown, onSetAliases,
   onAddRow, onRemoveRow, onCellDragStart, onCellDrop, onResizeColumns, onOpenConfig,
+  isAnyRowDragging, dragOverRow, onRowDragStart, onRowDragEnd, onRowDragOver, onRowDrop,
 }: {
   section: FormLayoutSection;
   sectionIndex: number;
@@ -651,6 +709,12 @@ function SectionCanvas({
   onCellDrop: (rowId: string, colId: string, curFieldId: string | null) => void;
   onResizeColumns: (rowId: string, lId: string, rId: string, lW: number, rW: number) => void;
   onOpenConfig: (rowId: string, colId: string, fieldName: string, fieldType: string, def: SerializedInputDef | undefined) => void;
+  isAnyRowDragging: boolean;
+  dragOverRow: { sectionId: string; insertBeforeRowId: string | null } | null;
+  onRowDragStart: (rowId: string) => void;
+  onRowDragEnd: () => void;
+  onRowDragOver: (insertBeforeRowId: string | null) => void;
+  onRowDrop: (insertBeforeRowId: string | null) => void;
 }) {
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(section.name);
@@ -722,20 +786,40 @@ function SectionCanvas({
       )}
 
       {/* Rows */}
-      <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column", gap: 6 }}>
-        {section.rows.map((row) => (
-          <RowCanvas
-            key={row.id}
-            row={row}
-            fields={fields}
-            dragOverCell={dragOverCell}
-            onSetDragOverCell={onSetDragOverCell}
-            onRemoveRow={() => onRemoveRow(row.id)}
-            onCellDragStart={(colId) => onCellDragStart(row.id, colId)}
-            onCellDrop={(colId, curFieldId) => onCellDrop(row.id, colId, curFieldId)}
-            onResizeColumns={(lId, rId, lW, rW) => onResizeColumns(row.id, lId, rId, lW, rW)}
-            onOpenConfig={(colId, fieldName, fieldType, def) => onOpenConfig(row.id, colId, fieldName, fieldType, def)}
-          />
+      <div style={{ padding: "10px 12px", display: "flex", flexDirection: "column" }}>
+        <RowDropZone
+          active={dragOverRow?.insertBeforeRowId === section.rows[0]?.id}
+          show={isAnyRowDragging}
+          onDragOver={() => section.rows[0] && onRowDragOver(section.rows[0].id)}
+          onDragLeave={() => {}}
+          onDrop={() => section.rows[0] && onRowDrop(section.rows[0].id)}
+        />
+        {section.rows.map((row, ri) => (
+          <>
+            <RowCanvas
+              key={row.id}
+              row={row}
+              fields={fields}
+              dragOverCell={dragOverCell}
+              onSetDragOverCell={onSetDragOverCell}
+              isAnyRowDragging={isAnyRowDragging}
+              onRemoveRow={() => onRemoveRow(row.id)}
+              onCellDragStart={(colId) => onCellDragStart(row.id, colId)}
+              onCellDrop={(colId, curFieldId) => onCellDrop(row.id, colId, curFieldId)}
+              onResizeColumns={(lId, rId, lW, rW) => onResizeColumns(row.id, lId, rId, lW, rW)}
+              onOpenConfig={(colId, fieldName, fieldType, def) => onOpenConfig(row.id, colId, fieldName, fieldType, def)}
+              onRowDragStart={() => onRowDragStart(row.id)}
+              onRowDragEnd={onRowDragEnd}
+            />
+            <RowDropZone
+              key={row.id + "_drop"}
+              active={dragOverRow?.insertBeforeRowId === (section.rows[ri + 1]?.id ?? null)}
+              show={isAnyRowDragging}
+              onDragOver={() => onRowDragOver(section.rows[ri + 1]?.id ?? null)}
+              onDragLeave={() => {}}
+              onDrop={() => onRowDrop(section.rows[ri + 1]?.id ?? null)}
+            />
+          </>
         ))}
 
         <div style={{ display: "flex", gap: 4, alignItems: "center", paddingTop: section.rows.length > 0 ? 4 : 0 }}>
@@ -765,17 +849,21 @@ function SectionCanvas({
 
 function RowCanvas({
   row, fields, dragOverCell, onSetDragOverCell,
-  onRemoveRow, onCellDragStart, onCellDrop, onResizeColumns, onOpenConfig,
+  isAnyRowDragging, onRemoveRow, onCellDragStart, onCellDrop, onResizeColumns, onOpenConfig,
+  onRowDragStart, onRowDragEnd,
 }: {
   row: FormRow;
   fields: FieldBadge[];
   dragOverCell: string | null;
   onSetDragOverCell: (id: string | null) => void;
+  isAnyRowDragging: boolean;
   onRemoveRow: () => void;
   onCellDragStart: (colId: string) => void;
   onCellDrop: (colId: string, curFieldId: string | null) => void;
   onResizeColumns: (lId: string, rId: string, lW: number, rW: number) => void;
   onOpenConfig: (colId: string, fieldName: string, fieldType: string, def: SerializedInputDef | undefined) => void;
+  onRowDragStart: () => void;
+  onRowDragEnd: () => void;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
   const [resizePopover, setResizePopover] = useState<{ x: number; y: number; left: number; right: number } | null>(null);
@@ -827,18 +915,30 @@ function RowCanvas({
       </div>
     )}
     <div style={{ display: "flex", alignItems: "stretch", gap: 0, background: "#0f172a", borderRadius: 6, overflow: "hidden", border: "1px solid #1e293b", position: "relative" }}>
+      {/* Row drag handle */}
+      <div
+        draggable
+        onDragStart={(e) => { e.stopPropagation(); onRowDragStart(); }}
+        onDragEnd={onRowDragEnd}
+        style={{ display: "flex", alignItems: "center", padding: "0 5px", cursor: "grab", color: "#334155", flexShrink: 0, userSelect: "none" }}
+        onMouseEnter={(e) => (e.currentTarget.style.color = "#64748b")}
+        onMouseLeave={(e) => (e.currentTarget.style.color = "#334155")}
+        title="Drag to reorder row"
+      >
+        <Icon name="drag" size={12} />
+      </div>
       <div ref={rowRef} style={{ display: "flex", flex: 1, minWidth: 0 }}>
         {row.columns.map((col, ci) => {
           const field = fields.find((f) => f.id === col.fieldId);
-          const isDragOver = dragOverCell === col.id;
+          const isDragOver = !isAnyRowDragging && dragOverCell === col.id;
           const nextCol = row.columns[ci + 1];
           return (
             <div key={col.id} style={{ display: "flex", alignItems: "stretch", width: `${col.width}%`, minWidth: 0 }}>
               {/* Cell */}
               <div
-                onDragOver={(e) => { e.preventDefault(); onSetDragOverCell(col.id); }}
-                onDragLeave={() => onSetDragOverCell(null)}
-                onDrop={(e) => { e.preventDefault(); onCellDrop(col.id, col.fieldId); onSetDragOverCell(null); }}
+                onDragOver={(e) => { if (isAnyRowDragging) return; e.preventDefault(); onSetDragOverCell(col.id); }}
+                onDragLeave={() => { if (isAnyRowDragging) return; onSetDragOverCell(null); }}
+                onDrop={(e) => { if (isAnyRowDragging) return; e.preventDefault(); onCellDrop(col.id, col.fieldId); onSetDragOverCell(null); }}
                 style={{
                   flex: 1, minWidth: 0, minHeight: 34, padding: "4px 8px",
                   background: isDragOver ? "#1e3a5f" : "transparent",
@@ -891,6 +991,31 @@ function RowCanvas({
       </div>
     </div>
     </>
+  );
+}
+
+// ─── RowDropZone ──────────────────────────────────────────────────────────────
+
+function RowDropZone({ active, show, onDragOver, onDragLeave, onDrop }: {
+  active: boolean;
+  show: boolean;
+  onDragOver: () => void;
+  onDragLeave: () => void;
+  onDrop: () => void;
+}) {
+  return (
+    <div
+      style={{
+        height: 6,
+        borderRadius: 2,
+        flexShrink: 0,
+        background: active ? "#3b82f6" : show ? "rgba(59,130,246,0.12)" : "transparent",
+        transition: "background 0.1s",
+      }}
+      onDragOver={(e) => { if (!show) return; e.preventDefault(); onDragOver(); }}
+      onDragLeave={onDragLeave}
+      onDrop={(e) => { e.preventDefault(); onDrop(); }}
+    />
   );
 }
 
