@@ -377,10 +377,13 @@ async function sysfiles_resize({ params }: SdkParams): Promise<any> {
   }
 
   await fs.mkdir(path.dirname(destAbs), { recursive: true });
-  await sharp(srcAbs)
-    .resize(width, height, { fit: "inside", withoutEnlargement: true })
-    .jpeg({ quality: 80 })
-    .toFile(destAbs);
+  const { hasAlpha } = await sharp(srcAbs).metadata();
+  const pipeline = sharp(srcAbs).resize(width, height, { fit: "inside", withoutEnlargement: true });
+  if (hasAlpha) {
+    await pipeline.png({ compressionLevel: 6 }).toFile(destAbs);
+  } else {
+    await pipeline.jpeg({ quality: 80 }).toFile(destAbs);
+  }
 
   return { generated: true };
 }

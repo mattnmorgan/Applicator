@@ -199,17 +199,17 @@ export async function PATCH(request: Request) {
         fs.mkdirSync(userIconsDir, { recursive: true });
       }
 
-      const fileName = `${currentUser.id}.jpg`;
+      const fileName = `${currentUser.id}.png`;
       const filePath = path.join(userIconsDir, fileName);
 
-      // Delete legacy .png if it exists
-      const legacyPath = path.join(userIconsDir, `${currentUser.id}.png`);
+      // Delete legacy .jpg if it exists
+      const legacyPath = path.join(userIconsDir, `${currentUser.id}.jpg`);
       if (fs.existsSync(legacyPath)) fs.unlinkSync(legacyPath);
 
       const raw = Buffer.from(await profilePictureFile.arrayBuffer());
       const resized = await sharp(raw)
         .resize(64, 64, { fit: "cover" })
-        .jpeg({ quality: 85 })
+        .png({ compressionLevel: 6 })
         .toBuffer();
       fs.writeFileSync(filePath, resized);
 

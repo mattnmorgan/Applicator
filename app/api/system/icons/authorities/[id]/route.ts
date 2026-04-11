@@ -16,7 +16,7 @@ async function checkAdmin(request: NextRequest): Promise<boolean> {
 }
 
 function iconPath(storagePath: string, id: string): string {
-  return path.join(storagePath, "apps", "system", "icons", "authorities", `${id}.jpg`);
+  return path.join(storagePath, "apps", "system", "icons", "authorities", `${id}.png`);
 }
 
 // POST /api/system/icons/authorities/:id — upload and resize authority icon
@@ -50,7 +50,7 @@ export async function POST(
     const raw = Buffer.from(await file.arrayBuffer());
     const resized = await sharp(raw)
       .resize(64, 64, { fit: "cover" })
-      .jpeg({ quality: 85 })
+      .png({ compressionLevel: 6 })
       .toBuffer();
     await fs.writeFile(filePath, resized);
 
@@ -80,6 +80,10 @@ export async function DELETE(
 
     try {
       await fs.unlink(filePath);
+    } catch {}
+    // Also remove legacy .jpg if present
+    try {
+      await fs.unlink(filePath.replace(/\.png$/, ".jpg"));
     } catch {}
 
     const authorityManager = new AuthorityManager();

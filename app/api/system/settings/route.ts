@@ -140,9 +140,9 @@ export async function POST(request: NextRequest) {
           const raw = Buffer.from(await brandIcon.arrayBuffer());
           const resized = await sharp(raw)
             .resize(64, 64, { fit: "cover" })
-            .jpeg({ quality: 85 })
+            .png({ compressionLevel: 6 })
             .toBuffer();
-          await fs.writeFile(path.join(logoDir, "brand.jpg"), resized);
+          await fs.writeFile(path.join(logoDir, "brand.png"), resized);
 
           // Set brandIcon setting to indicate brand exists
           await setSetting("brandIcon", "true");
