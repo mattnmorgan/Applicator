@@ -362,63 +362,65 @@ export default function FormEditor({ layout, fields, aliases, onChange, getDefau
       </div>
 
       {/* Layout canvas */}
-      <div style={{ flex: 1, minHeight: 0, overflowY: "auto", display: "flex", flexDirection: "column", gap: 12 }}>
-        {layout.sections.length === 0 && (
-          <div style={{ color: "#475569", fontSize: 13, textAlign: "center", padding: 24 }}>
-            No sections yet. Add a section to start building the form layout.
-          </div>
-        )}
+      <div style={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {layout.sections.length === 0 && (
+            <div style={{ color: "#475569", fontSize: 13, textAlign: "center", padding: 24 }}>
+              No sections yet. Add a section to start building the form layout.
+            </div>
+          )}
 
-        {layout.sections.map((sec, si) => (
-          <SectionCanvas
-            key={sec.id}
-            section={sec}
-            sectionIndex={si}
-            totalSections={layout.sections.length}
-            fields={fields}
-            aliases={aliases}
-            dragOverCell={dragOverCell}
-            onSetDragOverCell={setDragOverCell}
-            onRename={(name) => renameSection(sec.id, name)}
-            onRemove={() => removeSection(sec.id)}
-            onMoveUp={() => {
-              if (si === 0) return;
-              updateLayout((l) => {
-                const arr = [...l.sections];
-                [arr[si - 1], arr[si]] = [arr[si], arr[si - 1]];
-                return { ...l, sections: arr };
-              });
-            }}
-            onMoveDown={() => {
-              if (si === layout.sections.length - 1) return;
-              updateLayout((l) => {
-                const arr = [...l.sections];
-                [arr[si], arr[si + 1]] = [arr[si + 1], arr[si]];
-                return { ...l, sections: arr };
-              });
-            }}
-            onSetAliases={(ids) => setSectionAliases(sec.id, ids)}
-            onAddRow={(cols) => addRow(sec.id, cols)}
-            onRemoveRow={(rowId) => removeRow(sec.id, rowId)}
-            onCellDragStart={(rowId, colId) => handleCellDragStart(sec.id, rowId, colId)}
-            onCellDrop={(rowId, colId, curFieldId) => handleCellDrop(sec.id, rowId, colId, curFieldId)}
-            onResizeColumns={(rowId, lId, rId, lW, rW) => resizeColumns(sec.id, rowId, lId, rId, lW, rW)}
-            onOpenConfig={(rowId, colId, fieldName, fieldType, def) => openConfig(sec.id, rowId, colId, fieldName, fieldType, def)}
-          />
-        ))}
+          {layout.sections.map((sec, si) => (
+            <SectionCanvas
+              key={sec.id}
+              section={sec}
+              sectionIndex={si}
+              totalSections={layout.sections.length}
+              fields={fields}
+              aliases={aliases}
+              dragOverCell={dragOverCell}
+              onSetDragOverCell={setDragOverCell}
+              onRename={(name) => renameSection(sec.id, name)}
+              onRemove={() => removeSection(sec.id)}
+              onMoveUp={() => {
+                if (si === 0) return;
+                updateLayout((l) => {
+                  const arr = [...l.sections];
+                  [arr[si - 1], arr[si]] = [arr[si], arr[si - 1]];
+                  return { ...l, sections: arr };
+                });
+              }}
+              onMoveDown={() => {
+                if (si === layout.sections.length - 1) return;
+                updateLayout((l) => {
+                  const arr = [...l.sections];
+                  [arr[si], arr[si + 1]] = [arr[si + 1], arr[si]];
+                  return { ...l, sections: arr };
+                });
+              }}
+              onSetAliases={(ids) => setSectionAliases(sec.id, ids)}
+              onAddRow={(cols) => addRow(sec.id, cols)}
+              onRemoveRow={(rowId) => removeRow(sec.id, rowId)}
+              onCellDragStart={(rowId, colId) => handleCellDragStart(sec.id, rowId, colId)}
+              onCellDrop={(rowId, colId, curFieldId) => handleCellDrop(sec.id, rowId, colId, curFieldId)}
+              onResizeColumns={(rowId, lId, rId, lW, rW) => resizeColumns(sec.id, rowId, lId, rId, lW, rW)}
+              onOpenConfig={(rowId, colId, fieldName, fieldType, def) => openConfig(sec.id, rowId, colId, fieldName, fieldType, def)}
+            />
+          ))}
 
-        <button
-          onClick={addSection}
-          style={{
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
-            padding: "10px 16px", background: "transparent", border: "1px dashed #334155",
-            borderRadius: 8, color: "#64748b", fontSize: 13, cursor: "pointer", transition: "all 0.15s",
-          }}
-          onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#3b82f6"; e.currentTarget.style.color = "#93c5fd"; }}
-          onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#334155"; e.currentTarget.style.color = "#64748b"; }}
-        >
-          <Icon name="plus" size={14} /> Add Section
-        </button>
+          <button
+            onClick={addSection}
+            style={{
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 6,
+              padding: "10px 16px", background: "transparent", border: "1px dashed #334155",
+              borderRadius: 8, color: "#64748b", fontSize: 13, cursor: "pointer", transition: "all 0.15s",
+            }}
+            onMouseEnter={(e) => { e.currentTarget.style.borderColor = "#3b82f6"; e.currentTarget.style.color = "#93c5fd"; }}
+            onMouseLeave={(e) => { e.currentTarget.style.borderColor = "#334155"; e.currentTarget.style.color = "#64748b"; }}
+          >
+            <Icon name="plus" size={14} /> Add Section
+          </button>
+        </div>
       </div>
 
       {/* Cell config modal */}

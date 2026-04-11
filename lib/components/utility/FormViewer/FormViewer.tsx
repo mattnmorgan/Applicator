@@ -1,6 +1,7 @@
 "use client";
 
 import DynamicInput from "../DynamicInput";
+import InfoTooltip from "../InfoTooltip";
 import type { DynamicInputDefinition } from "../DynamicInput/types/dynamic-input-definition";
 import { type FormLayout, type FormLayoutSection, type FormRow, type FormColumn, type SerializedInputDef } from "../FormEditor/FormEditor";
 
@@ -12,6 +13,7 @@ export interface FormViewerField {
   fieldType: string;
   aliasIds?: string[];
   required?: boolean;
+  tooltip?: string;
 }
 
 export interface FormViewerProps {
@@ -176,9 +178,12 @@ function FieldCell({
   const inputDef = buildInputDef(col.inputDef, field, resolveInputDef);
 
   const fieldLabel = (
-    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4 }}>
-      {field.name}
-      {field.required && editing && <span style={{ color: "#f87171", marginLeft: 3 }}>*</span>}
+    <div style={{ fontSize: 12, color: "#64748b", marginBottom: 4, display: "flex", alignItems: "center", gap: 4 }}>
+      <span>
+        {field.name}
+        {field.required && editing && <span style={{ color: "#f87171", marginLeft: 3 }}>*</span>}
+      </span>
+      {field.tooltip && <InfoTooltip text={field.tooltip} />}
     </div>
   );
 
@@ -249,6 +254,7 @@ function buildInputDef(
     id: field.id,
     label: field.name,
     required: field.required,
+    tooltip: field.tooltip,
     ...stored,
     ...extra,
   } as DynamicInputDefinition;

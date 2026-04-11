@@ -17,6 +17,8 @@ interface FormViewerField {
   name: string;
   fieldType: string;
   aliasIds?: string[]; // restrict field visibility to specific aliases
+  required?: boolean;
+  tooltip?: string;   // shown as (?) next to the field label; also injected into DynamicInput for native fields
 }
 ```
 
