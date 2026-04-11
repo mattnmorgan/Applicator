@@ -97,6 +97,15 @@ const FIELD_TYPE_LABELS: Record<string, string> = {
   toggle: "Toggle", number: "Number", lookup: "Lookup",
 };
 
+const FIELD_TYPE_TO_INPUT_TYPE: Record<string, CustomInputType> = {
+  text: "text",
+  rich_text: "richtext",
+  number: "number",
+  toggle: "toggle",
+  picklist: "badge-multiselect",
+  lookup: "searchable-combobox",
+};
+
 const INPUT_TYPE_LABELS: Record<string, string> = {
   text: "Text", number: "Number", password: "Password",
   date: "Date", datetime: "Date & Time", time: "Time",
@@ -127,7 +136,7 @@ export default function FormEditor({ layout, fields, aliases, onChange, getDefau
   const [dragOverCell, setDragOverCell] = useState<string | null>(null);
 
   // Cell config modal
-  const [configCell, setConfigCell] = useState<{ sectionId: string; rowId: string; colId: string; fieldName: string } | null>(null);
+  const [configCell, setConfigCell] = useState<{ sectionId: string; rowId: string; colId: string; fieldName: string; fieldType: string } | null>(null);
   const [configDraft, setConfigDraft] = useState<SerializedInputDef>({ type: "text" });
 
   const filteredFields = fields.filter((f) =>
@@ -291,9 +300,10 @@ export default function FormEditor({ layout, fields, aliases, onChange, getDefau
 
   // ── config modal ───────────────────────────────────────────────────────────
 
-  const openConfig = (sId: string, rowId: string, colId: string, fieldName: string, currentDef: SerializedInputDef | undefined) => {
-    setConfigCell({ sectionId: sId, rowId, colId, fieldName });
-    setConfigDraft(currentDef ? { ...currentDef } : { type: "text" });
+  const openConfig = (sId: string, rowId: string, colId: string, fieldName: string, fieldType: string, currentDef: SerializedInputDef | undefined) => {
+    setConfigCell({ sectionId: sId, rowId, colId, fieldName, fieldType });
+    const defaultType = FIELD_TYPE_TO_INPUT_TYPE[fieldType] ?? "text";
+    setConfigDraft(currentDef ? { ...currentDef } : { type: defaultType });
   };
 
   const saveConfig = () => {
@@ -305,7 +315,7 @@ export default function FormEditor({ layout, fields, aliases, onChange, getDefau
   // ── render ─────────────────────────────────────────────────────────────────
 
   return (
-    <div style={{ display: "flex", gap: 12, height: "100%", minHeight: 0 }}>
+    <div style={{ display: "flex", gap: 12, flex: 1, minHeight: 0, overflow: "hidden" }}>
       {/* Field palette */}
       <div style={{
         width: 200, flexShrink: 0, display: "flex", flexDirection: "column",
@@ -392,9 +402,8 @@ export default function FormEditor({ layout, fields, aliases, onChange, getDefau
             onRemoveRow={(rowId) => removeRow(sec.id, rowId)}
             onCellDragStart={(rowId, colId) => handleCellDragStart(sec.id, rowId, colId)}
             onCellDrop={(rowId, colId, curFieldId) => handleCellDrop(sec.id, rowId, colId, curFieldId)}
-            onClearCell={(rowId, colId) => clearColumnField(sec.id, rowId, colId)}
             onResizeColumns={(rowId, lId, rId, lW, rW) => resizeColumns(sec.id, rowId, lId, rId, lW, rW)}
-            onOpenConfig={(rowId, colId, fieldName, def) => openConfig(sec.id, rowId, colId, fieldName, def)}
+            onOpenConfig={(rowId, colId, fieldName, fieldType, def) => openConfig(sec.id, rowId, colId, fieldName, fieldType, def)}
           />
         ))}
 
@@ -418,6 +427,7 @@ export default function FormEditor({ layout, fields, aliases, onChange, getDefau
           header={<span style={{ fontSize: 14, fontWeight: 600, color: "#f1f5f9" }}>Configure Input — {configCell.fieldName}</span>}
           footer={
             <>
+              <Button variant="danger" onClick={() => { clearColumnField(configCell.sectionId, configCell.rowId, configCell.colId); setConfigCell(null); }}>Clear cell</Button>
               <Button variant="secondary" onClick={() => setConfigCell(null)}>Cancel</Button>
               <Button variant="primary" onClick={saveConfig}>Save</Button>
             </>
@@ -427,7 +437,7 @@ export default function FormEditor({ layout, fields, aliases, onChange, getDefau
           maxWidth={520}
         >
           <div style={{ padding: 16 }}>
-            <CellConfigPanel draft={configDraft} onChange={setConfigDraft} />
+            <CellConfigPanel draft={configDraft} onChange={setConfigDraft} fieldType={configCell.fieldType} />
           </div>
         </Modal>
       )}
@@ -437,7 +447,7 @@ export default function FormEditor({ layout, fields, aliases, onChange, getDefau
 
 // ─── CellConfigPanel ──────────────────────────────────────────────────────────
 
-function CellConfigPanel({ draft, onChange }: { draft: SerializedInputDef; onChange: (d: SerializedInputDef) => void }) {
+function CellConfigPanel({ draft, onChange, fieldType }: { draft: SerializedInputDef; onChange: (d: SerializedInputDef) => void; fieldType: string }) {
   const set = (partial: Partial<SerializedInputDef>) => onChange({ ...draft, ...partial });
 
   const hasOptions = OPTION_TYPES.has(draft.type);
@@ -468,18 +478,13 @@ function CellConfigPanel({ draft, onChange }: { draft: SerializedInputDef; onCha
 
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {/* Input type */}
+      {/* Input type (read-only, derived from field type) */}
       <div>
         <Label>Input Type</Label>
-        <select
-          value={draft.type}
-          onChange={(e) => set({ type: e.target.value as CustomInputType, options: undefined })}
-          style={selectStyle}
-        >
-          {Object.entries(INPUT_TYPE_LABELS).map(([k, v]) => (
-            <option key={k} value={k}>{v}</option>
-          ))}
-        </select>
+        <div style={{ fontSize: 12, color: "#94a3b8", padding: "5px 8px", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 4 }}>
+          {INPUT_TYPE_LABELS[draft.type] ?? draft.type}
+          <span style={{ marginLeft: 6, fontSize: 11, color: "#475569" }}>({FIELD_TYPE_LABELS[fieldType] ?? fieldType} field)</span>
+        </div>
       </div>
 
       {/* Common: placeholder */}
@@ -617,9 +622,6 @@ const inputStyle: React.CSSProperties = {
   padding: "5px 8px", color: "#f1f5f9", fontSize: 12, outline: "none",
 };
 
-const selectStyle: React.CSSProperties = {
-  ...inputStyle, appearance: "auto",
-};
 
 // ─── SectionCanvas ─────────────────────────────────────────────────────────
 
@@ -627,7 +629,7 @@ function SectionCanvas({
   section, sectionIndex, totalSections, fields, aliases,
   dragOverCell, onSetDragOverCell,
   onRename, onRemove, onMoveUp, onMoveDown, onSetAliases,
-  onAddRow, onRemoveRow, onCellDragStart, onCellDrop, onClearCell, onResizeColumns, onOpenConfig,
+  onAddRow, onRemoveRow, onCellDragStart, onCellDrop, onResizeColumns, onOpenConfig,
 }: {
   section: FormLayoutSection;
   sectionIndex: number;
@@ -645,9 +647,8 @@ function SectionCanvas({
   onRemoveRow: (rowId: string) => void;
   onCellDragStart: (rowId: string, colId: string) => void;
   onCellDrop: (rowId: string, colId: string, curFieldId: string | null) => void;
-  onClearCell: (rowId: string, colId: string) => void;
   onResizeColumns: (rowId: string, lId: string, rId: string, lW: number, rW: number) => void;
-  onOpenConfig: (rowId: string, colId: string, fieldName: string, def: SerializedInputDef | undefined) => void;
+  onOpenConfig: (rowId: string, colId: string, fieldName: string, fieldType: string, def: SerializedInputDef | undefined) => void;
 }) {
   const [editingName, setEditingName] = useState(false);
   const [nameDraft, setNameDraft] = useState(section.name);
@@ -730,9 +731,8 @@ function SectionCanvas({
             onRemoveRow={() => onRemoveRow(row.id)}
             onCellDragStart={(colId) => onCellDragStart(row.id, colId)}
             onCellDrop={(colId, curFieldId) => onCellDrop(row.id, colId, curFieldId)}
-            onClearCell={(colId) => onClearCell(row.id, colId)}
             onResizeColumns={(lId, rId, lW, rW) => onResizeColumns(row.id, lId, rId, lW, rW)}
-            onOpenConfig={(colId, fieldName, def) => onOpenConfig(row.id, colId, fieldName, def)}
+            onOpenConfig={(colId, fieldName, fieldType, def) => onOpenConfig(row.id, colId, fieldName, fieldType, def)}
           />
         ))}
 
@@ -763,7 +763,7 @@ function SectionCanvas({
 
 function RowCanvas({
   row, fields, dragOverCell, onSetDragOverCell,
-  onRemoveRow, onCellDragStart, onCellDrop, onClearCell, onResizeColumns, onOpenConfig,
+  onRemoveRow, onCellDragStart, onCellDrop, onResizeColumns, onOpenConfig,
 }: {
   row: FormRow;
   fields: FieldBadge[];
@@ -772,9 +772,8 @@ function RowCanvas({
   onRemoveRow: () => void;
   onCellDragStart: (colId: string) => void;
   onCellDrop: (colId: string, curFieldId: string | null) => void;
-  onClearCell: (colId: string) => void;
   onResizeColumns: (lId: string, rId: string, lW: number, rW: number) => void;
-  onOpenConfig: (colId: string, fieldName: string, def: SerializedInputDef | undefined) => void;
+  onOpenConfig: (colId: string, fieldName: string, fieldType: string, def: SerializedInputDef | undefined) => void;
 }) {
   const rowRef = useRef<HTMLDivElement>(null);
   const [resizePopover, setResizePopover] = useState<{ x: number; y: number; left: number; right: number } | null>(null);
@@ -853,23 +852,12 @@ function RowCanvas({
                   <>
                     <span style={{ color: "#64748b", flexShrink: 0 }}><Icon name="drag" size={11} /></span>
                     <span style={{ flex: 1, fontSize: 12, color: "#e2e8f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{field.name}</span>
-                    {col.inputDef && (
-                      <span style={{ fontSize: 10, color: "#3b82f6", background: "#0f172a", padding: "1px 5px", borderRadius: 3, flexShrink: 0, border: "1px solid #1e3a5f" }}>
-                        {INPUT_TYPE_LABELS[col.inputDef.type] ?? col.inputDef.type}
-                      </span>
-                    )}
-                    {!col.inputDef && (
-                      <span style={{ fontSize: 10, color: "#475569", background: "#162032", padding: "1px 5px", borderRadius: 3, flexShrink: 0, border: "1px solid #1e293b" }}>
-                        {FIELD_TYPE_LABELS[field.fieldType] ?? field.fieldType}
-                      </span>
-                    )}
                     <ButtonIcon
                       name="settings"
                       label="Configure input"
                       size="sm"
-                      onClick={(e) => { (e as any).stopPropagation?.(); onOpenConfig(col.id, field.name, col.inputDef); }}
+                      onClick={() => { onOpenConfig(col.id, field.name, field.fieldType, col.inputDef); }}
                     />
-                    <ButtonIcon name="close" label="Clear cell" size="sm" onClick={() => onClearCell(col.id)} />
                   </>
                 ) : (
                   <span style={{ fontSize: 11, color: "#334155" }}>empty</span>

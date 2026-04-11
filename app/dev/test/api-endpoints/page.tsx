@@ -39,7 +39,6 @@ export default function ApiEndpointsPage() {
     const startTime = performance.now();
 
     try {
-      // Validate request body if provided
       let parsedBody = null;
       if (requestBody.trim()) {
         try {
@@ -65,13 +64,11 @@ export default function ApiEndpointsPage() {
       const response = await fetch(url, fetchOptions);
       const endTime = performance.now();
 
-      // Extract headers
       const headers: Record<string, string> = {};
       response.headers.forEach((value, key) => {
         headers[key] = value;
       });
 
-      // Get response body
       const contentType = response.headers.get("content-type");
       let responseBody: string;
 
@@ -100,10 +97,10 @@ export default function ApiEndpointsPage() {
   };
 
   const getStatusColor = (status: number) => {
-    if (status >= 200 && status < 300) return "#34d399"; // green
-    if (status >= 300 && status < 400) return "#3b82f6"; // blue
-    if (status >= 400 && status < 500) return "#fbbf24"; // amber
-    return "#ef4444"; // red
+    if (status >= 200 && status < 300) return "#34d399";
+    if (status >= 300 && status < 400) return "#3b82f6";
+    if (status >= 400 && status < 500) return "#fbbf24";
+    return "#ef4444";
   };
 
   const methodColors: Record<HttpMethod, string> = {
@@ -167,7 +164,6 @@ export default function ApiEndpointsPage() {
               Request Configuration
             </h2>
 
-            {/* URL Input */}
             <div style={{ marginBottom: "16px" }}>
               <DynamicInput
                 input={{
@@ -181,7 +177,6 @@ export default function ApiEndpointsPage() {
               />
             </div>
 
-            {/* Method Selection */}
             <div style={{ marginBottom: "16px" }}>
               <label
                 style={{
@@ -218,7 +213,6 @@ export default function ApiEndpointsPage() {
               </div>
             </div>
 
-            {/* Request Body */}
             <div>
               <label
                 style={{
@@ -252,7 +246,6 @@ export default function ApiEndpointsPage() {
               />
             </div>
 
-            {/* Submit Button */}
             <Button
               variant="primary"
               onClick={handleSubmit}
@@ -337,7 +330,6 @@ export default function ApiEndpointsPage() {
                   overflowY: "auto",
                 }}
               >
-                {/* Status and Metadata */}
                 <div
                   style={{
                     padding: "12px 16px",
@@ -380,7 +372,6 @@ export default function ApiEndpointsPage() {
                   </div>
                 </div>
 
-                {/* Headers */}
                 <div>
                   <div
                     style={{
@@ -418,7 +409,6 @@ export default function ApiEndpointsPage() {
                   </div>
                 </div>
 
-                {/* Body */}
                 <div
                   style={{ flex: 1, display: "flex", flexDirection: "column" }}
                 >

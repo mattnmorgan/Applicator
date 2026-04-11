@@ -248,6 +248,7 @@ function buildInputDef(
   return {
     id: field.id,
     label: field.name,
+    required: field.required,
     ...stored,
     ...extra,
   } as DynamicInputDefinition;

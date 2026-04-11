@@ -74,6 +74,7 @@ export default function Navigation({
   };
 
   const hasAssumeIdentity = authorizations.includes("system:assume-identity");
+  const isDeveloper = authorizations.includes("system:developer");
 
   const menuOptions = [
     {
@@ -87,6 +88,15 @@ export default function Navigation({
             label: "System Settings",
             icon: <Icon name="settings" size={16} />,
             onClick: () => router.push("/system/settings"),
+          },
+        ]
+      : []),
+    ...(isDeveloper
+      ? [
+          {
+            label: "Development Menu",
+            icon: <Icon name="code" size={16} />,
+            onClick: () => router.push("/dev"),
           },
         ]
       : []),

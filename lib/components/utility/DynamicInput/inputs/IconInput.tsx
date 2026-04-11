@@ -6,6 +6,8 @@ import styles from "../DynamicInput.module.css";
 import InputLabel from "../InputLabel";
 
 const MAX_SIZE = 1024 * 1024; // 1 MB
+const PREVIEW_SIZE = 64;
+const PREVIEW_RADIUS = 10;
 
 export default function IconInput({ input, value, onChange }: DynamicInputProps) {
   const fileRef = useRef<HTMLInputElement>(null);
@@ -41,36 +43,78 @@ export default function IconInput({ input, value, onChange }: DynamicInputProps)
         onChange={handleFile}
         disabled={disabled}
       />
-      {value ? (
-        <div className={styles.iconPreview}>
-          <img src={value} alt="icon" className={styles.iconImage} />
+      <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
+        {value ? (
+          <img
+            src={value}
+            alt="icon"
+            style={{
+              width: PREVIEW_SIZE,
+              height: PREVIEW_SIZE,
+              borderRadius: PREVIEW_RADIUS,
+              objectFit: "cover",
+              border: "1px solid #334155",
+              flexShrink: 0,
+            }}
+          />
+        ) : (
+          <div
+            style={{
+              width: PREVIEW_SIZE,
+              height: PREVIEW_SIZE,
+              borderRadius: PREVIEW_RADIUS,
+              background: "#1e293b",
+              border: "1px solid #334155",
+              flexShrink: 0,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 11,
+              color: "#475569",
+            }}
+          >
+            None
+          </div>
+        )}
+        <div style={{ display: "flex", gap: 8 }}>
           <button
-            className={styles.fileButton}
+            type="button"
             onClick={() => fileRef.current?.click()}
-            type="button"
             disabled={disabled}
+            style={{
+              padding: "5px 12px",
+              background: "#1e293b",
+              border: "1px solid #334155",
+              borderRadius: 6,
+              color: "#e2e8f0",
+              fontSize: 12,
+              cursor: disabled ? "not-allowed" : "pointer",
+              opacity: disabled ? 0.5 : 1,
+            }}
           >
-            Change
+            Choose Image
           </button>
-          <button
-            className={styles.iconRemove}
-            onClick={() => onChange(input.id, null)}
-            type="button"
-            disabled={disabled}
-          >
-            Remove
-          </button>
+          {value && (
+            <button
+              type="button"
+              onClick={() => onChange(input.id, null)}
+              disabled={disabled}
+              style={{
+                padding: "5px 10px",
+                background: "transparent",
+                border: "1px solid #334155",
+                borderRadius: 6,
+                color: "#94a3b8",
+                fontSize: 12,
+                cursor: disabled ? "not-allowed" : "pointer",
+                opacity: disabled ? 0.5 : 1,
+              }}
+            >
+              Remove
+            </button>
+          )}
         </div>
-      ) : (
-        <button
-          className={styles.fileButton}
-          onClick={() => fileRef.current?.click()}
-          type="button"
-          disabled={disabled}
-        >
-          Select Image
-        </button>
-      )}
+      </div>
     </div>
   );
 }

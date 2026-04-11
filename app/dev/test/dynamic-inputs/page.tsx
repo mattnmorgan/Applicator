@@ -572,10 +572,8 @@ export default function DynamicInputsTestPage() {
   const [editingInput, setEditingInput] = useState<string | null>(null);
   const logRef = useRef<HTMLDivElement>(null);
 
-  // SearchableCombobox demo state
   const [rteHtml, setRteHtml] = useState("");
 
-  // SearchableCombobox demo state
   const [comboSingle, setComboSingle] = useState<ComboItem[]>([]);
   const [comboMulti, setComboMulti] = useState<ComboItem[]>([]);
   const [comboDebounced, setComboDebounced] = useState<ComboItem[]>([]);

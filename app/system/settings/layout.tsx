@@ -63,13 +63,22 @@ function sortMenuItems(items: TabsetItem[]): TabsetItem[] {
 }
 
 async function getSettingsMenuItems(
-  hasDeveloperAuth: boolean,
   userId: string,
 ): Promise<TabsetItem[]> {
   const unsortedSettingsMenuItems: TabsetItem[] = [
     {
-      label: "Home",
-      path: "/system/settings",
+      label: "System",
+      clickable: false,
+      children: [
+        {
+          label: "Settings",
+          path: "/system/settings",
+        },
+        {
+          label: "Logs",
+          path: "/system/settings/debug/logs",
+        },
+      ],
     },
     {
       label: "User Management",
@@ -159,60 +168,6 @@ async function getSettingsMenuItems(
     children: appManagementChildren,
   });
 
-  // Only add Development menu if user has developer authorization
-  if (hasDeveloperAuth) {
-    unsortedSettingsMenuItems.push({
-      label: "Development",
-      clickable: false,
-      children: [
-        {
-          label: "Settings",
-          path: "/system/settings/debug/settings",
-        },
-        {
-          label: "Test",
-          clickable: false,
-          children: [
-            {
-              label: "Logs",
-              path: "/system/settings/debug/test/logs",
-            },
-            {
-              label: "Dynamic Inputs",
-              path: "/system/settings/debug/test/dynamic-inputs",
-            },
-            {
-              label: "Notifications",
-              path: "/system/settings/debug/test/notifications",
-            },
-            {
-              label: "Panels",
-              path: "/system/settings/debug/test/panels",
-            },
-          ],
-        },
-        {
-          label: "Utilities",
-          clickable: false,
-          children: [
-            {
-              label: "Api Endpoints",
-              path: "/system/settings/debug/api-endpoints",
-            },
-            {
-              label: "Database",
-              path: "/system/settings/debug/database",
-            },
-            {
-              label: "Logs",
-              path: "/system/settings/debug/logs",
-            },
-          ],
-        },
-      ],
-    });
-  }
-
   return sortMenuItems(unsortedSettingsMenuItems);
 }
 
@@ -235,7 +190,6 @@ export default async function SettingsLayout({
 
   // Check if user has admin authorization
   const hasAdminAuth = user.authorizations.includes("system:admin");
-  const hasDeveloperAuth = user.authorizations.includes("system:developer");
 
   const profilePictureUrl = user.icon
     ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}`
@@ -259,10 +213,7 @@ export default async function SettingsLayout({
     );
   }
 
-  const settingsMenuItems = await getSettingsMenuItems(
-    hasDeveloperAuth,
-    user.id,
-  );
+  const settingsMenuItems = await getSettingsMenuItems(user.id);
 
   return (
     <>

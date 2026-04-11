@@ -7,6 +7,9 @@ export interface ImageUploadProps {
   value?: string | null;
   /** Called with the base64 data URL when a new image is selected, or null when cleared */
   onChange: (dataUrl: string | null) => void;
+  /** Called with the raw File object when a new image is selected. Optional — use when the upload
+   *  destination requires FormData (e.g. multipart endpoints) rather than a base64 payload. */
+  onFileSelect?: (file: File | null) => void;
   /** Label shown above the upload area */
   label?: string;
   /** Size of the preview image in pixels (width and height). Defaults to 64 */
@@ -18,6 +21,7 @@ export interface ImageUploadProps {
 export default function ImageUpload({
   value,
   onChange,
+  onFileSelect,
   label,
   previewSize = 64,
   previewRadius = 10,
@@ -27,6 +31,7 @@ export default function ImageUpload({
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    onFileSelect?.(file);
     const reader = new FileReader();
     reader.onloadend = () => {
       onChange(reader.result as string);
@@ -34,6 +39,11 @@ export default function ImageUpload({
     reader.readAsDataURL(file);
     // Reset so the same file can be re-selected
     e.target.value = "";
+  };
+
+  const handleRemove = () => {
+    onChange(null);
+    onFileSelect?.(null);
   };
 
   return (
@@ -93,7 +103,7 @@ export default function ImageUpload({
           {value && (
             <button
               type="button"
-              onClick={() => onChange(null)}
+              onClick={handleRemove}
               style={{
                 padding: "5px 10px",
                 background: "transparent",
