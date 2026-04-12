@@ -100,7 +100,7 @@ const TEXT_EXTS = [
   "pl", "scala", "toml", "ini", "dockerfile", "makefile",
 ];
 const PDF_EXTS = ["pdf"];
-const AUDIO_EXTS = ["mp3", "ogg", "wav"];
+const AUDIO_EXTS = ["mp3", "ogg", "wav", "m4a"];
 const VIDEO_EXTS = ["mp4", "mkv", "mov"];
 
 const EXT_TO_LANG: Record<string, string> = {
