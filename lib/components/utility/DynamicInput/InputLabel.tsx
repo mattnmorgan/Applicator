@@ -9,6 +9,7 @@ interface InputLabelProps {
 }
 
 export default function InputLabel({ input }: InputLabelProps) {
+  if (!input.label && !input.tooltip) return null;
   return (
     <label className={styles.label}>
       {input.label}
