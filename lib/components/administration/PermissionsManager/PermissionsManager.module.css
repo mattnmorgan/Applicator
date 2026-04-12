@@ -1,0 +1,333 @@
+/* ── Container ──────────────────────────────────────────────────────────────── */
+
+.container {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  overflow: hidden;
+}
+
+/* ── Toolbar / Filters ──────────────────────────────────────────────────────── */
+
+.toolbar {
+  display: flex;
+  align-items: flex-start;
+  gap: 16px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.filterGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  flex: 1;
+  min-width: 200px;
+}
+
+.filterLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+/* ── Legend ─────────────────────────────────────────────────────────────────── */
+
+.legend {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.legendItem {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.legendDirect {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: #3b82f6;
+  border: 1px solid #60a5fa;
+}
+
+.legendInherited {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: #1e293b;
+  border: 1px solid #475569;
+  opacity: 0.7;
+}
+
+.legendAppManaged {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 3px;
+  background: #1c2a1c;
+  border: 1px solid #4a7c4a;
+  opacity: 0.8;
+}
+
+/* ── Table wrapper ──────────────────────────────────────────────────────────── */
+
+.tableWrapper {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  border: 1px solid #1e293b;
+  border-radius: 8px;
+}
+
+/* ── Table ──────────────────────────────────────────────────────────────────── */
+
+.table {
+  border-collapse: separate;
+  border-spacing: 0;
+  min-width: 100%;
+}
+
+/* ── Header row (sticky top) ────────────────────────────────────────────────── */
+
+.headerCell {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: #1e293b;
+  padding: 10px 14px;
+  text-align: center;
+  white-space: nowrap;
+  border-bottom: 1px solid #334155;
+  border-right: 1px solid #334155;
+}
+
+.cornerCell {
+  left: 0;
+  z-index: 3;
+  text-align: left;
+  min-width: 300px;
+  width: 300px;
+}
+
+.cornerLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+}
+
+.columnHeader {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+}
+
+.columnLabel {
+  font-size: 13px;
+  font-weight: 500;
+  color: #e2e8f0;
+}
+
+/* ── Row header (sticky left) ───────────────────────────────────────────────── */
+
+.rowHeader {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+  background: #0f172a;
+  padding: 10px 14px;
+  border-right: 1px solid #334155;
+  border-bottom: 1px solid #1e293b;
+  min-width: 300px;
+  width: 300px;
+  white-space: nowrap;
+}
+
+.authorityRowHeader {
+  background: #0f172a;
+}
+
+.userRowHeader {
+  background: #0c1422;
+}
+
+.rowHeaderContent {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+}
+
+.rowIcon {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  object-fit: cover;
+  flex-shrink: 0;
+}
+
+.rowIconPlaceholder {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748b;
+  font-weight: 600;
+  font-size: 13px;
+  flex-shrink: 0;
+  border: 1px solid #334155;
+}
+
+.rowHeaderText {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.rowPrimary {
+  font-size: 13px;
+  font-weight: 500;
+  color: #f1f5f9;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowSecondary {
+  font-size: 12px;
+  color: #64748b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Data cells ─────────────────────────────────────────────────────────────── */
+
+.dataCell {
+  background: #0f172a;
+  border-right: 1px solid #1e293b;
+  border-bottom: 1px solid #1e293b;
+  padding: 0;
+  text-align: center;
+}
+
+.inheritedCell {
+  background: #0a1628;
+}
+
+.appManagedCell {
+  background: #0a1a0a;
+}
+
+.cellContainer {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  min-height: 48px;
+  padding: 0 8px;
+}
+
+.checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+  accent-color: #3b82f6;
+}
+
+.readOnlyCheckbox {
+  opacity: 0.45;
+  cursor: help;
+}
+
+/* ── Row hover ──────────────────────────────────────────────────────────────── */
+
+.dataRow:hover .rowHeader {
+  background: #111f36;
+}
+
+.dataRow:hover .dataCell {
+  background: #101c30;
+}
+
+.dataRow:hover .inheritedCell {
+  background: #0c1828;
+}
+
+.dataRow:hover .appManagedCell {
+  background: #0c1a0c;
+}
+
+/* ── Dropdown / pill helpers ────────────────────────────────────────────────── */
+
+.dropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 1px 0;
+}
+
+.dropdownPrimary {
+  font-size: 14px;
+  color: #f1f5f9;
+}
+
+.dropdownSecondary {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.pillContent {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.pillSeparator {
+  color: #475569;
+  font-size: 11px;
+}
+
+/* ── Empty / loading states ─────────────────────────────────────────────────── */
+
+.emptyState {
+  padding: 40px 20px;
+  text-align: center;
+  color: #475569;
+  font-size: 14px;
+}
+
+.emptyCell {
+  padding: 40px 20px;
+  text-align: center;
+  color: #475569;
+  font-size: 14px;
+}
+
+.loadingState {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 200px;
+  color: #475569;
+  font-size: 14px;
+}
