@@ -100,6 +100,10 @@ async function getSettingsMenuItems(
               label: "Authorizations",
               path: "/system/settings/user-management/access-management/authorizations",
             },
+            {
+              label: "App Access Manager",
+              path: "/system/settings/user-management/access-management/app-access",
+            },
           ],
         },
       ],
