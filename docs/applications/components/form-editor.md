@@ -1,6 +1,6 @@
 # FormEditor
 
-A drag-and-drop form layout editor. Users drag fields from a palette into a multi-column, multi-section canvas, resize column widths, and configure how each field renders via `DynamicInput` (gear icon per cell). The resulting `FormLayout` is a plain JSON value that can be persisted and fed to `FormViewer`.
+A drag-and-drop form layout editor. Users drag fields from a palette into a multi-column, multi-section canvas and resize column widths. The resulting `FormLayout` is a plain JSON value that can be persisted and fed to `FormViewer`.
 
 ```typescript
 import { FormEditor } from "@applicator/sdk/components";
@@ -121,11 +121,9 @@ const [layout, setLayout] = useState<FormLayout>({ sections: [] });
 />
 ```
 
-## Cell configuration
+## Cell controls
 
-Each occupied cell shows a **settings gear** button. Clicking it opens a modal where the user picks the `DynamicInput` type (text, select, toggle, number, searchable-combobox, etc.) and configures type-specific properties (placeholder, min/max, options list, multi-select mode, etc.).
-
-The configured `inputDef` is stored in `FormColumn.inputDef` and serialised as part of `FormLayout` when `onChange` fires.
+Each occupied cell shows a **clear cell** (✕) button. Clicking it removes both `fieldId` and `inputDef` from the column, returning it to an empty state.
 
 ## Notes
 

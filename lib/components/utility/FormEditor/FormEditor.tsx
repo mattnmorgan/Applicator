@@ -3,8 +3,6 @@
 import { useState, useRef, useCallback } from "react";
 import ButtonIcon from "../ButtonIcon";
 import Icon from "../Icon";
-import Modal from "../Modal";
-import Button from "../Button";
 import type { CustomInputType } from "@/lib/database/types/custom-input";
 import type { DynamicInputOption } from "../DynamicInput/types/dynamic-input-option";
 
@@ -97,34 +95,7 @@ const FIELD_TYPE_LABELS: Record<string, string> = {
   toggle: "Toggle", number: "Number", lookup: "Lookup",
 };
 
-const FIELD_TYPE_TO_INPUT_TYPE: Record<string, CustomInputType> = {
-  text: "text",
-  rich_text: "richtext",
-  number: "number",
-  toggle: "toggle",
-  picklist: "badge-multiselect",
-  lookup: "searchable-combobox",
-};
 
-const INPUT_TYPE_LABELS: Record<string, string> = {
-  text: "Text", number: "Number", password: "Password",
-  date: "Date", datetime: "Date & Time", time: "Time",
-  checkbox: "Checkbox", toggle: "Toggle", color: "Color",
-  range: "Range", rangeslider: "Range Slider",
-  select: "Select", multiselect: "Multi-select",
-  radio: "Radio", "radio-horizontal-group": "Horizontal Radio",
-  checklist: "Checklist", "badge-multiselect": "Badge Multi-select",
-  "searchable-combobox": "Searchable Combobox",
-  icon: "Icon", file: "File", richtext: "Rich Text",
-  pseudoassignee: "Pseudoassignee", multipseudoassignee: "Multi Pseudoassignee",
-};
-
-const OPTION_TYPES = new Set([
-  "select", "multiselect", "radio", "radio-horizontal-group",
-  "checklist", "badge-multiselect", "searchable-combobox",
-]);
-
-const COLOR_OPTION_TYPES = new Set(["badge-multiselect", "radio-horizontal-group"]);
 
 // ─── FormEditor ───────────────────────────────────────────────────────────────
 
@@ -138,9 +109,6 @@ export default function FormEditor({ layout, fields, aliases, onChange, getDefau
   const [isDraggingRow, setIsDraggingRow] = useState(false);
   const [dragOverRow, setDragOverRow] = useState<{ sectionId: string; insertBeforeRowId: string | null } | null>(null);
 
-  // Cell config modal
-  const [configCell, setConfigCell] = useState<{ sectionId: string; rowId: string; colId: string; fieldName: string; fieldType: string } | null>(null);
-  const [configDraft, setConfigDraft] = useState<SerializedInputDef>({ type: "text" });
 
   const filteredFields = fields.filter((f) =>
     f.name.toLowerCase().includes(fieldSearch.toLowerCase())
@@ -220,23 +188,6 @@ export default function FormEditor({ layout, fields, aliases, onChange, getDefau
     }));
   };
 
-  const setColumnInputDef = (sId: string, rowId: string, colId: string, inputDef: SerializedInputDef) => {
-    updateLayout((l) => ({
-      ...l,
-      sections: l.sections.map((s) =>
-        s.id === sId
-          ? {
-              ...s,
-              rows: s.rows.map((r) =>
-                r.id === rowId
-                  ? { ...r, columns: r.columns.map((c) => c.id === colId ? { ...c, inputDef } : c) }
-                  : r
-              ),
-            }
-          : s
-      ),
-    }));
-  };
 
   const resizeColumns = (sId: string, rowId: string, leftColId: string, rightColId: string, leftWidth: number, rightWidth: number) => {
     updateLayout((l) => ({
@@ -349,20 +300,6 @@ export default function FormEditor({ layout, fields, aliases, onChange, getDefau
     setDragOverRow(null);
   };
 
-  // ── config modal ───────────────────────────────────────────────────────────
-
-  const openConfig = (sId: string, rowId: string, colId: string, fieldName: string, fieldType: string, currentDef: SerializedInputDef | undefined) => {
-    setConfigCell({ sectionId: sId, rowId, colId, fieldName, fieldType });
-    const defaultType = FIELD_TYPE_TO_INPUT_TYPE[fieldType] ?? "text";
-    setConfigDraft(currentDef ? { ...currentDef } : { type: defaultType });
-  };
-
-  const saveConfig = () => {
-    if (!configCell) return;
-    setColumnInputDef(configCell.sectionId, configCell.rowId, configCell.colId, configDraft);
-    setConfigCell(null);
-  };
-
   // ── render ─────────────────────────────────────────────────────────────────
 
   return (
@@ -455,7 +392,7 @@ export default function FormEditor({ layout, fields, aliases, onChange, getDefau
               onCellDragStart={(rowId, colId) => handleCellDragStart(sec.id, rowId, colId)}
               onCellDrop={(rowId, colId, curFieldId) => handleCellDrop(sec.id, rowId, colId, curFieldId)}
               onResizeColumns={(rowId, lId, rId, lW, rW) => resizeColumns(sec.id, rowId, lId, rId, lW, rW)}
-              onOpenConfig={(rowId, colId, fieldName, fieldType, def) => openConfig(sec.id, rowId, colId, fieldName, fieldType, def)}
+              onClearCell={(rowId, colId) => clearColumnField(sec.id, rowId, colId)}
               isAnyRowDragging={isDraggingRow}
               dragOverRow={dragOverRow?.sectionId === sec.id ? dragOverRow : null}
               onRowDragStart={(rowId) => handleRowDragStart(sec.id, rowId)}
@@ -480,206 +417,10 @@ export default function FormEditor({ layout, fields, aliases, onChange, getDefau
         </div>
       </div>
 
-      {/* Cell config modal */}
-      {configCell && (
-        <Modal
-          header={<span style={{ fontSize: 14, fontWeight: 600, color: "#f1f5f9" }}>Configure Input — {configCell.fieldName}</span>}
-          footer={
-            <>
-              <Button variant="danger" onClick={() => { clearColumnField(configCell.sectionId, configCell.rowId, configCell.colId); setConfigCell(null); }}>Clear cell</Button>
-              <Button variant="secondary" onClick={() => setConfigCell(null)}>Cancel</Button>
-              <Button variant="primary" onClick={saveConfig}>Save</Button>
-            </>
-          }
-          closeable
-          onClose={() => setConfigCell(null)}
-          maxWidth={520}
-        >
-          <div style={{ padding: 16 }}>
-            <CellConfigPanel draft={configDraft} onChange={setConfigDraft} fieldType={configCell.fieldType} />
-          </div>
-        </Modal>
-      )}
     </div>
   );
 }
 
-// ─── CellConfigPanel ──────────────────────────────────────────────────────────
-
-function CellConfigPanel({ draft, onChange, fieldType }: { draft: SerializedInputDef; onChange: (d: SerializedInputDef) => void; fieldType: string }) {
-  const set = (partial: Partial<SerializedInputDef>) => onChange({ ...draft, ...partial });
-
-  const hasOptions = OPTION_TYPES.has(draft.type);
-  const hasColorOptions = COLOR_OPTION_TYPES.has(draft.type);
-
-  const addOption = () => {
-    const opts = draft.options || [];
-    set({ options: [...opts, { value: `option_${opts.length + 1}`, label: `Option ${opts.length + 1}` }] });
-  };
-
-  const updateOption = (i: number, partial: Partial<DynamicInputOption>) => {
-    const opts = [...(draft.options || [])];
-    opts[i] = { ...opts[i], ...partial };
-    set({ options: opts });
-  };
-
-  const removeOption = (i: number) => {
-    set({ options: (draft.options || []).filter((_, idx) => idx !== i) });
-  };
-
-  const moveOption = (i: number, dir: -1 | 1) => {
-    const opts = [...(draft.options || [])];
-    const j = i + dir;
-    if (j < 0 || j >= opts.length) return;
-    [opts[i], opts[j]] = [opts[j], opts[i]];
-    set({ options: opts });
-  };
-
-  return (
-    <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-      {/* Input type (read-only, derived from field type) */}
-      <div>
-        <Label>Input Type</Label>
-        <div style={{ fontSize: 12, color: "#94a3b8", padding: "5px 8px", background: "#0f172a", border: "1px solid #1e293b", borderRadius: 4 }}>
-          {INPUT_TYPE_LABELS[draft.type] ?? draft.type}
-          <span style={{ marginLeft: 6, fontSize: 11, color: "#475569" }}>({FIELD_TYPE_LABELS[fieldType] ?? fieldType} field)</span>
-        </div>
-      </div>
-
-      {/* Common: placeholder */}
-      {["text", "password", "number", "select", "multiselect", "searchable-combobox"].includes(draft.type) && (
-        <div>
-          <Label>Placeholder</Label>
-          <input value={draft.placeholder || ""} onChange={(e) => set({ placeholder: e.target.value || undefined })} style={inputStyle} />
-        </div>
-      )}
-
-      {/* Common: tooltip */}
-      <div>
-        <Label>Tooltip (optional)</Label>
-        <input value={draft.tooltip || ""} onChange={(e) => set({ tooltip: e.target.value || undefined })} style={inputStyle} placeholder="Shown as a (?) indicator" />
-      </div>
-
-      {/* Text-specific */}
-      {draft.type === "text" && (
-        <>
-          <Row2>
-            <div>
-              <Label>Lines</Label>
-              <input type="number" min={1} value={draft.lines ?? 1} onChange={(e) => set({ lines: Number(e.target.value) || 1 })} style={inputStyle} />
-            </div>
-            <div style={{ display: "flex", alignItems: "flex-end", gap: 6, paddingBottom: 2 }}>
-              <CheckField label="Resizable" checked={!!draft.resizable} onChange={(v) => set({ resizable: v })} disabled={!draft.lines || draft.lines <= 1} />
-            </div>
-          </Row2>
-        </>
-      )}
-
-      {/* Number / range / rangeslider */}
-      {["number", "range", "rangeslider"].includes(draft.type) && (
-        <Row2>
-          <div>
-            <Label>Min</Label>
-            <input value={draft.min || ""} onChange={(e) => set({ min: e.target.value || undefined })} style={inputStyle} />
-          </div>
-          <div>
-            <Label>Max</Label>
-            <input value={draft.max || ""} onChange={(e) => set({ max: e.target.value || undefined })} style={inputStyle} />
-          </div>
-          <div>
-            <Label>Step</Label>
-            <input value={draft.step || ""} onChange={(e) => set({ step: e.target.value || undefined })} style={inputStyle} />
-          </div>
-          {draft.type === "number" && (
-            <div>
-              <Label>Decimal Places</Label>
-              <input type="number" min={0} value={draft.decimalPlaces ?? ""} onChange={(e) => set({ decimalPlaces: e.target.value === "" ? undefined : Number(e.target.value) })} style={inputStyle} />
-            </div>
-          )}
-        </Row2>
-      )}
-
-      {/* searchable-combobox: multiSelect toggle */}
-      {draft.type === "searchable-combobox" && (
-        <CheckField label="Multi-select" checked={!!draft.multiSelect} onChange={(v) => set({ multiSelect: v })} />
-      )}
-
-      {/* select/multiselect: searchable toggle */}
-      {["select", "multiselect"].includes(draft.type) && (
-        <CheckField label="Searchable dropdown" checked={!!draft.searchable} onChange={(v) => set({ searchable: v })} />
-      )}
-
-      {/* Options editor */}
-      {hasOptions && (
-        <div>
-          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 6 }}>
-            <Label>Options</Label>
-            <button onClick={addOption} style={{ background: "none", border: "none", color: "#3b82f6", fontSize: 12, cursor: "pointer", padding: 0 }}>+ Add</button>
-          </div>
-          <div style={{ display: "flex", flexDirection: "column", gap: 4 }}>
-            {(draft.options || []).map((opt, i) => (
-              <div key={i} style={{ display: "flex", alignItems: "center", gap: 4, background: "#0f172a", borderRadius: 4, padding: "4px 6px" }}>
-                <ButtonIcon name="chevron-up" label="Move up" size="sm" onClick={() => moveOption(i, -1)} disabled={i === 0} />
-                <ButtonIcon name="chevron-down" label="Move down" size="sm" onClick={() => moveOption(i, 1)} disabled={i === (draft.options?.length ?? 0) - 1} />
-                <input
-                  value={opt.value}
-                  onChange={(e) => updateOption(i, { value: e.target.value })}
-                  placeholder="value"
-                  title="Option value (stored)"
-                  style={{ ...inputStyle, flex: "0 0 90px", fontSize: 11 }}
-                />
-                <input
-                  value={opt.label}
-                  onChange={(e) => updateOption(i, { label: e.target.value })}
-                  placeholder="label"
-                  title="Option label (displayed)"
-                  style={{ ...inputStyle, flex: 1, minWidth: 0, fontSize: 11 }}
-                />
-                {hasColorOptions && (
-                  <>
-                    <input type="color" value={opt.selectedColor || "#3b82f6"} onChange={(e) => updateOption(i, { selectedColor: e.target.value })} title="Selected background color" style={{ width: 26, height: 26, border: "1px solid #334155", borderRadius: 3, background: "transparent", cursor: "pointer", flexShrink: 0 }} />
-                    {draft.type === "badge-multiselect" && (
-                      <input type="color" value={opt.fgColor || "#ffffff"} onChange={(e) => updateOption(i, { fgColor: e.target.value })} title="Selected text color" style={{ width: 26, height: 26, border: "1px solid #334155", borderRadius: 3, background: "transparent", cursor: "pointer", flexShrink: 0 }} />
-                    )}
-                  </>
-                )}
-                <ButtonIcon name="trash" label="Remove option" subvariant="danger" size="sm" onClick={() => removeOption(i)} />
-              </div>
-            ))}
-            {(draft.options || []).length === 0 && (
-              <div style={{ fontSize: 11, color: "#475569", padding: "4px 6px" }}>No options yet. Click + Add to create one.</div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// ─── Small helpers ────────────────────────────────────────────────────────────
-
-function Label({ children }: { children: React.ReactNode }) {
-  return <div style={{ fontSize: 11, color: "#64748b", marginBottom: 4, fontWeight: 500 }}>{children}</div>;
-}
-
-function Row2({ children }: { children: React.ReactNode }) {
-  return <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>{children}</div>;
-}
-
-function CheckField({ label, checked, onChange, disabled }: { label: string; checked: boolean; onChange: (v: boolean) => void; disabled?: boolean }) {
-  return (
-    <label style={{ display: "flex", alignItems: "center", gap: 6, cursor: disabled ? "not-allowed" : "pointer", opacity: disabled ? 0.4 : 1 }}>
-      <input type="checkbox" checked={checked} disabled={disabled} onChange={(e) => onChange(e.target.checked)} style={{ cursor: "inherit" }} />
-      <span style={{ fontSize: 12, color: "#e2e8f0" }}>{label}</span>
-    </label>
-  );
-}
-
-const inputStyle: React.CSSProperties = {
-  width: "100%", boxSizing: "border-box",
-  background: "#0f172a", border: "1px solid #334155", borderRadius: 4,
-  padding: "5px 8px", color: "#f1f5f9", fontSize: 12, outline: "none",
-};
 
 
 // ─── SectionCanvas ─────────────────────────────────────────────────────────
@@ -688,7 +429,7 @@ function SectionCanvas({
   section, sectionIndex, totalSections, fields, aliases,
   dragOverCell, onSetDragOverCell,
   onRename, onRemove, onMoveUp, onMoveDown, onSetAliases,
-  onAddRow, onRemoveRow, onCellDragStart, onCellDrop, onResizeColumns, onOpenConfig,
+  onAddRow, onRemoveRow, onCellDragStart, onCellDrop, onResizeColumns, onClearCell,
   isAnyRowDragging, dragOverRow, onRowDragStart, onRowDragEnd, onRowDragOver, onRowDrop,
 }: {
   section: FormLayoutSection;
@@ -708,7 +449,7 @@ function SectionCanvas({
   onCellDragStart: (rowId: string, colId: string) => void;
   onCellDrop: (rowId: string, colId: string, curFieldId: string | null) => void;
   onResizeColumns: (rowId: string, lId: string, rId: string, lW: number, rW: number) => void;
-  onOpenConfig: (rowId: string, colId: string, fieldName: string, fieldType: string, def: SerializedInputDef | undefined) => void;
+  onClearCell: (rowId: string, colId: string) => void;
   isAnyRowDragging: boolean;
   dragOverRow: { sectionId: string; insertBeforeRowId: string | null } | null;
   onRowDragStart: (rowId: string) => void;
@@ -807,7 +548,7 @@ function SectionCanvas({
               onCellDragStart={(colId) => onCellDragStart(row.id, colId)}
               onCellDrop={(colId, curFieldId) => onCellDrop(row.id, colId, curFieldId)}
               onResizeColumns={(lId, rId, lW, rW) => onResizeColumns(row.id, lId, rId, lW, rW)}
-              onOpenConfig={(colId, fieldName, fieldType, def) => onOpenConfig(row.id, colId, fieldName, fieldType, def)}
+              onClearCell={(colId) => onClearCell(row.id, colId)}
               onRowDragStart={() => onRowDragStart(row.id)}
               onRowDragEnd={onRowDragEnd}
             />
@@ -849,7 +590,7 @@ function SectionCanvas({
 
 function RowCanvas({
   row, fields, dragOverCell, onSetDragOverCell,
-  isAnyRowDragging, onRemoveRow, onCellDragStart, onCellDrop, onResizeColumns, onOpenConfig,
+  isAnyRowDragging, onRemoveRow, onCellDragStart, onCellDrop, onResizeColumns, onClearCell,
   onRowDragStart, onRowDragEnd,
 }: {
   row: FormRow;
@@ -861,7 +602,7 @@ function RowCanvas({
   onCellDragStart: (colId: string) => void;
   onCellDrop: (colId: string, curFieldId: string | null) => void;
   onResizeColumns: (lId: string, rId: string, lW: number, rW: number) => void;
-  onOpenConfig: (colId: string, fieldName: string, fieldType: string, def: SerializedInputDef | undefined) => void;
+  onClearCell: (colId: string) => void;
   onRowDragStart: () => void;
   onRowDragEnd: () => void;
 }) {
@@ -955,10 +696,10 @@ function RowCanvas({
                     <span style={{ color: "#64748b", flexShrink: 0 }}><Icon name="drag" size={11} /></span>
                     <span style={{ flex: 1, fontSize: 12, color: "#e2e8f0", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{field.name}</span>
                     <ButtonIcon
-                      name="settings"
-                      label="Configure input"
+                      name="close"
+                      label="Clear cell"
                       size="sm"
-                      onClick={() => { onOpenConfig(col.id, field.name, field.fieldType, col.inputDef); }}
+                      onClick={() => { onClearCell(col.id); }}
                     />
                   </>
                 ) : (
