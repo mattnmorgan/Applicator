@@ -105,6 +105,10 @@ async function getSettingsMenuItems(
               path: "/system/settings/user-management/access-management/app-access",
             },
             {
+              label: "App Permissions Manager",
+              path: "/system/settings/user-management/access-management/app-permissions",
+            },
+            {
               label: "Permissions Manager",
               path: "/system/settings/user-management/access-management/permissions",
             },

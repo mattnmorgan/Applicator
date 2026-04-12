@@ -144,7 +144,9 @@ export default function AppAccessManager() {
       }
 
       // Build applet columns
-      const appletColumns: AppletColumn[] = appletData.records.map((record) => ({
+      const appletColumns: AppletColumn[] = appletData.records
+        .filter((record) => record.data.target !== "guest")
+        .map((record) => ({
         id: record.id,
         label: record.data.label,
         appId: record.data.app,
