@@ -43,7 +43,9 @@ function TreeItem({
   const [isExpanded, setIsExpanded] = useState(autoExpand);
   const hasChildren = item.children && item.children.length > 0;
   const isClickable = item.clickable !== false && item.path !== undefined;
-  const isActive = item.path === currentPath;
+  const isActive =
+    item.path !== undefined &&
+    (item.path === currentPath || currentPath.startsWith(item.path + "/"));
 
   // Filter children based on search term
   const getFilteredChildren = () => {
@@ -213,7 +215,9 @@ export default function Tabset({
       <>
       <div ref={horizontalRef} className={styles.tabsetHorizontal}>
         {items.map((item, index) => {
-          const isActive = item.path === pathname;
+          const isActive =
+            item.path !== undefined &&
+            (item.path === pathname || pathname.startsWith(item.path + "/"));
           const isClickable =
             item.clickable !== false && item.path !== undefined;
           const itemKey = item.path || String(index);

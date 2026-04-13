@@ -6,6 +6,7 @@ import {
   upgradeApp,
   upgradeSystemApp,
 } from "@/lib/system/installation/app-installer";
+import { extractAppPackage } from "@/lib/system/installation/package-extractor";
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,7 +33,29 @@ export async function POST(request: NextRequest) {
     // Parse form data
     const formData = await request.formData();
     const file = formData.get("file") as File | null;
-    const appId = formData.get("appId") as string;
+    let appId = formData.get("appId") as string | null;
+
+    // If no appId provided but a file is present, derive it from the package
+    if (!appId && file) {
+      if (!file.name.endsWith(".zip")) {
+        return NextResponse.json(
+          { error: "Invalid file format. Please upload a .zip package" },
+          { status: 400 },
+        );
+      }
+      const fileBuffer = Buffer.from(await file.arrayBuffer());
+      const packageData = await extractAppPackage(fileBuffer);
+      appId = packageData.appAttributes.id;
+      // Re-wrap the buffer so we don't read the stream twice
+      const result = await upgradeApp(appId, fileBuffer);
+      return NextResponse.json({
+        success: true,
+        appId: result.appId,
+        name: result.name,
+        oldVersion: result.oldVersion,
+        newVersion: result.newVersion,
+      });
+    }
 
     if (!appId) {
       return NextResponse.json(

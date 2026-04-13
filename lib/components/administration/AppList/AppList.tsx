@@ -10,6 +10,7 @@ import styles from "./AppList.module.css";
 import AppManager from "@/lib/client/managers/app";
 import ApiRouteManager from "@/lib/client/managers/apiRoute";
 import Button from "@/lib/components/utility/Button";
+import Spinner from "@/lib/components/utility/Spinner/Spinner";
 import { Icon } from "@/sdk/components";
 
 interface Widget {
@@ -63,6 +64,8 @@ export default function AppList() {
   const [apps, setApps] = useState<App[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [installing, setInstalling] = useState(false);
+  const [bulkUpgrading, setBulkUpgrading] = useState(false);
+  const [bulkUpgradeProgress, setBulkUpgradeProgress] = useState<{ current: number; total: number } | null>(null);
   const [upgrading, setUpgrading] = useState<string | null>(null);
   const [uninstalling, setUninstalling] = useState<string | null>(null);
   const [selectedAppId, setSelectedAppId] = useState<string | null>(null);
@@ -70,6 +73,7 @@ export default function AppList() {
   const addToast = (toast: ToastItem) => setToasts((prev) => [...prev, toast]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const upgradeFileInputRef = useRef<HTMLInputElement>(null);
+  const bulkUpgradeFileInputRef = useRef<HTMLInputElement>(null);
   const [upgradeAppId, setUpgradeAppId] = useState<string | null>(null);
   const [confirmUninstall, setConfirmUninstall] = useState<{
     appId: string;
@@ -278,6 +282,69 @@ export default function AppList() {
     }
   };
 
+  const handleBulkUpgradeClick = () => {
+    bulkUpgradeFileInputRef.current?.click();
+  };
+
+  const handleBulkUpgradeFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const files = Array.from(event.target.files || []);
+    if (files.length === 0) return;
+
+    setBulkUpgrading(true);
+    setBulkUpgradeProgress({ current: 1, total: files.length });
+    let anySucceeded = false;
+
+    for (let i = 0; i < files.length; i++) {
+      const file = files[i];
+      setBulkUpgradeProgress({ current: i + 1, total: files.length });
+      try {
+        const formData = new FormData();
+        formData.append("file", file);
+
+        const response = await fetch("/api/system/apps/upgrade", {
+          method: "POST",
+          body: formData,
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+          anySucceeded = true;
+          addToast({
+            message: `"${data.name}" upgraded from ${data.oldVersion} to ${data.newVersion}`,
+            type: "success",
+          });
+        } else {
+          addToast({
+            message: data.error || "Failed to upgrade",
+            type: "error",
+            title: `Upgrade Failed — ${file.name}`,
+            duration: 0,
+          });
+        }
+      } catch {
+        addToast({
+          message: "Failed to upgrade",
+          type: "error",
+          title: `Upgrade Failed — ${file.name}`,
+          duration: 0,
+        });
+      }
+    }
+
+    if (anySucceeded) {
+      await fetchApps();
+    }
+
+    setBulkUpgrading(false);
+    setBulkUpgradeProgress(null);
+    if (bulkUpgradeFileInputRef.current) {
+      bulkUpgradeFileInputRef.current.value = "";
+    }
+  };
+
   const handleUpgradeClick = (appId: string) => {
     setUpgradeAppId(appId);
     upgradeFileInputRef.current?.click();
@@ -426,6 +493,42 @@ export default function AppList() {
         toasts={toasts}
         onClose={(i) => setToasts((prev) => prev.filter((_, idx) => idx !== i))}
       />
+
+      {bulkUpgradeProgress && (
+        <div
+          style={{
+            position: "fixed",
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            background: "rgba(0,0,0,0.6)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            zIndex: 9999,
+          }}
+        >
+          <div
+            style={{
+              background: "#1e293b",
+              border: "1px solid #334155",
+              borderRadius: "12px",
+              padding: "28px 36px",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              gap: "16px",
+              minWidth: "240px",
+            }}
+          >
+            <Spinner size={32} color="#fbbf24" label="Upgrading apps" />
+            <span style={{ color: "#f1f5f9", fontSize: "14px", fontWeight: 500 }}>
+              Upgrading app {bulkUpgradeProgress.current} of {bulkUpgradeProgress.total}
+            </span>
+          </div>
+        </div>
+      )}
 
       {confirmUninstall && (
         <ConfirmModal
@@ -595,8 +698,24 @@ export default function AppList() {
           variant="primary"
           onClick={handleInstallClick}
           disabled={installing}
+          popover="Install"
         >
-          {installing ? "..." : "Install"}
+          {installing ? "..." : <Icon name="download" size={16} />}
+        </Button>
+        <Button
+          variant="secondary"
+          onClick={handleBulkUpgradeClick}
+          disabled={bulkUpgrading}
+          colors={{
+            base: "transparent",
+            hover: "rgba(251,191,36,0.1)",
+            active: "rgba(251,191,36,0.2)",
+            text: "#fbbf24",
+            border: "1px solid #fbbf24",
+          }}
+          popover="Upgrade"
+        >
+          {bulkUpgrading ? "..." : <Icon name="upload" size={16} />}
         </Button>
         <input
           ref={fileInputRef}
@@ -610,6 +729,14 @@ export default function AppList() {
           type="file"
           accept=".zip"
           onChange={handleUpgradeFileChange}
+          style={{ display: "none" }}
+        />
+        <input
+          ref={bulkUpgradeFileInputRef}
+          type="file"
+          accept=".zip"
+          multiple
+          onChange={handleBulkUpgradeFileChange}
           style={{ display: "none" }}
         />
       </div>
@@ -734,7 +861,7 @@ export default function AppList() {
                       <Button
                         variant="secondary"
                         onClick={() => handleUpgradeClick(app.id)}
-                        disabled={upgrading === app.id}
+                        disabled={upgrading === app.id || bulkUpgrading}
                         colors={{
                           base: "transparent",
                           hover: "rgba(251,191,36,0.1)",
