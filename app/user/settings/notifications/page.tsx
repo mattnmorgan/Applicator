@@ -24,6 +24,7 @@ export default function NotificationsPage() {
   const [topics, setTopics] = useState<TopicRow[]>([]);
   const [hasUuid, setHasUuid] = useState(false);
   const [ntfyConfigured, setNtfyConfigured] = useState(false);
+  const [ntfyServerUrl, setNtfyServerUrl] = useState<string | null>(null);
   const [uuid, setUuid] = useState<string | null>(null);
   const [regenerating, setRegenerating] = useState(false);
   const [testSending, setTestSending] = useState(false);
@@ -51,6 +52,7 @@ export default function NotificationsPage() {
 
       setHasUuid(ntfyData.hasUuid);
       setNtfyConfigured(ntfyData.ntfyConfigured);
+      setNtfyServerUrl(ntfyData.serverUrl || null);
       setTopics(topicsData.topics || []);
     } catch {
       setError("Failed to load notification settings.");
@@ -301,8 +303,24 @@ export default function NotificationsPage() {
             <span style={{ color: "#3b82f6" }}>ntfy.sh</span>.
           </li>
           <li>
-            Open the app and subscribe to a topic using your{" "}
-            <strong style={{ color: "#cbd5e1" }}>server URL</strong> and your{" "}
+            Open the app and subscribe to a topic using the server URL{" "}
+            {ntfyServerUrl ? (
+              <code
+                style={{
+                  fontFamily: "monospace",
+                  fontSize: "13px",
+                  color: "#f1f5f9",
+                  background: "#1e293b",
+                  padding: "1px 6px",
+                  borderRadius: "4px",
+                }}
+              >
+                {ntfyServerUrl}
+              </code>
+            ) : (
+              <strong style={{ color: "#cbd5e1" }}>provided by your administrator</strong>
+            )}{" "}
+            and your{" "}
             <strong style={{ color: "#cbd5e1" }}>notification topic</strong> shown below
             after generating.
           </li>

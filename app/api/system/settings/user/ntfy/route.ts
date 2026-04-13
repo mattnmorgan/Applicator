@@ -30,6 +30,7 @@ export async function GET() {
     return NextResponse.json({
       hasUuid,
       ntfyConfigured,
+      serverUrl: serverUrl?.data.value || null,
     });
   } catch (error) {
     console.error("Failed to get NTFY info:", error);
