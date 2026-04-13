@@ -1,14 +1,10 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
-
 interface AccessDeniedProps {
   message?: string;
 }
 
 export default function AccessDenied({ message = 'You do not have permission to access this page.' }: AccessDeniedProps) {
-  const router = useRouter();
-
   return (
     <div style={{
       minHeight: '100vh',
@@ -60,7 +56,7 @@ export default function AccessDenied({ message = 'You do not have permission to 
           {message}
         </p>
         <button
-          onClick={() => router.back()}
+          onClick={() => window.history.back()}
           style={{
             background: '#3b82f6',
             border: 'none',
