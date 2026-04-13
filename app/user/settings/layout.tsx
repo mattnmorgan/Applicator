@@ -74,6 +74,10 @@ async function getUserSettingsMenuItems(): Promise<TabsetItem[]> {
       label: "Profile",
       path: "/user/settings/profile",
     },
+    {
+      label: "Sessions",
+      path: "/user/settings/sessions",
+    },
   ];
 
   // Get current user to check app access

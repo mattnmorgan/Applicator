@@ -1,9 +1,53 @@
-import { NextResponse } from "next/server";
+import { NextResponse, NextRequest } from "next/server";
 import { cookies } from "next/headers";
 import SessionManager from "@/lib/managers/session";
 import UserManager, { verifyPassword } from "@/lib/managers/user";
 
-export async function POST(request: Request) {
+function parseUserAgent(ua: string): {
+  device_name: string;
+  browser_name: string;
+  device_type: string;
+} {
+  const isMobile =
+    /Mobile|Android|iPhone|iPod|BlackBerry|IEMobile|Opera Mini/i.test(ua);
+  const isTablet = /iPad|Tablet/i.test(ua);
+
+  let device_type: string;
+  if (isTablet) {
+    device_type = "tablet";
+  } else if (isMobile) {
+    device_type = "mobile";
+  } else {
+    device_type = "desktop";
+  }
+
+  // Device name
+  let device_name = "?";
+  if (/iPhone/i.test(ua)) device_name = "iPhone";
+  else if (/iPad/i.test(ua)) device_name = "iPad";
+  else if (/Android/i.test(ua)) {
+    const m = ua.match(/Android[^;]*;\s*([^)]+)\)/);
+    device_name = m ? m[1].trim() : "Android Device";
+  } else if (/Windows NT/i.test(ua)) device_name = "Windows PC";
+  else if (/Macintosh/i.test(ua)) device_name = "Mac";
+  else if (/Linux/i.test(ua)) device_name = "Linux PC";
+  else if (/CrOS/i.test(ua)) device_name = "Chromebook";
+
+  // Browser name
+  let browser_name = "?";
+  if (/Edg\//i.test(ua)) browser_name = "Edge";
+  else if (/OPR\//i.test(ua) || /Opera/i.test(ua)) browser_name = "Opera";
+  else if (/Chrome\//i.test(ua) && !/Chromium/i.test(ua))
+    browser_name = "Chrome";
+  else if (/Chromium\//i.test(ua)) browser_name = "Chromium";
+  else if (/Firefox\//i.test(ua)) browser_name = "Firefox";
+  else if (/Safari\//i.test(ua) && !/Chrome/i.test(ua))
+    browser_name = "Safari";
+
+  return { device_name, browser_name, device_type };
+}
+
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const { username, password } = body;
@@ -47,8 +91,12 @@ export async function POST(request: Request) {
       );
     }
 
+    const ua = request.headers.get("user-agent") || "";
+    const deviceInfo = ua ? parseUserAgent(ua) : {};
     const session = await new SessionManager().createSession(
       users.records[0].id,
+      null,
+      deviceInfo,
     );
     const cookieStore = await cookies();
     cookieStore.set("session", session.id, {

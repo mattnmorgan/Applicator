@@ -7,7 +7,15 @@ export default class SessionManager extends CRUD<Session> {
   tableName = "sessions";
   appId = "system";
 
-  async createSession(uid: string, originalSessionId: string | null = null) {
+  async createSession(
+    uid: string,
+    originalSessionId: string | null = null,
+    deviceInfo: {
+      device_name?: string;
+      browser_name?: string;
+      device_type?: string;
+    } = {},
+  ) {
     const expiresAt = new Date();
     expiresAt.setDate(expiresAt.getDate() + 7);
 
@@ -15,10 +23,17 @@ export default class SessionManager extends CRUD<Session> {
       user_id: uid,
       expires_at: expiresAt.toISOString(),
       original_session_id: originalSessionId ?? undefined,
+      ...deviceInfo,
     });
     // Session expiry is checked on read in getSession() — no Redis expire needed
 
     return record;
+  }
+
+  async getSessionsByUserId(userId: string) {
+    return await this.readRecords({
+      filters: [{ field: "user_id", operator: "=", value: userId }],
+    });
   }
 }
 

@@ -204,6 +204,9 @@ const schema = new Schema({
           nillable: true,
           foreignKey: { table: "sessions", field: "id" },
         }),
+        new Field({ name: "device_name", type: "text", nillable: true }),
+        new Field({ name: "browser_name", type: "text", nillable: true }),
+        new Field({ name: "device_type", type: "text", nillable: true }),
         new Field({ name: "created_at", type: "bigint" }),
         new Field({ name: "updated_at", type: "bigint" }),
       ],
@@ -477,6 +480,15 @@ export async function initializeSchema(): Promise<void> {
   );
   await pool.query(
     `ALTER TABLE users ADD COLUMN IF NOT EXISTS ntfy_uuid text`,
+  );
+  await pool.query(
+    `ALTER TABLE sessions ADD COLUMN IF NOT EXISTS device_name text`,
+  );
+  await pool.query(
+    `ALTER TABLE sessions ADD COLUMN IF NOT EXISTS browser_name text`,
+  );
+  await pool.query(
+    `ALTER TABLE sessions ADD COLUMN IF NOT EXISTS device_type text`,
   );
   await pool.query(`
     CREATE TABLE IF NOT EXISTS notification_topics (

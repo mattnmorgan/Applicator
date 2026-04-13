@@ -84,7 +84,10 @@ export type IconName =
   | "print"
   | "lock"
   | "unlock"
-  | "error";
+  | "error"
+  | "monitor"
+  | "smartphone"
+  | "tablet";
 
 interface IconProps {
   name: IconName | string;
@@ -861,6 +864,31 @@ export default function Icon({ name, size = 16 }: IconProps) {
         <svg {...base}>
           <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
           <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+        </svg>
+      );
+
+    case "monitor":
+      return (
+        <svg {...base}>
+          <rect x="2" y="3" width="20" height="14" rx="2" ry="2" />
+          <line x1="8" y1="21" x2="16" y2="21" />
+          <line x1="12" y1="17" x2="12" y2="21" />
+        </svg>
+      );
+
+    case "smartphone":
+      return (
+        <svg {...base}>
+          <rect x="5" y="2" width="14" height="20" rx="2" ry="2" />
+          <line x1="12" y1="18" x2="12.01" y2="18" />
+        </svg>
+      );
+
+    case "tablet":
+      return (
+        <svg {...base}>
+          <rect x="4" y="2" width="16" height="20" rx="2" ry="2" />
+          <line x1="12" y1="18" x2="12.01" y2="18" />
         </svg>
       );
 
