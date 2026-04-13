@@ -46,6 +46,7 @@ const devMenuItems: TabsetItem[] = [
       { label: "Dynamic Inputs", path: "/dev/test/dynamic-inputs" },
       { label: "Logs", path: "/dev/test/logs" },
       { label: "Notifications", path: "/dev/test/notifications" },
+      { label: "Form Editor and Viewer", path: "/dev/test/form-editor" },
       { label: "Panels", path: "/dev/test/panels" },
     ],
   },

@@ -850,9 +850,8 @@ function SectionCanvas({
           onDrop={() => section.rows[0] && onRowDrop(section.rows[0].id)}
         />
         {section.rows.map((row, ri) => (
-          <>
+          <div key={row.id} style={{ display: "contents" }}>
             <RowCanvas
-              key={row.id}
               row={row}
               fields={fields}
               dragOverCell={dragOverCell}
@@ -881,7 +880,7 @@ function SectionCanvas({
               onDragLeave={() => {}}
               onDrop={() => onRowDrop(section.rows[ri + 1]?.id ?? null)}
             />
-          </>
+          </div>
         ))}
 
         <div
