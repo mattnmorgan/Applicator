@@ -14,10 +14,11 @@ import styles from "./AppPermissionsManager.module.css";
 interface AppAuthorityRow {
   id: string;
   name: string;
-  iconUrl?: string;
   appId: string;
   appLabel: string;
   authorizations: string[];
+  /** Permissions the app declared as required at install time — cannot be revoked */
+  requiredPermissions: string[];
 }
 
 // ── Column type ──────────────────────────────────────────────────────────────
@@ -43,6 +44,22 @@ interface PermissionFilterItem {
   name: string;
   appId: string;
   appLabel: string;
+}
+
+// ── Cell state ───────────────────────────────────────────────────────────────
+
+type CellState =
+  | "editable-checked"
+  | "editable-unchecked"
+  /** Permission belongs to this row's own app — fully locked */
+  | "own-app-locked"
+  /** Required by app install — locked checked, cannot revoke */
+  | "required-locked";
+
+function getCellState(row: AppAuthorityRow, col: AuthorizationColumn): CellState {
+  if (col.appId === row.appId) return "own-app-locked";
+  if (row.requiredPermissions.includes(col.id)) return "required-locked";
+  return row.authorizations.includes(col.id) ? "editable-checked" : "editable-unchecked";
 }
 
 // ── Component ────────────────────────────────────────────────────────────────
@@ -78,10 +95,12 @@ export default function AppPermissionsManager() {
         appManager.readRecords({}),
       ]);
 
-      // App label lookup
+      // App label + required_permissions lookup
       const appLabelMap: Record<string, string> = {};
+      const appRequiredPermissionsMap: Record<string, string[]> = {};
       for (const app of appData.records) {
         appLabelMap[app.id] = app.data.label;
+        appRequiredPermissionsMap[app.id] = app.data.required_permissions || [];
       }
 
       // Authorization columns — only app-targeted, non-contextual
@@ -95,20 +114,23 @@ export default function AppPermissionsManager() {
         }));
       authColumns.sort((a, b) => a.name.localeCompare(b.name));
 
-      // Rows — only app-specific authorities
+      // Rows — only app-specific authorities, no icons
+      const appId = (r: { id: string; data: { app?: string } }) =>
+        r.data.app ?? r.id.replace("app-specific:", "");
+
       const appRows: AppAuthorityRow[] = authorityData.records
         .filter((r) => r.id.startsWith("app-specific:"))
-        .map((r) => ({
-          id: r.id,
-          name: r.data.name,
-          iconUrl:
-            r.data.icon && r.data.icon.trim() !== ""
-              ? `/api/system/assets/icons/authorities/${r.id}?t=${Date.now()}`
-              : undefined,
-          appId: r.data.app ?? r.id.replace("app-specific:", ""),
-          appLabel: r.data.app ? (appLabelMap[r.data.app] ?? r.data.app) : r.id.replace("app-specific:", ""),
-          authorizations: r.data.authorizations || [],
-        }));
+        .map((r) => {
+          const aid = appId(r);
+          return {
+            id: r.id,
+            name: r.data.name,
+            appId: aid,
+            appLabel: appLabelMap[aid] ?? aid,
+            authorizations: r.data.authorizations || [],
+            requiredPermissions: appRequiredPermissionsMap[aid] || [],
+          };
+        });
       appRows.sort((a, b) => a.appLabel.localeCompare(b.appLabel));
 
       setAuthorityFilterItems(
@@ -142,6 +164,20 @@ export default function AppPermissionsManager() {
       );
     } catch {
       addToast({ message: "Failed to update app authority permissions", type: "error" });
+    }
+  };
+
+  const handleLockedClick = (state: CellState, row: AppAuthorityRow, col: AuthorizationColumn) => {
+    if (state === "own-app-locked") {
+      addToast({
+        message: `Permissions belonging to ${row.appLabel} cannot be managed on its own authority.`,
+        type: "error",
+      });
+    } else if (state === "required-locked") {
+      addToast({
+        message: `"${col.name}" is a required permission for ${row.appLabel} and cannot be revoked.`,
+        type: "error",
+      });
     }
   };
 
@@ -233,6 +269,22 @@ export default function AppPermissionsManager() {
         </div>
       </div>
 
+      {/* Legend */}
+      <div className={styles.legend}>
+        <span className={styles.legendItem}>
+          <span className={styles.legendEditable} />
+          Editable
+        </span>
+        <span className={styles.legendItem}>
+          <span className={styles.legendRequired} />
+          Required by install (cannot revoke)
+        </span>
+        <span className={styles.legendItem}>
+          <span className={styles.legendOwnApp} />
+          Own-app permission (locked)
+        </span>
+      </div>
+
       {/* Table */}
       <div className={styles.tableWrapper}>
         {filteredColumns.length === 0 ? (
@@ -264,16 +316,9 @@ export default function AppPermissionsManager() {
               ) : (
                 filteredRows.map((row) => (
                   <tr key={row.id} className={styles.dataRow}>
-                    {/* Sticky row header */}
+                    {/* Sticky row header — no icon */}
                     <td className={styles.rowHeader}>
                       <div className={styles.rowHeaderContent}>
-                        {row.iconUrl ? (
-                          <img src={row.iconUrl} alt={row.name} className={styles.rowIcon} />
-                        ) : (
-                          <div className={styles.rowIconPlaceholder}>
-                            {row.appLabel.charAt(0).toUpperCase()}
-                          </div>
-                        )}
                         <div className={styles.rowHeaderText}>
                           <span className={styles.rowPrimary}>{row.name}</span>
                         </div>
@@ -283,15 +328,43 @@ export default function AppPermissionsManager() {
 
                     {/* Data cells */}
                     {filteredColumns.map((col) => {
-                      const checked = row.authorizations.includes(col.id);
+                      const state = getCellState(row, col);
+                      const isLocked = state === "own-app-locked" || state === "required-locked";
+                      const isChecked = state !== "editable-unchecked" && state !== "own-app-locked";
+
                       return (
-                        <td key={col.id} className={styles.dataCell}>
-                          <div className={styles.cellContainer}>
+                        <td
+                          key={col.id}
+                          className={`${styles.dataCell} ${
+                            state === "required-locked"
+                              ? styles.requiredCell
+                              : state === "own-app-locked"
+                              ? styles.ownAppCell
+                              : ""
+                          }`}
+                        >
+                          <div
+                            className={styles.cellContainer}
+                            onClick={isLocked ? () => handleLockedClick(state, row, col) : undefined}
+                            style={isLocked ? { cursor: "help" } : undefined}
+                          >
                             <input
                               type="checkbox"
-                              className={styles.checkbox}
-                              checked={checked}
-                              onChange={(e) => handleToggle(row, col.id, e.target.checked)}
+                              className={`${styles.checkbox} ${isLocked ? styles.lockedCheckbox : ""}`}
+                              checked={isChecked}
+                              disabled={isLocked}
+                              onChange={
+                                !isLocked
+                                  ? (e) => handleToggle(row, col.id, e.target.checked)
+                                  : undefined
+                              }
+                              title={
+                                state === "required-locked"
+                                  ? `Required by ${row.appLabel} — cannot revoke`
+                                  : state === "own-app-locked"
+                                  ? `Own-app permission — cannot manage`
+                                  : undefined
+                              }
                             />
                           </div>
                         </td>
