@@ -164,12 +164,12 @@ export async function validateAppPackage(
 
       // Validate target
       if (
-        !["app", "home", "user-settings", "system-settings", "guest"].includes(
+        !["app", "home", "user-settings", "system-settings", "guest", "utility-bar"].includes(
           applet.target,
         )
       ) {
         throw new Error(
-          `Applet '${applet.id}' has invalid target. Must be 'app', 'home', 'user-settings', 'system-settings', or 'guest'`,
+          `Applet '${applet.id}' has invalid target. Must be 'app', 'home', 'user-settings', 'system-settings', 'guest', or 'utility-bar'`,
         );
       }
 

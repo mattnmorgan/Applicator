@@ -149,6 +149,8 @@ export async function installAppComponents(
           app: appId,
           target: applet.target,
           settings: applet.settings || [],
+          poppable: applet.poppable || false,
+          icon: applet.icon || null,
         },
         { id: `${appId}:${applet.id}`, client },
       );
@@ -373,6 +375,8 @@ export async function updateAppComponents(
         app: appId,
         target: applet.target,
         settings: applet.settings || [],
+        poppable: applet.poppable || false,
+        icon: applet.icon || null,
       };
 
       if (existingAppletIds.has(applet.id)) {

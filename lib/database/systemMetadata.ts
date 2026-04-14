@@ -4,7 +4,7 @@ export const SYSTEM_APP_METADATA = {
   version: {
     major: 0,
     minor: 1,
-    dev: 8,
+    dev: 9,
   },
   author: "Matthew Morgan",
   contact_email: "matthew@morgantech.info",
@@ -467,7 +467,7 @@ export const SYSTEM_APP_METADATA = {
         {
           name: "target",
           description:
-            "Where the applet should be displayed (app, home, user-settings, system-settings)",
+            "Where the applet should be displayed (app, home, user-settings, system-settings, guest, utility-bar)",
           type: "picklist",
           required: true,
           options: {
@@ -476,6 +476,7 @@ export const SYSTEM_APP_METADATA = {
             "user-settings": "User Settings",
             "system-settings": "System Settings",
             guest: "Guests",
+            "utility-bar": "Utility Bar",
           },
         },
         {
@@ -484,6 +485,19 @@ export const SYSTEM_APP_METADATA = {
             "Settings definitions for the applet (JSON array of setting descriptors)",
           type: "json",
           defaultValue: [],
+        },
+        {
+          name: "poppable",
+          description:
+            "Whether this utility-bar applet can be detached into a repositionable floating mini-window",
+          type: "boolean",
+          defaultValue: false,
+        },
+        {
+          name: "icon",
+          description:
+            "Asset path for a custom icon (utility-bar applets only, e.g. assets/tool-icon.png)",
+          type: "string",
         },
       ],
     },

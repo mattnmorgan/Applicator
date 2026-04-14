@@ -22,14 +22,16 @@ Applets are the UI entry points for an app. They are declared in the `applets` a
 
 ## Applet Properties
 
-| Property      | Type     | Required | Description                                                          |
-| ------------- | -------- | -------- | -------------------------------------------------------------------- |
-| `id`          | `string` | Yes      | Unique identifier within the app                                     |
-| `label`       | `string` | Yes      | Display name shown in menus and titles                               |
-| `description` | `string` | Yes      | Description shown to users                                           |
-| `target`      | `string` | Yes      | Where the applet appears (see targets table below)                   |
-| `component`   | `string` | Yes      | Exported component name from the app bundle (`app.js`)               |
-| `settings`    | `array`  | No       | Per-instance setting descriptors (supported for `home` target only)  |
+| Property      | Type      | Required | Description                                                                        |
+| ------------- | --------- | -------- | ---------------------------------------------------------------------------------- |
+| `id`          | `string`  | Yes      | Unique identifier within the app                                                   |
+| `label`       | `string`  | Yes      | Display name shown in menus and titles                                             |
+| `description` | `string`  | Yes      | Description shown to users                                                         |
+| `target`      | `string`  | Yes      | Where the applet appears (see targets table below)                                 |
+| `component`   | `string`  | Yes      | Exported component name from the app bundle (`app.js`)                             |
+| `settings`    | `array`   | No       | Per-instance setting descriptors (supported for `home` target only)                |
+| `poppable`    | `boolean` | No       | `utility-bar` only — allows detaching into a repositionable floating mini-window   |
+| `icon`        | `string`  | No       | `utility-bar` only — asset path for a custom icon (e.g. `"assets/tool-icon.png"`) |
 
 ---
 
@@ -42,6 +44,7 @@ Applets are the UI entry points for an app. They are declared in the `applets` a
 | `user-settings`   | Panel in the user's personal settings                         | [user-settings.md](./user-settings.md) |
 | `system-settings` | Panel in the system-wide admin settings (admin only)          | [system-settings.md](./system-settings.md) |
 | `guest`           | Shown to unauthenticated users via a share link               | [guest.md](./guest.md) |
+| `utility-bar`     | Persistent sidebar applet visible on the home screen          | [utility-bar.md](./utility-bar.md) |
 
 ---
 

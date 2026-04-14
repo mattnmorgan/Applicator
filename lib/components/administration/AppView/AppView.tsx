@@ -19,7 +19,7 @@ interface Widget {
   id: string;
   name: string;
   description: string;
-  target: "home" | "user-settings" | "system-settings" | "app" | "guest";
+  target: "home" | "user-settings" | "system-settings" | "app" | "guest" | "utility-bar";
   component: string;
   appId: string;
 }
@@ -83,7 +83,7 @@ function getMethodBadgeVariant(
 
 function getTargetBadgeVariant(
   target: string,
-): "green" | "blue" | "yellow" | "red" | "purple" | "gray" {
+): "green" | "blue" | "yellow" | "red" | "purple" | "orange" | "gray" {
   switch (target) {
     case "home":
       return "blue";
@@ -95,6 +95,8 @@ function getTargetBadgeVariant(
       return "yellow";
     case "guest":
       return "red";
+    case "utility-bar":
+      return "orange";
     default:
       return "gray";
   }
@@ -438,6 +440,7 @@ export default function AppView({ appId, onBack }: AppViewProps) {
                                   "System Settings"}
                                 {widget.target === "app" && "App"}
                                 {widget.target === "guest" && "Guest App"}
+                                {widget.target === "utility-bar" && "Utility Bar"}
                               </Badge>
                             </div>
                             <div style={{ color: "#94a3b8", fontSize: "13px" }}>
@@ -473,6 +476,7 @@ export default function AppView({ appId, onBack }: AppViewProps) {
                   {widget.target === "system-settings" && "System Settings"}
                   {widget.target === "app" && "App"}
                   {widget.target === "guest" && "Guest"}
+                  {widget.target === "utility-bar" && "Utility Bar"}
                 </Badge>
               </div>
             ))}

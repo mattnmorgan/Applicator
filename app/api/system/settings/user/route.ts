@@ -74,6 +74,8 @@ export async function GET() {
         app: applet.data.app,
         appLabel: appLabelMap.get(applet.data.app) || applet.data.app,
         settings: applet.data.settings || [],
+        poppable: applet.data.poppable ?? false,
+        icon: applet.data.icon ?? null,
       }));
 
     // Read home display settings
@@ -86,6 +88,29 @@ export async function GET() {
       rawDensity && VALID_DENSITIES.includes(rawDensity as AppDensity)
         ? (rawDensity as AppDensity)
         : "full";
+
+    // Read utility bar settings
+    const utilityDensitySetting = await settingManager.readRecord(
+      `${user.id}:ui:utilityBarDensity`,
+    );
+    const rawUtilityDensity = utilityDensitySetting?.data.value;
+    const utilityBarDensity: AppDensity =
+      rawUtilityDensity && VALID_DENSITIES.includes(rawUtilityDensity as AppDensity)
+        ? (rawUtilityDensity as AppDensity)
+        : "full";
+
+    const utilityBarSetting = await settingManager.readRecord(
+      `${user.id}:ui:utilityBar`,
+    );
+    let utilityBarAppletIds: string[] = [];
+    if (utilityBarSetting?.data.value) {
+      try {
+        const parsed = JSON.parse(utilityBarSetting.data.value);
+        if (Array.isArray(parsed)) utilityBarAppletIds = parsed;
+      } catch {
+        // ignore
+      }
+    }
 
     return NextResponse.json({
       user: {
@@ -101,6 +126,7 @@ export async function GET() {
       userApplets, // Array of applets with full details
       isAssumedIdentity: currentUser.isAssumedIdentity,
       homeSettings: { appDensity },
+      utilityBarSettings: { density: utilityBarDensity, appletIds: utilityBarAppletIds },
     });
   } catch (error) {
     console.error("Failed to get current user:", error);

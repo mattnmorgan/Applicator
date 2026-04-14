@@ -9,6 +9,9 @@ import SettingManager from "@/lib/managers/setting";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/utility/Tabset";
 import HomeApplets from "@/lib/components/HomeApplets";
+import UtilityBar, { UtilityBarAppletInfo } from "@/lib/components/UtilityBar";
+
+const UTILITY_BAR_WIDTH = 280;
 
 async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
   const homeMenuItems: TabsetItem[] = [
@@ -173,6 +176,97 @@ async function getUserPinnedApplets(userId: string): Promise<PinnedApplet[]> {
   }
 }
 
+async function getUserUtilityBarApplets(
+  userId: string,
+): Promise<UtilityBarAppletInfo[]> {
+  const settingManager = new SettingManager();
+  const appletManager = new AppletManager();
+  const authorityManager = new AuthorityManager();
+  const userManager = new UserManager();
+
+  const setting = await settingManager.readRecord(`${userId}:ui:utilityBar`);
+  if (!setting?.data.value) return [];
+
+  let appletIds: string[];
+  try {
+    appletIds = JSON.parse(setting.data.value);
+    if (!Array.isArray(appletIds) || appletIds.length === 0) return [];
+  } catch {
+    return [];
+  }
+
+  const userRecord = await userManager.readRecord(userId);
+  if (!userRecord) return [];
+
+  const mainAuthority = await authorityManager.readRecord(
+    userRecord.data.authority_id,
+  );
+  const userAuthority = await authorityManager.readUserAuthority(userId);
+
+  const accessibleIds = new Set([
+    ...(mainAuthority?.data.apps || []),
+    ...(userAuthority?.data.apps || []),
+  ]);
+
+  const utilityApplets: UtilityBarAppletInfo[] = [];
+  for (const appletId of appletIds) {
+    if (!accessibleIds.has(appletId)) continue;
+
+    const applet = await appletManager.readRecord(appletId);
+    if (!applet || applet.data.target !== "utility-bar") continue;
+
+    utilityApplets.push({
+      appletId,
+      label: applet.data.label,
+      app: applet.data.app,
+      component: applet.data.component,
+      poppable: applet.data.poppable ?? false,
+      iconUrl: applet.data.icon
+        ? `/api/${applet.data.app}/assets/${applet.data.icon}`
+        : `/api/${applet.data.app}/assets/icon`,
+    });
+  }
+
+  // Silently clean up inaccessible entries and their positions
+  if (utilityApplets.length !== appletIds.length) {
+    const validIds = utilityApplets.map((a) => a.appletId);
+    const table = await settingManager.getTable();
+    await settingManager.upsertRecord(table, `${userId}:ui:utilityBar`, {
+      value: JSON.stringify(validIds),
+      name: "ui:utilityBar",
+      user: userId,
+    });
+
+    // Remove positions for applets that are no longer accessible
+    const posSetting = await settingManager.readRecord(
+      `${userId}:ui:utilityBarPositions`,
+    );
+    if (posSetting?.data.value) {
+      try {
+        const positions = JSON.parse(posSetting.data.value);
+        const cleanPositions: Record<string, { x: number; y: number }> = {};
+        for (const id of validIds) {
+          if (positions[id]) cleanPositions[id] = positions[id];
+        }
+        const posTable = await settingManager.getTable();
+        await settingManager.upsertRecord(
+          posTable,
+          `${userId}:ui:utilityBarPositions`,
+          {
+            value: JSON.stringify(cleanPositions),
+            name: "ui:utilityBarPositions",
+            user: userId,
+          },
+        );
+      } catch {
+        // ignore
+      }
+    }
+  }
+
+  return utilityApplets;
+}
+
 export default async function HomePage() {
   // Check if first-time setup is needed
   const userManager = new UserManager();
@@ -314,6 +408,8 @@ export default async function HomePage() {
     .includes("system:admin");
 
   const settingManager = new SettingManager();
+
+  // App nav density
   const densitySetting = await settingManager.readRecord(
     `${user.id}:home:appDensity`,
   );
@@ -322,8 +418,34 @@ export default async function HomePage() {
     ["full", "name", "icon"].includes(rawDensity || "") ? rawDensity : "full"
   ) as "full" | "name" | "icon";
 
+  // Utility bar density
+  const utilityDensitySetting = await settingManager.readRecord(
+    `${user.id}:ui:utilityBarDensity`,
+  );
+  const rawUtilityDensity = utilityDensitySetting?.data.value;
+  const utilityBarDensity = (
+    ["full", "name", "icon"].includes(rawUtilityDensity || "")
+      ? rawUtilityDensity
+      : "full"
+  ) as "full" | "name" | "icon";
+
+  // Saved pop-out positions
+  const positionsSetting = await settingManager.readRecord(
+    `${user.id}:ui:utilityBarPositions`,
+  );
+  let savedPositions: Record<string, { x: number; y: number }> = {};
+  if (positionsSetting?.data.value) {
+    try {
+      savedPositions = JSON.parse(positionsSetting.data.value);
+    } catch {
+      savedPositions = {};
+    }
+  }
+
   const homeMenuItems = await getHomeMenuItems(user.id);
   const pinnedApplets = await getUserPinnedApplets(user.id);
+  const utilityBarApplets = await getUserUtilityBarApplets(user.id);
+  const hasUtilityBar = utilityBarApplets.length > 0;
 
   return (
     <>
@@ -341,7 +463,7 @@ export default async function HomePage() {
           position: "fixed",
           top: "64px",
           left: 0,
-          right: 0,
+          right: hasUtilityBar ? UTILITY_BAR_WIDTH : 0,
           bottom: 0,
           background: "#0f172a",
         }}
@@ -421,6 +543,14 @@ export default async function HomePage() {
           )}
         </main>
       </div>
+      {hasUtilityBar && (
+        <UtilityBar
+          applets={utilityBarApplets}
+          density={utilityBarDensity}
+          savedPositions={savedPositions}
+          userId={user.id}
+        />
+      )}
     </>
   );
 }

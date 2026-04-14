@@ -66,6 +66,8 @@ interface AppletInfo {
   app: string;
   appLabel: string;
   target: string;
+  poppable?: boolean;
+  icon?: string | null;
   settings?: SettingDefinition[];
 }
 
@@ -78,6 +80,15 @@ interface PinnedInstance {
   app: string;
   appLabel: string;
   settings?: SettingDefinition[];
+}
+
+interface UtilityBarInstance {
+  appletId: string;
+  label: string;
+  description: string;
+  app: string;
+  appLabel: string;
+  poppable: boolean;
 }
 
 interface AddAppletModalProps {
@@ -137,6 +148,66 @@ function AddAppletModal({
                     onAdd(applet.id, labels[applet.id] || applet.label)
                   }
                 >
+                  Add
+                </Button>
+              </div>
+            ))
+          )}
+        </div>
+        <div className={styles.modalFooter}>
+          <Button variant="secondary" onClick={onClose}>
+            Close
+          </Button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface AddUtilityAppletModalProps {
+  availableApplets: AppletInfo[];
+  currentAppletIds: string[];
+  onAdd: (appletId: string) => void;
+  onClose: () => void;
+}
+
+function AddUtilityAppletModal({
+  availableApplets,
+  currentAppletIds,
+  onAdd,
+  onClose,
+}: AddUtilityAppletModalProps) {
+  const notYetAdded = availableApplets.filter(
+    (a) => !currentAppletIds.includes(a.id),
+  );
+
+  return (
+    <div className={styles.modalOverlay} onClick={onClose}>
+      <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+        <div className={styles.modalHeader}>
+          <h3 className={styles.modalTitle}>Add Utility Bar Applet</h3>
+          <ButtonIcon name="close" label="Close" onClick={onClose} iconSize={20} />
+        </div>
+        <div className={styles.modalBody}>
+          {notYetAdded.length === 0 ? (
+            <div className={styles.emptyState}>
+              No utility bar applets available to add.
+            </div>
+          ) : (
+            notYetAdded.map((applet) => (
+              <div key={applet.id} className={styles.addAppletRow}>
+                <div className={styles.checkboxContent}>
+                  <span className={styles.checkboxLabel}>{applet.label}</span>
+                  <span className={styles.checkboxDescription}>
+                    {applet.description}
+                    {applet.poppable && (
+                      <span style={{ color: "#3b82f6", marginLeft: "6px" }}>
+                        · Poppable
+                      </span>
+                    )}
+                  </span>
+                </div>
+                <Button variant="primary" onClick={() => onAdd(applet.id)}>
                   Add
                 </Button>
               </div>
@@ -266,6 +337,7 @@ const DENSITY_OPTIONS: { value: "full" | "name" | "icon"; label: string; descrip
 ];
 
 export default function HomeSettingsPage() {
+  // Pinned applets state
   const [pinnedInstances, setPinnedInstances] = useState<PinnedInstance[]>([]);
   const [instanceSettings, setInstanceSettings] = useState<
     Record<string, Record<string, any>>
@@ -274,9 +346,15 @@ export default function HomeSettingsPage() {
   const [userId, setUserId] = useState<string>("");
   const [appDensity, setAppDensity] = useState<"full" | "name" | "icon">("full");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [editingInstance, setEditingInstance] = useState<PinnedInstance | null>(
-    null,
-  );
+  const [editingInstance, setEditingInstance] = useState<PinnedInstance | null>(null);
+
+  // Utility bar state
+  const [utilityBarApplets, setUtilityBarApplets] = useState<UtilityBarInstance[]>([]);
+  const [availableUtilityApplets, setAvailableUtilityApplets] = useState<AppletInfo[]>([]);
+  const [utilityBarDensity, setUtilityBarDensity] = useState<"full" | "name" | "icon">("full");
+  const [isAddUtilityModalOpen, setIsAddUtilityModalOpen] = useState(false);
+
+  // Shared state
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(true);
   const [success, setSuccess] = useState("");
@@ -291,51 +369,43 @@ export default function HomeSettingsPage() {
       setLoading(true);
       setError("");
 
-      // Fetch user info and available applets
       const userRes = await fetch("/api/system/settings/user");
-      if (!userRes.ok) {
-        throw new Error("Failed to fetch user data");
-      }
+      if (!userRes.ok) throw new Error("Failed to fetch user data");
       const userData = await userRes.json();
       const currentUserId = userData.user.id;
       setUserId(currentUserId);
 
-      // Filter home-target applets
+      // ── Pinned applets ──────────────────────────────────────────────────────
       const homeApplets = (userData.userApplets || []).filter(
         (a: AppletInfo) => a.target === "home",
       );
       setAvailableApplets(homeApplets);
 
-      // Build applet lookup
       const appletMap = new Map<string, AppletInfo>();
       for (const applet of homeApplets) {
         appletMap.set(applet.id, applet);
       }
 
-      // Fetch home display settings
       const settingManager = new SettingManager();
+
       const densityRecord = await settingManager.readRecord({
         id: `${currentUserId}:home:appDensity`,
       });
-      const validDensities = ["full", "name", "icon"];
       const loadedDensity = densityRecord?.data.value;
-      if (loadedDensity && validDensities.includes(loadedDensity)) {
+      if (loadedDensity && ["full", "name", "icon"].includes(loadedDensity)) {
         setAppDensity(loadedDensity as "full" | "name" | "icon");
       }
 
-      // Fetch user's current pinned applets setting
       const setting = await settingManager.readRecord({
         id: `${currentUserId}:home:applets`,
       });
 
-      if (setting && setting.data.value) {
+      if (setting?.data.value) {
         try {
           const instances = JSON.parse(setting.data.value);
           if (Array.isArray(instances)) {
-            // Map saved instances to full applet info
             const pinned: PinnedInstance[] = [];
             const settingsMap: Record<string, Record<string, any>> = {};
-
             const appletSettingManager = new AppletSettingManager();
 
             for (const inst of instances) {
@@ -344,19 +414,16 @@ export default function HomeSettingsPage() {
                 let instanceSettingsData: Record<string, any> = {};
                 let customLabel = applet.label;
 
-                // Fetch instance settings and custom label
                 try {
                   const settingRecord = await appletSettingManager.readRecord({
                     id: inst.instanceId,
                   });
                   if (settingRecord) {
                     instanceSettingsData = settingRecord.data.settings || {};
-                    if (settingRecord.data.label) {
-                      customLabel = settingRecord.data.label;
-                    }
+                    if (settingRecord.data.label) customLabel = settingRecord.data.label;
                   }
                 } catch {
-                  // No settings for this instance yet
+                  // No settings yet
                 }
 
                 pinned.push({
@@ -369,7 +436,6 @@ export default function HomeSettingsPage() {
                   appLabel: applet.appLabel,
                   settings: applet.settings,
                 });
-
                 settingsMap[inst.instanceId] = instanceSettingsData;
               }
             }
@@ -380,8 +446,55 @@ export default function HomeSettingsPage() {
         } catch {
           setPinnedInstances([]);
         }
-      } else {
-        setPinnedInstances([]);
+      }
+
+      // ── Utility bar applets ─────────────────────────────────────────────────
+      const utilityApplets = (userData.userApplets || []).filter(
+        (a: AppletInfo) => a.target === "utility-bar",
+      );
+      setAvailableUtilityApplets(utilityApplets);
+
+      const utilityAppletMap = new Map<string, AppletInfo>();
+      for (const applet of utilityApplets) {
+        utilityAppletMap.set(applet.id, applet);
+      }
+
+      const utilityDensityRecord = await settingManager.readRecord({
+        id: `${currentUserId}:ui:utilityBarDensity`,
+      });
+      const loadedUtilityDensity = utilityDensityRecord?.data.value;
+      if (loadedUtilityDensity && ["full", "name", "icon"].includes(loadedUtilityDensity)) {
+        setUtilityBarDensity(loadedUtilityDensity as "full" | "name" | "icon");
+      }
+
+      const utilityBarRecord = await settingManager.readRecord({
+        id: `${currentUserId}:ui:utilityBar`,
+      });
+
+      if (utilityBarRecord?.data.value) {
+        try {
+          const ids: string[] = JSON.parse(utilityBarRecord.data.value);
+          if (Array.isArray(ids)) {
+            const instances: UtilityBarInstance[] = [];
+            for (const id of ids) {
+              const applet = utilityAppletMap.get(id);
+              // Only keep applets the user still has access to
+              if (applet) {
+                instances.push({
+                  appletId: applet.id,
+                  label: applet.label,
+                  description: applet.description,
+                  app: applet.app,
+                  appLabel: applet.appLabel,
+                  poppable: applet.poppable ?? false,
+                });
+              }
+            }
+            setUtilityBarApplets(instances);
+          }
+        } catch {
+          setUtilityBarApplets([]);
+        }
       }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to load settings");
@@ -390,30 +503,24 @@ export default function HomeSettingsPage() {
     }
   };
 
+  // ── Pinned applet handlers ─────────────────────────────────────────────────
+
   const handleDragEnd = (result: DropResult) => {
     if (!result.destination) return;
-
     const items = Array.from(pinnedInstances);
     const [reordered] = items.splice(result.source.index, 1);
     items.splice(result.destination.index, 0, reordered);
-
     setPinnedInstances(items);
   };
 
   const handleRemove = async (instanceId: string) => {
-    setPinnedInstances(
-      pinnedInstances.filter((a) => a.instanceId !== instanceId),
-    );
-
-    // Delete instance settings
+    setPinnedInstances(pinnedInstances.filter((a) => a.instanceId !== instanceId));
     try {
       const appletSettingManager = new AppletSettingManager();
       await appletSettingManager.deleteRecord(instanceId);
     } catch {
-      // Settings may not exist, that's okay
+      // Settings may not exist
     }
-
-    // Remove from settings map
     const newSettings = { ...instanceSettings };
     delete newSettings[instanceId];
     setInstanceSettings(newSettings);
@@ -422,7 +529,6 @@ export default function HomeSettingsPage() {
   const handleAddApplet = (appletId: string, customLabel: string) => {
     const applet = availableApplets.find((a) => a.id === appletId);
     if (!applet) return;
-
     const instanceId = crypto.randomUUID();
     setPinnedInstances([
       ...pinnedInstances,
@@ -437,7 +543,6 @@ export default function HomeSettingsPage() {
         settings: applet.settings,
       },
     ]);
-
     setIsAddModalOpen(false);
   };
 
@@ -470,6 +575,58 @@ export default function HomeSettingsPage() {
     }
   };
 
+  // ── Utility bar handlers ───────────────────────────────────────────────────
+
+  const handleUtilityDragEnd = (result: DropResult) => {
+    if (!result.destination) return;
+    const items = Array.from(utilityBarApplets);
+    const [reordered] = items.splice(result.source.index, 1);
+    items.splice(result.destination.index, 0, reordered);
+    setUtilityBarApplets(items);
+  };
+
+  const handleAddUtilityApplet = (appletId: string) => {
+    const applet = availableUtilityApplets.find((a) => a.id === appletId);
+    if (!applet) return;
+    setUtilityBarApplets([
+      ...utilityBarApplets,
+      {
+        appletId: applet.id,
+        label: applet.label,
+        description: applet.description,
+        app: applet.app,
+        appLabel: applet.appLabel,
+        poppable: applet.poppable ?? false,
+      },
+    ]);
+    setIsAddUtilityModalOpen(false);
+  };
+
+  const handleRemoveUtilityApplet = async (appletId: string) => {
+    setUtilityBarApplets(utilityBarApplets.filter((a) => a.appletId !== appletId));
+
+    // Clear saved position for this applet
+    try {
+      const settingManager = new SettingManager();
+      const posSetting = await settingManager.readRecord({
+        id: `${userId}:ui:utilityBarPositions`,
+      });
+      if (posSetting?.data.value) {
+        const positions = JSON.parse(posSetting.data.value);
+        delete positions[appletId];
+        await settingManager.upsertRecord(`${userId}:ui:utilityBarPositions`, {
+          value: JSON.stringify(positions),
+          name: "ui:utilityBarPositions",
+          user: userId,
+        });
+      }
+    } catch {
+      // Non-critical
+    }
+  };
+
+  // ── Save ───────────────────────────────────────────────────────────────────
+
   const handleSave = async () => {
     setSaving(true);
     setError("");
@@ -479,6 +636,7 @@ export default function HomeSettingsPage() {
       const settingManager = new SettingManager();
       const appletSettingManager = new AppletSettingManager();
 
+      // Save pinned applets + app density
       await settingManager.upsertRecord(`${userId}:home:appDensity`, {
         value: appDensity,
         name: "home:appDensity",
@@ -496,7 +654,6 @@ export default function HomeSettingsPage() {
         user: userId,
       });
 
-      // Persist labels and settings for each instance
       for (const instance of pinnedInstances) {
         await appletSettingManager.upsertRecord(instance.instanceId, {
           user: userId,
@@ -505,6 +662,19 @@ export default function HomeSettingsPage() {
           settings: instanceSettings[instance.instanceId] || {},
         });
       }
+
+      // Save utility bar applets + density
+      await settingManager.upsertRecord(`${userId}:ui:utilityBarDensity`, {
+        value: utilityBarDensity,
+        name: "ui:utilityBarDensity",
+        user: userId,
+      });
+
+      await settingManager.upsertRecord(`${userId}:ui:utilityBar`, {
+        value: JSON.stringify(utilityBarApplets.map((a) => a.appletId)),
+        name: "ui:utilityBar",
+        user: userId,
+      });
 
       setSuccess("Settings saved successfully");
     } catch {
@@ -534,6 +704,7 @@ export default function HomeSettingsPage() {
       {error && <Banner variant="error">{error}</Banner>}
       {success && <Banner variant="success">{success}</Banner>}
 
+      {/* ── App nav density ──────────────────────────────────────────────── */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h3 className={styles.sectionTitle}>App Density</h3>
@@ -575,6 +746,7 @@ export default function HomeSettingsPage() {
         </div>
       </section>
 
+      {/* ── Pinned applets ───────────────────────────────────────────────── */}
       <section className={styles.section}>
         <div className={styles.sectionHeader}>
           <h3 className={styles.sectionTitle}>Pinned Applets</h3>
@@ -651,6 +823,124 @@ export default function HomeSettingsPage() {
         )}
       </section>
 
+      {/* ── Utility bar density ──────────────────────────────────────────── */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h3 className={styles.sectionTitle}>Utility Bar Density</h3>
+        </div>
+        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+          {DENSITY_OPTIONS.map((option) => (
+            <label
+              key={option.value}
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "12px",
+                padding: "10px 12px",
+                borderRadius: "6px",
+                cursor: "pointer",
+                background: utilityBarDensity === option.value ? "#1e3a5f" : "transparent",
+                border: `1px solid ${utilityBarDensity === option.value ? "#3b82f6" : "#334155"}`,
+                transition: "all 0.15s ease",
+              }}
+            >
+              <input
+                type="radio"
+                name="utilityBarDensity"
+                value={option.value}
+                checked={utilityBarDensity === option.value}
+                onChange={() => setUtilityBarDensity(option.value)}
+                style={{ accentColor: "#3b82f6", flexShrink: 0 }}
+              />
+              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
+                <span style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
+                  {option.label}
+                </span>
+                <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+                  {option.description}
+                </span>
+              </div>
+            </label>
+          ))}
+        </div>
+      </section>
+
+      {/* ── Utility bar applets ──────────────────────────────────────────── */}
+      <section className={styles.section}>
+        <div className={styles.sectionHeader}>
+          <h3 className={styles.sectionTitle}>Utility Bar Applets</h3>
+          <ButtonIcon
+            name="plus"
+            label="Add utility applet"
+            onClick={() => setIsAddUtilityModalOpen(true)}
+            variant="bordered"
+          />
+        </div>
+
+        {utilityBarApplets.length === 0 ? (
+          <div className={styles.emptyState}>
+            No utility bar applets added. Click the + button to add one.
+          </div>
+        ) : (
+          <DragDropContext onDragEnd={handleUtilityDragEnd}>
+            <Droppable droppableId="utility-bar-applets">
+              {(provided) => (
+                <div {...provided.droppableProps} ref={provided.innerRef}>
+                  {utilityBarApplets.map((instance, index) => (
+                    <Draggable
+                      key={instance.appletId}
+                      draggableId={instance.appletId}
+                      index={index}
+                    >
+                      {(provided, snapshot) => (
+                        <div
+                          ref={provided.innerRef}
+                          {...provided.draggableProps}
+                          {...provided.dragHandleProps}
+                          className={`${styles.appletRow} ${
+                            snapshot.isDragging ? styles.dragging : ""
+                          }`}
+                        >
+                          <span className={styles.dragHandle}>
+                            <Icon name="drag" size={16} />
+                          </span>
+                          <div className={styles.appletContent}>
+                            <div className={styles.appletInfo}>
+                              <span className={styles.appletTitle}>
+                                {instance.label}
+                              </span>
+                              <span className={styles.appletDescription}>
+                                {instance.description}
+                                {instance.poppable && (
+                                  <span style={{ color: "#3b82f6", marginLeft: "6px" }}>
+                                    · Poppable
+                                  </span>
+                                )}
+                              </span>
+                            </div>
+                            <div className={styles.appletBadge}>
+                              {instance.appLabel}
+                            </div>
+                          </div>
+                          <div style={{ marginLeft: "12px" }}>
+                            <ButtonIcon
+                              name="trash"
+                              label="Remove utility applet"
+                              onClick={() => handleRemoveUtilityApplet(instance.appletId)}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </Draggable>
+                  ))}
+                  {provided.placeholder}
+                </div>
+              )}
+            </Droppable>
+          </DragDropContext>
+        )}
+      </section>
+
       <StickyFooter bleed={20}>
         <Button variant="primary" onClick={handleSave} disabled={saving}>
           {saving ? "Saving..." : "Save"}
@@ -672,6 +962,15 @@ export default function HomeSettingsPage() {
           currentLabel={editingInstance.customLabel}
           onSave={handleSaveSettings}
           onClose={() => setEditingInstance(null)}
+        />
+      )}
+
+      {isAddUtilityModalOpen && (
+        <AddUtilityAppletModal
+          availableApplets={availableUtilityApplets}
+          currentAppletIds={utilityBarApplets.map((a) => a.appletId)}
+          onAdd={handleAddUtilityApplet}
+          onClose={() => setIsAddUtilityModalOpen(false)}
         />
       )}
     </div>

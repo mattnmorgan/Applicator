@@ -11,6 +11,8 @@ export default interface Applet {
   description: string;
   component: string;
   app: string;
-  target: "app" | "home" | "user-settings" | "system-settings" | "guest";
+  target: "app" | "home" | "user-settings" | "system-settings" | "guest" | "utility-bar";
   settings?: AppletSettingDefinition[];
+  poppable?: boolean;
+  icon?: string;
 }

@@ -1,0 +1,146 @@
+/* ── Sidebar bar ──────────────────────────────────────────────────────────── */
+
+.utilityBar {
+  position: fixed;
+  right: 0;
+  top: 64px; /* below Navigation */
+  bottom: 0;
+  width: 280px;
+  background: #1e293b;
+  border-left: 1px solid #334155;
+  overflow-y: auto;
+  overflow-x: hidden;
+  z-index: 100;
+}
+
+.appletSection {
+  border-bottom: 1px solid #334155;
+}
+
+.appletSection:last-child {
+  border-bottom: none;
+}
+
+/* ── In-bar applet header ─────────────────────────────────────────────────── */
+
+.appletHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 10px;
+  background: #0f172a;
+  border-bottom: 1px solid #1e293b;
+}
+
+.appletHeaderInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.appletIcon {
+  width: 18px;
+  height: 18px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+
+/* Icon-only density: hide label */
+.density_icon .appletLabel {
+  display: none;
+}
+
+/* Name-only density: hide icon */
+.density_name .appletIcon {
+  display: none;
+}
+
+.appletLabel {
+  font-size: 12px;
+  font-weight: 500;
+  color: #cbd5e1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.appletContent {
+  overflow: hidden;
+}
+
+/* ── Popped-out floating window ───────────────────────────────────────────── */
+
+.poppedWindow {
+  position: fixed;
+  width: 320px;
+  background: #1e293b;
+  border: 1px solid #334155;
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
+  z-index: 9000;
+  min-height: 200px;
+  display: flex;
+  flex-direction: column;
+}
+
+.poppedHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 7px 8px 7px 10px;
+  background: #0f172a;
+  border-bottom: 1px solid #334155;
+  border-radius: 8px 8px 0 0;
+  cursor: move;
+  user-select: none;
+}
+
+.poppedHeaderInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
+.poppedIcon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+
+.poppedLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: #f1f5f9;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.poppedActions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.poppedContent {
+  flex: 1;
+  overflow: auto;
+  min-height: 150px;
+}
+
+/* ── Mobile: hide pop-out controls ───────────────────────────────────────── */
+
+@media (max-width: 767px) {
+  .utilityBar {
+    display: none;
+  }
+}

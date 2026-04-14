@@ -294,9 +294,11 @@ const schema = new Schema({
         new Field({
           name: "target",
           type: "text",
-          check: ["app", "home", "user-settings", "system-settings", "guest"],
+          check: ["app", "home", "user-settings", "system-settings", "guest", "utility-bar"],
         }),
         new Field({ name: "settings", type: "jsonb", defaultValue: "[]" }),
+        new Field({ name: "poppable", type: "boolean", nillable: true, defaultValue: false }),
+        new Field({ name: "icon", type: "text", nillable: true }),
         new Field({ name: "created_at", type: "bigint" }),
         new Field({ name: "updated_at", type: "bigint" }),
       ],
@@ -501,6 +503,21 @@ export async function initializeSchema(): Promise<void> {
       created_at bigint,
       updated_at bigint
     )
+  `);
+  await pool.query(
+    `ALTER TABLE applets ADD COLUMN IF NOT EXISTS poppable boolean DEFAULT false`,
+  );
+  await pool.query(
+    `ALTER TABLE applets ADD COLUMN IF NOT EXISTS icon text`,
+  );
+  await pool.query(`
+    ALTER TABLE applets
+      DROP CONSTRAINT IF EXISTS applets_target_check
+  `);
+  await pool.query(`
+    ALTER TABLE applets
+      ADD CONSTRAINT applets_target_check
+      CHECK (target IN ('app', 'home', 'user-settings', 'system-settings', 'guest', 'utility-bar'))
   `);
 }
 
