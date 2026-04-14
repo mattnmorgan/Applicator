@@ -16,43 +16,77 @@ export interface UtilityBarAppletInfo {
   iconUrl: string;
 }
 
-interface Position {
-  x: number;
-  y: number;
+export interface WindowState {
+  xPct: number;
+  yPct: number;
+  widthPct: number;
+  heightPct: number;
 }
 
 export interface UtilityBarProps {
   applets: UtilityBarAppletInfo[];
   density: "full" | "name" | "icon";
-  savedPositions: Record<string, Position>;
+  savedWindowStates: Record<string, WindowState>;
   userId: string;
+  /** App ID whose utility-bar applets should be disabled (e.g. when viewing that app) */
+  disabledAppId?: string;
 }
 
-const DEFAULT_POPPED_WIDTH = 320;
-const DEFAULT_POPPED_Y = 100;
+type DragState =
+  | {
+      type: "move";
+      appletId: string;
+      startMouseXPct: number;
+      startMouseYPct: number;
+      startXPct: number;
+      startYPct: number;
+    }
+  | {
+      type: "resize";
+      appletId: string;
+      edge: "n" | "s" | "e" | "w";
+      startMouseXPct: number;
+      startMouseYPct: number;
+      startState: WindowState;
+    };
+
+const MIN_WIDTH_PCT = 10;
+const MIN_HEIGHT_PCT = 15;
+const DEFAULT_WIDTH_PCT = 25;
+const DEFAULT_HEIGHT_PCT = 40;
+
+function roundPct(v: number): number {
+  return Math.round(v * 10) / 10;
+}
+
+function toXPct(px: number): number {
+  return roundPct((px / window.innerWidth) * 100);
+}
+
+function toYPct(px: number): number {
+  return roundPct((px / window.innerHeight) * 100);
+}
 
 export default function UtilityBar({
   applets,
   density,
-  savedPositions,
+  savedWindowStates,
   userId,
+  disabledAppId,
 }: UtilityBarProps) {
   const [moduleUrls, setModuleUrls] = useState<Record<string, string>>({});
   const [versionsLoaded, setVersionsLoaded] = useState(false);
+  const [openAppletId, setOpenAppletId] = useState<string | null>(null);
   const [poppedOut, setPoppedOut] = useState<Set<string>>(new Set());
-  const [dismissed, setDismissed] = useState<Set<string>>(new Set());
-  const [positions, setPositions] = useState<Record<string, Position>>(savedPositions);
+  const [minimizedWindows, setMinimizedWindows] = useState<Set<string>>(new Set());
+  const [windowStates, setWindowStates] =
+    useState<Record<string, WindowState>>(savedWindowStates);
+  const [barTooltip, setBarTooltip] = useState<{ label: string; x: number } | null>(null);
   const [isMobile, setIsMobile] = useState(false);
+  const [isDragging, setIsDragging] = useState(false);
 
-  const draggingRef = useRef<{
-    appletId: string;
-    startMouseX: number;
-    startMouseY: number;
-    startPosX: number;
-    startPosY: number;
-  } | null>(null);
+  const draggingRef = useRef<DragState | null>(null);
 
-  // Mobile detection
   useEffect(() => {
     const check = () => setIsMobile(window.innerWidth < 768);
     check();
@@ -60,7 +94,6 @@ export default function UtilityBar({
     return () => window.removeEventListener("resize", check);
   }, []);
 
-  // Load app module URLs
   useEffect(() => {
     const load = async () => {
       if (applets.length === 0) {
@@ -78,50 +111,112 @@ export default function UtilityBar({
         }
         setModuleUrls(urls);
       } catch {
-        // Version load failure — components won't render but bar still shows
+        // non-critical — components won't render but bar still shows
       }
       setVersionsLoaded(true);
     };
     load();
   }, [applets]);
 
-  // Save positions to DB
-  const savePositions = useCallback(
-    async (newPositions: Record<string, Position>) => {
+  const saveWindowStates = useCallback(
+    async (states: Record<string, WindowState>) => {
       try {
         const settingManager = new SettingManager();
         await settingManager.upsertRecord(`${userId}:ui:utilityBarPositions`, {
-          value: JSON.stringify(newPositions),
+          value: JSON.stringify(states),
           name: "ui:utilityBarPositions",
           user: userId,
         });
       } catch {
-        // Non-critical — position just won't persist
+        // non-critical — state just won't persist
       }
     },
     [userId],
   );
 
-  // Global drag tracking
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
-      if (!draggingRef.current) return;
-      const { appletId, startMouseX, startMouseY, startPosX, startPosY } =
-        draggingRef.current;
-      setPositions((prev) => ({
-        ...prev,
-        [appletId]: {
-          x: startPosX + e.clientX - startMouseX,
-          y: startPosY + e.clientY - startMouseY,
-        },
-      }));
+      const drag = draggingRef.current;
+      if (!drag) return;
+
+      const mouseXPct = toXPct(e.clientX);
+      const mouseYPct = toYPct(e.clientY);
+      const deltaXPct = roundPct(mouseXPct - drag.startMouseXPct);
+      const deltaYPct = roundPct(mouseYPct - drag.startMouseYPct);
+
+      if (drag.type === "move") {
+        setWindowStates((prev) => {
+          const current = prev[drag.appletId];
+          if (!current) return prev;
+          const newX = roundPct(
+            Math.min(
+              Math.max(0, drag.startXPct + deltaXPct),
+              100 - current.widthPct,
+            ),
+          );
+          const newY = roundPct(
+            Math.min(
+              Math.max(0, drag.startYPct + deltaYPct),
+              100 - current.heightPct,
+            ),
+          );
+          return {
+            ...prev,
+            [drag.appletId]: { ...current, xPct: newX, yPct: newY },
+          };
+        });
+      } else {
+        const s = drag.startState;
+        let { xPct, yPct, widthPct, heightPct } = s;
+
+        switch (drag.edge) {
+          case "n": {
+            // top edge: clamp so window stays on screen and respects min height
+            const maxDelta = s.heightPct - MIN_HEIGHT_PCT;
+            const clampedDelta = Math.min(Math.max(deltaYPct, -s.yPct), maxDelta);
+            yPct = roundPct(s.yPct + clampedDelta);
+            heightPct = roundPct(s.heightPct - clampedDelta);
+            break;
+          }
+          case "s": {
+            // bottom edge: clamp so bottom doesn't exceed 100vh
+            const maxHeight = roundPct(100 - s.yPct);
+            heightPct = roundPct(
+              Math.min(Math.max(s.heightPct + deltaYPct, MIN_HEIGHT_PCT), maxHeight),
+            );
+            break;
+          }
+          case "w": {
+            // left edge: clamp so window stays on screen and respects min width
+            const maxDelta = s.widthPct - MIN_WIDTH_PCT;
+            const clampedDelta = Math.min(Math.max(deltaXPct, -s.xPct), maxDelta);
+            xPct = roundPct(s.xPct + clampedDelta);
+            widthPct = roundPct(s.widthPct - clampedDelta);
+            break;
+          }
+          case "e": {
+            // right edge: clamp so right side doesn't exceed 100vw
+            const maxWidth = roundPct(100 - s.xPct);
+            widthPct = roundPct(
+              Math.min(Math.max(s.widthPct + deltaXPct, MIN_WIDTH_PCT), maxWidth),
+            );
+            break;
+          }
+        }
+
+        setWindowStates((prev) => ({
+          ...prev,
+          [drag.appletId]: { xPct, yPct, widthPct, heightPct },
+        }));
+      }
     };
 
     const handleMouseUp = () => {
       if (!draggingRef.current) return;
       draggingRef.current = null;
-      setPositions((prev) => {
-        savePositions(prev);
+      setIsDragging(false);
+      setWindowStates((prev) => {
+        saveWindowStates(prev);
         return prev;
       });
     };
@@ -132,111 +227,241 @@ export default function UtilityBar({
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
-  }, [savePositions]);
+  }, [saveWindowStates]);
+
+  const handleTabClick = (appletId: string) => {
+    setOpenAppletId((prev) => (prev === appletId ? null : appletId));
+  };
 
   const handlePopOut = (appletId: string) => {
-    if (!positions[appletId]) {
-      const x = Math.max(0, window.innerWidth - 280 - DEFAULT_POPPED_WIDTH - 20);
-      setPositions((prev) => ({ ...prev, [appletId]: { x, y: DEFAULT_POPPED_Y } }));
-    }
+    setWindowStates((prev) => {
+      if (prev[appletId]) return prev;
+      return {
+        ...prev,
+        [appletId]: {
+          xPct: roundPct(((window.innerWidth / 2 - 200) / window.innerWidth) * 100),
+          yPct: 15,
+          widthPct: DEFAULT_WIDTH_PCT,
+          heightPct: DEFAULT_HEIGHT_PCT,
+        },
+      };
+    });
+    setOpenAppletId(null);
     setPoppedOut((prev) => new Set([...prev, appletId]));
   };
 
+  // "Return to bar" — docks the window and opens its panel
   const handleReturnToBar = (appletId: string) => {
     setPoppedOut((prev) => {
       const next = new Set(prev);
       next.delete(appletId);
       return next;
     });
+    setOpenAppletId(appletId);
   };
 
-  const handleDismiss = (appletId: string) => {
+  const handleToggleMinimize = (appletId: string) => {
+    setMinimizedWindows((prev) => {
+      const next = new Set(prev);
+      if (next.has(appletId)) {
+        next.delete(appletId);
+      } else {
+        next.add(appletId);
+      }
+      return next;
+    });
+  };
+
+  // "Close" — docks the window without opening its panel
+  const handleClose = (appletId: string) => {
     setPoppedOut((prev) => {
       const next = new Set(prev);
       next.delete(appletId);
       return next;
     });
-    setDismissed((prev) => new Set([...prev, appletId]));
   };
 
   const handleDragStart = (appletId: string, e: React.MouseEvent) => {
+    // Don't start a drag when the user clicks a button inside the header
+    if ((e.target as HTMLElement).closest("button")) return;
     e.preventDefault();
-    const pos = positions[appletId] ?? { x: 0, y: 0 };
+    const state = windowStates[appletId];
+    if (!state) return;
     draggingRef.current = {
+      type: "move",
       appletId,
-      startMouseX: e.clientX,
-      startMouseY: e.clientY,
-      startPosX: pos.x,
-      startPosY: pos.y,
+      startMouseXPct: toXPct(e.clientX),
+      startMouseYPct: toYPct(e.clientY),
+      startXPct: state.xPct,
+      startYPct: state.yPct,
     };
+    setIsDragging(true);
+  };
+
+  const handleResizeStart = (
+    appletId: string,
+    edge: "n" | "s" | "e" | "w",
+    e: React.MouseEvent,
+  ) => {
+    e.preventDefault();
+    e.stopPropagation();
+    const state = windowStates[appletId];
+    if (!state) return;
+    draggingRef.current = {
+      type: "resize",
+      appletId,
+      edge,
+      startMouseXPct: toXPct(e.clientX),
+      startMouseYPct: toYPct(e.clientY),
+      startState: { ...state },
+    };
+    setIsDragging(true);
   };
 
   if (applets.length === 0) return null;
 
-  const inBarApplets = applets.filter(
-    (a) => !poppedOut.has(a.appletId) && !dismissed.has(a.appletId),
-  );
+  const barApplets = applets.filter((a) => !poppedOut.has(a.appletId));
   const poppedOutApplets = applets.filter((a) => poppedOut.has(a.appletId));
+  const openApplet = barApplets.find((a) => a.appletId === openAppletId) ?? null;
 
   return (
     <>
-      {/* Sidebar */}
-      <div className={styles.utilityBar}>
-        {inBarApplets.map((applet) => (
-          <div key={applet.appletId} className={styles.appletSection}>
-            <div
-              className={`${styles.appletHeader} ${styles[`density_${density}`]}`}
-            >
-              <div className={styles.appletHeaderInfo}>
-                <img
-                  src={applet.iconUrl}
-                  alt=""
-                  className={styles.appletIcon}
-                  onError={(e) => {
-                    (e.currentTarget as HTMLImageElement).style.display = "none";
-                  }}
-                />
-                {density !== "icon" && (
-                  <span className={styles.appletLabel} title={applet.label}>
-                    {applet.label}
-                  </span>
-                )}
-              </div>
-              {applet.poppable && !isMobile && (
+      {/* Expanded panel — renders above the bar for the active tab */}
+      {openApplet && (
+        <div className={styles.openPanel}>
+          <div className={styles.openPanelHeader}>
+            <div className={styles.openPanelInfo}>
+              <img
+                src={openApplet.iconUrl}
+                alt=""
+                className={styles.openPanelIcon}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+              />
+              <span className={styles.openPanelLabel}>{openApplet.label}</span>
+            </div>
+            <div className={styles.openPanelActions}>
+              {openApplet.poppable && !isMobile && (
                 <ButtonIcon
                   name="popout"
                   label="Pop out"
                   iconSize={13}
                   size="sm"
-                  onClick={() => handlePopOut(applet.appletId)}
-                  placement="left"
+                  onClick={() => handlePopOut(openApplet.appletId)}
+                  placement="top"
                 />
               )}
-            </div>
-            <div className={styles.appletContent}>
-              {versionsLoaded && moduleUrls[applet.app] && (
-                <DynamicAppLoader
-                  moduleUrl={moduleUrls[applet.app]}
-                  componentName={applet.component}
-                  componentProps={{
-                    context: { appId: applet.app, path: [] },
-                  }}
-                />
-              )}
+              <ButtonIcon
+                name="close"
+                label="Close"
+                iconSize={13}
+                size="sm"
+                onClick={() => setOpenAppletId(null)}
+                placement="top"
+              />
             </div>
           </div>
-        ))}
+          <div className={styles.openPanelContent}>
+            {versionsLoaded && moduleUrls[openApplet.app] && (
+              <DynamicAppLoader
+                moduleUrl={moduleUrls[openApplet.app]}
+                componentName={openApplet.component}
+                componentProps={{
+                  context: { appId: openApplet.app, path: [] },
+                }}
+              />
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Bottom bar */}
+      <div className={styles.utilityBar}>
+        {barApplets.map((applet) => {
+          const isDisabled = applet.app === disabledAppId;
+          return (
+          <button
+            key={applet.appletId}
+            className={`${styles.barItem} ${
+              openAppletId === applet.appletId ? styles.barItemActive : ""
+            } ${isDisabled ? styles.barItemDisabled : ""}`}
+            onClick={() => !isDisabled && handleTabClick(applet.appletId)}
+            disabled={isDisabled}
+            onMouseEnter={(e) => {
+              const rect = e.currentTarget.getBoundingClientRect();
+              setBarTooltip({ label: applet.label, x: rect.left + rect.width / 2 });
+            }}
+            onMouseLeave={() => setBarTooltip(null)}
+          >
+            {density !== "name" && (
+              <img
+                src={applet.iconUrl}
+                alt=""
+                className={styles.barItemIcon}
+                onError={(e) => {
+                  (e.currentTarget as HTMLImageElement).style.display = "none";
+                }}
+              />
+            )}
+            {density !== "icon" && (
+              <span className={styles.barItemLabel}>{applet.label}</span>
+            )}
+          </button>
+          );
+        })}
       </div>
+
+      {/* Hover tooltip — appears above the bar, centred on the hovered item */}
+      {barTooltip && (
+        <div
+          className={styles.barTooltip}
+          style={{ left: barTooltip.x }}
+        >
+          {barTooltip.label}
+        </div>
+      )}
 
       {/* Popped-out floating windows */}
       {poppedOutApplets.map((applet) => {
-        const pos = positions[applet.appletId] ?? { x: 100, y: DEFAULT_POPPED_Y };
+        const ws = windowStates[applet.appletId] ?? {
+          xPct: 30,
+          yPct: 15,
+          widthPct: DEFAULT_WIDTH_PCT,
+          heightPct: DEFAULT_HEIGHT_PCT,
+        };
+        const isMinimized = minimizedWindows.has(applet.appletId);
         return (
           <div
             key={applet.appletId}
             className={styles.poppedWindow}
-            style={{ left: pos.x, top: pos.y }}
+            style={{
+              left: `${ws.xPct}vw`,
+              top: `${ws.yPct}vh`,
+              width: `${ws.widthPct}vw`,
+              height: isMinimized ? "auto" : `${ws.heightPct}vh`,
+            }}
           >
+            {!isMinimized && (
+              <>
+                <div
+                  className={styles.resizeN}
+                  onMouseDown={(e) => handleResizeStart(applet.appletId, "n", e)}
+                />
+                <div
+                  className={styles.resizeS}
+                  onMouseDown={(e) => handleResizeStart(applet.appletId, "s", e)}
+                />
+                <div
+                  className={styles.resizeW}
+                  onMouseDown={(e) => handleResizeStart(applet.appletId, "w", e)}
+                />
+                <div
+                  className={styles.resizeE}
+                  onMouseDown={(e) => handleResizeStart(applet.appletId, "e", e)}
+                />
+              </>
+            )}
             <div
               className={styles.poppedHeader}
               onMouseDown={(e) => handleDragStart(applet.appletId, e)}
@@ -254,6 +479,14 @@ export default function UtilityBar({
               </div>
               <div className={styles.poppedActions}>
                 <ButtonIcon
+                  name={isMinimized ? "chevron-up" : "chevron-down"}
+                  label={isMinimized ? "Expand" : "Minimize"}
+                  iconSize={13}
+                  size="sm"
+                  onClick={() => handleToggleMinimize(applet.appletId)}
+                  placement="bottom"
+                />
+                <ButtonIcon
                   name="dock"
                   label="Return to bar"
                   iconSize={13}
@@ -266,25 +499,45 @@ export default function UtilityBar({
                   label="Close"
                   iconSize={13}
                   size="sm"
-                  onClick={() => handleDismiss(applet.appletId)}
+                  onClick={() => handleClose(applet.appletId)}
                   placement="bottom"
                 />
               </div>
             </div>
-            <div className={styles.poppedContent}>
-              {versionsLoaded && moduleUrls[applet.app] && (
-                <DynamicAppLoader
-                  moduleUrl={moduleUrls[applet.app]}
-                  componentName={applet.component}
-                  componentProps={{
-                    context: { appId: applet.app, path: [] },
-                  }}
-                />
-              )}
-            </div>
+            {!isMinimized && (
+              <div className={styles.poppedContent}>
+                {versionsLoaded && moduleUrls[applet.app] && (
+                  <DynamicAppLoader
+                    moduleUrl={moduleUrls[applet.app]}
+                    componentName={applet.component}
+                    componentProps={{
+                      context: { appId: applet.app, path: [] },
+                    }}
+                  />
+                )}
+              </div>
+            )}
           </div>
         );
       })}
+
+      {/* Fullscreen capture overlay — prevents applet content from stealing
+          mouse events during any drag or resize operation */}
+      {isDragging && (
+        <div
+          style={{
+            position: "fixed",
+            inset: 0,
+            zIndex: 99999,
+            cursor: (() => {
+              const d = draggingRef.current;
+              if (!d) return "default";
+              if (d.type === "move") return "move";
+              return `${d.edge}-resize`;
+            })(),
+          }}
+        />
+      )}
     </>
   );
 }

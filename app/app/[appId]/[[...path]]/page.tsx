@@ -7,6 +7,12 @@ import Tabset from "@/lib/components/utility/Tabset/Tabset";
 import DynamicAppLoader from "@/lib/components/utility/DynamicAppLoader";
 import AppletManager from "@/lib/client/managers/applet";
 import AppManager from "@/lib/client/managers/app";
+import UtilityBar, {
+  UtilityBarAppletInfo,
+  WindowState,
+} from "@/lib/components/UtilityBar";
+
+const UTILITY_BAR_HEIGHT = 32;
 
 interface TabsetItem {
   label: string;
@@ -39,6 +45,11 @@ export default function AppPage() {
   const [homeMenuItems, setHomeMenuItems] = useState<TabsetItem[]>([]);
   const [appDensity, setAppDensity] = useState<"full" | "name" | "icon">("full");
   const [moduleUrl, setModuleUrl] = useState<string | null>(null);
+  const [userId, setUserId] = useState<string | null>(null);
+  const [utilityBarApplets, setUtilityBarApplets] = useState<UtilityBarAppletInfo[]>([]);
+  const [utilityBarDensity, setUtilityBarDensity] = useState<"full" | "name" | "icon">("full");
+  const [utilityBarWindowStates, setUtilityBarWindowStates] = useState<Record<string, WindowState>>({});
+  const [isMobile, setIsMobile] = useState(false);
 
   const appletManager = new AppletManager();
   const appManager = new AppManager();
@@ -49,6 +60,14 @@ export default function AppPage() {
     ? fullAppId.split(":")[1]
     : path[0] || "main";
   const remainingPath = fullAppId.includes(":") ? path : path.slice(1);
+
+  // Mobile detection
+  useEffect(() => {
+    const check = () => setIsMobile(window.innerWidth < 768);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   // Fetch user data
   useEffect(() => {
@@ -61,6 +80,7 @@ export default function AppPage() {
             profilePicture: data.user.profilePicture,
             isAdmin: data.user.isAdmin || false,
           });
+          setUserId(data.user.id);
           setUserApplets(data.userApplets || []);
           setAuthorizations(data.authorizations || []);
           setIsAssumedIdentity(data.isAssumedIdentity || false);
@@ -70,6 +90,42 @@ export default function AppPage() {
           const rawDensity = data.homeSettings?.appDensity;
           if (rawDensity && validDensities.includes(rawDensity)) {
             setAppDensity(rawDensity as "full" | "name" | "icon");
+          }
+
+          // Build utility bar applets
+          const ubSettings = data.utilityBarSettings;
+          if (ubSettings) {
+            const rawUbDensity = ubSettings.density;
+            if (rawUbDensity && validDensities.includes(rawUbDensity)) {
+              setUtilityBarDensity(rawUbDensity as "full" | "name" | "icon");
+            }
+
+            if (ubSettings.windowStates && typeof ubSettings.windowStates === "object") {
+              setUtilityBarWindowStates(ubSettings.windowStates as Record<string, WindowState>);
+            }
+
+            const appletIdOrder: string[] = Array.isArray(ubSettings.appletIds)
+              ? ubSettings.appletIds
+              : [];
+            const accessibleMap = new Map(
+              (data.userApplets || []).map((a: any) => [a.id, a]),
+            );
+            const ubApplets: UtilityBarAppletInfo[] = [];
+            for (const appletId of appletIdOrder) {
+              const applet = accessibleMap.get(appletId) as any;
+              if (!applet || applet.target !== "utility-bar") continue;
+              ubApplets.push({
+                appletId,
+                label: applet.label,
+                app: applet.app,
+                component: applet.component,
+                poppable: applet.poppable ?? false,
+                iconUrl: applet.icon
+                  ? `/api/${applet.app}/assets/${applet.icon}`
+                  : `/api/${applet.app}/assets/icon`,
+              });
+            }
+            setUtilityBarApplets(ubApplets);
           }
 
           // Build home menu items
@@ -209,7 +265,7 @@ export default function AppPage() {
           top: "64px",
           left: 0,
           right: 0,
-          bottom: 0,
+          bottom: utilityBarApplets.length > 0 && !isMobile ? UTILITY_BAR_HEIGHT : 0,
           background: "#0f172a",
         }}
       >
@@ -277,6 +333,15 @@ export default function AppPage() {
           )}
         </main>
       </div>
+      {utilityBarApplets.length > 0 && userId && (
+        <UtilityBar
+          applets={utilityBarApplets}
+          density={utilityBarDensity}
+          savedWindowStates={utilityBarWindowStates}
+          userId={userId}
+          disabledAppId={appId}
+        />
+      )}
     </>
   );
 }

@@ -70,6 +70,7 @@ export async function GET() {
         id: applet.id,
         label: applet.data.label,
         description: applet.data.description,
+        component: applet.data.component,
         target: applet.data.target,
         app: applet.data.app,
         appLabel: appLabelMap.get(applet.data.app) || applet.data.app,
@@ -112,6 +113,21 @@ export async function GET() {
       }
     }
 
+    const utilityBarPositionsSetting = await settingManager.readRecord(
+      `${user.id}:ui:utilityBarPositions`,
+    );
+    let utilityBarWindowStates: Record<string, unknown> = {};
+    if (utilityBarPositionsSetting?.data.value) {
+      try {
+        const parsed = JSON.parse(utilityBarPositionsSetting.data.value);
+        if (typeof parsed === "object" && parsed !== null) {
+          utilityBarWindowStates = parsed;
+        }
+      } catch {
+        // ignore
+      }
+    }
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -126,7 +142,7 @@ export async function GET() {
       userApplets, // Array of applets with full details
       isAssumedIdentity: currentUser.isAssumedIdentity,
       homeSettings: { appDensity },
-      utilityBarSettings: { density: utilityBarDensity, appletIds: utilityBarAppletIds },
+      utilityBarSettings: { density: utilityBarDensity, appletIds: utilityBarAppletIds, windowStates: utilityBarWindowStates },
     });
   } catch (error) {
     console.error("Failed to get current user:", error);

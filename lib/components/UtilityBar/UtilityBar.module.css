@@ -1,39 +1,114 @@
-/* ── Sidebar bar ──────────────────────────────────────────────────────────── */
+/* ── Bottom bar ───────────────────────────────────────────────────────────── */
 
 .utilityBar {
   position: fixed;
-  right: 0;
-  top: 64px; /* below Navigation */
   bottom: 0;
-  width: 280px;
+  left: 0;
+  right: 0;
+  height: 32px;
   background: #1e293b;
-  border-left: 1px solid #334155;
-  overflow-y: auto;
-  overflow-x: hidden;
+  border-top: 1px solid #334155;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 2px;
+  padding: 0 8px;
+  overflow-x: auto;
+  overflow-y: hidden;
   z-index: 100;
 }
 
-.appletSection {
-  border-bottom: 1px solid #334155;
+.barItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0 10px;
+  height: 24px;
+  border-radius: 5px;
+  border: none;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+  transition: background 0.1s, color 0.1s;
 }
 
-.appletSection:last-child {
-  border-bottom: none;
+.barItem:hover {
+  background: #334155;
+  color: #f1f5f9;
 }
 
-/* ── In-bar applet header ─────────────────────────────────────────────────── */
+.barItemActive {
+  background: #1e3a5f;
+  color: #93c5fd;
+}
 
-.appletHeader {
+.barItemDisabled {
+  opacity: 0.35;
+  cursor: not-allowed;
+}
+
+.barItemDisabled:hover {
+  background: transparent;
+  color: #94a3b8;
+}
+
+.barItemIcon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+  flex-shrink: 0;
+  border-radius: 3px;
+}
+
+/* ── Hover tooltip ───────────────────────────────────────────────────────── */
+
+.barTooltip {
+  position: fixed;
+  bottom: 36px; /* 32px bar + 4px gap */
+  transform: translateX(-50%);
+  background: #0f172a;
+  border: 1px solid #475569;
+  color: #f1f5f9;
+  font-size: 12px;
+  font-weight: 500;
+  padding: 3px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 101;
+}
+
+/* ── Expanded panel (above bar) ──────────────────────────────────────────── */
+
+.openPanel {
+  position: fixed;
+  bottom: 32px;
+  left: 0;
+  right: 0;
+  height: 320px;
+  background: #1e293b;
+  border-top: 1px solid #334155;
+  z-index: 99;
+  display: flex;
+  flex-direction: column;
+}
+
+.openPanelHeader {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 8px;
-  padding: 7px 10px;
+  padding: 7px 8px 7px 12px;
   background: #0f172a;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid #334155;
+  flex-shrink: 0;
 }
 
-.appletHeaderInfo {
+.openPanelInfo {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -41,50 +116,92 @@
   min-width: 0;
 }
 
-.appletIcon {
+.openPanelIcon {
   width: 18px;
   height: 18px;
   object-fit: contain;
-  flex-shrink: 0;
   border-radius: 3px;
+  flex-shrink: 0;
 }
 
-/* Icon-only density: hide label */
-.density_icon .appletLabel {
-  display: none;
-}
-
-/* Name-only density: hide icon */
-.density_name .appletIcon {
-  display: none;
-}
-
-.appletLabel {
-  font-size: 12px;
-  font-weight: 500;
-  color: #cbd5e1;
+.openPanelLabel {
+  font-size: 13px;
+  font-weight: 600;
+  color: #f1f5f9;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 
-.appletContent {
-  overflow: hidden;
+.openPanelActions {
+  display: flex;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.openPanelContent {
+  flex: 1;
+  overflow: auto;
+  min-height: 0;
 }
 
 /* ── Popped-out floating window ───────────────────────────────────────────── */
 
 .poppedWindow {
   position: fixed;
-  width: 320px;
+  right: auto; /* prevent browser stretching the element to the viewport edge */
   background: #1e293b;
   border: 1px solid #334155;
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.6);
   z-index: 9000;
-  min-height: 200px;
   display: flex;
   flex-direction: column;
+  overflow: visible; /* resize handles extend outside the border */
+  min-width: 0;
+  min-height: 0;
+}
+
+/* Resize handles — 6px hit zones centered on each border */
+
+.resizeN,
+.resizeS,
+.resizeW,
+.resizeE {
+  position: absolute;
+  z-index: 10;
+}
+
+.resizeN {
+  top: -4px;
+  left: 8px;
+  right: 8px;
+  height: 8px;
+  cursor: n-resize;
+}
+
+.resizeS {
+  bottom: -4px;
+  left: 8px;
+  right: 8px;
+  height: 8px;
+  cursor: s-resize;
+}
+
+.resizeW {
+  left: -4px;
+  top: 8px;
+  bottom: 8px;
+  width: 8px;
+  cursor: w-resize;
+}
+
+.resizeE {
+  right: -4px;
+  top: 8px;
+  bottom: 8px;
+  width: 8px;
+  cursor: e-resize;
 }
 
 .poppedHeader {
@@ -98,6 +215,7 @@
   border-radius: 8px 8px 0 0;
   cursor: move;
   user-select: none;
+  flex-shrink: 0;
 }
 
 .poppedHeaderInfo {
@@ -134,13 +252,14 @@
 .poppedContent {
   flex: 1;
   overflow: auto;
-  min-height: 150px;
+  min-height: 0;
 }
 
-/* ── Mobile: hide pop-out controls ───────────────────────────────────────── */
+/* ── Mobile: hide the bar entirely ──────────────────────────────────────── */
 
 @media (max-width: 767px) {
-  .utilityBar {
+  .utilityBar,
+  .openPanel {
     display: none;
   }
 }

@@ -9,9 +9,12 @@ import SettingManager from "@/lib/managers/setting";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/utility/Tabset";
 import HomeApplets from "@/lib/components/HomeApplets";
-import UtilityBar, { UtilityBarAppletInfo } from "@/lib/components/UtilityBar";
+import UtilityBar, {
+  UtilityBarAppletInfo,
+  WindowState,
+} from "@/lib/components/UtilityBar";
 
-const UTILITY_BAR_WIDTH = 280;
+const UTILITY_BAR_HEIGHT = 32;
 
 async function getHomeMenuItems(userId: string): Promise<TabsetItem[]> {
   const homeMenuItems: TabsetItem[] = [
@@ -244,7 +247,7 @@ async function getUserUtilityBarApplets(
     if (posSetting?.data.value) {
       try {
         const positions = JSON.parse(posSetting.data.value);
-        const cleanPositions: Record<string, { x: number; y: number }> = {};
+        const cleanPositions: Record<string, unknown> = {};
         for (const id of validIds) {
           if (positions[id]) cleanPositions[id] = positions[id];
         }
@@ -429,16 +432,16 @@ export default async function HomePage() {
       : "full"
   ) as "full" | "name" | "icon";
 
-  // Saved pop-out positions
+  // Saved pop-out window states (position + size in viewport %)
   const positionsSetting = await settingManager.readRecord(
     `${user.id}:ui:utilityBarPositions`,
   );
-  let savedPositions: Record<string, { x: number; y: number }> = {};
+  let savedWindowStates: Record<string, WindowState> = {};
   if (positionsSetting?.data.value) {
     try {
-      savedPositions = JSON.parse(positionsSetting.data.value);
+      savedWindowStates = JSON.parse(positionsSetting.data.value);
     } catch {
-      savedPositions = {};
+      savedWindowStates = {};
     }
   }
 
@@ -449,6 +452,9 @@ export default async function HomePage() {
 
   return (
     <>
+      {hasUtilityBar && (
+        <style>{`@media (max-width: 767px) { .home-main { bottom: 0 !important; } }`}</style>
+      )}
       <Navigation
         displayName={user.data.display_name}
         profilePicture={profilePictureUrl}
@@ -459,12 +465,13 @@ export default async function HomePage() {
         isAssumedIdentity={currentUserResult.isAssumedIdentity}
       />
       <div
+        className={hasUtilityBar ? "home-main" : undefined}
         style={{
           position: "fixed",
           top: "64px",
           left: 0,
-          right: hasUtilityBar ? UTILITY_BAR_WIDTH : 0,
-          bottom: 0,
+          right: 0,
+          bottom: hasUtilityBar ? UTILITY_BAR_HEIGHT : 0,
           background: "#0f172a",
         }}
       >
@@ -547,7 +554,7 @@ export default async function HomePage() {
         <UtilityBar
           applets={utilityBarApplets}
           density={utilityBarDensity}
-          savedPositions={savedPositions}
+          savedWindowStates={savedWindowStates}
           userId={user.id}
         />
       )}
