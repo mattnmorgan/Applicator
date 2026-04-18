@@ -43,12 +43,20 @@ export default function AppPage() {
   const [appVersion, setAppVersion] = useState<string | null>(null);
   const [appletComponent, setAppletComponent] = useState<string | null>(null);
   const [homeMenuItems, setHomeMenuItems] = useState<TabsetItem[]>([]);
-  const [appDensity, setAppDensity] = useState<"full" | "name" | "icon">("full");
+  const [appDensity, setAppDensity] = useState<"full" | "name" | "icon">(
+    "full",
+  );
   const [moduleUrl, setModuleUrl] = useState<string | null>(null);
   const [userId, setUserId] = useState<string | null>(null);
-  const [utilityBarApplets, setUtilityBarApplets] = useState<UtilityBarAppletInfo[]>([]);
-  const [utilityBarDensity, setUtilityBarDensity] = useState<"full" | "name" | "icon">("full");
-  const [utilityBarWindowStates, setUtilityBarWindowStates] = useState<Record<string, WindowState>>({});
+  const [utilityBarApplets, setUtilityBarApplets] = useState<
+    UtilityBarAppletInfo[]
+  >([]);
+  const [utilityBarDensity, setUtilityBarDensity] = useState<
+    "full" | "name" | "icon"
+  >("full");
+  const [utilityBarWindowStates, setUtilityBarWindowStates] = useState<
+    Record<string, WindowState>
+  >({});
   const [isMobile, setIsMobile] = useState(false);
 
   const appletManager = new AppletManager();
@@ -100,8 +108,13 @@ export default function AppPage() {
               setUtilityBarDensity(rawUbDensity as "full" | "name" | "icon");
             }
 
-            if (ubSettings.windowStates && typeof ubSettings.windowStates === "object") {
-              setUtilityBarWindowStates(ubSettings.windowStates as Record<string, WindowState>);
+            if (
+              ubSettings.windowStates &&
+              typeof ubSettings.windowStates === "object"
+            ) {
+              setUtilityBarWindowStates(
+                ubSettings.windowStates as Record<string, WindowState>,
+              );
             }
 
             const appletIdOrder: string[] = Array.isArray(ubSettings.appletIds)
@@ -265,11 +278,16 @@ export default function AppPage() {
           top: "64px",
           left: 0,
           right: 0,
-          bottom: utilityBarApplets.length > 0 && !isMobile ? UTILITY_BAR_HEIGHT : 0,
+          bottom:
+            utilityBarApplets.length > 0 && !isMobile ? UTILITY_BAR_HEIGHT : 0,
           background: "#0f172a",
         }}
       >
-        <Tabset items={homeMenuItems} variant="horizontal" density={appDensity} />
+        <Tabset
+          items={homeMenuItems}
+          variant="horizontal"
+          density={appDensity}
+        />
         <main
           style={{
             position: "absolute",
@@ -277,7 +295,6 @@ export default function AppPage() {
             left: 0,
             right: 0,
             bottom: 0,
-            overflow: "auto",
           }}
         >
           {loading && (
