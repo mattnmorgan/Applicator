@@ -105,5 +105,6 @@ interface FormViewerField {
 
 - `FormViewer` returns `null` if all sections are hidden for the current `activeAliasId`.
 - Sections with `aliasIds: []` are shown for all aliases (including no alias).
+- Sections with `aliasIds: ["__no_alias__"]` are shown **only** when `activeAliasId` is `undefined` (entry has no alias). This sentinel is used by the Form tab in Lorekeeper to expose the "base type" visibility option. Any real alias ID in `aliasIds` coexists normally with the sentinel.
 - Pass `editing={false}` and omit `onChange` for read-only display.
 - `resolveInputDef` is merged **on top of** the stored `inputDef` (dynamic values win), so it can override stored options, inject render functions, etc.

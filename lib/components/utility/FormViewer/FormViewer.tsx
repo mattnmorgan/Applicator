@@ -66,7 +66,12 @@ export default function FormViewer({
 
   const visibleSections = layout.sections.filter((sec) => {
     if (sec.aliasIds.length === 0) return true;
-    return activeAliasId ? sec.aliasIds.includes(activeAliasId) : false;
+    if (!activeAliasId) {
+      // Entry has no alias — show only sections that explicitly target no-alias entries
+      return sec.aliasIds.includes("__no_alias__");
+    }
+    // Entry has an alias — match against alias IDs, ignoring the no-alias sentinel
+    return sec.aliasIds.filter((id) => id !== "__no_alias__").includes(activeAliasId);
   });
 
   if (visibleSections.length === 0) return null;
@@ -80,7 +85,11 @@ export default function FormViewer({
             const field = fieldMap.get(col.fieldId);
             if (!field) return false;
             if (field.aliasIds && field.aliasIds.length > 0) {
-              if (!activeAliasId || !field.aliasIds.includes(activeAliasId)) return false;
+              if (!activeAliasId) {
+                if (!field.aliasIds.includes("__no_alias__")) return false;
+              } else {
+                if (!field.aliasIds.filter((id) => id !== "__no_alias__").includes(activeAliasId)) return false;
+              }
             }
             return true;
           })
@@ -137,7 +146,10 @@ function FormViewerRow({
       {row.columns.map((col) => {
         const field = col.fieldId ? fieldMap.get(col.fieldId) : null;
         const visible = field
-          ? (!field.aliasIds || field.aliasIds.length === 0 || (activeAliasId ? field.aliasIds.includes(activeAliasId) : false))
+          ? (!field.aliasIds || field.aliasIds.length === 0 ||
+              (!activeAliasId
+                ? field.aliasIds.includes("__no_alias__")
+                : field.aliasIds.filter((id) => id !== "__no_alias__").includes(activeAliasId)))
           : false;
 
         return (
