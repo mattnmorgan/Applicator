@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import ApiRouteManager from "@/lib/managers/apiRoute";
+
+export const dynamic = "force-dynamic";
 import SettingManager from "@/lib/managers/setting";
 import AuthorityManager from "@/lib/managers/authority";
 import ContextualAuthorityManager from "@/lib/managers/contextualAuthority";

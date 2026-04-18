@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { GenericCRUD as CRUD } from "@/lib/database/crud/";
 import AuthorityManager from "@/lib/managers/authority";
+
+export const dynamic = "force-dynamic";
 import ContextualAuthorityManager from "@/lib/managers/contextualAuthority";
 import App from "@/lib/database/types/app";
 import ContextualAuthority from "@/lib/database/types/contextualAuthority";

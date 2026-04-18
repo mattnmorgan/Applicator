@@ -3,6 +3,8 @@ import { getSession } from "@/lib/managers/session";
 import { userHasAuthorization } from "@/lib/managers/user";
 import AgentManager from "@/lib/managers/agent";
 import AppManager from "@/lib/managers/app";
+
+export const dynamic = "force-dynamic";
 import Agent from "@/lib/system/agents/agent";
 import { getNextCronExecution, formatNextExecution } from "@/lib/system/cron";
 

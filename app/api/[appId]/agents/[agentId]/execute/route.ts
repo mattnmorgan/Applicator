@@ -1,6 +1,8 @@
 import { NextResponse, NextRequest } from "next/server";
 import { getSession } from "@/lib/managers/session";
 import { userHasAuthorization } from "@/lib/managers/user";
+
+export const dynamic = "force-dynamic";
 import AgentManager from "@/lib/managers/agent";
 import Agent from "@/lib/system/agents/agent";
 import Logger from "@/lib/system/logger";

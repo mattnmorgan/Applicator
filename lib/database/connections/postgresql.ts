@@ -13,6 +13,8 @@ export function getPool(): Pool {
       max: 20,
       idleTimeoutMillis: 30000,
       connectionTimeoutMillis: 5000,
+      keepAlive: true,
+      keepAliveInitialDelayMillis: 10000,
     });
 
     pool.on("error", (error) => {

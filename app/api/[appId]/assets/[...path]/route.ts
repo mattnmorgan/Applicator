@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSystemSettings } from "@/lib/managers/setting";
 import AppManager from "@/lib/managers/app";
+
+export const dynamic = "force-dynamic";
 import { versionDir } from "@/lib/system/version";
 import path from "path";
 import fs from "fs/promises";

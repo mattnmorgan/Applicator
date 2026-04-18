@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getSession } from "@/lib/managers/session";
 import { userHasAuthorization } from "@/lib/managers/user";
+
+export const dynamic = "force-dynamic";
 import AuthorityManager from "@/lib/managers/authority";
 import { getSystemSettings } from "@/lib/managers/setting";
 import sharp from "sharp";

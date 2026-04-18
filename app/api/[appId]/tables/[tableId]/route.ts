@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import TableManager from "@/lib/managers/table";
+
+export const dynamic = "force-dynamic";
 import { getSessionFromRequest } from "@/lib/managers/session";
 import { createRecord } from "@/lib/database/crud/create";
 import { readRecords, readRecord } from "@/lib/database/crud/read";
