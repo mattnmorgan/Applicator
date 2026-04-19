@@ -93,7 +93,7 @@ interface UtilityBarInstance {
 
 interface AddAppletModalProps {
   availableApplets: AppletInfo[];
-  onAdd: (appletId: string, customLabel: string) => void;
+  onAdd: (appletId: string, customLabel: string, settingsValues: Record<string, any>) => void;
   onClose: () => void;
 }
 
@@ -102,63 +102,187 @@ function AddAppletModal({
   onAdd,
   onClose,
 }: AddAppletModalProps) {
-  const [labels, setLabels] = useState<Record<string, string>>(() => {
-    const initial: Record<string, string> = {};
-    for (const applet of availableApplets) {
-      initial[applet.id] = applet.label;
-    }
-    return initial;
+  const [step, setStep] = useState<"select" | "configure">("select");
+  const [search, setSearch] = useState("");
+  const [selectedApplet, setSelectedApplet] = useState<AppletInfo | null>(null);
+  const [label, setLabel] = useState("");
+  const [values, setValues] = useState<Record<string, any>>({});
+
+  const filtered = availableApplets.filter((a) => {
+    const q = search.toLowerCase();
+    return (
+      a.label.toLowerCase().includes(q) ||
+      a.description.toLowerCase().includes(q) ||
+      a.appLabel.toLowerCase().includes(q)
+    );
   });
+
+  const handleSelectNext = () => {
+    if (!selectedApplet) return;
+    const defs = selectedApplet.settings || [];
+    const initial: Record<string, any> = {};
+    for (const def of defs) {
+      initial[def.name] =
+        def.defaultValue !== undefined
+          ? def.defaultValue
+          : def.type === "checkbox"
+          ? false
+          : def.type === "multiselect" || def.type === "multipseudoassignee"
+          ? []
+          : "";
+    }
+    setLabel(selectedApplet.label);
+    setValues(initial);
+    setStep("configure");
+  };
+
+  const handleBack = () => {
+    setStep("select");
+  };
+
+  const handleSave = () => {
+    if (!selectedApplet) return;
+    onAdd(selectedApplet.id, label || selectedApplet.label, values);
+  };
 
   return (
     <div className={styles.modalOverlay} onClick={onClose}>
       <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
         <div className={styles.modalHeader}>
-          <h3 className={styles.modalTitle}>Add Applet</h3>
+          <h3 className={styles.modalTitle}>
+            {step === "select" ? "Add Applet" : selectedApplet?.label}
+          </h3>
           <ButtonIcon name="close" label="Close" onClick={onClose} iconSize={20} />
         </div>
-        <div className={styles.modalBody}>
-          {availableApplets.length === 0 ? (
-            <div className={styles.emptyState}>
-              No applets available to add.
+
+        {step === "select" && (
+          <>
+            <div style={{ padding: "12px 24px 0" }}>
+              <input
+                className={styles.settingInput}
+                type="text"
+                placeholder="Search applets..."
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                autoFocus
+                style={{ width: "100%", boxSizing: "border-box" }}
+              />
             </div>
-          ) : (
-            availableApplets.map((applet) => (
-              <div key={applet.id} className={styles.addAppletRow}>
-                <div className={styles.checkboxContent}>
-                  <span className={styles.checkboxLabel}>{applet.label}</span>
-                  <span className={styles.checkboxDescription}>
-                    {applet.description}
-                  </span>
-                  <input
-                    className={styles.settingInput}
-                    type="text"
-                    placeholder="Custom label"
-                    value={labels[applet.id] || ""}
-                    onChange={(e) =>
-                      setLabels({ ...labels, [applet.id]: e.target.value })
-                    }
-                    onClick={(e) => e.stopPropagation()}
-                    style={{ marginTop: "6px" }}
-                  />
+            <div className={styles.modalBody}>
+              {filtered.length === 0 ? (
+                <div className={styles.emptyState}>No applets match your search.</div>
+              ) : (
+                <div style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
+                  {filtered.map((applet) => {
+                    const isSelected = selectedApplet?.id === applet.id;
+                    return (
+                      <label
+                        key={applet.id}
+                        style={{
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "12px",
+                          padding: "10px 12px",
+                          borderRadius: "6px",
+                          cursor: "pointer",
+                          background: isSelected ? "#1e3a5f" : "transparent",
+                          border: `1px solid ${isSelected ? "#3b82f6" : "#1e293b"}`,
+                          transition: "all 0.15s ease",
+                        }}
+                      >
+                        <input
+                          type="radio"
+                          name="addAppletSelect"
+                          checked={isSelected}
+                          onChange={() => setSelectedApplet(applet)}
+                          style={{ accentColor: "#3b82f6", flexShrink: 0 }}
+                        />
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ fontSize: "13px", fontWeight: 500, color: "#f1f5f9" }}>
+                            {applet.label}
+                          </div>
+                          <div style={{ fontSize: "11px", color: "#94a3b8", marginTop: "2px" }}>
+                            {applet.description}
+                          </div>
+                        </div>
+                        <div
+                          style={{
+                            background: "#1e40af",
+                            color: "#93c5fd",
+                            fontSize: "11px",
+                            fontWeight: 500,
+                            padding: "2px 8px",
+                            borderRadius: "4px",
+                            whiteSpace: "nowrap",
+                            flexShrink: 0,
+                          }}
+                        >
+                          {applet.appLabel}
+                        </div>
+                      </label>
+                    );
+                  })}
                 </div>
-                <Button
-                  variant="primary"
-                  onClick={() =>
-                    onAdd(applet.id, labels[applet.id] || applet.label)
-                  }
-                >
-                  Add
-                </Button>
+              )}
+            </div>
+            <div className={styles.modalFooter}>
+              <Button variant="secondary" onClick={onClose}>Cancel</Button>
+              <Button variant="primary" onClick={handleSelectNext} disabled={!selectedApplet}>
+                Next
+              </Button>
+            </div>
+          </>
+        )}
+
+        {step === "configure" && selectedApplet && (
+          <>
+            <div className={styles.modalBody}>
+              <div className={styles.settingField}>
+                <label className={styles.settingLabel}>Label</label>
+                <input
+                  className={styles.settingInput}
+                  type="text"
+                  value={label}
+                  onChange={(e) => setLabel(e.target.value)}
+                />
               </div>
-            ))
-          )}
-        </div>
-        <div className={styles.modalFooter}>
-          <Button variant="secondary" onClick={onClose}>
-            Close
-          </Button>
-        </div>
+              {(selectedApplet.settings || []).map((def) => {
+                const inputDef: DynamicInputDefinition = {
+                  id: def.name,
+                  label: def.label,
+                  type: def.type,
+                  defaultValue: def.defaultValue,
+                  required: def.required,
+                  placeholder: def.placeholder,
+                  min: def.min,
+                  max: def.max,
+                  step: def.step,
+                  decimalPlaces: def.decimalPlaces,
+                  format: def.format,
+                  lines: def.lines,
+                  resizable: def.resizable,
+                  searchable: def.searchable,
+                  options: def.options,
+                };
+                return (
+                  <div key={def.name} style={{ paddingBottom: "12px" }}>
+                    <DynamicInput
+                      input={inputDef}
+                      value={values[def.name]}
+                      onChange={(id, value) =>
+                        setValues((prev) => ({ ...prev, [id]: value }))
+                      }
+                    />
+                  </div>
+                );
+              })}
+            </div>
+            <div className={styles.modalFooter}>
+              <Button variant="secondary" onClick={handleBack}>Back</Button>
+              <Button variant="primary" onClick={handleSave}>Save</Button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
@@ -526,7 +650,7 @@ export default function HomeSettingsPage() {
     setInstanceSettings(newSettings);
   };
 
-  const handleAddApplet = (appletId: string, customLabel: string) => {
+  const handleAddApplet = (appletId: string, customLabel: string, settingsValues: Record<string, any>) => {
     const applet = availableApplets.find((a) => a.id === appletId);
     if (!applet) return;
     const instanceId = crypto.randomUUID();
@@ -543,6 +667,7 @@ export default function HomeSettingsPage() {
         settings: applet.settings,
       },
     ]);
+    setInstanceSettings((prev) => ({ ...prev, [instanceId]: settingsValues }));
     setIsAddModalOpen(false);
   };
 
