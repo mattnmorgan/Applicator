@@ -223,7 +223,7 @@ export default function AgentList() {
                             name="square-stop"
                             label={agent.cron ? "Unschedule" : "Terminate"}
                             onClick={() => handleStopAgent(agent)}
-                            disabled={actionInProgress === agent.id}
+                            disabled={actionInProgress === agent.id || (!!agent.cron && agent.status === "running")}
                             subvariant="danger"
                             placement="top"
                           />
