@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import styles from "./page.module.css";
-import Button from "@/lib/components/utility/Button";
 import Badge from "@/lib/components/utility/Badge/Badge";
 import Banner from "@/lib/components/utility/Banner";
 import Spinner from "@/lib/components/utility/Spinner";
 import Icon from "@/lib/components/utility/Icon/Icon";
+import ButtonIcon from "@/lib/components/utility/ButtonIcon/ButtonIcon";
 
 interface SessionEntry {
   id: string;
@@ -110,13 +110,14 @@ export default function SessionsPage() {
       <div className={styles.header}>
         <h2 className={styles.title}>Sessions</h2>
         {sessions.length > 0 && (
-          <Button
-            variant="danger"
+          <ButtonIcon
+            name="trash"
+            label={terminatingAll ? "Terminating..." : "Terminate All Sessions"}
             onClick={terminateAll}
             disabled={terminatingAll}
-          >
-            {terminatingAll ? "Terminating..." : "Terminate All"}
-          </Button>
+            subvariant="danger"
+            placement="left"
+          />
         )}
       </div>
 
@@ -156,13 +157,14 @@ export default function SessionsPage() {
                   </div>
                 </div>
               </div>
-              <Button
-                variant="danger"
+              <ButtonIcon
+                name="trash"
+                label={terminating === session.id ? "Terminating..." : session.isCurrent ? "Terminate Current Session" : "Terminate Session"}
                 onClick={() => terminate(session.id, session.isCurrent)}
                 disabled={terminating === session.id || terminatingAll}
-              >
-                {terminating === session.id ? "Terminating..." : "Terminate"}
-              </Button>
+                subvariant="danger"
+                placement="left"
+              />
             </div>
           ))}
         </div>

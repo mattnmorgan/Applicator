@@ -33,24 +33,24 @@
 .list {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 6px;
 }
 
 .card {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
   background: #1e293b;
   border: 1px solid #334155;
   border-radius: 8px;
-  padding: 14px 16px;
+  padding: 8px 12px;
 }
 
 .cardLeft {
   display: flex;
   align-items: center;
-  gap: 14px;
+  gap: 10px;
   min-width: 0;
 }
 
@@ -64,24 +64,24 @@
 .cardInfo {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
   min-width: 0;
 }
 
 .cardTitle {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 6px;
 }
 
 .deviceName {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   color: #f1f5f9;
 }
 
 .cardMeta {
-  font-size: 12px;
+  font-size: 11px;
   color: #64748b;
   white-space: nowrap;
   overflow: hidden;

@@ -706,43 +706,43 @@ export default function HomeSettingsPage() {
 
       {/* ── App nav density ──────────────────────────────────────────────── */}
       <section className={styles.section}>
-        <div className={styles.sectionHeader}>
+        <div className={styles.sectionHeader} style={{ marginBottom: 0 }}>
           <h3 className={styles.sectionTitle}>App Density</h3>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {DENSITY_OPTIONS.map((option) => (
-            <label
-              key={option.value}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                padding: "10px 12px",
-                borderRadius: "6px",
-                cursor: "pointer",
-                background: appDensity === option.value ? "#1e3a5f" : "transparent",
-                border: `1px solid ${appDensity === option.value ? "#3b82f6" : "#334155"}`,
-                transition: "all 0.15s ease",
-              }}
-            >
-              <input
-                type="radio"
-                name="appDensity"
-                value={option.value}
-                checked={appDensity === option.value}
-                onChange={() => setAppDensity(option.value)}
-                style={{ accentColor: "#3b82f6", flexShrink: 0 }}
-              />
-              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                <span style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
-                  {option.label}
-                </span>
-                <span style={{ fontSize: "12px", color: "#94a3b8" }}>
-                  {option.description}
-                </span>
-              </div>
-            </label>
-          ))}
+          <div style={{ display: "flex", flexDirection: "row" }}>
+            {DENSITY_OPTIONS.map((option, i) => (
+              <label
+                key={option.value}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "7px 16px",
+                  cursor: "pointer",
+                  background: appDensity === option.value ? "#1e3a5f" : "transparent",
+                  color: appDensity === option.value ? "#f1f5f9" : "#94a3b8",
+                  borderTop: `1px solid ${appDensity === option.value ? "#3b82f6" : "#334155"}`,
+                  borderBottom: `1px solid ${appDensity === option.value ? "#3b82f6" : "#334155"}`,
+                  borderRight: `1px solid ${appDensity === option.value ? "#3b82f6" : "#334155"}`,
+                  borderLeft: i === 0 ? `1px solid ${appDensity === option.value ? "#3b82f6" : "#334155"}` : "none",
+                  borderRadius: i === 0 ? "6px 0 0 6px" : i === DENSITY_OPTIONS.length - 1 ? "0 6px 6px 0" : "0",
+                  fontSize: "13px",
+                  fontWeight: appDensity === option.value ? 600 : 400,
+                  transition: "all 0.15s ease",
+                  userSelect: "none",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="appDensity"
+                  value={option.value}
+                  checked={appDensity === option.value}
+                  onChange={() => setAppDensity(option.value)}
+                  style={{ display: "none" }}
+                />
+                {option.label}
+              </label>
+            ))}
+          </div>
         </div>
       </section>
 
@@ -825,43 +825,43 @@ export default function HomeSettingsPage() {
 
       {/* ── Utility bar density ──────────────────────────────────────────── */}
       <section className={styles.section}>
-        <div className={styles.sectionHeader}>
+        <div className={styles.sectionHeader} style={{ marginBottom: 0 }}>
           <h3 className={styles.sectionTitle}>Utility Bar Density</h3>
-        </div>
-        <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
-          {DENSITY_OPTIONS.map((option) => (
-            <label
-              key={option.value}
-              style={{
-                display: "flex",
-                alignItems: "center",
-                gap: "12px",
-                padding: "10px 12px",
-                borderRadius: "6px",
-                cursor: "pointer",
-                background: utilityBarDensity === option.value ? "#1e3a5f" : "transparent",
-                border: `1px solid ${utilityBarDensity === option.value ? "#3b82f6" : "#334155"}`,
-                transition: "all 0.15s ease",
-              }}
-            >
-              <input
-                type="radio"
-                name="utilityBarDensity"
-                value={option.value}
-                checked={utilityBarDensity === option.value}
-                onChange={() => setUtilityBarDensity(option.value)}
-                style={{ accentColor: "#3b82f6", flexShrink: 0 }}
-              />
-              <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-                <span style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
-                  {option.label}
-                </span>
-                <span style={{ fontSize: "12px", color: "#94a3b8" }}>
-                  {option.description}
-                </span>
-              </div>
-            </label>
-          ))}
+          <div style={{ display: "flex", flexDirection: "row" }}>
+            {DENSITY_OPTIONS.map((option, i) => (
+              <label
+                key={option.value}
+                style={{
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "7px 16px",
+                  cursor: "pointer",
+                  background: utilityBarDensity === option.value ? "#1e3a5f" : "transparent",
+                  color: utilityBarDensity === option.value ? "#f1f5f9" : "#94a3b8",
+                  borderTop: `1px solid ${utilityBarDensity === option.value ? "#3b82f6" : "#334155"}`,
+                  borderBottom: `1px solid ${utilityBarDensity === option.value ? "#3b82f6" : "#334155"}`,
+                  borderRight: `1px solid ${utilityBarDensity === option.value ? "#3b82f6" : "#334155"}`,
+                  borderLeft: i === 0 ? `1px solid ${utilityBarDensity === option.value ? "#3b82f6" : "#334155"}` : "none",
+                  borderRadius: i === 0 ? "6px 0 0 6px" : i === DENSITY_OPTIONS.length - 1 ? "0 6px 6px 0" : "0",
+                  fontSize: "13px",
+                  fontWeight: utilityBarDensity === option.value ? 600 : 400,
+                  transition: "all 0.15s ease",
+                  userSelect: "none",
+                }}
+              >
+                <input
+                  type="radio"
+                  name="utilityBarDensity"
+                  value={option.value}
+                  checked={utilityBarDensity === option.value}
+                  onChange={() => setUtilityBarDensity(option.value)}
+                  style={{ display: "none" }}
+                />
+                {option.label}
+              </label>
+            ))}
+          </div>
         </div>
       </section>
 

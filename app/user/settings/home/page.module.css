@@ -62,11 +62,11 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
+  padding: 7px 12px;
   background: #1e293b;
   border: 1px solid #334155;
   border-radius: 6px;
-  margin-bottom: 8px;
+  margin-bottom: 6px;
   cursor: grab;
   transition:
     border-color 0.2s,
@@ -108,17 +108,17 @@
 .appletInfo {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 2px;
 }
 
 .appletTitle {
-  font-size: 14px;
+  font-size: 12px;
   font-weight: 500;
   color: #f1f5f9;
 }
 
 .appletDescription {
-  font-size: 12px;
+  font-size: 10px;
   color: #94a3b8;
 }
 

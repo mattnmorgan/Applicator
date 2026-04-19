@@ -172,7 +172,7 @@ export default function NotificationsPage() {
 
       {/* ── Per-topic preferences ─────────────────────────────────────── */}
       {grouped.length > 0 && (
-        <section style={{ display: "flex", flexDirection: "column", gap: "24px" }}>
+        <section style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <div>
             <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#f1f5f9", margin: "0 0 4px" }}>
               Notification Preferences
@@ -187,7 +187,7 @@ export default function NotificationsPage() {
           </div>
 
           {grouped.map((group) => (
-            <div key={group.appId} style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
+            <div key={group.appId} style={{ display: "flex", flexDirection: "column", gap: "4px" }}>
               <div style={{ fontSize: "13px", fontWeight: 600, color: "#64748b", textTransform: "uppercase", letterSpacing: "0.05em" }}>
                 {group.appName}
               </div>
@@ -227,15 +227,15 @@ export default function NotificationsPage() {
                       gridTemplateColumns: "1fr 90px 90px",
                       gap: "8px",
                       alignItems: "center",
-                      padding: "12px 14px",
+                      padding: "7px 14px",
                       borderTop: idx > 0 ? "1px solid #1e293b" : undefined,
                     }}
                   >
                     <div>
-                      <div style={{ fontSize: "14px", color: "#f1f5f9", fontWeight: 500 }}>
+                      <div style={{ fontSize: "12px", color: "#f1f5f9", fontWeight: 500 }}>
                         {topic.name}
                       </div>
-                      <div style={{ fontSize: "12px", color: "#64748b", marginTop: "2px" }}>
+                      <div style={{ fontSize: "11px", color: "#64748b", marginTop: "1px" }}>
                         {topic.summary}
                       </div>
                     </div>
