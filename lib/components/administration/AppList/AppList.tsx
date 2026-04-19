@@ -890,7 +890,7 @@ export default function AppList() {
                               handleUninstallClick(app.id, app.label);
                             }
                           }}
-                          disabled={uninstalling === app.id || !canUninstall}
+                          disabled={uninstalling === app.id || upgrading === app.id || !canUninstall}
                           title={
                             !canUninstall
                               ? `Required by: ${dependents.join(", ")}`
