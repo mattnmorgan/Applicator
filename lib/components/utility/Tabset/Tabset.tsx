@@ -45,7 +45,8 @@ function TreeItem({
   const isClickable = item.clickable !== false && item.path !== undefined;
   const isActive =
     item.path !== undefined &&
-    (item.path === currentPath || currentPath.startsWith(item.path + "/"));
+    (item.path === currentPath ||
+      (hasChildren && currentPath.startsWith(item.path + "/")));
 
   // Filter children based on search term
   const getFilteredChildren = () => {
