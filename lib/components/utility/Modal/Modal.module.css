@@ -33,6 +33,7 @@
   display: flex;
   flex-direction: column;
   max-height: 75vh;
+  color: white;
 }
 
 @keyframes slideIn {
@@ -53,6 +54,7 @@
   padding: 20px 24px;
   border-bottom: 1px solid #334155;
   flex-shrink: 0;
+  font-weight: bold;
 }
 
 .headerContent {
