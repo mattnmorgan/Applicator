@@ -21,7 +21,8 @@ export type CustomInputType =
   | "radio-horizontal-group"
   | "richtext"
   | "badge-multiselect"
-  | "searchable-combobox";
+  | "searchable-combobox"
+  | "radial-graph";
 
 export default interface CustomInput {
   app: string;

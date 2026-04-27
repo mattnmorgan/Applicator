@@ -25,9 +25,11 @@ import RadioHorizontalGroupInput from "./inputs/RadioHorizontalGroupInput";
 import RichTextInput from "./inputs/RichTextInput";
 import BadgeMultiselectInput from "./inputs/BadgeMultiselectInput";
 import SearchableComboboxInput from "./inputs/SearchableComboboxInput";
+import RadialGraphInput from "./inputs/RadialGraphInput";
 
 export type { DynamicInputOption } from "./types/dynamic-input-option";
 export type { DynamicInputDefinition } from "./types/dynamic-input-definition";
+export type { RadialGraphDimension } from "./types/radial-graph-dimension";
 import type { DynamicInputDefinition } from "./types/dynamic-input-definition";
 
 export interface DynamicInputProps {
@@ -63,6 +65,7 @@ const INPUT_COMPONENTS: Record<
   richtext: RichTextInput,
   "badge-multiselect": BadgeMultiselectInput,
   "searchable-combobox": SearchableComboboxInput,
+  "radial-graph": RadialGraphInput,
 };
 
 export default function DynamicInput({

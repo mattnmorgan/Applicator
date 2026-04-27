@@ -3,4 +3,5 @@ export type {
   DynamicInputDefinition,
   DynamicInputOption,
   DynamicInputProps,
+  RadialGraphDimension,
 } from "./DynamicInput";

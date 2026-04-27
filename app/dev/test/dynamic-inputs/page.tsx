@@ -180,6 +180,24 @@ const SAMPLE_INPUTS: DynamicInputDefinition[] = [
       { value: "credit", label: "Credit", description: "Decreases the balance", selectedColor: "#16a34a" },
     ],
   },
+  {
+    id: "demo-radial-graph",
+    label: "Character Stats",
+    type: "radial-graph",
+    tooltip: "Drag sliders to adjust each attribute. Use + Add Set to compare multiple characters side-by-side.",
+    min: "0",
+    max: "10",
+    dimensions: [
+      { abbr: "STR", label: "Strength" },
+      { abbr: "INT", label: "Intelligence" },
+      { abbr: "AGI", label: "Agility" },
+      { abbr: "DEF", label: "Defense" },
+      { abbr: "SPD", label: "Speed" },
+    ],
+    defaultValue: JSON.stringify([
+      { color: "#3b82f6", dims: { STR: 7, INT: 6, AGI: 8, DEF: 5, SPD: 9 } },
+    ]),
+  },
 ];
 
 interface ComboItem {
@@ -242,7 +260,7 @@ function InputSettingsModal({
   );
   const [resizable, setResizable] = useState(input.resizable !== false);
 
-  const showMinMax = ["number", "range", "rangeslider"].includes(input.type);
+  const showMinMax = ["number", "range", "rangeslider", "radial-graph"].includes(input.type);
   const showStep = ["range", "rangeslider"].includes(input.type);
   const showDecimal = input.type === "number";
   const showFormat = ["date", "datetime", "time"].includes(input.type);

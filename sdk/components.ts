@@ -27,6 +27,7 @@ export type {
   DynamicInputDefinition,
   DynamicInputOption,
   DynamicInputProps,
+  RadialGraphDimension,
 } from "../lib/components/utility/DynamicInput";
 export { default as FolderBrowser } from "../lib/components/utility/FolderBrowser";
 export { default as ProfileIndicator } from "../lib/components/utility/ProfileIndicator";

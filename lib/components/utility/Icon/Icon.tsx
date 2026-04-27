@@ -89,7 +89,8 @@ export type IconName =
   | "smartphone"
   | "tablet"
   | "popout"
-  | "dock";
+  | "dock"
+  | "radial-graph";
 
 interface IconProps {
   name: IconName | string;
@@ -909,6 +910,30 @@ export default function Icon({ name, size = 16 }: IconProps) {
           <rect x="3" y="3" width="18" height="18" rx="2" />
           <path d="M15 3v18" />
           <path d="M19 10l-2 2 2 2" />
+        </svg>
+      );
+
+    case "radial-graph":
+      return (
+        <svg {...base}>
+          {/* Outer pentagon grid */}
+          <polygon points="12,3 20.6,9.2 17.3,19.3 6.7,19.3 3.4,9.2" />
+          {/* Inner ring at ~50% */}
+          <polygon points="12,7.5 16.3,10.6 14.6,15.6 9.4,15.6 7.7,10.6" strokeWidth={1} />
+          {/* Axis lines */}
+          <line x1="12" y1="12" x2="12" y2="3" strokeWidth={1} />
+          <line x1="12" y1="12" x2="20.6" y2="9.2" strokeWidth={1} />
+          <line x1="12" y1="12" x2="17.3" y2="19.3" strokeWidth={1} />
+          <line x1="12" y1="12" x2="6.7" y2="19.3" strokeWidth={1} />
+          <line x1="12" y1="12" x2="3.4" y2="9.2" strokeWidth={1} />
+          {/* Data polygon */}
+          <polygon
+            points="12,5.7 16.3,10.6 16.2,17.8 9.9,14.9 4.3,9.5"
+            fill="currentColor"
+            fillOpacity={0.3}
+            stroke="currentColor"
+            strokeWidth={1.5}
+          />
         </svg>
       );
 

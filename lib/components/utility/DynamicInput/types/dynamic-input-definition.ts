@@ -1,6 +1,7 @@
 import type { ReactNode } from "react";
 import type { CustomInputType } from "@/lib/database/types/custom-input";
 import type { DynamicInputOption } from "./dynamic-input-option";
+import type { RadialGraphDimension } from "./radial-graph-dimension";
 
 export interface DynamicInputDefinition {
   id: string;
@@ -30,4 +31,6 @@ export interface DynamicInputDefinition {
   renderPill?: (opt: DynamicInputOption) => ReactNode;
   /** Tooltip text shown on a (?) indicator inline with the field label */
   tooltip?: string;
+  /** Dimension definitions for the radial-graph type (1–10 items) */
+  dimensions?: RadialGraphDimension[];
 }
