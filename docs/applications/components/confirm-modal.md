@@ -17,6 +17,7 @@ import { ConfirmModal } from "@applicator/sdk/components";
 | `onConfirm`   | `() => void` | required    | Called on confirm                         |
 | `onCancel`    | `() => void` | required    | Called on cancel or dismiss               |
 | `danger`      | `boolean`    | `false`     | Red danger styling for the confirm button |
+| `loading`     | `boolean`    | `false`     | Shows a spinner in the confirm button and disables all interactions |
 
 ## Usage
 
