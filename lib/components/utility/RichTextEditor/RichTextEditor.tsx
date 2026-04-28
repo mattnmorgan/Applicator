@@ -18,6 +18,11 @@ const RTE_STYLES = `
 .rte-content th, .rte-editor th { background-color: #1e293b; font-weight: 600; }
 .rte-content img, .rte-editor img { max-width: 100%; height: auto; display: inline-block; }
 .rte-editor img.rte-img-selected { outline: 2px solid #3b82f6; outline-offset: 1px; }
+.rte-content h1, .rte-editor h1 { font-size: 1.75em; font-weight: 700; margin: 0.3em 0 0.05em; line-height: 1.25; }
+.rte-content h2, .rte-editor h2 { font-size: 1.4em;  font-weight: 700; margin: 0.3em 0 0.05em; line-height: 1.25; }
+.rte-content h3, .rte-editor h3 { font-size: 1.2em;  font-weight: 600; margin: 0.25em 0 0.04em; line-height: 1.3; }
+.rte-content h4, .rte-editor h4 { font-size: 1.05em; font-weight: 600; margin: 0.2em 0 0.03em;  line-height: 1.3; }
+.rte-content h5, .rte-editor h5 { font-size: 0.9em;  font-weight: 600; margin: 0.2em 0 0.03em;  line-height: 1.3; }
 `;
 
 function injectRteStyles() {
@@ -96,7 +101,7 @@ export interface RichTextEditorProps {
   minHeight?: number | string;
   /**
    * Maximum number of visible lines before the editor scrolls.
-   * Computed as `maxLines * 1.6em + 16px` (lineHeight 1.6, 8px top+bottom padding).
+   * Computed as `maxLines * 1.5em + 16px` (lineHeight 1.5, 8px top+bottom padding).
    * Default: 5.
    */
   maxLines?: number;
@@ -160,6 +165,10 @@ export default function RichTextEditor({
     rightPct: number;
   } | null>(null);
 
+  const savedBlockRange = useRef<Range | null>(null);
+
+  const [blockType, setBlockType] = useState("p");
+  const [lineSpacing, setLineSpacing] = useState("1.5");
   const [formats, setFormats] = useState({
     bold: false,
     italic: false,
@@ -338,6 +347,28 @@ export default function RichTextEditor({
       justifyRight: document.queryCommandState("justifyRight"),
       justifyFull: document.queryCommandState("justifyFull"),
     });
+    const rawBlock = document.queryCommandValue("formatBlock").toLowerCase().trim();
+    const BLOCK_TAGS = new Set(["h1", "h2", "h3", "h4", "h5", "p"]);
+    setBlockType(BLOCK_TAGS.has(rawBlock) ? rawBlock : "p");
+    {
+      const sel = window.getSelection();
+      let detectedSpacing = "1.5";
+      if (sel && sel.rangeCount > 0) {
+        const LS_BLOCK = new Set(["P","DIV","BLOCKQUOTE","LI","H1","H2","H3","H4","H5","H6","TD","TH"]);
+        let n: Node | null = sel.getRangeAt(0).startContainer;
+        if (n.nodeType === Node.TEXT_NODE) n = n.parentElement;
+        while (n && n !== editorRef.current) {
+          if (n.nodeType === Node.ELEMENT_NODE && LS_BLOCK.has((n as HTMLElement).tagName)) {
+            const lh = (n as HTMLElement).style.lineHeight;
+            if (lh) detectedSpacing = lh;
+            break;
+          }
+          n = (n as HTMLElement).parentElement;
+        }
+      }
+      setLineSpacing(detectedSpacing);
+    }
+
     setInTable(!!getTableContext());
     bgSavedCells.current = getSelectedCells();
   }
@@ -661,6 +692,44 @@ export default function RichTextEditor({
       el.removeAttribute("size");
       el.style.fontSize = `${newPx}px`;
     });
+    emitChange();
+  }
+
+  // ---- Line spacing ----
+
+  function applyLineSpacing(value: string) {
+    const sel = window.getSelection();
+    if (!sel || sel.rangeCount === 0) return;
+    const range = sel.getRangeAt(0);
+    const BLOCK = new Set(["P","DIV","BLOCKQUOTE","LI","H1","H2","H3","H4","H5","H6","TD","TH"]);
+
+    function nearestBlock(node: Node): HTMLElement | null {
+      let n: Node | null = node.nodeType === Node.TEXT_NODE ? node.parentElement : node;
+      while (n && n !== editorRef.current) {
+        if (n.nodeType === Node.ELEMENT_NODE && BLOCK.has((n as HTMLElement).tagName))
+          return n as HTMLElement;
+        n = (n as HTMLElement).parentElement;
+      }
+      return editorRef.current;
+    }
+
+    const startEl = nearestBlock(range.startContainer);
+    const endEl = nearestBlock(range.endContainer);
+    if (!startEl) return;
+
+    if (startEl === endEl || range.collapsed) {
+      startEl.style.lineHeight = value;
+    } else {
+      const allBlocks = Array.from(
+        editorRef.current!.querySelectorAll<HTMLElement>("p,div,blockquote,li,h1,h2,h3,h4,h5,h6,td,th")
+      );
+      const si = allBlocks.indexOf(startEl);
+      const ei = allBlocks.indexOf(endEl!);
+      const lo = Math.min(si, ei === -1 ? si : ei);
+      const hi = Math.max(si, ei === -1 ? si : ei);
+      if (lo === -1) { startEl.style.lineHeight = value; }
+      else { for (let i = lo; i <= hi; i++) allBlocks[i].style.lineHeight = value; }
+    }
     emitChange();
   }
 
@@ -1278,6 +1347,87 @@ export default function RichTextEditor({
           flexWrap: "wrap",
         }}
       >
+        <select
+          value={blockType}
+          onMouseDown={() => {
+            const sel = window.getSelection();
+            savedBlockRange.current =
+              sel && sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+          }}
+          onChange={(e) => {
+            const tag = e.target.value;
+            if (savedBlockRange.current) {
+              const sel = window.getSelection();
+              if (sel) {
+                sel.removeAllRanges();
+                sel.addRange(savedBlockRange.current);
+              }
+              savedBlockRange.current = null;
+            }
+            editorRef.current?.focus();
+            document.execCommand("formatBlock", false, tag);
+            emitChange();
+          }}
+          style={{
+            background: "#1e293b",
+            border: "1px solid #334155",
+            borderRadius: "4px",
+            color: "#94a3b8",
+            fontSize: "11px",
+            padding: "2px 4px",
+            cursor: "pointer",
+            outline: "none",
+            marginRight: "2px",
+          }}
+        >
+          <option value="p">Body</option>
+          <option value="h1">H1</option>
+          <option value="h2">H2</option>
+          <option value="h3">H3</option>
+          <option value="h4">H4</option>
+          <option value="h5">H5</option>
+        </select>
+        <select
+          title="Line spacing"
+          value={lineSpacing}
+          onMouseDown={() => {
+            const sel = window.getSelection();
+            savedBlockRange.current =
+              sel && sel.rangeCount > 0 ? sel.getRangeAt(0).cloneRange() : null;
+          }}
+          onChange={(e) => {
+            const value = e.target.value;
+            if (savedBlockRange.current) {
+              const sel = window.getSelection();
+              if (sel) {
+                sel.removeAllRanges();
+                sel.addRange(savedBlockRange.current);
+              }
+              savedBlockRange.current = null;
+            }
+            applyLineSpacing(value);
+          }}
+          style={{
+            background: "#1e293b",
+            border: "1px solid #334155",
+            borderRadius: "4px",
+            color: "#94a3b8",
+            fontSize: "11px",
+            padding: "2px 4px",
+            cursor: "pointer",
+            outline: "none",
+            marginRight: "2px",
+          }}
+        >
+          <option value="1">1×</option>
+          <option value="1.25">1.25×</option>
+          <option value="1.5">1.5×</option>
+          <option value="1.75">1.75×</option>
+          <option value="2">2×</option>
+          <option value="2.25">2.25×</option>
+          <option value="2.5">2.5×</option>
+        </select>
+        <Sep />
         <TbBtn tip="Bold (Ctrl+B)" style={tb(formats.bold)} setTooltip={setTooltip} onAction={() => exec("bold")}>
           <strong>B</strong>
         </TbBtn>
@@ -1580,7 +1730,7 @@ export default function RichTextEditor({
             outline: "none",
             fontSize: "13px",
             color: "#e2e8f0",
-            lineHeight: "1.6",
+            lineHeight: "1.5",
             overflowWrap: "break-word",
             wordBreak: "break-word",
             cursor: colResizeCursor ? "col-resize" : undefined,
