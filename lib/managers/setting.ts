@@ -18,6 +18,9 @@ export type SystemSettings = {
   ntfyServerUrl?: string;
   ntfyUsername?: string;
   ntfyPasswordSet?: string;
+  elasticsearchUrl?: string;
+  elasticsearchUsername?: string;
+  elasticsearchPasswordSet?: string;
   version?: { major: number; minor: number; dev: number };
 };
 
@@ -37,6 +40,8 @@ export async function getSystemSettings(): Promise<SystemSettings> {
     "storage",
     "ntfyServerUrl",
     "ntfyUsername",
+    "elasticsearchUrl",
+    "elasticsearchUsername",
   ] as const) {
     const record = await manager.readRecord(setting);
     if (record) {
@@ -44,9 +49,12 @@ export async function getSystemSettings(): Promise<SystemSettings> {
     }
   }
 
-  // Indicate whether password is set without exposing the value
+  // Indicate whether passwords are set without exposing the values
   const passwordRecord = await manager.readRecord("ntfyPassword");
   result.ntfyPasswordSet = passwordRecord?.data.value ? "true" : "false";
+
+  const esPasswordRecord = await manager.readRecord("elasticsearchPassword");
+  result.elasticsearchPasswordSet = esPasswordRecord?.data.value ? "true" : "false";
 
   if (result.brandIcon) {
     result.brandIcon = `/api/system/assets/brand?t=${Date.now()}`;

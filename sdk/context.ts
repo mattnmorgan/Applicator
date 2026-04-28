@@ -4,3 +4,4 @@ export type { default as AuthorityContext } from "@/lib/sdk/types/context-author
 export type { default as AppContext } from "@/lib/sdk/types/context-app";
 export type { default as UiContext } from "@/lib/sdk/types/ui-context";
 export type { default as ApiContext } from "@/lib/sdk/plugin-context";
+export type { default as ElasticsearchClient } from "@/lib/sdk/types/elasticsearch-client";

@@ -302,109 +302,129 @@ export default function RadialGraphInput({
                         Set {si + 1}
                       </span>
                     </div>
-                    <button
-                      onClick={() => removeSet(si)}
-                      disabled={disabled}
-                      title="Remove set"
-                      style={{
-                        background: "none",
-                        border: "none",
-                        color: "#64748b",
-                        cursor: disabled ? "not-allowed" : "pointer",
-                        fontSize: "16px",
-                        padding: "0 4px",
-                        lineHeight: 1,
-                        opacity: disabled ? 0.4 : 1,
-                        transition: "color 0.15s",
-                      }}
-                      onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.color = "#ef4444"; }}
-                      onMouseLeave={(e) => { e.currentTarget.style.color = "#64748b"; }}
-                    >
-                      ×
-                    </button>
+                    {!disabled && (
+                      <button
+                        onClick={() => removeSet(si)}
+                        title="Remove set"
+                        style={{
+                          background: "none",
+                          border: "none",
+                          color: "#64748b",
+                          cursor: "pointer",
+                          fontSize: "16px",
+                          padding: "0 4px",
+                          lineHeight: 1,
+                          transition: "color 0.15s",
+                        }}
+                        onMouseEnter={(e) => { e.currentTarget.style.color = "#ef4444"; }}
+                        onMouseLeave={(e) => { e.currentTarget.style.color = "#64748b"; }}
+                      >
+                        ×
+                      </button>
+                    )}
                   </div>
 
-                  {/* Per-dimension sliders */}
-                  <div
-                    style={{
-                      display: "grid",
-                      gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
-                      gap: "8px",
-                    }}
-                  >
-                    {dimensions.map((d) => {
-                      const v = set.dims[d.abbr] ?? minVal;
-                      const displayVal = Number.isInteger(v) ? v : parseFloat(v.toFixed(2));
-                      return (
-                        <div key={d.abbr} style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
-                          <div
-                            style={{
-                              display: "flex",
-                              alignItems: "center",
-                              justifyContent: "space-between",
-                            }}
-                          >
-                            <Tooltip text={d.label} placement="top">
-                              <span
-                                style={{
-                                  fontSize: "11px",
-                                  fontWeight: 700,
-                                  color: set.color,
-                                  cursor: "default",
-                                  fontFamily: "monospace",
-                                }}
-                              >
+                  {disabled ? (
+                    /* Compact read-only dim values */
+                    <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px" }}>
+                      {dimensions.map((d) => {
+                        const v = set.dims[d.abbr] ?? minVal;
+                        const displayVal = Number.isInteger(v) ? v : parseFloat(v.toFixed(2));
+                        return (
+                          <Tooltip key={d.abbr} text={d.label} placement="top">
+                            <span style={{ fontSize: "12px", whiteSpace: "nowrap", cursor: "default" }}>
+                              <span style={{ fontWeight: 700, color: set.color, fontFamily: "monospace" }}>
                                 {d.abbr}
                               </span>
-                            </Tooltip>
-                            <span style={{ fontSize: "11px", color: "#94a3b8" }}>
-                              {displayVal}
+                              <span style={{ color: "#475569", margin: "0 3px" }}>·</span>
+                              <span style={{ color: "#cbd5e1" }}>{displayVal}</span>
                             </span>
+                          </Tooltip>
+                        );
+                      })}
+                    </div>
+                  ) : (
+                    /* Per-dimension sliders */
+                    <div
+                      style={{
+                        display: "grid",
+                        gridTemplateColumns: "repeat(auto-fill, minmax(130px, 1fr))",
+                        gap: "8px",
+                      }}
+                    >
+                      {dimensions.map((d) => {
+                        const v = set.dims[d.abbr] ?? minVal;
+                        const displayVal = Number.isInteger(v) ? v : parseFloat(v.toFixed(2));
+                        return (
+                          <div key={d.abbr} style={{ display: "flex", flexDirection: "column", gap: "3px" }}>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "space-between",
+                              }}
+                            >
+                              <Tooltip text={d.label} placement="top">
+                                <span
+                                  style={{
+                                    fontSize: "11px",
+                                    fontWeight: 700,
+                                    color: set.color,
+                                    cursor: "default",
+                                    fontFamily: "monospace",
+                                  }}
+                                >
+                                  {d.abbr}
+                                </span>
+                              </Tooltip>
+                              <span style={{ fontSize: "11px", color: "#94a3b8" }}>
+                                {displayVal}
+                              </span>
+                            </div>
+                            <input
+                              type="range"
+                              min={minVal}
+                              max={maxVal}
+                              step={stepVal}
+                              value={v}
+                              onChange={(e) => updateDim(si, d.abbr, parseFloat(e.target.value))}
+                              style={{
+                                width: "100%",
+                                accentColor: set.color,
+                                cursor: "pointer",
+                              }}
+                            />
                           </div>
-                          <input
-                            type="range"
-                            min={minVal}
-                            max={maxVal}
-                            step={stepVal}
-                            value={v}
-                            disabled={disabled}
-                            onChange={(e) => updateDim(si, d.abbr, parseFloat(e.target.value))}
-                            style={{
-                              width: "100%",
-                              accentColor: set.color,
-                              cursor: disabled ? "not-allowed" : "pointer",
-                            }}
-                          />
-                        </div>
-                      );
-                    })}
-                  </div>
+                        );
+                      })}
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
           )}
 
-          <button
-            onClick={addSet}
-            disabled={disabled}
-            style={{
-              marginTop: "8px",
-              padding: "7px 14px",
-              background: "#1e293b",
-              border: "1px solid #334155",
-              borderRadius: "6px",
-              color: "#94a3b8",
-              fontSize: "13px",
-              cursor: disabled ? "not-allowed" : "pointer",
-              transition: "background 0.15s",
-              width: "100%",
-              opacity: disabled ? 0.5 : 1,
-            }}
-            onMouseEnter={(e) => { if (!disabled) e.currentTarget.style.background = "#334155"; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = "#1e293b"; }}
-          >
-            + Add Set
-          </button>
+          {!disabled && (
+            <button
+              onClick={addSet}
+              style={{
+                marginTop: "8px",
+                padding: "7px 14px",
+                background: "#1e293b",
+                border: "1px solid #334155",
+                borderRadius: "6px",
+                color: "#94a3b8",
+                fontSize: "13px",
+                cursor: "pointer",
+                transition: "background 0.15s",
+                width: "100%",
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = "#334155"; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = "#1e293b"; }}
+            >
+              + Add Set
+            </button>
+          )}
         </>
       )}
     </div>

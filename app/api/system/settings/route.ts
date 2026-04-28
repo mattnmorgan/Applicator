@@ -180,6 +180,12 @@ export async function POST(request: NextRequest) {
           await setSetting("ntfyUsername", value);
         } else if (key === "ntfyPassword" && typeof value === "string") {
           await setSetting("ntfyPassword", value);
+        } else if (key === "elasticsearchUrl" && typeof value === "string") {
+          await setSetting("elasticsearchUrl", value);
+        } else if (key === "elasticsearchUsername" && typeof value === "string") {
+          await setSetting("elasticsearchUsername", value);
+        } else if (key === "elasticsearchPassword" && typeof value === "string") {
+          await setSetting("elasticsearchPassword", value);
         }
       }
 

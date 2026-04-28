@@ -26,6 +26,12 @@ export default function SettingsPage() {
   const [originalNtfyUsername, setOriginalNtfyUsername] = useState("");
   const [ntfyPassword, setNtfyPassword] = useState("");
   const [ntfyPasswordSet, setNtfyPasswordSet] = useState(false);
+  const [elasticsearchUrl, setElasticsearchUrl] = useState("");
+  const [originalElasticsearchUrl, setOriginalElasticsearchUrl] = useState("");
+  const [elasticsearchUsername, setElasticsearchUsername] = useState("");
+  const [originalElasticsearchUsername, setOriginalElasticsearchUsername] = useState("");
+  const [elasticsearchPassword, setElasticsearchPassword] = useState("");
+  const [elasticsearchPasswordSet, setElasticsearchPasswordSet] = useState(false);
   const [isBrowserOpen, setIsBrowserOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [toasts, setToasts] = useState<ToastItem[]>([]);
@@ -64,6 +70,12 @@ export default function SettingsPage() {
       setOriginalNtfyUsername(settings.ntfyUsername || "");
       setNtfyPasswordSet(settings.ntfyPasswordSet === "true");
       setNtfyPassword(""); // Never pre-fill password
+      setElasticsearchUrl(settings.elasticsearchUrl || "");
+      setOriginalElasticsearchUrl(settings.elasticsearchUrl || "");
+      setElasticsearchUsername(settings.elasticsearchUsername || "");
+      setOriginalElasticsearchUsername(settings.elasticsearchUsername || "");
+      setElasticsearchPasswordSet(settings.elasticsearchPasswordSet === "true");
+      setElasticsearchPassword(""); // Never pre-fill password
     } catch (error) {
       console.error("Failed to fetch settings:", error);
     }
@@ -123,12 +135,17 @@ export default function SettingsPage() {
         selfregistrationEnabled,
         ntfyServerUrl,
         ntfyUsername,
+        elasticsearchUrl,
+        elasticsearchUsername,
         ...(!brandIcon && !clearBrandIcon && { brandName }),
       };
 
-      // Only send password if the user entered a new one
+      // Only send passwords if the user entered new ones
       if (ntfyPassword) {
         settingsBody.ntfyPassword = ntfyPassword;
+      }
+      if (elasticsearchPassword) {
+        settingsBody.elasticsearchPassword = elasticsearchPassword;
       }
 
       const settingsResponse = await fetch("/api/system/settings", {
@@ -146,6 +163,9 @@ export default function SettingsPage() {
         setOriginalNtfyServerUrl(ntfyServerUrl);
         setOriginalNtfyUsername(ntfyUsername);
         setNtfyPassword("");
+        setOriginalElasticsearchUrl(elasticsearchUrl);
+        setOriginalElasticsearchUsername(elasticsearchUsername);
+        setElasticsearchPassword("");
         setBrandIcon(null);
         setClearBrandIcon(false);
         addToast({ message: "Settings saved successfully", type: "success" });
@@ -178,7 +198,10 @@ export default function SettingsPage() {
     siteUrl !== originalSiteUrl ||
     ntfyServerUrl !== originalNtfyServerUrl ||
     ntfyUsername !== originalNtfyUsername ||
-    ntfyPassword !== "";
+    ntfyPassword !== "" ||
+    elasticsearchUrl !== originalElasticsearchUrl ||
+    elasticsearchUsername !== originalElasticsearchUsername ||
+    elasticsearchPassword !== "";
 
   return (
     <div style={{ paddingBottom: "24px" }}>
@@ -584,6 +607,110 @@ export default function SettingsPage() {
                 value={ntfyPassword}
                 onChange={(e) => setNtfyPassword(e.target.value)}
                 placeholder={ntfyPasswordSet ? "(configured — enter to change)" : "Enter password"}
+                style={{
+                  padding: "10px 12px",
+                  background: "#0f172a",
+                  border: "1px solid #475569",
+                  borderRadius: "6px",
+                  color: "#f1f5f9",
+                  fontSize: "14px",
+                  outline: "none",
+                  transition: "border-color 0.2s",
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
+              />
+              <p style={{ fontSize: "12px", color: "#64748b", margin: 0 }}>
+                Leave blank to keep the existing password.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Elasticsearch section */}
+        <section
+          style={{
+            border: "1px solid #334155",
+            borderRadius: "8px",
+            padding: "24px",
+            display: "flex",
+            flexDirection: "column",
+            gap: "20px",
+          }}
+        >
+          <div>
+            <h2 style={{ fontSize: "16px", fontWeight: 600, color: "#f1f5f9", margin: "0 0 4px" }}>
+              Elasticsearch
+            </h2>
+            <p style={{ fontSize: "13px", color: "#64748b", margin: 0 }}>
+              Connect to an Elasticsearch server to enable full-text search and indexing for applets.
+            </p>
+          </div>
+
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "16px" }}>
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: "2 1 240px" }}>
+              <label style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
+                Server URL
+              </label>
+              <input
+                type="text"
+                value={elasticsearchUrl}
+                onChange={(e) => setElasticsearchUrl(e.target.value)}
+                placeholder="https://elasticsearch.example.com:9200"
+                style={{
+                  padding: "10px 12px",
+                  background: "#0f172a",
+                  border: "1px solid #475569",
+                  borderRadius: "6px",
+                  color: "#f1f5f9",
+                  fontSize: "14px",
+                  outline: "none",
+                  transition: "border-color 0.2s",
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
+              />
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: "1 1 160px" }}>
+              <label style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
+                Username
+              </label>
+              <input
+                type="text"
+                value={elasticsearchUsername}
+                onChange={(e) => setElasticsearchUsername(e.target.value)}
+                placeholder="elastic"
+                style={{
+                  padding: "10px 12px",
+                  background: "#0f172a",
+                  border: "1px solid #475569",
+                  borderRadius: "6px",
+                  color: "#f1f5f9",
+                  fontSize: "14px",
+                  outline: "none",
+                  transition: "border-color 0.2s",
+                  width: "100%",
+                  boxSizing: "border-box",
+                }}
+                onFocus={(e) => (e.currentTarget.style.borderColor = "#3b82f6")}
+                onBlur={(e) => (e.currentTarget.style.borderColor = "#475569")}
+              />
+            </div>
+
+            <div style={{ display: "flex", flexDirection: "column", gap: "8px", flex: "1 1 160px" }}>
+              <label style={{ fontSize: "14px", fontWeight: 500, color: "#f1f5f9" }}>
+                Password
+              </label>
+              <input
+                type="password"
+                value={elasticsearchPassword}
+                onChange={(e) => setElasticsearchPassword(e.target.value)}
+                placeholder={elasticsearchPasswordSet ? "(configured — enter to change)" : "Enter password"}
                 style={{
                   padding: "10px 12px",
                   background: "#0f172a",

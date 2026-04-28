@@ -3,8 +3,8 @@ export const SYSTEM_APP_METADATA = {
   name: "System",
   version: {
     major: 0,
-    minor: 1,
-    dev: 9,
+    minor: 2,
+    dev: 0,
   },
   author: "Matthew Morgan",
   contact_email: "matthew@morgantech.info",
@@ -778,6 +778,14 @@ export const SYSTEM_APP_METADATA = {
       id: "assume-identity",
       name: "Assume User Identities",
       description: "Allows user to impersonate other users in the system",
+      app: "system",
+      contextual: false,
+    },
+    {
+      id: "elasticsearch-access",
+      name: "Elasticsearch Access",
+      description:
+        "Permits access to the system Elasticsearch server for indexing and querying",
       app: "system",
       contextual: false,
     },

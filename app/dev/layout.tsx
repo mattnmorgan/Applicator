@@ -55,6 +55,7 @@ const devMenuItems: TabsetItem[] = [
     clickable: false,
     children: [
       { label: "Database", path: "/dev/utilities/database" },
+      { label: "Elasticsearch", path: "/dev/utilities/elasticsearch" },
     ],
   },
 ];

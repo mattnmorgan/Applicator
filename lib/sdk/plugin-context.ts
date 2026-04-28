@@ -1,6 +1,7 @@
 import { GenericCRUD as CRUD } from "@/lib/database/crud/";
 import LogManager from "@/lib/managers/log";
 import SettingManager from "@/lib/managers/setting";
+import ElasticsearchClient from "@/lib/sdk/types/elasticsearch-client";
 import AuthorityManager from "@/lib/managers/authority";
 import ContextualAuthorityManager from "@/lib/managers/contextualAuthority";
 import ContextUser from "@/lib/sdk/types/context-user";
@@ -27,6 +28,7 @@ export default class Context {
   private _context: { id: string; data: any; password?: string } | null = null;
   private _contextualAuthorityManager: ContextualAuthorityManager | null = null;
   private _storagePath: string = "";
+  private _elasticsearchAccess: boolean = false;
 
   private constructor(
     appId: string,
@@ -148,6 +150,8 @@ export default class Context {
 
     const instance = new Context(appId, userId, logManager, files, systemFiles);
     instance._storagePath = storagePath;
+    instance._elasticsearchAccess =
+      appAuthority?.data.authorizations.includes("system:elasticsearch-access") ?? false;
     if (context) {
       instance._context = context;
     }
@@ -360,4 +364,61 @@ export default class Context {
       ? Object.keys(app).some((auth) => app[auth])
       : Object.keys(app).every((auth) => app[auth]);
   }
+
+  /**
+   * Get a client for the system-configured Elasticsearch server.
+   * Returns null if no Elasticsearch server URL is configured in system settings.
+   */
+  public async elasticsearch(): Promise<ElasticsearchClient | null> {
+    if (!this._elasticsearchAccess) {
+      throw new Error(
+        "Elasticsearch access not available: app does not have system:elasticsearch-access permission",
+      );
+    }
+    const settingManager = new SettingManager();
+    const [urlRecord, usernameRecord, passwordRecord] = await Promise.all([
+      settingManager.readRecord("elasticsearchUrl"),
+      settingManager.readRecord("elasticsearchUsername"),
+      settingManager.readRecord("elasticsearchPassword"),
+    ]);
+
+    const url = urlRecord?.data.value;
+    if (!url) return null;
+
+    const username = usernameRecord?.data.value || "";
+    const password = passwordRecord?.data.value || "";
+    const baseUrl = url.replace(/\/$/, "");
+
+    const authHeader: Record<string, string> =
+      username && password
+        ? { Authorization: `Basic ${Buffer.from(`${username}:${password}`).toString("base64")}` }
+        : {};
+
+    const request = async (method: string, esPath: string, body?: object) => {
+      const cleanPath = esPath.replace(/^\//, "");
+      const response = await fetch(`${baseUrl}/${cleanPath}`, {
+        method: method.toUpperCase(),
+        headers: { "Content-Type": "application/json", ...authHeader },
+        ...(body !== undefined ? { body: JSON.stringify(body) } : {}),
+      });
+      const data = await response.json().catch(() => null);
+      return { status: response.status, data };
+    };
+
+    return {
+      url: baseUrl,
+      request,
+      search: (index: string, body: object) =>
+        request("POST", `${index}/_search`, body).then((r) => r.data),
+      indexDocument: (indexName: string, id: string | null, document: object) =>
+        id
+          ? request("PUT", `${indexName}/_doc/${id}`, document).then((r) => r.data)
+          : request("POST", `${indexName}/_doc`, document).then((r) => r.data),
+      getDocument: (indexName: string, id: string) =>
+        request("GET", `${indexName}/_doc/${id}`).then((r) => r.data),
+      deleteDocument: (indexName: string, id: string) =>
+        request("DELETE", `${indexName}/_doc/${id}`).then((r) => r.data),
+    };
+  }
 }
+

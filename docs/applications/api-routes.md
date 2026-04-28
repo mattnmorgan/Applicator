@@ -425,6 +425,44 @@ CRUD methods that accept a `client` option:
 
 ---
 
+### Elasticsearch (`context.elasticsearch()`)
+
+Connect to the system-configured Elasticsearch server. Returns `null` if no server URL is configured in system settings.
+
+```typescript
+const es = await context.elasticsearch();
+if (!es) {
+  return NextResponse.json({ error: "Elasticsearch not configured" }, { status: 503 });
+}
+
+// Search an index
+const results = await es.search("my-index", {
+  query: { match: { title: "example" } },
+});
+
+// Index a document with an explicit ID
+await es.indexDocument("my-index", "doc-123", { title: "Example", body: "..." });
+
+// Index a document with an auto-generated ID (pass null)
+await es.indexDocument("my-index", null, { title: "Example", body: "..." });
+
+// Get a document by ID
+const doc = await es.getDocument("my-index", "doc-123");
+
+// Delete a document by ID
+await es.deleteDocument("my-index", "doc-123");
+
+// Raw request — access any Elasticsearch API endpoint
+const { status, data } = await es.request("GET", "_cat/indices?format=json");
+const { status, data } = await es.request("POST", "my-index/_search", {
+  query: { match_all: {} },
+});
+```
+
+Credentials (URL, username, password) are read from system settings — they are never exposed to the client.
+
+---
+
 ### Logger (`context.logger`)
 
 Log messages to the system log.
