@@ -90,7 +90,9 @@ export type IconName =
   | "tablet"
   | "popout"
   | "dock"
-  | "radial-graph";
+  | "radial-graph"
+  | "chevrons-up"
+  | "chevrons-down";
 
 interface IconProps {
   name: IconName | string;
@@ -934,6 +936,22 @@ export default function Icon({ name, size = 16 }: IconProps) {
             stroke="currentColor"
             strokeWidth={1.5}
           />
+        </svg>
+      );
+
+    case "chevrons-up":
+      return (
+        <svg {...base}>
+          <polyline points="18 11 12 5 6 11" />
+          <polyline points="18 19 12 13 6 19" />
+        </svg>
+      );
+
+    case "chevrons-down":
+      return (
+        <svg {...base}>
+          <polyline points="6 13 12 19 18 13" />
+          <polyline points="6 5 12 11 18 5" />
         </svg>
       );
 

@@ -18,7 +18,7 @@ import type { IconName } from "@applicator/sdk/components";
 
 ### General
 
-`archive`, `audio`, `bell`, `calendar`, `check`, `chevron-down`, `chevron-up`, `chevron-left`, `chevron-right`, `clipboard`, `close`, `code`, `copy`, `crown`, `dock`, `download`, `drag`, `edit`, `error`, `external-link`, `eye`, `eye-off`, `file`, `folder`, `globe`, `hamburger`, `sandwich`, `image`, `info`, `library`, `link`, `lock`, `logout`, `monitor`, `move`, `pin`, `play`, `popout`, `plus`, `print`, `refresh`, `reply`, `search`, `settings`, `smartphone`, `spreadsheet`, `square-stop`, `star`, `sticky-note`, `tablet`, `trash`, `unlock`, `upload`, `user`, `users`, `video`, `warning`, `word-wrap`, `list-view`, `grid-view`, `grid-view-small`
+`archive`, `audio`, `bell`, `calendar`, `check`, `chevron-down`, `chevron-up`, `chevron-left`, `chevron-right`, `chevrons-up`, `chevrons-down`, `clipboard`, `close`, `code`, `copy`, `crown`, `dock`, `download`, `drag`, `edit`, `error`, `external-link`, `eye`, `eye-off`, `file`, `folder`, `globe`, `hamburger`, `sandwich`, `image`, `info`, `library`, `link`, `lock`, `logout`, `monitor`, `move`, `pin`, `play`, `popout`, `plus`, `print`, `refresh`, `reply`, `search`, `settings`, `smartphone`, `spreadsheet`, `square-stop`, `star`, `sticky-note`, `tablet`, `trash`, `unlock`, `upload`, `user`, `users`, `video`, `warning`, `word-wrap`, `list-view`, `grid-view`, `grid-view-small`
 
 ### Text formatting
 
