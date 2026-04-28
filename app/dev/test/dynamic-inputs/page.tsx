@@ -187,6 +187,7 @@ const SAMPLE_INPUTS: DynamicInputDefinition[] = [
     tooltip: "Drag sliders to adjust each attribute. Use + Add Set to compare multiple characters side-by-side.",
     min: "0",
     max: "10",
+    step: "1",
     dimensions: [
       { abbr: "STR", label: "Strength" },
       { abbr: "INT", label: "Intelligence" },

@@ -4,6 +4,7 @@ import { useRef } from "react";
 import type { DynamicInputProps } from "../DynamicInput";
 import styles from "../DynamicInput.module.css";
 import InputLabel from "../InputLabel";
+import Tooltip from "../../Tooltip";
 import type { RadialGraphDimension } from "../types/radial-graph-dimension";
 
 interface RadialDataSet {
@@ -78,84 +79,96 @@ function RadarChart({
   }
 
   return (
-    <svg
-      width={size}
-      height={size}
-      viewBox={`0 0 ${size} ${size}`}
-      style={{ display: "block", margin: "0 auto", overflow: "visible" }}
-    >
-      {/* Concentric grid rings */}
-      {Array.from({ length: RINGS }, (_, k) => (
-        <polygon
-          key={k}
-          points={ringPoints((k + 1) / RINGS)}
-          fill="none"
-          stroke="#1e3a5f"
-          strokeWidth={1}
-        />
-      ))}
-
-      {/* Axis lines */}
-      {dimensions.map((d, i) => {
-        const [x, y] = polarPt(i, R);
-        return (
-          <line
-            key={d.abbr}
-            x1={cx}
-            y1={cy}
-            x2={x}
-            y2={y}
-            stroke="#334155"
+    <div style={{ position: "relative", width: size, height: size, margin: "0 auto" }}>
+      <svg
+        width={size}
+        height={size}
+        viewBox={`0 0 ${size} ${size}`}
+        style={{ display: "block" }}
+      >
+        {/* Concentric grid rings */}
+        {Array.from({ length: RINGS }, (_, k) => (
+          <polygon
+            key={k}
+            points={ringPoints((k + 1) / RINGS)}
+            fill="none"
+            stroke="#1e3a5f"
             strokeWidth={1}
           />
-        );
-      })}
+        ))}
 
-      {/* Data set polygons */}
-      {sets.map((set, si) => (
-        <polygon
-          key={si}
-          points={setPoints(set)}
-          fill={set.color}
-          fillOpacity={0.12}
-          stroke={set.color}
-          strokeWidth={1.5}
-          strokeLinejoin="round"
-        />
-      ))}
-
-      {/* Data point dots */}
-      {sets.map((set, si) =>
-        dimensions.map((d, di) => {
-          const v = set.dims[d.abbr] ?? min;
-          const [x, y] = polarPt(di, normalize(v) * R);
+        {/* Axis lines */}
+        {dimensions.map((d, i) => {
+          const [x, y] = polarPt(i, R);
           return (
-            <circle key={`${si}-${di}`} cx={x} cy={y} r={3} fill={set.color} />
+            <line
+              key={d.abbr}
+              x1={cx}
+              y1={cy}
+              x2={x}
+              y2={y}
+              stroke="#334155"
+              strokeWidth={1}
+            />
           );
-        })
-      )}
+        })}
 
-      {/* Axis labels (abbr with tooltip showing full label) */}
+        {/* Data set polygons */}
+        {sets.map((set, si) => (
+          <polygon
+            key={si}
+            points={setPoints(set)}
+            fill={set.color}
+            fillOpacity={0.12}
+            stroke={set.color}
+            strokeWidth={1.5}
+            strokeLinejoin="round"
+          />
+        ))}
+
+        {/* Data point dots */}
+        {sets.map((set, si) =>
+          dimensions.map((d, di) => {
+            const v = set.dims[d.abbr] ?? min;
+            const [x, y] = polarPt(di, normalize(v) * R);
+            return (
+              <circle key={`${si}-${di}`} cx={x} cy={y} r={3} fill={set.color} />
+            );
+          })
+        )}
+      </svg>
+
+      {/* Axis labels overlaid as HTML so Tooltip can wrap them */}
       {dimensions.map((d, i) => {
         const [lx, ly] = polarPt(i, labelR);
         return (
-          <text
+          <Tooltip
             key={d.abbr}
-            x={lx}
-            y={ly}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            fontSize="10"
-            fontWeight="600"
-            fill="#94a3b8"
-            style={{ cursor: "default", userSelect: "none" }}
+            text={d.label}
+            placement="top"
+            style={{
+              position: "absolute",
+              left: lx,
+              top: ly,
+              transform: "translate(-50%, -50%)",
+            }}
           >
-            <title>{d.label}</title>
-            {d.abbr}
-          </text>
+            <span
+              style={{
+                fontSize: "10px",
+                fontWeight: 700,
+                color: "#94a3b8",
+                cursor: "default",
+                userSelect: "none",
+                lineHeight: 1,
+              }}
+            >
+              {d.abbr}
+            </span>
+          </Tooltip>
         );
       })}
-    </svg>
+    </div>
   );
 }
 
@@ -167,6 +180,7 @@ export default function RadialGraphInput({
   const dimensions: RadialGraphDimension[] = input.dimensions ?? [];
   const minVal = parseFloat(input.min ?? "0");
   const maxVal = parseFloat(input.max ?? "100");
+  const stepVal = input.step ? parseFloat(input.step) : (maxVal - minVal) / 100 || 1;
   const sets = parseSets(value);
   const colorRefs = useRef<(HTMLInputElement | null)[]>([]);
 
@@ -330,18 +344,19 @@ export default function RadialGraphInput({
                               justifyContent: "space-between",
                             }}
                           >
-                            <span
-                              title={d.label}
-                              style={{
-                                fontSize: "11px",
-                                fontWeight: 700,
-                                color: set.color,
-                                cursor: "default",
-                                fontFamily: "monospace",
-                              }}
-                            >
-                              {d.abbr}
-                            </span>
+                            <Tooltip text={d.label} placement="top">
+                              <span
+                                style={{
+                                  fontSize: "11px",
+                                  fontWeight: 700,
+                                  color: set.color,
+                                  cursor: "default",
+                                  fontFamily: "monospace",
+                                }}
+                              >
+                                {d.abbr}
+                              </span>
+                            </Tooltip>
                             <span style={{ fontSize: "11px", color: "#94a3b8" }}>
                               {displayVal}
                             </span>
@@ -350,7 +365,7 @@ export default function RadialGraphInput({
                             type="range"
                             min={minVal}
                             max={maxVal}
-                            step={(maxVal - minVal) / 100 || 1}
+                            step={stepVal}
                             value={v}
                             disabled={disabled}
                             onChange={(e) => updateDim(si, d.abbr, parseFloat(e.target.value))}
