@@ -10,6 +10,7 @@ import type { RadialGraphDimension } from "../types/radial-graph-dimension";
 interface RadialDataSet {
   color: string;
   dims: Record<string, number>;
+  label?: string;
 }
 
 const SET_COLORS = [
@@ -194,7 +195,7 @@ export default function RadialGraphInput({
     const mid = (minVal + maxVal) / 2;
     const dims = Object.fromEntries(dimensions.map((d) => [d.abbr, mid]));
     const color = SET_COLORS[sets.length % SET_COLORS.length];
-    emit([...sets, { color, dims }]);
+    emit([...sets, { color, dims, label: "" }]);
   }
 
   function removeSet(index: number) {
@@ -205,6 +206,10 @@ export default function RadialGraphInput({
     emit(sets.map((s, i) => (i === index ? { ...s, color } : s)));
   }
 
+  function updateLabel(index: number, label: string) {
+    emit(sets.map((s, i) => (i === index ? { ...s, label } : s)));
+  }
+
   function updateDim(setIndex: number, abbr: string, val: number) {
     emit(
       sets.map((s, i) =>
@@ -212,6 +217,9 @@ export default function RadialGraphInput({
       )
     );
   }
+
+  const showLegend = disabled && sets.length > 0 &&
+    (sets.length > 1 || sets.some((s) => s.label));
 
   return (
     <div className={styles.wrapper}>
@@ -239,6 +247,44 @@ export default function RadialGraphInput({
             />
           </div>
 
+          {/* Read-only legend */}
+          {showLegend && (
+            <div
+              style={{
+                display: "flex",
+                flexWrap: "wrap",
+                gap: "4px 14px",
+                marginTop: "6px",
+                justifyContent: "center",
+              }}
+            >
+              {sets.map((set, si) => (
+                <span
+                  key={si}
+                  style={{
+                    display: "inline-flex",
+                    alignItems: "center",
+                    gap: "5px",
+                    fontSize: "11px",
+                    color: "#94a3b8",
+                  }}
+                >
+                  <span
+                    style={{
+                      width: 8,
+                      height: 8,
+                      borderRadius: "50%",
+                      background: set.color,
+                      flexShrink: 0,
+                      display: "inline-block",
+                    }}
+                  />
+                  {set.label || `Set ${si + 1}`}
+                </span>
+              ))}
+            </div>
+          )}
+
           {sets.length > 0 && (
             <div style={{ display: "flex", flexDirection: "column", gap: "8px", marginTop: "8px" }}>
               {sets.map((set, si) => (
@@ -251,87 +297,110 @@ export default function RadialGraphInput({
                     padding: "10px 12px",
                   }}
                 >
-                  {/* Set header: color swatch + label + remove */}
+                  {/* Set header */}
                   <div
                     style={{
                       display: "flex",
                       alignItems: "center",
-                      justifyContent: "space-between",
+                      gap: "8px",
                       marginBottom: "10px",
                     }}
                   >
-                    <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-                      <button
-                        title="Click to change color"
-                        disabled={disabled}
-                        onClick={() => colorRefs.current[si]?.click()}
-                        style={{
-                          width: "18px",
-                          height: "18px",
-                          borderRadius: "4px",
-                          background: set.color,
-                          border: "2px solid #475569",
-                          cursor: disabled ? "not-allowed" : "pointer",
-                          flexShrink: 0,
-                          padding: 0,
-                        }}
-                      />
-                      <input
-                        type="color"
-                        ref={(el) => { colorRefs.current[si] = el; }}
-                        value={set.color}
-                        onChange={(e) => updateColor(si, e.target.value)}
-                        disabled={disabled}
-                        style={{
-                          position: "absolute",
-                          opacity: 0,
-                          width: 0,
-                          height: 0,
-                          pointerEvents: "none",
-                        }}
-                      />
-                      <span
-                        style={{
-                          fontSize: "11px",
-                          color: "#64748b",
-                          fontFamily: "monospace",
-                          textTransform: "uppercase",
-                          letterSpacing: "0.05em",
-                        }}
-                      >
-                        Set {si + 1}
-                      </span>
-                    </div>
-                    {!disabled && (
-                      <button
-                        onClick={() => removeSet(si)}
-                        title="Remove set"
-                        style={{
-                          background: "none",
-                          border: "none",
-                          color: "#64748b",
-                          cursor: "pointer",
-                          fontSize: "16px",
-                          padding: "0 4px",
-                          lineHeight: 1,
-                          transition: "color 0.15s",
-                        }}
-                        onMouseEnter={(e) => { e.currentTarget.style.color = "#ef4444"; }}
-                        onMouseLeave={(e) => { e.currentTarget.style.color = "#64748b"; }}
-                      >
-                        ×
-                      </button>
+                    {disabled ? (
+                      /* Read-only: color dot + label */
+                      <>
+                        <span
+                          style={{
+                            width: 10,
+                            height: 10,
+                            borderRadius: "50%",
+                            background: set.color,
+                            flexShrink: 0,
+                            display: "inline-block",
+                          }}
+                        />
+                        <span style={{ fontSize: "12px", color: "#94a3b8" }}>
+                          {set.label || `Set ${si + 1}`}
+                        </span>
+                      </>
+                    ) : (
+                      /* Edit mode: color swatch button + label input + remove */
+                      <>
+                        <button
+                          title="Click to change color"
+                          onClick={() => colorRefs.current[si]?.click()}
+                          style={{
+                            width: "18px",
+                            height: "18px",
+                            borderRadius: "4px",
+                            background: set.color,
+                            border: "2px solid #475569",
+                            cursor: "pointer",
+                            flexShrink: 0,
+                            padding: 0,
+                          }}
+                        />
+                        <input
+                          type="color"
+                          ref={(el) => { colorRefs.current[si] = el; }}
+                          value={set.color}
+                          onChange={(e) => updateColor(si, e.target.value)}
+                          style={{
+                            position: "absolute",
+                            opacity: 0,
+                            width: 0,
+                            height: 0,
+                            pointerEvents: "none",
+                          }}
+                        />
+                        <input
+                          type="text"
+                          value={set.label || ""}
+                          placeholder={`Set ${si + 1}`}
+                          onChange={(e) => updateLabel(si, e.target.value)}
+                          style={{
+                            flex: 1,
+                            background: "#1e293b",
+                            border: "1px solid #334155",
+                            borderRadius: "4px",
+                            color: "#e2e8f0",
+                            fontSize: "12px",
+                            padding: "3px 7px",
+                            outline: "none",
+                            minWidth: 0,
+                          }}
+                        />
+                        <button
+                          onClick={() => removeSet(si)}
+                          title="Remove set"
+                          style={{
+                            background: "none",
+                            border: "none",
+                            color: "#64748b",
+                            cursor: "pointer",
+                            fontSize: "16px",
+                            padding: "0 4px",
+                            lineHeight: 1,
+                            flexShrink: 0,
+                            transition: "color 0.15s",
+                          }}
+                          onMouseEnter={(e) => { e.currentTarget.style.color = "#ef4444"; }}
+                          onMouseLeave={(e) => { e.currentTarget.style.color = "#64748b"; }}
+                        >
+                          ×
+                        </button>
+                      </>
                     )}
                   </div>
 
                   {disabled ? (
-                    /* Compact read-only dim values */
+                    /* Compact read-only dim values — tooltip shows "Label: value" */
                     <div style={{ display: "flex", flexWrap: "wrap", gap: "4px 12px" }}>
                       {dimensions.map((d) => {
                         const v = set.dims[d.abbr] ?? minVal;
                         const displayVal = Number.isInteger(v) ? v : parseFloat(v.toFixed(2));
                         return (
-                          <Tooltip key={d.abbr} text={d.label} placement="top">
+                          <Tooltip key={d.abbr} text={`${d.label}: ${displayVal}`} placement="top">
                             <span style={{ fontSize: "12px", whiteSpace: "nowrap", cursor: "default" }}>
                               <span style={{ fontWeight: 700, color: set.color, fontFamily: "monospace" }}>
                                 {d.abbr}

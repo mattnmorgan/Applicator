@@ -151,7 +151,7 @@ export default class Context {
     const instance = new Context(appId, userId, logManager, files, systemFiles);
     instance._storagePath = storagePath;
     instance._elasticsearchAccess =
-      appAuthority?.data.authorizations.includes("system:elasticsearch-access") ?? false;
+      appAuthority?.data.authorizations.includes("system:elasticsearch") ?? false;
     if (context) {
       instance._context = context;
     }
@@ -372,7 +372,7 @@ export default class Context {
   public async elasticsearch(): Promise<ElasticsearchClient | null> {
     if (!this._elasticsearchAccess) {
       throw new Error(
-        "Elasticsearch access not available: app does not have system:elasticsearch-access permission",
+        "Elasticsearch access not available: app does not have system:elasticsearch permission",
       );
     }
     const settingManager = new SettingManager();

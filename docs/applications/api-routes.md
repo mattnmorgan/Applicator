@@ -459,7 +459,7 @@ const { status, data } = await es.request("POST", "my-index/_search", {
 });
 ```
 
-Credentials (URL, username, password) are read from system settings — they are never exposed to the client.
+Requires the `system:elasticsearch` app-level permission. Credentials (URL, username, password) are read from system settings — they are never exposed to the client.
 
 ---
 

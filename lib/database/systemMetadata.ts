@@ -4,7 +4,7 @@ export const SYSTEM_APP_METADATA = {
   version: {
     major: 0,
     minor: 2,
-    dev: 0,
+    dev: 1,
   },
   author: "Matthew Morgan",
   contact_email: "matthew@morgantech.info",
@@ -785,9 +785,18 @@ export const SYSTEM_APP_METADATA = {
       id: "elasticsearch-access",
       name: "Elasticsearch Access",
       description:
-        "Permits access to the system Elasticsearch server for indexing and querying",
+        "Permits users access to Elasticsearch-powered features and the developer utility",
       app: "system",
       contextual: false,
+    },
+    {
+      id: "elasticsearch",
+      name: "Elasticsearch Access",
+      description:
+        "Permits an app to use the Elasticsearch context API for indexing and querying",
+      app: "system",
+      contextual: false,
+      target: "app",
     },
     {
       id: "fs-access",
