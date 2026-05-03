@@ -44,6 +44,7 @@ export function formatDatetime(iso: string, allDay: boolean): string {
       month: "short",
       day: "numeric",
       year: "numeric",
+      timeZone: "UTC",
     });
   }
   return d.toLocaleString(undefined, {
@@ -93,7 +94,7 @@ export function formatDayHeader(date: Date): { dayNum: string; dayName: string }
 export function getTimeSinceRefresh(date: Date | null): string {
   if (!date) return "";
   const secs = Math.floor((Date.now() - date.getTime()) / 1000);
-  if (secs < 60) return "Just now";
+  if (secs < 60) return "just now";
   const mins = Math.floor(secs / 60);
   if (mins < 60) return `${mins}m ago`;
   return `${Math.floor(mins / 60)}h ago`;
