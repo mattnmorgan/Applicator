@@ -55,13 +55,64 @@ Agents run as separate Node.js processes and communicate with the framework via 
 
 ```typescript
 "records.create"  // params: { table: string, data: object }
-"records.list"    // params: { table: string, appId?: string, limit?: number, offset?: number, filters?: object, condition?: "AND" | "OR" }
+"records.list"    // params: { table: string, appId?: string, limit?: number, offset?: number, filters?: FieldFilter[], condition?: string }
 "records.get"     // params: { table: string, id: string }
 "records.update"  // params: { table: string, id: string, data: object }
 "records.delete"  // params: { table: string, id: string }
 ```
 
 `appId` defaults to the calling app — set it to read from another app's table.
+
+##### Filtering with `records.list`
+
+`filters` is an **array** of `FieldFilter` objects — **not** a plain key/value map. Passing a plain object is silently ignored and returns all records unfiltered.
+
+```typescript
+interface FieldFilter {
+  field: string;
+  operator: "=" | "!=" | "<" | "<=" | ">" | ">=" | "IN" | "NOT IN" | "LIKE" | "NOT LIKE" | "ILIKE" | "NOT ILIKE";
+  value: string | number | boolean | (string | number)[];  // array only for IN / NOT IN
+}
+```
+
+`condition` is an optional logical expression string that combines filter indices (1-based). Defaults to ANDing all filters when omitted.
+
+```typescript
+// Single filter — match by field value
+await sdk("records.list", {
+  table: "event",
+  filters: [{ field: "icsSubscriptionId", operator: "=", value: subId }],
+  limit: 1000,
+});
+
+// Multiple filters — ANDed by default
+await sdk("records.list", {
+  table: "task",
+  filters: [
+    { field: "status", operator: "=", value: "open" },
+    { field: "assigneeId", operator: "=", value: userId },
+  ],
+  limit: 500,
+});
+
+// Multiple filters with explicit OR condition
+await sdk("records.list", {
+  table: "task",
+  filters: [
+    { field: "status", operator: "=", value: "open" },
+    { field: "status", operator: "=", value: "in-progress" },
+  ],
+  condition: "1 OR 2",
+  limit: 500,
+});
+
+// IN operator — match any value in a list
+await sdk("records.list", {
+  table: "event",
+  filters: [{ field: "calendarId", operator: "IN", value: ["id1", "id2", "id3"] }],
+  limit: 1000,
+});
+```
 
 #### Files
 
