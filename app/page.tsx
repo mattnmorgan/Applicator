@@ -497,6 +497,7 @@ export default async function HomePage() {
                 username: user.data.username,
                 displayName: user.data.display_name,
               }}
+              widgetMaxHeight={`calc(100vh - 64px - 49px - ${hasUtilityBar ? UTILITY_BAR_HEIGHT : 0}px)`}
             />
           ) : (
             <div

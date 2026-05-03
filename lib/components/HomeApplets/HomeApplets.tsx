@@ -17,13 +17,14 @@ interface AppletInfo {
 interface HomeAppletsProps {
   applets: AppletInfo[];
   user: { username: string; displayName: string };
+  widgetMaxHeight?: string;
 }
 
 interface AppletWithVersion extends AppletInfo {
   moduleUrl: string;
 }
 
-export default function HomeApplets({ applets, user }: HomeAppletsProps) {
+export default function HomeApplets({ applets, user, widgetMaxHeight }: HomeAppletsProps) {
   const [appletsWithVersions, setAppletsWithVersions] = useState<
     AppletWithVersion[]
   >([]);
@@ -115,6 +116,7 @@ export default function HomeApplets({ applets, user }: HomeAppletsProps) {
               label: applet.label,
               settings: applet.instanceSettings,
               user,
+              ...(widgetMaxHeight !== undefined && { maxHeight: widgetMaxHeight }),
             }}
           />
         </div>
