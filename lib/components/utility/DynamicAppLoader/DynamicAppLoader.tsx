@@ -85,19 +85,20 @@ export default function DynamicAppLoader({
             export const {
               Component, PureComponent, memo, forwardRef,
               createContext, useContext, useState, useEffect,
-              useLayoutEffect, useReducer, useCallback, useMemo,
-              useRef, useImperativeHandle, useDebugValue,
+              useLayoutEffect, useInsertionEffect, useReducer, useCallback, useMemo,
+              useRef, createRef, useImperativeHandle, useDebugValue,
               createElement, cloneElement, createFactory,
               isValidElement, Children, Fragment, StrictMode,
               Suspense, lazy, startTransition, useTransition,
-              useDeferredValue, useId, useSyncExternalStore
+              useDeferredValue, useId, useSyncExternalStore,
+              __SECRET_INTERNALS_DO_NOT_USE_OR_YOU_WILL_BE_FIRED
             } = React;
           `;
 
           const reactDOMShimCode = `
             const ReactDOM = window.ReactDOM;
             export default ReactDOM;
-            export const { render, hydrate, unmountComponentAtNode, findDOMNode, createPortal, flushSync } = ReactDOM;
+            export const { render, hydrate, unmountComponentAtNode, findDOMNode, createPortal, flushSync, unstable_batchedUpdates } = ReactDOM;
           `;
 
           const importMap = document.createElement("script");
