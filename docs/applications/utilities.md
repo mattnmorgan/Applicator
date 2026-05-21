@@ -95,6 +95,6 @@ const blob = await img.resizeImage(file, 256, 256, { fit: "contain", format: "im
 
 | Option | Type | Default | Description |
 | ------ | ---- | ------- | ----------- |
-| `fit` | `"cover" \| "contain"` | `"cover"` | `"cover"` scales and center-crops to fill the exact target size; `"contain"` scales to fit within the target size, letterboxing as needed |
+| `fit` | `"cover" \| "contain" \| "scale-down"` | `"cover"` | `"cover"` scales and center-crops to fill the exact target size; `"contain"` scales to fit within the target size, letterboxing as needed; `"scale-down"` scales proportionally without upscaling and sets the output canvas to the actual scaled dimensions (no padding) |
 | `quality` | `number` (0–1) | `0.85` | Encoding quality. Ignored for `"image/png"` |
 | `format` | `"image/jpeg" \| "image/png" \| "image/webp"` | `"image/jpeg"` | Output MIME type |
