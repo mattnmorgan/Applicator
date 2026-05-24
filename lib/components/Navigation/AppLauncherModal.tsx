@@ -61,10 +61,15 @@ function Section({ title, items, onNavigate }: SectionProps) {
       <h3 className={styles.sectionTitle}>{title}</h3>
       <div className={styles.itemList}>
         {items.map((item, i) => (
-          <button
+          <a
             key={i}
+            href={item.href}
             className={styles.item}
-            onClick={() => onNavigate(item.href)}
+            onClick={(e) => {
+              if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+              e.preventDefault();
+              onNavigate(item.href);
+            }}
           >
             <span className={styles.itemText}>
               <span className={styles.itemLabel}>{item.label}</span>
@@ -73,7 +78,7 @@ function Section({ title, items, onNavigate }: SectionProps) {
               )}
             </span>
             <ItemBadge item={item} />
-          </button>
+          </a>
         ))}
       </div>
     </div>
