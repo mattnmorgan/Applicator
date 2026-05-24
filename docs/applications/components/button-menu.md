@@ -28,7 +28,8 @@ Each entry is either a menu item or a separator:
   type?: "item";            // Optional, defaults to item
   label: string;            // Menu item text
   icon: ReactNode | string; // Icon element or icon name string (e.g. "edit")
-  onClick: () => void;      // Click handler
+  onClick: () => void;      // Click handler (called on plain left-click)
+  href?: string;            // When set, renders as <a> so middle-click / ctrl+click opens in a new tab
   active?: boolean;         // Highlight item as active/selected
   disabled?: boolean;       // Disable the item
   variant?: "danger" | "info"; // Color the item red (danger) or muted blue-grey (info)

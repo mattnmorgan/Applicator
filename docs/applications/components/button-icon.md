@@ -11,7 +11,8 @@ import { ButtonIcon } from "@applicator/sdk/components";
 | Prop         | Type                                           | Default     | Description                                          |
 | ------------ | ---------------------------------------------- | ----------- | ---------------------------------------------------- |
 | `label`      | `string`                                       | required    | Tooltip text and accessible label                    |
-| `onClick`    | `() => void`                                   | required    | Click handler                                        |
+| `onClick`    | `() => void`                                   | required    | Click handler (called on plain left-click)           |
+| `href`       | `string`                                       | -           | When set, renders as `<a>` so middle-click / ctrl+click opens in a new tab. Left-click still calls `onClick`. |
 | `name`       | `IconName`                                     | -           | Named icon (see [Icon](./icon.md)). Takes precedence over `icon`. |
 | `iconSize`   | `number`                                       | `16`        | Size in pixels when using `name`                     |
 | `icon`       | `ReactNode`                                    | -           | Custom icon element (used when `name` is not set)    |

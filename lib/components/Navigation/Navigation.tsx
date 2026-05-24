@@ -80,6 +80,7 @@ export default function Navigation({
     {
       label: "User Settings",
       icon: <Icon name="user" size={16} />,
+      href: "/user/settings",
       onClick: () => router.push("/user/settings"),
     },
     ...(isAdmin
@@ -87,6 +88,7 @@ export default function Navigation({
           {
             label: "System Settings",
             icon: <Icon name="settings" size={16} />,
+            href: "/system/settings",
             onClick: () => router.push("/system/settings"),
           },
         ]
@@ -96,6 +98,7 @@ export default function Navigation({
           {
             label: "Development Menu",
             icon: <Icon name="code" size={16} />,
+            href: "/dev",
             onClick: () => router.push("/dev"),
           },
         ]
@@ -119,15 +122,22 @@ export default function Navigation({
   return (
     <>
       <nav className={styles.nav}>
-        <div
+        <a
+          href="/"
           className={styles.title}
           style={{
             display: "flex",
             alignItems: "center",
             gap: "12px",
             cursor: "pointer",
+            textDecoration: "none",
           }}
-          onClick={() => router.push("/")}
+          onClick={(e) => {
+            if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+              e.preventDefault();
+              router.push("/");
+            }
+          }}
         >
           {brandIcon && (
             <img
@@ -141,7 +151,7 @@ export default function Navigation({
             />
           )}
           <h1 style={{ margin: 0, fontSize: "16px" }}>{brandName}</h1>
-        </div>
+        </a>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <NotificationBell />

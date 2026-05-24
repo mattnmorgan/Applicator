@@ -80,34 +80,58 @@ function TreeItem({
     }
   };
 
+  const isLink = isClickable && item.path !== undefined;
+
+  const itemInner = (
+    <>
+      {hasChildren && (
+        <span
+          className={`${styles.expandIcon} ${isExpanded ? styles.expandIconExpanded : styles.expandIconCollapsed}`}
+        >
+          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+            <path
+              d="M4 2L8 6L4 10"
+              stroke="currentColor"
+              strokeWidth="1.5"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
+      )}
+      {!hasChildren && <span style={{ width: "16px" }} />}
+      <span>{item.label}</span>
+    </>
+  );
+
   return (
     <div className={styles.treeItem}>
-      <div
-        className={`
-          ${styles.itemContent}
-          ${isActive ? styles.itemContentActive : ""}
-          ${!isClickable ? styles.itemContentNonClickable : ""}
-        `}
-        onClick={handleClick}
-      >
-        {hasChildren && (
-          <span
-            className={`${styles.expandIcon} ${isExpanded ? styles.expandIconExpanded : styles.expandIconCollapsed}`}
-          >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <path
-                d="M4 2L8 6L4 10"
-                stroke="currentColor"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-          </span>
-        )}
-        {!hasChildren && <span style={{ width: "16px" }} />}
-        <span>{item.label}</span>
-      </div>
+      {isLink ? (
+        <a
+          href={item.path}
+          className={`${styles.itemContent} ${isActive ? styles.itemContentActive : ""}`}
+          style={{ textDecoration: "none" }}
+          onClick={(e) => {
+            if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+              e.preventDefault();
+            }
+            handleClick();
+          }}
+        >
+          {itemInner}
+        </a>
+      ) : (
+        <div
+          className={`
+            ${styles.itemContent}
+            ${isActive ? styles.itemContentActive : ""}
+            ${!isClickable ? styles.itemContentNonClickable : ""}
+          `}
+          onClick={handleClick}
+        >
+          {itemInner}
+        </div>
+      )}
       {hasChildren &&
         isExpanded &&
         filteredChildren &&
@@ -222,20 +246,41 @@ export default function Tabset({
           const isClickable =
             item.clickable !== false && item.path !== undefined;
           const itemKey = item.path || String(index);
+          const tabClass = `${styles.horizontalTab} ${isActive ? styles.horizontalTabActive : ""} ${density === "icon" ? styles.horizontalTabIconOnly : ""}`;
+          const tooltipHandlers = density === "icon" ? {
+            onMouseEnter: (e: React.MouseEvent<Element>) => {
+              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+              setTooltip({ label: item.label, x: rect.left + rect.width / 2, y: rect.bottom + 6 });
+            },
+            onMouseLeave: () => setTooltip(null),
+          } : {};
+
+          if (isClickable && item.path) {
+            return (
+              <a
+                key={index}
+                href={item.path}
+                className={tabClass}
+                style={{ textDecoration: "none" }}
+                onClick={(e) => {
+                  if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                    e.preventDefault();
+                    handleNavigate(item.path!);
+                  }
+                }}
+                {...tooltipHandlers}
+              >
+                {renderHorizontalTabContent(item, itemKey)}
+              </a>
+            );
+          }
 
           return (
             <div
               key={index}
-              className={`${styles.horizontalTab} ${isActive ? styles.horizontalTabActive : ""} ${density === "icon" ? styles.horizontalTabIconOnly : ""}`}
-              onClick={() =>
-                isClickable && item.path && handleNavigate(item.path)
-              }
-              onMouseEnter={density === "icon" ? (e) => {
-                const rect = e.currentTarget.getBoundingClientRect();
-                setTooltip({ label: item.label, x: rect.left + rect.width / 2, y: rect.bottom + 6 });
-              } : undefined}
-              onMouseLeave={density === "icon" ? () => setTooltip(null) : undefined}
-              style={{ cursor: isClickable ? "pointer" : "default" }}
+              className={tabClass}
+              style={{ cursor: "default" }}
+              {...tooltipHandlers}
             >
               {renderHorizontalTabContent(item, itemKey)}
             </div>

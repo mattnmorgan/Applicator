@@ -12,7 +12,7 @@ import type { TabsetItem } from "@applicator/sdk/components";
 ```typescript
 interface TabsetItem {
   label: string;            // Display text
-  path?: string;            // Navigation path (triggers router.push)
+  path?: string;            // Navigation path — rendered as <a href> for middle-click/ctrl+click support; left-click uses router.push
   children?: TabsetItem[];  // Nested items (vertical mode only)
   clickable?: boolean;      // Whether the item triggers navigation (default: true)
 }

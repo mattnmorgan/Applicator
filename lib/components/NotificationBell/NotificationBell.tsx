@@ -238,6 +238,7 @@ export default function NotificationBell() {
                 <ButtonIcon
                   name="external-link"
                   label="View all notifications"
+                  href="/user/notifications"
                   onClick={() => {
                     setIsOpen(false);
                     router.push("/user/notifications");

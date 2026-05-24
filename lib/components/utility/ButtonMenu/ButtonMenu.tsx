@@ -20,6 +20,7 @@ type ButtonMenuOption =
       label: string;
       icon: ReactNode | string;
       onClick: () => void;
+      href?: string;
       active?: boolean;
       disabled?: boolean;
       variant?: "danger" | "info";
@@ -169,19 +170,13 @@ export default function ButtonMenu({
   const triggerWithProps = addCaretRotation(triggerElement);
 
   const optionsList = options ? (
-    options.map((option, index) =>
-      option.type === "separator" ? (
-        <div key={index} className={styles.separator} />
-      ) : (
-        <button
-          key={index}
-          onClick={option.disabled ? undefined : () => {
-            option.onClick();
-            setIsOpen(false);
-          }}
-          disabled={option.disabled}
-          className={`${styles.menuItem} ${option.active ? styles.menuItemActive : ""} ${option.disabled ? styles.menuItemDisabled : ""} ${option.variant === "danger" ? styles.menuItemDanger : option.variant === "info" ? styles.menuItemInfo : ""}`}
-        >
+    options.map((option, index) => {
+      if (option.type === "separator") {
+        return <div key={index} className={styles.separator} />;
+      }
+      const itemClass = `${styles.menuItem} ${option.active ? styles.menuItemActive : ""} ${option.disabled ? styles.menuItemDisabled : ""} ${option.variant === "danger" ? styles.menuItemDanger : option.variant === "info" ? styles.menuItemInfo : ""}`;
+      const itemContent = (
+        <>
           <div className={styles.menuItemIcon}>
             {typeof option.icon === "string" ? (
               <Icon name={option.icon} />
@@ -190,9 +185,43 @@ export default function ButtonMenu({
             )}
           </div>
           <div>{option.label}</div>
+        </>
+      );
+      if (option.href && !option.disabled) {
+        return (
+          <a
+            key={index}
+            href={option.href}
+            className={itemClass}
+            style={{ textDecoration: "none" }}
+            onClick={(e) => {
+              if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                e.preventDefault();
+                option.onClick();
+                setIsOpen(false);
+              } else {
+                setIsOpen(false);
+              }
+            }}
+          >
+            {itemContent}
+          </a>
+        );
+      }
+      return (
+        <button
+          key={index}
+          onClick={option.disabled ? undefined : () => {
+            option.onClick();
+            setIsOpen(false);
+          }}
+          disabled={option.disabled}
+          className={itemClass}
+        >
+          {itemContent}
         </button>
-      ),
-    )
+      );
+    })
   ) : (
     <div onClick={() => setIsOpen(false)}>{children}</div>
   );

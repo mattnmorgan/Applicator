@@ -11,6 +11,8 @@ export interface ButtonIconProps {
   iconSize?: number;
   label: string;
   onClick: () => void;
+  /** When set, renders as an anchor so middle-click / ctrl+click opens in a new tab. Left-click still calls onClick. */
+  href?: string;
   variant?: 'bare' | 'bordered';
   subvariant?: 'danger' | 'warning' | 'info' | 'neutral';
   /** Button size affecting padding. 'sm' = compact, 'md' = default. */
@@ -28,6 +30,7 @@ export default function ButtonIcon({
   iconSize = 16,
   label,
   onClick,
+  href,
   variant = 'bare',
   subvariant = 'neutral',
   size = 'md',
@@ -75,18 +78,39 @@ export default function ButtonIcon({
     fontSize: '16px',
   };
 
+  const iconContent = name ? <Icon name={name} size={iconSize} /> : icon;
+
   return (
     <Tooltip text={label} placement={placement}>
-      <button
-        style={baseStyle}
-        onClick={disabled ? undefined : onClick}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-        disabled={disabled}
-        aria-label={label}
-      >
-        {name ? <Icon name={name} size={iconSize} /> : icon}
-      </button>
+      {href ? (
+        <a
+          href={href}
+          style={{ ...baseStyle, textDecoration: 'none' }}
+          onClick={(e) => {
+            if (disabled) { e.preventDefault(); return; }
+            if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+              e.preventDefault();
+              onClick();
+            }
+          }}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          aria-label={label}
+        >
+          {iconContent}
+        </a>
+      ) : (
+        <button
+          style={baseStyle}
+          onClick={disabled ? undefined : onClick}
+          onMouseEnter={() => setIsHovered(true)}
+          onMouseLeave={() => setIsHovered(false)}
+          disabled={disabled}
+          aria-label={label}
+        >
+          {iconContent}
+        </button>
+      )}
     </Tooltip>
   );
 }
