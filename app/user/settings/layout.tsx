@@ -5,6 +5,7 @@ import AppletManager from "@/lib/managers/applet";
 import AuthorityManager from "@/lib/managers/authority";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/utility/Tabset";
+import { getLauncherData } from "@/lib/helpers/launcherData";
 import SettingsDrawerLayout from "@/lib/components/administration/SettingsDrawerLayout";
 
 // Inlined helper functions
@@ -155,6 +156,7 @@ export default async function UserSettingsLayout({
   const hasAdminAuth = user.authorizations.includes("system:admin");
   const brandSettings = await getBrandSettings();
   const userSettingsMenuItems = await getUserSettingsMenuItems();
+  const launcherData = await getLauncherData(user.id, user.authorizations);
 
   return (
     <>
@@ -166,6 +168,7 @@ export default async function UserSettingsLayout({
         brandIcon={brandSettings.brandIcon}
         authorizations={user.authorizations}
         isAssumedIdentity={user.isAssumedIdentity}
+        launcherData={launcherData}
       />
       <div
         style={{

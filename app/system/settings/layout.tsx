@@ -5,6 +5,7 @@ import AppletManager from "@/lib/managers/applet";
 import AuthorityManager from "@/lib/managers/authority";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/utility/Tabset";
+import { getLauncherData } from "@/lib/helpers/launcherData";
 import AccessDenied from "@/lib/components/utility/AccessDenied";
 import SettingsDrawerLayout from "@/lib/components/administration/SettingsDrawerLayout";
 
@@ -207,6 +208,7 @@ export default async function SettingsLayout({
     ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}`
     : undefined;
   const brandSettings = await getBrandSettings();
+  const launcherData = await getLauncherData(user.id, user.authorizations);
 
   if (!hasAdminAuth) {
     return (
@@ -219,6 +221,7 @@ export default async function SettingsLayout({
           brandIcon={brandSettings.brandIcon}
           authorizations={user.authorizations}
           isAssumedIdentity={user.isAssumedIdentity}
+          launcherData={launcherData}
         />
         <AccessDenied message="You do not have permission to access System Settings." />
       </>
@@ -237,6 +240,7 @@ export default async function SettingsLayout({
         brandIcon={brandSettings.brandIcon}
         authorizations={user.authorizations}
         isAssumedIdentity={user.isAssumedIdentity}
+        launcherData={launcherData}
       />
       <div
         style={{

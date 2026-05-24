@@ -17,6 +17,8 @@ import { Modal } from "@applicator/sdk/components";
 | `onClose`   | `() => void`| —       | Required when `closeable` is true                                    |
 | `maxWidth`  | `number`    | `600`  | Numeric maximum width of the modal                                   |
 | `maxWidthUnit` | `string` | `"px"` | CSS unit for `maxWidth` — e.g. `"px"`, `"%"`, `"vw"`, `"vh"`, `"rem"` |
+| `minHeight` | `number`    | —      | Numeric minimum height of the modal (e.g. `75` with `minHeightUnit="vh"` for a fixed-height modal) |
+| `minHeightUnit` | `string` | `"px"` | CSS unit for `minHeight` — e.g. `"px"`, `"vh"`, `"rem"` |
 
 ## Usage
 

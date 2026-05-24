@@ -8,6 +8,7 @@ import AppletSettingManager from "@/lib/managers/appletSetting";
 import SettingManager from "@/lib/managers/setting";
 import Navigation from "@/lib/components/Navigation";
 import Tabset, { TabsetItem } from "@/lib/components/utility/Tabset";
+import { getLauncherData } from "@/lib/helpers/launcherData";
 import HomeApplets from "@/lib/components/HomeApplets";
 import UtilityBar, {
   UtilityBarAppletInfo,
@@ -448,6 +449,10 @@ export default async function HomePage() {
   const homeMenuItems = await getHomeMenuItems(user.id);
   const pinnedApplets = await getUserPinnedApplets(user.id);
   const utilityBarApplets = await getUserUtilityBarApplets(user.id);
+  const launcherData = await getLauncherData(
+    user.id,
+    currentUserResult.authorizations.flat(),
+  );
   const hasUtilityBar = utilityBarApplets.length > 0;
 
   return (
@@ -463,6 +468,7 @@ export default async function HomePage() {
         brandIcon={brandSettings.brandIcon}
         authorizations={currentUserResult.authorizations.flat()}
         isAssumedIdentity={currentUserResult.isAssumedIdentity}
+        launcherData={launcherData}
       />
       <div
         className={hasUtilityBar ? "home-main" : undefined}

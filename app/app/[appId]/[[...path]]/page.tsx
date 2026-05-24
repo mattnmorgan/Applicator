@@ -1,8 +1,9 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import Navigation from "@/lib/components/Navigation/Navigation";
+import type { LauncherData, LauncherItem } from "@/lib/components/Navigation/Navigation";
 import Tabset from "@/lib/components/utility/Tabset/Tabset";
 import DynamicAppLoader from "@/lib/components/utility/DynamicAppLoader";
 import AppletManager from "@/lib/client/managers/applet";
@@ -34,7 +35,7 @@ export default function AppPage() {
     isAdmin: boolean;
   } | null>(null);
   const [userApplets, setUserApplets] = useState<
-    Array<{ id: string; label: string; target: string }>
+    Array<{ id: string; label: string; target: string; app: string; appLabel: string }>
   >([]);
   const [authorizations, setAuthorizations] = useState<string[]>([]);
   const [isAssumedIdentity, setIsAssumedIdentity] = useState(false);
@@ -261,6 +262,90 @@ export default function AppPage() {
     })();
   }, [fullAppId, appId, appletId, user, userApplets]);
 
+  const launcherData = useMemo<LauncherData | undefined>(() => {
+    if (!user || userApplets.length === 0) return undefined;
+
+    const BUILTIN_USER_SETTINGS: LauncherItem[] = [
+      { label: "Homescreen", href: "/user/settings/home" },
+      { label: "Notifications", href: "/user/settings/notifications" },
+      { label: "Profile", href: "/user/settings/profile" },
+      { label: "Sessions", href: "/user/settings/sessions" },
+    ];
+
+    const BUILTIN_SYSTEM_SETTINGS: LauncherItem[] = [
+      { label: "Settings", href: "/system/settings" },
+      { label: "Logs", href: "/system/settings/debug/logs" },
+      { label: "Users", href: "/system/settings/user-management/users" },
+      { label: "Authorities", href: "/system/settings/user-management/access-management/authorities" },
+      { label: "Authorizations", href: "/system/settings/user-management/access-management/authorizations" },
+      { label: "App Access Manager", href: "/system/settings/user-management/access-management/app-access" },
+      { label: "App Permissions Manager", href: "/system/settings/user-management/access-management/app-permissions" },
+      { label: "Permissions Manager", href: "/system/settings/user-management/access-management/permissions" },
+      { label: "Agents", href: "/system/settings/agents" },
+      { label: "Apps", href: "/system/settings/apps" },
+      { label: "Tables", href: "/system/settings/data-models" },
+    ];
+
+    const BUILTIN_DEV_MENU: LauncherItem[] = [
+      { label: "Development Settings", href: "/dev/settings" },
+      { label: "API Endpoints", href: "/dev/test/api-endpoints" },
+      { label: "Dynamic Inputs", href: "/dev/test/dynamic-inputs" },
+      { label: "Logs", href: "/dev/test/logs" },
+      { label: "Notifications", href: "/dev/test/notifications" },
+      { label: "Form Editor and Viewer", href: "/dev/test/form-editor" },
+      { label: "Panels", href: "/dev/test/panels" },
+      { label: "Database", href: "/dev/utilities/database" },
+      { label: "Elasticsearch", href: "/dev/utilities/elasticsearch" },
+    ];
+
+    const apps: LauncherItem[] = userApplets
+      .filter((a) => a.target === "app")
+      .map((a) => ({
+        label: a.label,
+        href: `/app/${a.id}`,
+        appIconUrl: `/api/${a.app}/assets/icon`,
+        appLabel: a.appLabel,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+
+    const userSettingsApplets: LauncherItem[] = userApplets
+      .filter((a) => a.target === "user-settings")
+      .map((a) => ({
+        label: a.label,
+        href: `/user/settings/applet/${a.id}`,
+        appIconUrl: `/api/${a.app}/assets/icon`,
+        appLabel: a.appLabel,
+      }))
+      .sort((a, b) => a.label.localeCompare(b.label));
+
+    const userSettings: LauncherItem[] = [
+      ...BUILTIN_USER_SETTINGS,
+      ...userSettingsApplets,
+    ].sort((a, b) => a.label.localeCompare(b.label));
+
+    let systemSettings: LauncherItem[] | undefined;
+    if (user.isAdmin) {
+      const systemSettingsApplets: LauncherItem[] = userApplets
+        .filter((a) => a.target === "system-settings")
+        .map((a) => ({
+          label: a.label,
+          href: `/system/settings/applet/${a.id}`,
+          appIconUrl: `/api/${a.app}/assets/icon`,
+          appLabel: a.appLabel,
+        }))
+        .sort((a, b) => a.label.localeCompare(b.label));
+
+      systemSettings = [...BUILTIN_SYSTEM_SETTINGS, ...systemSettingsApplets]
+        .sort((a, b) => a.label.localeCompare(b.label));
+    }
+
+    const devMenu = authorizations.includes("system:developer")
+      ? [...BUILTIN_DEV_MENU].sort((a, b) => a.label.localeCompare(b.label))
+      : undefined;
+
+    return { apps, userSettings, systemSettings, devMenu };
+  }, [user, userApplets, authorizations]);
+
   return (
     <>
       <Navigation
@@ -271,6 +356,7 @@ export default function AppPage() {
         brandIcon={brandIcon}
         authorizations={authorizations}
         isAssumedIdentity={isAssumedIdentity}
+        launcherData={launcherData}
       />
       <div
         style={{

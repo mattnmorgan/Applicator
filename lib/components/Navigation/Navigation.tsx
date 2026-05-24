@@ -6,8 +6,23 @@ import ButtonMenu from "../utility/ButtonMenu";
 import ProfileIndicator from "../utility/ProfileIndicator";
 import NotificationBell from "../NotificationBell";
 import AssumeIdentityModal from "../administration/AssumeIdentityModal/AssumeIdentityModal";
+import AppLauncherModal from "./AppLauncherModal";
 import Icon from "../utility/Icon";
 import styles from "./Navigation.module.css";
+
+export interface LauncherItem {
+  label: string;
+  href: string;
+  appIconUrl?: string;
+  appLabel?: string;
+}
+
+export interface LauncherData {
+  apps: LauncherItem[];
+  userSettings: LauncherItem[];
+  systemSettings?: LauncherItem[];
+  devMenu?: LauncherItem[];
+}
 
 interface NavigationProps {
   displayName: string;
@@ -17,6 +32,7 @@ interface NavigationProps {
   brandIcon?: string;
   authorizations?: string[];
   isAssumedIdentity?: boolean;
+  launcherData?: LauncherData;
 }
 
 export default function Navigation({
@@ -27,9 +43,11 @@ export default function Navigation({
   brandIcon,
   authorizations = [],
   isAssumedIdentity = false,
+  launcherData,
 }: NavigationProps) {
   const router = useRouter();
   const [showAssumeModal, setShowAssumeModal] = useState(false);
+  const [showLauncher, setShowLauncher] = useState(false);
 
   const handleLogout = async () => {
     try {
@@ -122,9 +140,19 @@ export default function Navigation({
   return (
     <>
       <nav className={styles.nav}>
-        <a
-          href="/"
-          className={styles.title}
+        <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+          {launcherData && (
+            <button
+              className={styles.iconButton}
+              onClick={() => setShowLauncher(true)}
+              aria-label="App launcher"
+            >
+              <Icon name="sandwich" size={20} />
+            </button>
+          )}
+          <a
+            href="/"
+            className={styles.title}
           style={{
             display: "flex",
             alignItems: "center",
@@ -151,7 +179,8 @@ export default function Navigation({
             />
           )}
           <h1 style={{ margin: 0, fontSize: "16px" }}>{brandName}</h1>
-        </a>
+          </a>
+        </div>
 
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <NotificationBell />
@@ -185,6 +214,13 @@ export default function Navigation({
         <AssumeIdentityModal
           onClose={() => setShowAssumeModal(false)}
           onAssumeIdentity={handleAssumeIdentity}
+        />
+      )}
+
+      {showLauncher && launcherData && (
+        <AppLauncherModal
+          launcherData={launcherData}
+          onClose={() => setShowLauncher(false)}
         />
       )}
     </>

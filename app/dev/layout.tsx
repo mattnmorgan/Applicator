@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { getCurrentUser as getUser } from "@/lib/managers/user";
 import { getSystemSettings } from "@/lib/managers/setting";
 import Navigation from "@/lib/components/Navigation";
+import { getLauncherData } from "@/lib/helpers/launcherData";
 import Tabset, { TabsetItem } from "@/lib/components/utility/Tabset";
 import AccessDenied from "@/lib/components/utility/AccessDenied";
 import SettingsDrawerLayout from "@/lib/components/administration/SettingsDrawerLayout";
@@ -82,6 +83,7 @@ export default async function DevLayout({
     ? `/api/system/assets/icons/users/${user.id}?t=${Date.now()}`
     : undefined;
   const brandSettings = await getBrandSettings();
+  const launcherData = await getLauncherData(user.id, user.authorizations);
 
   if (!hasDeveloperAuth) {
     return (
@@ -94,6 +96,7 @@ export default async function DevLayout({
           brandIcon={brandSettings.brandIcon}
           authorizations={user.authorizations}
           isAssumedIdentity={user.isAssumedIdentity}
+          launcherData={launcherData}
         />
         <AccessDenied message="You do not have permission to access the Development Menu." />
       </>
@@ -110,6 +113,7 @@ export default async function DevLayout({
         brandIcon={brandSettings.brandIcon}
         authorizations={user.authorizations}
         isAssumedIdentity={user.isAssumedIdentity}
+        launcherData={launcherData}
       />
       <div
         style={{

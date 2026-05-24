@@ -11,6 +11,8 @@ export interface ModalProps {
   onClose?: () => void;
   maxWidth?: number;
   maxWidthUnit?: string;
+  minHeight?: number;
+  minHeightUnit?: string;
 }
 
 export default function Modal({
@@ -21,6 +23,8 @@ export default function Modal({
   onClose,
   maxWidth = 600,
   maxWidthUnit = 'px',
+  minHeight,
+  minHeightUnit = 'px',
 }: ModalProps) {
   useEffect(() => {
     if (!closeable || !onClose) return;
@@ -36,12 +40,13 @@ export default function Modal({
   };
 
   const maxWidthValue = `${maxWidth}${maxWidthUnit}`;
+  const minHeightValue = minHeight != null ? `${minHeight}${minHeightUnit}` : undefined;
 
   return (
     <div className={styles.overlay} onClick={handleOverlayClick}>
       <div
         className={styles.modal}
-        style={{ maxWidth: maxWidthValue }}
+        style={{ maxWidth: maxWidthValue, ...(minHeightValue ? { minHeight: minHeightValue } : {}) }}
         onClick={(e) => e.stopPropagation()}
       >
         {header !== undefined && (
