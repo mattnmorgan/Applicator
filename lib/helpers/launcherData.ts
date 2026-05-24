@@ -95,6 +95,7 @@ export async function getLauncherData(
       href: `/user/settings/applet/${a.id}`,
       appIconUrl: `/api/${a.data.app}/assets/icon`,
       appLabel: appLabelMap.get(a.data.app) ?? a.data.app,
+      description: a.data.description || undefined,
     }))
     .sort((a, b) => a.label.localeCompare(b.label));
 
@@ -112,6 +113,7 @@ export async function getLauncherData(
         href: `/system/settings/applet/${a.id}`,
         appIconUrl: `/api/${a.data.app}/assets/icon`,
         appLabel: appLabelMap.get(a.data.app) ?? a.data.app,
+        description: a.data.description || undefined,
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
 
