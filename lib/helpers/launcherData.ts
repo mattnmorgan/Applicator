@@ -83,6 +83,7 @@ export async function getLauncherData(
       href: `/app/${a.id}`,
       appIconUrl: `/api/${a.data.app}/assets/icon`,
       appLabel: appLabelMap.get(a.data.app) ?? a.data.app,
+      description: a.data.description || undefined,
     }))
     .sort((a, b) => a.label.localeCompare(b.label));
 

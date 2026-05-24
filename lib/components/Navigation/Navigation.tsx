@@ -15,6 +15,7 @@ export interface LauncherItem {
   href: string;
   appIconUrl?: string;
   appLabel?: string;
+  description?: string;
 }
 
 export interface LauncherData {

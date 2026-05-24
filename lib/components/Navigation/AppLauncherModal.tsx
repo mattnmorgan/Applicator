@@ -15,7 +15,12 @@ interface AppLauncherModalProps {
 function filterItems(items: LauncherItem[], query: string): LauncherItem[] {
   if (!query.trim()) return items;
   const q = query.toLowerCase();
-  return items.filter((item) => item.label.toLowerCase().includes(q));
+  return items.filter(
+    (item) =>
+      item.label.toLowerCase().includes(q) ||
+      (item.appLabel && item.appLabel.toLowerCase().includes(q)) ||
+      (item.description && item.description.toLowerCase().includes(q)),
+  );
 }
 
 interface ItemBadgeProps {
@@ -61,7 +66,12 @@ function Section({ title, items, onNavigate }: SectionProps) {
             className={styles.item}
             onClick={() => onNavigate(item.href)}
           >
-            <span className={styles.itemLabel}>{item.label}</span>
+            <span className={styles.itemText}>
+              <span className={styles.itemLabel}>{item.label}</span>
+              {item.description && (
+                <span className={styles.itemDescription}>{item.description}</span>
+              )}
+            </span>
             <ItemBadge item={item} />
           </button>
         ))}

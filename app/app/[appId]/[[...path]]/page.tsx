@@ -35,7 +35,7 @@ export default function AppPage() {
     isAdmin: boolean;
   } | null>(null);
   const [userApplets, setUserApplets] = useState<
-    Array<{ id: string; label: string; target: string; app: string; appLabel: string }>
+    Array<{ id: string; label: string; description: string; target: string; app: string; appLabel: string }>
   >([]);
   const [authorizations, setAuthorizations] = useState<string[]>([]);
   const [isAssumedIdentity, setIsAssumedIdentity] = useState(false);
@@ -305,6 +305,7 @@ export default function AppPage() {
         href: `/app/${a.id}`,
         appIconUrl: `/api/${a.app}/assets/icon`,
         appLabel: a.appLabel,
+        description: a.description || undefined,
       }))
       .sort((a, b) => a.label.localeCompare(b.label));
 
