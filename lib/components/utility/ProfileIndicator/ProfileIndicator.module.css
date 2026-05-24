@@ -50,6 +50,12 @@
   min-width: 0;
 }
 
+@media (max-width: 768px) {
+  .displayName {
+    display: none;
+  }
+}
+
 .caret {
   transition: transform 0.2s;
 }
