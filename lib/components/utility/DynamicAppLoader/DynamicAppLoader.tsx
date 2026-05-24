@@ -117,7 +117,8 @@ export default function DynamicAppLoader({
         }
 
         // Create unique script ID to avoid conflicts
-        const scriptId = `app-loader-${crypto.randomUUID().replace(/-/g, "")}`;
+        const uuid = crypto.randomUUID?.() ?? Math.random().toString(36).slice(2) + Date.now().toString(36);
+        const scriptId = `app-loader-${uuid.replace(/-/g, "")}`;
         const moduleVarName = `__APP_MODULE_${scriptId.replace(/-/g, "_")}`;
 
         // Create script element with type="module"
