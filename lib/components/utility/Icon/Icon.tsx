@@ -94,7 +94,9 @@ export type IconName =
   | "radial-graph"
   | "chevrons-up"
   | "chevrons-down"
-  | "save";
+  | "save"
+  | "check-circle"
+  | "flag";
 
 interface IconProps {
   name: IconName | string;
@@ -971,6 +973,22 @@ export default function Icon({ name, size = 16 }: IconProps) {
           <path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z" />
           <polyline points="17 21 17 13 7 13 7 21" />
           <polyline points="7 3 7 8 15 8" />
+        </svg>
+      );
+
+    case "check-circle":
+      return (
+        <svg {...base}>
+          <circle cx="12" cy="12" r="10" />
+          <polyline points="9 12 11 14 15 10" />
+        </svg>
+      );
+
+    case "flag":
+      return (
+        <svg {...base}>
+          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+          <line x1="4" y1="22" x2="4" y2="15" />
         </svg>
       );
 

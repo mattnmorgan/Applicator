@@ -74,6 +74,82 @@ onChange(listRef.current.items.map(i => i.id === item.id ? { ...i, text: buffere
 
 ---
 
+## ics
+
+ICS formatting primitives for generating RFC 5545-compliant calendar feeds. Suitable for use in API route handlers on both front-end and back-end.
+
+```typescript
+import { ics } from "@applicator/sdk/utilities";
+```
+
+### `ics.icsEscape(s)`
+
+Escapes backslashes, semicolons, commas, and newlines in a string for safe embedding in an ICS property value.
+
+```typescript
+lines.push(ics.icsFoldLine(`SUMMARY:${ics.icsEscape(item.title)}`));
+```
+
+### `ics.icsFoldLine(line)`
+
+Folds a line at 75 octets per RFC 5545 §3.1, inserting `\r\n ` at each fold point. Returns the line unchanged if it is already within the limit. Apply to any property line whose value may exceed 75 characters.
+
+```typescript
+lines.push(ics.icsFoldLine(`X-WR-CALNAME:${ics.icsEscape(calendarName)}`));
+```
+
+### `ics.icsDate(isoStr, allDay)`
+
+Formats an ISO 8601 string as an ICS date or datetime value.
+
+| `allDay` | Output format | Example |
+| -------- | ------------- | ------- |
+| `true` | `YYYYMMDD` | `20260315` |
+| `false` | `YYYYMMDDTHHmmssZ` | `20260315T090000Z` |
+
+```typescript
+// All-day event
+lines.push(`DTSTART;VALUE=DATE:${ics.icsDate(event.startDate, true)}`);
+
+// Timed event (UTC)
+lines.push(`DTSTART:${ics.icsDate(event.startDate, false)}`);
+```
+
+### `ics.icsStamp()`
+
+Returns the current UTC moment as a DTSTAMP value (`YYYYMMDDTHHmmssZ`). Call once per calendar generation and reuse the result for all components in that response.
+
+```typescript
+const stamp = ics.icsStamp();
+// ... for each component:
+lines.push(`DTSTAMP:${stamp}`);
+```
+
+### `ics.icsUnescape(s)`
+
+Unescapes special characters in an ICS property value. Inverse of `ics.icsEscape`.
+
+```typescript
+const summary = ics.icsUnescape(props["SUMMARY"] || "");
+```
+
+### `ics.parseICSDate(val, allDay)`
+
+Converts an ICS date or datetime value to an ISO 8601 string. Returns `null` if `val` is absent or unparseable.
+
+| `allDay` | Input format | Output |
+| -------- | ------------ | ------ |
+| `true` | `YYYYMMDD` | `YYYY-MM-DDT00:00:00.000Z` |
+| `false` | `YYYYMMDDTHHmmssZ` | Full ISO string |
+
+```typescript
+const allDay = rawStart.includes("VALUE=DATE");
+const start = ics.parseICSDate(props["DTSTART"], allDay);
+if (!start) return null;
+```
+
+---
+
 ## img
 
 Browser-only image utilities (requires Canvas, Image, and URL APIs).
