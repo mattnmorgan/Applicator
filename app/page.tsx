@@ -450,10 +450,17 @@ export default async function HomePage() {
   const homeMenuItems = await getHomeMenuItems(user.id);
   const pinnedApplets = await getUserPinnedApplets(user.id);
   const utilityBarApplets = await getUserUtilityBarApplets(user.id);
-  const launcherData = await getLauncherData(
-    user.id,
-    currentUserResult.authorizations.flat(),
-  );
+  const [launcherData, hotbarPins] = await Promise.all([
+    getLauncherData(user.id, currentUserResult.authorizations.flat()),
+    (async () => {
+      const setting = await settingManager.readRecord(`${user.id}:hotbar:pins`);
+      if (!setting?.data.value) return [] as string[];
+      try {
+        const parsed = JSON.parse(setting.data.value);
+        return Array.isArray(parsed) ? (parsed as string[]) : [];
+      } catch { return [] as string[]; }
+    })(),
+  ]);
   const hasUtilityBar = utilityBarApplets.length > 0;
 
   return (
@@ -482,7 +489,8 @@ export default async function HomePage() {
         }}
       >
         <HomeTabBar
-          items={homeMenuItems}
+          allItems={homeMenuItems}
+          initialPinnedIds={hotbarPins}
           density={appDensity}
           launcherData={launcherData}
         />

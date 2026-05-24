@@ -13,6 +13,7 @@ import styles from "./Navigation.module.css";
 export interface LauncherItem {
   label: string;
   href: string;
+  appletId?: string;
   appIconUrl?: string;
   appLabel?: string;
   description?: string;

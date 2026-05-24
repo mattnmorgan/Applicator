@@ -81,6 +81,7 @@ export async function getLauncherData(
     .map((a) => ({
       label: a.data.label,
       href: `/app/${a.id}`,
+      appletId: a.id,
       appIconUrl: `/api/${a.data.app}/assets/icon`,
       appLabel: appLabelMap.get(a.data.app) ?? a.data.app,
       description: a.data.description || undefined,

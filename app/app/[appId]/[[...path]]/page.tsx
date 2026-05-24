@@ -44,7 +44,7 @@ export default function AppPage() {
   const [brandIcon, setBrandIcon] = useState<string | undefined>(undefined);
   const [appVersion, setAppVersion] = useState<string | null>(null);
   const [appletComponent, setAppletComponent] = useState<string | null>(null);
-  const [homeMenuItems, setHomeMenuItems] = useState<TabsetItem[]>([]);
+  const [pinnedAppletIds, setPinnedAppletIds] = useState<string[]>([]);
   const [appDensity, setAppDensity] = useState<"full" | "name" | "icon">(
     "full",
   );
@@ -144,38 +144,8 @@ export default function AppPage() {
             setUtilityBarApplets(ubApplets);
           }
 
-          // Build home menu items
-          const menuItems: TabsetItem[] = [
-            {
-              label: "Home",
-              path: "/",
-              icon: "home",
-            },
-          ];
-
-          // Add user's accessible applets with target="app" as tabs
-          if (data.userApplets) {
-            for (const applet of data.userApplets) {
-              if (applet.target === "app") {
-                menuItems.push({
-                  label: applet.label,
-                  path: `/app/${applet.id}`,
-                  icon: `/api/${applet.app}/assets/icon`,
-                });
-              }
-            }
-          }
-
-          menuItems.sort((a, b) => {
-            if (a.label == "Home") {
-              return -1;
-            } else if (b.label == "Home") {
-              return 1;
-            }
-            return a.label.localeCompare(b.label);
-          });
-
-          setHomeMenuItems(menuItems);
+          // Load hotbar pin state
+          setPinnedAppletIds(data.hotbarPins || []);
         }
       })
       .catch((err) => {
@@ -305,6 +275,7 @@ export default function AppPage() {
       .map((a) => ({
         label: a.label,
         href: `/app/${a.id}`,
+        appletId: a.id,
         appIconUrl: `/api/${a.app}/assets/icon`,
         appLabel: a.appLabel,
         description: a.description || undefined,
@@ -349,6 +320,43 @@ export default function AppPage() {
     return { apps, userSettings, systemSettings, devMenu };
   }, [user, userApplets, authorizations]);
 
+  const pinnedSet = useMemo(() => new Set(pinnedAppletIds), [pinnedAppletIds]);
+
+  const homeMenuItems = useMemo<TabsetItem[]>(() => {
+    const items: TabsetItem[] = [{ label: "Home", path: "/", icon: "home" }];
+    for (const applet of userApplets) {
+      if (applet.target === "app" && pinnedAppletIds.includes(applet.id)) {
+        items.push({
+          label: applet.label,
+          path: `/app/${applet.id}`,
+          icon: `/api/${applet.app}/assets/icon`,
+        });
+      }
+    }
+    items.sort((a, b) => {
+      if (a.path === "/") return -1;
+      if (b.path === "/") return 1;
+      return a.label.localeCompare(b.label);
+    });
+    return items;
+  }, [userApplets, pinnedAppletIds]);
+
+  const handlePinToggle = async (appletId: string, currentlyPinned: boolean) => {
+    const next = currentlyPinned
+      ? pinnedAppletIds.filter((id) => id !== appletId)
+      : [...pinnedAppletIds, appletId];
+    setPinnedAppletIds(next);
+    try {
+      await fetch("/api/system/settings/hotbar", {
+        method: currentlyPinned ? "DELETE" : "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ appletId }),
+      });
+    } catch {
+      setPinnedAppletIds(pinnedAppletIds);
+    }
+  };
+
   return (
     <>
       <Navigation
@@ -381,6 +389,8 @@ export default function AppPage() {
           <AppLauncherModal
             launcherData={launcherData}
             onClose={() => setShowLauncher(false)}
+            pinnedIds={pinnedSet}
+            onPinToggle={handlePinToggle}
           />
         )}
         <main

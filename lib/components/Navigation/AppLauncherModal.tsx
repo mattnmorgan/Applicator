@@ -10,6 +10,8 @@ import styles from "./AppLauncherModal.module.css";
 interface AppLauncherModalProps {
   launcherData: LauncherData;
   onClose: () => void;
+  pinnedIds?: Set<string>;
+  onPinToggle?: (appletId: string, pinned: boolean) => void;
 }
 
 function filterItems(items: LauncherItem[], query: string): LauncherItem[] {
@@ -52,33 +54,46 @@ interface SectionProps {
   title: string;
   items: LauncherItem[];
   onNavigate: (href: string) => void;
+  pinnedIds?: Set<string>;
+  onPinToggle?: (appletId: string, pinned: boolean) => void;
 }
 
-function Section({ title, items, onNavigate }: SectionProps) {
+function Section({ title, items, onNavigate, pinnedIds, onPinToggle }: SectionProps) {
   if (items.length === 0) return null;
+  const showPins = pinnedIds !== undefined && onPinToggle !== undefined;
   return (
     <div className={styles.section}>
       <h3 className={styles.sectionTitle}>{title}</h3>
       <div className={styles.itemList}>
         {items.map((item, i) => (
-          <a
-            key={i}
-            href={item.href}
-            className={styles.item}
-            onClick={(e) => {
-              if (e.ctrlKey || e.metaKey || e.shiftKey) return;
-              e.preventDefault();
-              onNavigate(item.href);
-            }}
-          >
-            <span className={styles.itemText}>
-              <span className={styles.itemLabel}>{item.label}</span>
-              {item.description && (
-                <span className={styles.itemDescription}>{item.description}</span>
-              )}
-            </span>
-            <ItemBadge item={item} />
-          </a>
+          <div key={i} className={styles.itemRow}>
+            {showPins && item.appletId && (
+              <button
+                className={`${styles.pinButton} ${pinnedIds.has(item.appletId) ? styles.pinButtonActive : ""}`}
+                onClick={() => onPinToggle(item.appletId!, pinnedIds.has(item.appletId!))}
+                title={pinnedIds.has(item.appletId!) ? "Unpin from hotbar" : "Pin to hotbar"}
+              >
+                <Icon name={pinnedIds.has(item.appletId!) ? "unpin" : "pin"} size={14} />
+              </button>
+            )}
+            <a
+              href={item.href}
+              className={styles.item}
+              onClick={(e) => {
+                if (e.ctrlKey || e.metaKey || e.shiftKey) return;
+                e.preventDefault();
+                onNavigate(item.href);
+              }}
+            >
+              <span className={styles.itemText}>
+                <span className={styles.itemLabel}>{item.label}</span>
+                {item.description && (
+                  <span className={styles.itemDescription}>{item.description}</span>
+                )}
+              </span>
+              <ItemBadge item={item} />
+            </a>
+          </div>
         ))}
       </div>
     </div>
@@ -88,6 +103,8 @@ function Section({ title, items, onNavigate }: SectionProps) {
 export default function AppLauncherModal({
   launcherData,
   onClose,
+  pinnedIds,
+  onPinToggle,
 }: AppLauncherModalProps) {
   const [query, setQuery] = useState("");
   const router = useRouter();
@@ -145,6 +162,8 @@ export default function AppLauncherModal({
           title="Apps"
           items={filteredApps}
           onNavigate={handleNavigate}
+          pinnedIds={pinnedIds}
+          onPinToggle={onPinToggle}
         />
         <Section
           title="User Preferences"

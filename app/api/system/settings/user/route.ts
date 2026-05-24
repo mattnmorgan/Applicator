@@ -128,6 +128,18 @@ export async function GET() {
       }
     }
 
+    // Read hotbar pins
+    const hotbarSetting = await settingManager.readRecord(`${user.id}:hotbar:pins`);
+    let hotbarPins: string[] = [];
+    if (hotbarSetting?.data.value) {
+      try {
+        const parsed = JSON.parse(hotbarSetting.data.value);
+        if (Array.isArray(parsed)) hotbarPins = parsed;
+      } catch {
+        // ignore
+      }
+    }
+
     return NextResponse.json({
       user: {
         id: user.id,
@@ -143,6 +155,7 @@ export async function GET() {
       isAssumedIdentity: currentUser.isAssumedIdentity,
       homeSettings: { appDensity },
       utilityBarSettings: { density: utilityBarDensity, appletIds: utilityBarAppletIds, windowStates: utilityBarWindowStates },
+      hotbarPins,
     });
   } catch (error) {
     console.error("Failed to get current user:", error);

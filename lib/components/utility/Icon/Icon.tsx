@@ -54,6 +54,7 @@ export type IconName =
   | "sticky-note"
   | "star"
   | "pin"
+  | "unpin"
   // Text formatting
   | "list-unordered"
   | "list-ordered"
@@ -570,6 +571,14 @@ export default function Icon({ name, size = 16 }: IconProps) {
         <svg {...base}>
           <path d="M12 22v-7" />
           <path d="M9 8V3h6v5l2.5 4H6.5L9 8z" />
+        </svg>
+      );
+
+    case "unpin":
+      return (
+        <svg {...base}>
+          <path d="M12 22v-7" />
+          <path d="M9 8V3h6v5l2.5 4H6.5L9 8z" fill="currentColor" stroke="none" />
         </svg>
       );
 

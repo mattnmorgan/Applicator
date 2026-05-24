@@ -56,6 +56,40 @@
   flex-direction: column;
 }
 
+.itemRow {
+  display: flex;
+  align-items: center;
+}
+
+.pinButton {
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  background: transparent;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  color: #475569;
+  transition: color 0.15s, background 0.15s;
+}
+
+.pinButton:hover {
+  color: #94a3b8;
+  background: #334155;
+}
+
+.pinButtonActive {
+  color: #60a5fa;
+}
+
+.pinButtonActive:hover {
+  color: #93c5fd;
+  background: #1e3a5f;
+}
+
 .item {
   display: flex;
   align-items: center;
@@ -71,7 +105,8 @@
   text-align: left;
   text-decoration: none;
   transition: background 0.15s;
-  width: 100%;
+  flex: 1;
+  min-width: 0;
 }
 
 .item:hover {
