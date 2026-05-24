@@ -77,6 +77,7 @@ export default function UtilityBar({
   const [moduleUrls, setModuleUrls] = useState<Record<string, string>>({});
   const [versionsLoaded, setVersionsLoaded] = useState(false);
   const [openAppletId, setOpenAppletId] = useState<string | null>(null);
+  const [openPanelLeft, setOpenPanelLeft] = useState(0);
   const [poppedOut, setPoppedOut] = useState<Set<string>>(new Set());
   const [minimizedWindows, setMinimizedWindows] = useState<Set<string>>(new Set());
   const [windowStates, setWindowStates] =
@@ -229,8 +230,9 @@ export default function UtilityBar({
     };
   }, [saveWindowStates]);
 
-  const handleTabClick = (appletId: string) => {
+  const handleTabClick = (appletId: string, buttonLeft: number) => {
     setOpenAppletId((prev) => (prev === appletId ? null : appletId));
+    setOpenPanelLeft(buttonLeft);
   };
 
   const handlePopOut = (appletId: string) => {
@@ -328,7 +330,10 @@ export default function UtilityBar({
     <>
       {/* Expanded panel — renders above the bar for the active tab */}
       {openApplet && (
-        <div className={styles.openPanel}>
+        <div
+          className={styles.openPanel}
+          style={{ left: `clamp(0px, ${openPanelLeft}px, calc(100vw - 20vw))` }}
+        >
           <div className={styles.openPanelHeader}>
             <div className={styles.openPanelInfo}>
               <img
@@ -386,7 +391,7 @@ export default function UtilityBar({
             className={`${styles.barItem} ${
               openAppletId === applet.appletId ? styles.barItemActive : ""
             } ${isDisabled ? styles.barItemDisabled : ""}`}
-            onClick={() => !isDisabled && handleTabClick(applet.appletId)}
+            onClick={(e) => !isDisabled && handleTabClick(applet.appletId, e.currentTarget.getBoundingClientRect().left)}
             disabled={isDisabled}
             onMouseEnter={(e) => {
               const rect = e.currentTarget.getBoundingClientRect();
