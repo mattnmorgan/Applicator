@@ -13,12 +13,19 @@ export interface TabsetItem {
   icon?: string;
 }
 
+export interface StickyTabItem {
+  label: string;
+  icon?: string;
+  onClick?: () => void;
+}
+
 interface TabsetProps {
   items: TabsetItem[];
   variant?: "vertical" | "horizontal";
   searchable?: boolean;
   autoExpand?: boolean;
   density?: "full" | "name" | "icon";
+  stickyItems?: StickyTabItem[];
 }
 
 function isIconUrl(icon: string) {
@@ -159,6 +166,7 @@ export default function Tabset({
   searchable = false,
   autoExpand = false,
   density = "full",
+  stickyItems,
 }: TabsetProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -185,7 +193,13 @@ export default function Tabset({
     return () => el.removeEventListener("wheel", onWheel);
   }, [variant]);
 
-  const renderHorizontalTabContent = (item: TabsetItem, itemKey: string) => {
+  const renderHorizontalTabContent = (
+    item: { label: string; icon?: string },
+    itemKey: string,
+    densityOverride?: "full" | "name" | "icon",
+  ) => {
+    const effectiveDensity = densityOverride ?? density;
+
     const getIconNode = () => {
       if (item.icon) {
         if (isIconUrl(item.icon)) {
@@ -206,7 +220,7 @@ export default function Tabset({
           return <Icon name={item.icon} size={16} />;
         }
       }
-      if (density === "icon") {
+      if (effectiveDensity === "icon") {
         return (
           <span className={styles.horizontalTabLetter}>
             {item.label[0]?.toUpperCase() || "?"}
@@ -216,13 +230,13 @@ export default function Tabset({
       return null;
     };
 
-    if (density === "name") {
+    if (effectiveDensity === "name") {
       return <>{item.label}</>;
     }
 
     const iconNode = getIconNode();
 
-    if (density === "icon") {
+    if (effectiveDensity === "icon") {
       return iconNode;
     }
 
@@ -238,54 +252,78 @@ export default function Tabset({
   if (variant === "horizontal") {
     return (
       <>
-      <div ref={horizontalRef} className={styles.tabsetHorizontal}>
-        {items.map((item, index) => {
-          const isActive =
-            item.path !== undefined &&
-            (item.path === pathname || pathname.startsWith(item.path + "/"));
-          const isClickable =
-            item.clickable !== false && item.path !== undefined;
-          const itemKey = item.path || String(index);
-          const tabClass = `${styles.horizontalTab} ${isActive ? styles.horizontalTabActive : ""} ${density === "icon" ? styles.horizontalTabIconOnly : ""}`;
-          const tooltipHandlers = density === "icon" ? {
-            onMouseEnter: (e: React.MouseEvent<Element>) => {
-              const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
-              setTooltip({ label: item.label, x: rect.left + rect.width / 2, y: rect.bottom + 6 });
-            },
-            onMouseLeave: () => setTooltip(null),
-          } : {};
+      <div className={styles.tabsetHorizontalWrapper}>
+        {stickyItems && stickyItems.length > 0 && (
+          <>
+            {stickyItems.map((item, index) => {
+              const itemKey = `sticky-${index}`;
+              return (
+                <button
+                  key={itemKey}
+                  className={`${styles.horizontalTab} ${styles.horizontalTabIconOnly} ${styles.stickyTab}`}
+                  onClick={item.onClick}
+                  onMouseEnter={(e) => {
+                    const rect = e.currentTarget.getBoundingClientRect();
+                    setTooltip({ label: item.label, x: rect.left + rect.width / 2, y: rect.bottom + 6 });
+                  }}
+                  onMouseLeave={() => setTooltip(null)}
+                >
+                  {renderHorizontalTabContent(item, itemKey, "icon")}
+                </button>
+              );
+            })}
+            <div className={styles.stickyDivider} />
+          </>
+        )}
+        <div ref={horizontalRef} className={styles.tabsetHorizontal}>
+          {items.map((item, index) => {
+            const isActive =
+              item.path !== undefined &&
+              (item.path === pathname || pathname.startsWith(item.path + "/"));
+            const isClickable =
+              item.clickable !== false && item.path !== undefined;
+            const itemKey = item.path || String(index);
+            const tabClass = `${styles.horizontalTab} ${isActive ? styles.horizontalTabActive : ""} ${density === "icon" ? styles.horizontalTabIconOnly : ""}`;
+            const tooltipHandlers = density === "icon" ? {
+              onMouseEnter: (e: React.MouseEvent<Element>) => {
+                const rect = (e.currentTarget as HTMLElement).getBoundingClientRect();
+                setTooltip({ label: item.label, x: rect.left + rect.width / 2, y: rect.bottom + 6 });
+              },
+              onMouseLeave: () => setTooltip(null),
+            } : {};
 
-          if (isClickable && item.path) {
+            if (isClickable && item.path) {
+              return (
+                <a
+                  key={index}
+                  href={item.path}
+                  className={tabClass}
+                  style={{ textDecoration: "none" }}
+                  onClick={(e) => {
+                    if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
+                      e.preventDefault();
+                      handleNavigate(item.path!);
+                    }
+                  }}
+                  {...tooltipHandlers}
+                >
+                  {renderHorizontalTabContent(item, itemKey)}
+                </a>
+              );
+            }
+
             return (
-              <a
+              <div
                 key={index}
-                href={item.path}
                 className={tabClass}
-                style={{ textDecoration: "none" }}
-                onClick={(e) => {
-                  if (!e.ctrlKey && !e.metaKey && !e.shiftKey) {
-                    e.preventDefault();
-                    handleNavigate(item.path!);
-                  }
-                }}
+                style={{ cursor: "default" }}
                 {...tooltipHandlers}
               >
                 {renderHorizontalTabContent(item, itemKey)}
-              </a>
+              </div>
             );
-          }
-
-          return (
-            <div
-              key={index}
-              className={tabClass}
-              style={{ cursor: "default" }}
-              {...tooltipHandlers}
-            >
-              {renderHorizontalTabContent(item, itemKey)}
-            </div>
-          );
-        })}
+          })}
+        </div>
       </div>
       {tooltip && (
         <div className={styles.tooltip} style={{ top: tooltip.y, left: tooltip.x }}>

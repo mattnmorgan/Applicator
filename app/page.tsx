@@ -7,7 +7,8 @@ import AppletManager from "@/lib/managers/applet";
 import AppletSettingManager from "@/lib/managers/appletSetting";
 import SettingManager from "@/lib/managers/setting";
 import Navigation from "@/lib/components/Navigation";
-import Tabset, { TabsetItem } from "@/lib/components/utility/Tabset";
+import { TabsetItem } from "@/lib/components/utility/Tabset";
+import HomeTabBar from "@/lib/components/HomeTabBar";
 import { getLauncherData } from "@/lib/helpers/launcherData";
 import HomeApplets from "@/lib/components/HomeApplets";
 import UtilityBar, {
@@ -468,7 +469,6 @@ export default async function HomePage() {
         brandIcon={brandSettings.brandIcon}
         authorizations={currentUserResult.authorizations.flat()}
         isAssumedIdentity={currentUserResult.isAssumedIdentity}
-        launcherData={launcherData}
       />
       <div
         className={hasUtilityBar ? "home-main" : undefined}
@@ -481,10 +481,10 @@ export default async function HomePage() {
           background: "#0f172a",
         }}
       >
-        <Tabset
+        <HomeTabBar
           items={homeMenuItems}
-          variant="horizontal"
           density={appDensity}
+          launcherData={launcherData}
         />
         <main
           style={{

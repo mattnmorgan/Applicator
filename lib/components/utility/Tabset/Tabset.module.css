@@ -4,12 +4,33 @@
   gap: 4px;
 }
 
+.tabsetHorizontalWrapper {
+  display: flex;
+  flex-direction: row;
+  align-items: stretch;
+  border-bottom: 1px solid #334155;
+  height: 48px;
+}
+
+.stickyTab {
+  flex-shrink: 0;
+  border-bottom: none;
+}
+
+.stickyDivider {
+  width: 1px;
+  background: #334155;
+  align-self: stretch;
+  margin: 6px 0;
+  flex-shrink: 0;
+}
+
 .tabsetHorizontal {
   display: flex;
   flex-direction: row;
   gap: 4px;
-  border-bottom: 1px solid #334155;
   overflow-x: auto;
+  flex: 1;
   height: 48px;
   align-items: center;
 }

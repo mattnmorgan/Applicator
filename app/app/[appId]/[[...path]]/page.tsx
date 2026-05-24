@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import Navigation from "@/lib/components/Navigation/Navigation";
 import type { LauncherData, LauncherItem } from "@/lib/components/Navigation/Navigation";
 import Tabset from "@/lib/components/utility/Tabset/Tabset";
+import AppLauncherModal from "@/lib/components/Navigation/AppLauncherModal";
 import DynamicAppLoader from "@/lib/components/utility/DynamicAppLoader";
 import AppletManager from "@/lib/client/managers/applet";
 import AppManager from "@/lib/client/managers/app";
@@ -59,6 +60,7 @@ export default function AppPage() {
     Record<string, WindowState>
   >({});
   const [isMobile, setIsMobile] = useState(false);
+  const [showLauncher, setShowLauncher] = useState(false);
 
   const appletManager = new AppletManager();
   const appManager = new AppManager();
@@ -357,7 +359,6 @@ export default function AppPage() {
         brandIcon={brandIcon}
         authorizations={authorizations}
         isAssumedIdentity={isAssumedIdentity}
-        launcherData={launcherData}
       />
       <div
         style={{
@@ -374,7 +375,14 @@ export default function AppPage() {
           items={homeMenuItems}
           variant="horizontal"
           density={appDensity}
+          stickyItems={launcherData ? [{ label: "App Launcher", icon: "sandwich", onClick: () => setShowLauncher(true) }] : undefined}
         />
+        {showLauncher && launcherData && (
+          <AppLauncherModal
+            launcherData={launcherData}
+            onClose={() => setShowLauncher(false)}
+          />
+        )}
         <main
           style={{
             position: "absolute",
