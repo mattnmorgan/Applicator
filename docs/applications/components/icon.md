@@ -18,7 +18,7 @@ import type { IconName } from "@applicator/sdk/components";
 
 ### General
 
-`archive`, `audio`, `bell`, `calendar`, `check`, `check-circle`, `chevron-down`, `chevron-up`, `chevron-left`, `chevron-right`, `chevrons-up`, `chevrons-down`, `clipboard`, `close`, `code`, `copy`, `crown`, `dock`, `download`, `drag`, `edit`, `error`, `external-link`, `eye`, `eye-off`, `file`, `flag`, `folder`, `globe`, `hamburger`, `sandwich`, `image`, `info`, `library`, `link`, `lock`, `logout`, `monitor`, `move`, `pin`, `unpin`, `play`, `popout`, `plus`, `print`, `refresh`, `reply`, `save`, `search`, `settings`, `smartphone`, `spreadsheet`, `square-stop`, `star`, `sticky-note`, `tablet`, `trash`, `unlock`, `upload`, `user`, `users`, `video`, `warning`, `word-wrap`, `list-view`, `grid-view`, `grid-view-small`
+`archive`, `audio`, `bell`, `calendar`, `check`, `check-circle`, `chevron-down`, `chevron-up`, `chevron-left`, `chevron-right`, `chevrons-up`, `chevrons-down`, `clipboard`, `close`, `code`, `copy`, `crown`, `dock`, `download`, `drag`, `edit`, `error`, `external-link`, `eye`, `eye-off`, `file`, `flag`, `folder`, `globe`, `hamburger`, `sandwich`, `home`, `image`, `info`, `library`, `link`, `lock`, `logout`, `monitor`, `more-horizontal`, `move`, `pin`, `unpin`, `play`, `popout`, `plus`, `print`, `refresh`, `reply`, `save`, `search`, `settings`, `smartphone`, `spreadsheet`, `square-stop`, `star`, `sticky-note`, `tablet`, `trash`, `unlock`, `upload`, `user`, `users`, `video`, `warning`, `word-wrap`, `list-view`, `grid-view`, `grid-view-small`
 
 ### Text formatting
 
