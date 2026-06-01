@@ -59,14 +59,14 @@ export async function POST(req: NextRequest, context: { plugin: any }) {
 
 ### Password-Protected
 
-Creates an authority that anyone can use if they provide the correct password. The password is automatically hashed with bcrypt before storage.
+Creates an authority that anyone can use if they provide the correct password. The password is automatically hashed with bcrypt before storage. If `password` is omitted, the authority is open — guests can access it without a password prompt.
 
 ```typescript
 const ca = await caManager.createPasswordContextualAuthority({
   app: 'my-app',
   recordId: 'share',            // Domain-specific grouping key
   permission: 'my-app:viewer',  // Authority ID from your app.json authorities array
-  password: 'secret123',        // Plaintext password (hashed automatically)
+  password: 'secret123',        // Optional — omit for open (no-password) access
   createdBy: user.id,           // Creator's user ID
   context: JSON.stringify({     // Optional app-specific data
     documentId: 'doc-123',

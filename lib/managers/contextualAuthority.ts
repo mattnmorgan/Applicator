@@ -28,11 +28,13 @@ export default class ContextualAuthorityManager extends CRUD<ContextualAuthority
   /**
    * Create a password-protected contextual authority.
    * The password is automatically hashed before storage.
+   * If password is omitted, the authority is created without a password hash
+   * and will be accessible without prompting for a password.
    *
    * @param params.app App that owns this authority
    * @param params.recordId Domain-specific record grouping (e.g. "share")
    * @param params.permission Permission string for this authority
-   * @param params.password Plaintext password (will be hashed)
+   * @param params.password Optional plaintext password (will be hashed); omit for open access
    * @param params.createdBy User ID of the creator
    * @param params.context Optional JSON string of app-specific context data
    * @returns The created contextual authority record
@@ -41,7 +43,7 @@ export default class ContextualAuthorityManager extends CRUD<ContextualAuthority
     app: string;
     recordId: string;
     permission: string;
-    password: string;
+    password?: string;
     createdBy: string;
     context?: string;
   }): Promise<TableRecord<ContextualAuthority>> {
@@ -52,21 +54,24 @@ export default class ContextualAuthorityManager extends CRUD<ContextualAuthority
       "password",
       String(timestamp),
     );
-    const hashedPassword = await bcrypt.hash(params.password, 10);
+
+    const data: Record<string, any> = {
+      permission: params.permission,
+      app: params.app,
+      created_at: timestamp,
+      created_by: params.createdBy,
+    };
+
+    if (params.password) {
+      data.password = await bcrypt.hash(params.password, 10);
+    }
+
+    if (params.context !== undefined) {
+      data.context = params.context;
+    }
 
     const table = await this.getTable();
-    return this.createRecord(
-      table,
-      {
-        permission: params.permission,
-        app: params.app,
-        password: hashedPassword,
-        created_at: timestamp,
-        created_by: params.createdBy,
-        ...(params.context !== undefined ? { context: params.context } : {}),
-      },
-      { id: key },
-    );
+    return this.createRecord(table, data, { id: key });
   }
 
   /**
