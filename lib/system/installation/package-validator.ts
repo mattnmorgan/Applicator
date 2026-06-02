@@ -6,6 +6,7 @@ import SettingManager from "@/lib/managers/setting";
 import TableManager from "@/lib/managers/table";
 import { isValidCronString } from "@/lib/system/cron";
 import { formatVersion, isVersionGreaterOrEqual } from "@/lib/system/version";
+import { SYSTEM_APP_METADATA } from "@/lib/database/systemMetadata";
 
 export interface AppValidationError {
   field: string;
@@ -110,6 +111,22 @@ export async function validateAppPackage(
     for (const [depId, requiredVersion] of Object.entries(
       appAttributes.dependencies,
     )) {
+      if (depId === "system") {
+        if (
+          !isVersionGreaterOrEqual(
+            SYSTEM_APP_METADATA.version,
+            requiredVersion as AppVersion,
+          )
+        ) {
+          const installedVersionStr = formatVersion(SYSTEM_APP_METADATA.version);
+          const requiredVersionStr = formatVersion(requiredVersion as AppVersion);
+          throw new Error(
+            `Dependency 'system' version ${installedVersionStr} does not meet minimum requirement ${requiredVersionStr}`,
+          );
+        }
+        continue;
+      }
+
       const installedApp = installedApps.get(depId);
 
       if (!installedApp) {
