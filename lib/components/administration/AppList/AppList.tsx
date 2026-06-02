@@ -37,6 +37,7 @@ interface App {
   description: string;
   widgets?: Widget[];
   dependencies?: Record<string, AppVersion>;
+  requiredPermissions?: string[];
 }
 
 function formatVersion(version: AppVersion): string {
@@ -79,10 +80,12 @@ export default function AppList() {
     appId: string;
     appName: string;
   } | null>(null);
-  const [pendingInstall, setPendingInstall] = useState<{
-    file: File;
+  const [pendingPermissions, setPendingPermissions] = useState<{
     appName: string;
     permissions: { id: string; name: string; description: string }[];
+    confirmLabel: string;
+    onConfirm: (permIds: string[]) => void;
+    onCancel: () => void;
   } | null>(null);
   const [upgradingSystem, setUpgradingSystem] = useState(false);
   const [systemNeedsUpgrade, setSystemNeedsUpgrade] = useState(false);
@@ -125,6 +128,7 @@ export default function AppList() {
             contactEmail: record.data.contact_email,
             description: record.data.description,
             dependencies: record.data.dependencies,
+            requiredPermissions: record.data.required_permissions || [],
             apiRoutes: apiRoutesByApp[record.id] || [],
           }))
           .sort((a: App, b: App) => a.label.localeCompare(b.label));
@@ -190,10 +194,19 @@ export default function AppList() {
 
       // If the app requires permissions, show the confirmation modal
       if (previewData.permissions && previewData.permissions.length > 0) {
-        setPendingInstall({
-          file,
+        setPendingPermissions({
           appName: previewData.appName,
           permissions: previewData.permissions,
+          confirmLabel: "Install",
+          onConfirm: (permIds) => {
+            setPendingPermissions(null);
+            performInstall(file, permIds);
+          },
+          onCancel: () => {
+            setPendingPermissions(null);
+            addToast({ message: "Installation cancelled", type: "error" });
+            if (fileInputRef.current) fileInputRef.current.value = "";
+          },
         });
         setInstalling(false);
         return;
@@ -259,26 +272,57 @@ export default function AppList() {
       });
     } finally {
       setInstalling(false);
-      setPendingInstall(null);
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
     }
   };
 
-  const handlePermissionsConfirm = () => {
-    if (!pendingInstall) return;
-    const { file, permissions } = pendingInstall;
-    const permissionIds = permissions.map((p) => p.id);
-    setPendingInstall(null); // Dismiss popup immediately so install progress is visible
-    performInstall(file, permissionIds);
-  };
+  const performUpgrade = async (file: File, appId: string, approvedPermissions?: string[]) => {
+    setUpgrading(appId);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+      formData.append("appId", appId);
+      if (approvedPermissions && approvedPermissions.length > 0) {
+        formData.append("approvedPermissions", JSON.stringify(approvedPermissions));
+      }
 
-  const handlePermissionsCancel = () => {
-    setPendingInstall(null);
-    addToast({ message: "Installation cancelled", type: "error" });
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
+      const response = await fetch("/api/system/apps/upgrade", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await response.json();
+
+      if (response.ok) {
+        addToast({
+          message: `App "${data.name}" upgraded successfully from ${data.oldVersion} to ${data.newVersion}!`,
+          type: "success",
+        });
+        await fetchApps();
+      } else {
+        addToast({
+          message: data.error || "Failed to upgrade app",
+          type: "error",
+          title: "App Upgrade Failed",
+          duration: 0,
+        });
+      }
+    } catch (error) {
+      console.error("Error upgrading app:", error);
+      addToast({
+        message: "Failed to upgrade app",
+        type: "error",
+        title: "App Upgrade Failed",
+        duration: 0,
+      });
+    } finally {
+      setUpgrading(null);
+      setUpgradeAppId(null);
+      if (upgradeFileInputRef.current) {
+        upgradeFileInputRef.current.value = "";
+      }
     }
   };
 
@@ -356,35 +400,64 @@ export default function AppList() {
     const file = event.target.files?.[0];
     if (!file || !upgradeAppId) return;
 
-    const appToUpgrade = apps.find((a) => a.id === upgradeAppId);
-    setUpgrading(upgradeAppId);
+    const appId = upgradeAppId;
+    const appToUpgrade = apps.find((a) => a.id === appId);
+    setUpgrading(appId);
 
     try {
-      const formData = new FormData();
-      formData.append("file", file);
-      formData.append("appId", upgradeAppId);
+      // Preview the package to detect new required permissions
+      const previewFormData = new FormData();
+      previewFormData.append("file", file);
 
-      const response = await fetch("/api/system/apps/upgrade", {
+      const previewResponse = await fetch("/api/system/apps/preview", {
         method: "POST",
-        body: formData,
+        body: previewFormData,
       });
 
-      const data = await response.json();
+      const previewData = await previewResponse.json();
 
-      if (response.ok) {
+      if (!previewResponse.ok) {
         addToast({
-          message: `App "${data.name}" upgraded successfully from ${data.oldVersion} to ${data.newVersion}!`,
-          type: "success",
-        });
-        await fetchApps();
-      } else {
-        addToast({
-          message: data.error || "Failed to upgrade app",
+          message: previewData.error || "Failed to preview app",
           type: "error",
           title: "App Upgrade Failed",
           duration: 0,
         });
+        setUpgrading(null);
+        setUpgradeAppId(null);
+        if (upgradeFileInputRef.current) upgradeFileInputRef.current.value = "";
+        return;
       }
+
+      // Show a prompt only for permissions the app doesn't currently require
+      const existingPermIds = new Set(appToUpgrade?.requiredPermissions || []);
+      const newPermissions = (previewData.permissions || []).filter(
+        (p: { id: string; name: string; description: string }) => !existingPermIds.has(p.id),
+      );
+
+      if (newPermissions.length > 0) {
+        setUpgrading(null);
+        setPendingPermissions({
+          appName: previewData.appName,
+          permissions: newPermissions,
+          confirmLabel: "Upgrade",
+          onConfirm: (permIds) => {
+            setPendingPermissions(null);
+            performUpgrade(file, appId, permIds);
+          },
+          onCancel: () => {
+            setPendingPermissions(null);
+            setUpgradeAppId(null);
+            if (upgradeFileInputRef.current) upgradeFileInputRef.current.value = "";
+            addToast({ message: "Upgrade cancelled", type: "error" });
+          },
+        });
+        return;
+      }
+
+      // No new permissions — upgrade directly
+      setUpgrading(null);
+      await performUpgrade(file, appId);
     } catch (error) {
       console.error("Error upgrading app:", error);
       addToast({
@@ -393,12 +466,9 @@ export default function AppList() {
         title: "App Upgrade Failed",
         duration: 0,
       });
-    } finally {
       setUpgrading(null);
       setUpgradeAppId(null);
-      if (upgradeFileInputRef.current) {
-        upgradeFileInputRef.current.value = "";
-      }
+      if (upgradeFileInputRef.current) upgradeFileInputRef.current.value = "";
     }
   };
 
@@ -542,7 +612,7 @@ export default function AppList() {
         />
       )}
 
-      {pendingInstall && (
+      {pendingPermissions && (
         <div
           style={{
             position: "fixed",
@@ -557,7 +627,7 @@ export default function AppList() {
             zIndex: 9999,
             animation: "fadeIn 0.2s ease-in-out",
           }}
-          onClick={handlePermissionsCancel}
+          onClick={pendingPermissions.onCancel}
         >
           <div
             style={{
@@ -602,7 +672,7 @@ export default function AppList() {
                   justifyContent: "center",
                   borderRadius: "4px",
                 }}
-                onClick={handlePermissionsCancel}
+                onClick={pendingPermissions.onCancel}
               >
                 <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
                   <path
@@ -623,7 +693,7 @@ export default function AppList() {
                   lineHeight: 1.6,
                 }}
               >
-                <strong>{pendingInstall.appName}</strong> requires the following
+                <strong>{pendingPermissions.appName}</strong> requires the following
                 permissions:
               </p>
               <div
@@ -633,7 +703,7 @@ export default function AppList() {
                   gap: "12px",
                 }}
               >
-                {pendingInstall.permissions.map((perm) => (
+                {pendingPermissions.permissions.map((perm) => (
                   <div
                     key={perm.id}
                     style={{
@@ -675,11 +745,17 @@ export default function AppList() {
                 borderTop: "1px solid #334155",
               }}
             >
-              <Button variant="secondary" onClick={handlePermissionsCancel}>
+              <Button variant="secondary" onClick={pendingPermissions.onCancel}>
                 Cancel
               </Button>
-              <Button variant="primary" onClick={handlePermissionsConfirm}>
-                Install
+              <Button
+                variant="primary"
+                onClick={() => {
+                  const permIds = pendingPermissions.permissions.map((p) => p.id);
+                  pendingPermissions.onConfirm(permIds);
+                }}
+              >
+                {pendingPermissions.confirmLabel}
               </Button>
             </div>
           </div>

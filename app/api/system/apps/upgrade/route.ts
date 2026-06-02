@@ -35,6 +35,20 @@ export async function POST(request: NextRequest) {
     const file = formData.get("file") as File | null;
     let appId = formData.get("appId") as string | null;
 
+    // Parse approved permissions if provided
+    const approvedPermissionsRaw = formData.get("approvedPermissions") as string | null;
+    let approvedPermissions: string[] | undefined;
+    if (approvedPermissionsRaw) {
+      try {
+        approvedPermissions = JSON.parse(approvedPermissionsRaw);
+      } catch {
+        return NextResponse.json(
+          { error: "Invalid approvedPermissions format" },
+          { status: 400 },
+        );
+      }
+    }
+
     // If no appId provided but a file is present, derive it from the package
     if (!appId && file) {
       if (!file.name.endsWith(".zip")) {
@@ -47,7 +61,7 @@ export async function POST(request: NextRequest) {
       const packageData = await extractAppPackage(fileBuffer);
       appId = packageData.appAttributes.id;
       // Re-wrap the buffer so we don't read the stream twice
-      const result = await upgradeApp(appId, fileBuffer);
+      const result = await upgradeApp(appId, fileBuffer, approvedPermissions);
       return NextResponse.json({
         success: true,
         appId: result.appId,
@@ -97,7 +111,7 @@ export async function POST(request: NextRequest) {
     const fileBuffer = Buffer.from(await file.arrayBuffer());
 
     // Use the upgradeApp helper to handle the upgrade
-    const result = await upgradeApp(appId, fileBuffer);
+    const result = await upgradeApp(appId, fileBuffer, approvedPermissions);
 
     return NextResponse.json({
       success: true,

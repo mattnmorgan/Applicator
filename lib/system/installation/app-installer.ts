@@ -1357,12 +1357,14 @@ export async function upgradeSystemApp(): Promise<{
  * Main orchestrator for upgrading an existing app
  * @param appId The app ID to upgrade
  * @param fileBuffer The app package zip buffer
+ * @param approvedPermissions Permission IDs newly approved by the admin during this upgrade
  * @returns The upgrade result
  * @throws Error if upgrade fails
  */
 export async function upgradeApp(
   appId: string,
   fileBuffer: Buffer,
+  approvedPermissions?: string[],
 ): Promise<{
   appId: string;
   name: string;
@@ -1447,6 +1449,26 @@ export async function upgradeApp(
       );
 
       await updateAppComponents(appId, appAttributes, client);
+
+      // Grant any newly approved permissions to the app-specific authority
+      if (approvedPermissions && approvedPermissions.length > 0) {
+        const authorityManager = new AuthorityManager();
+        const appAuthority = await authorityManager.readAppSpecificAuthority(appId, client);
+        if (appAuthority) {
+          const existingAuths = new Set<string>(appAuthority.data.authorizations);
+          const newAuths = approvedPermissions.filter((p) => !existingAuths.has(p));
+          if (newAuths.length > 0) {
+            await authorityManager.updateAppSpecificAuthority(
+              appId,
+              {
+                ...appAuthority.data,
+                authorizations: [...appAuthority.data.authorizations, ...newAuths],
+              },
+              { client },
+            );
+          }
+        }
+      }
     });
 
     // Execute installation hook (outside transaction — needs committed data)
