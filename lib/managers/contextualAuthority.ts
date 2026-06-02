@@ -55,7 +55,7 @@ export default class ContextualAuthorityManager extends CRUD<ContextualAuthority
       String(timestamp),
     );
 
-    const data: Record<string, any> = {
+    const data: ContextualAuthority = {
       permission: params.permission,
       app: params.app,
       created_at: timestamp,
